@@ -28,10 +28,11 @@ export const T = {
   map: { ar: "الخريطة", en: "Map" },
   sectors: { ar: "القطاعات", en: "Sectors" },
   exchange: { ar: "البورصة", en: "Exchange" },
+  investors: { ar: "المستثمرون", en: "Investors" },
   // data provenance
   liveNote: {
-    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار والأخبار من جريدة البورصة وأموال الغد) — لا بيانات تجريبية.",
-    en: "Every figure is live from public sources (TradingView for quotes; Alborsaa & Amwal Alghad for news) — no demo data.",
+    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وأموال الغد) — لا بيانات تجريبية.",
+    en: "Every figure is live from public sources (TradingView for quotes; Sigma Capital for investor-category flows; EGXBot for participation; Alborsaa & Amwal Alghad for news) — no demo data.",
   },
   errorLoad: { ar: "تعذر تحميل البيانات الآن", en: "Could not load the data right now" },
   retry: { ar: "أعد المحاولة", en: "Retry" },
@@ -107,11 +108,66 @@ export const T = {
   // activity view
   activityTitle: { ar: "نشاط السوق", en: "Market activity" },
   activityNote: {
-    ar: "مؤشرات النشاط محسوبة من تداولات الجلسة الفعلية. تعاملات فئات المستثمرين التي تنشرها البورصة ليست متاحة في المصادر العامة المجانية، لذا لا تُعرض هنا.",
-    en: "Activity metrics computed from actual session trading. The exchange's investor-category flows are not available in free public sources, so they are not shown here.",
+    ar: "مؤشرات النشاط محسوبة من تداولات الجلسة الفعلية. تعاملات فئات المستثمرين الحقيقية منفصلة في قسم «المستثمرون».",
+    en: "Activity metrics computed from actual session trading. Real investor-category flows now live in the “Investors” section.",
   },
   turnoverLeaders: { ar: "الأعلى قيمة تداولاً", en: "Turnover leaders" },
   unusualActivity: { ar: "نشاط حجمي غير معتاد", en: "Unusual volume activity" },
+  // investors (flows) view
+  investorsTitle: { ar: "تعاملات فئات المستثمرين", en: "Investor-category flows" },
+  investorsNote: {
+    ar: "بيانات البورصة الفعلية لتعاملات فئات المستثمرين — مشتريات ومبيعات وصافي التدفق للمصريين والعرب والأجانب، أفراداً ومؤسسات. تُنقل حياً من صفحة سيجما كابيتال التي تعرض بيانات البورصة، وتُحفظ نسخة يومية لتكوين سجل تاريخي حقيقي.",
+    en: "Actual exchange data for investor-category transactions — buy, sell and net flows for Egyptians, Arabs and Foreigners, each split into retail and institutions. Served live from Sigma Capital's EGX market page, with a daily snapshot stored to build a real history.",
+  },
+  egyRetail: { ar: "مصريون أفراد", en: "Egyptian retail" },
+  egyInst: { ar: "مصريون مؤسسات", en: "Egyptian inst." },
+  arabRetail: { ar: "عرب أفراد", en: "Arab retail" },
+  arabInst: { ar: "عرب مؤسسات", en: "Arab inst." },
+  forRetail: { ar: "أجانب أفراد", en: "Foreign retail" },
+  forInst: { ar: "أجانب مؤسسات", en: "Foreign inst." },
+  egyptiansTotal: { ar: "المصريون (إجمالي)", en: "Egyptians (total)" },
+  arabsTotal: { ar: "العرب (إجمالي)", en: "Arabs (total)" },
+  foreignersTotal: { ar: "الأجانب (إجمالي)", en: "Foreigners (total)" },
+  totalTurnover: { ar: "إجمالي التداول (اتجاهان)", en: "Total turnover (2-way)" },
+  oneWayValue: { ar: "قيمة التداول", en: "Value traded" },
+  retailVsInst: { ar: "أفراد مقابل مؤسسات", en: "Retail vs institutions" },
+  netFlowChart: { ar: "صافي التدفق حسب الفئة — مليون ج.م", en: "Net flow by category — EGP mn" },
+  netFlowNote: {
+    ar: "الصافي = المشتريات − المبيعات. موجب = شراء صافي، سالب = بيع صافي.",
+    en: "Net = buys − sells. Positive = net buying, negative = net selling.",
+  },
+  participationChart: { ar: "توزيع قيمة التداول حسب الفئة", en: "Trading value distribution by category" },
+  participationTrend: { ar: "تطور مشاركة الجنسيات — %", en: "Nationality participation trend — %" },
+  participationTrendNote: {
+    ar: "حصة كل جنسية من قيمة التداول اليومي، من تقارير جلسات EGXBot (آخر الجلسات المتاحة للعموم).",
+    en: "Each nationality's share of daily traded value, from EGXBot session reports (the latest sessions it exposes publicly).",
+  },
+  flowHistoryChart: { ar: "صافي التدفق حسب الجنسية — مليون ج.م", en: "Net flow by nationality — EGP mn" },
+  flowHistoryNote: {
+    ar: "سجل يومي حقيقي يتراكم تلقائياً بعد إغلاق كل جلسة — يبدأ من تفعيل الميزة ويطول يوماً بيوم.",
+    en: "A real daily record captured automatically after each session close — starts when the feature went live and grows day by day.",
+  },
+  colBuy: { ar: "شراء", en: "Buy" },
+  colCategory: { ar: "الفئة", en: "Category" },
+  colSell: { ar: "بيع", en: "Sell" },
+  colNet: { ar: "صافي", en: "Net" },
+  colShare: { ar: "الحصة", en: "Share" },
+  colTurnoverShort: { ar: "تداول", en: "Turnover" },
+  blockTrades: { ar: "صفقات كبار العملاء (OPR)", en: "Block trades (OPR)" },
+  colQty: { ar: "الكمية", en: "Qty." },
+  colDeals: { ar: "صفقة", en: "deals" },
+  egpMn: { ar: "مليون ج.م", en: "EGP mn" },
+  sourcesTitle: { ar: "مصادر هذه البيانات", en: "Where this data comes from" },
+  flowsUnavailable: {
+    ar: "تعذر جلب جدول اليوم من المصدر الآن — السجل المخزن معروض أدناه.",
+    en: "Could not fetch today's table from the source right now — the stored record is shown below.",
+  },
+  flowsSourceName: { ar: "من", en: "via" },
+  // sector charts
+  sectorPerfChart: { ar: "أداء القطاعات (مرجّح بالقيمة السوقية) — %", en: "Sector performance (cap-weighted) — %" },
+  sectorWeightChart: { ar: "وزن القطاعات من القيمة السوقية", en: "Sector weight of market cap" },
+  otherSectors: { ar: "قطاعات أخرى", en: "Other sectors" },
+  totalMarketCap: { ar: "إجمالي القيمة السوقية", en: "Total market cap" },
   // company page
   addWatch: { ar: "أضف للمتابعة", en: "Add to watchlist" },
   inWatch: { ar: "في متابعتي", en: "In watchlist" },
@@ -177,8 +233,8 @@ export const T = {
   listen: { ar: "استمع", en: "Listen" },
   // footer
   footerNote: {
-    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار والأخبار من مصادر عامة (TradingView، جريدة البورصة، أموال الغد) وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
-    en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes and news come from public sources (TradingView, Alborsaa, Amwal Alghad) and may be delayed. Nothing here is a recommendation to trade any security.",
+    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات من EGXBot، والأخبار من جريدة البورصة وأموال الغد — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
+    en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes from TradingView; investor-category flows from Sigma Capital; nationality participation from EGXBot; news from Alborsaa and Amwal Alghad — and may be delayed. Nothing here is a recommendation to trade any security.",
   },
 } as const;
 

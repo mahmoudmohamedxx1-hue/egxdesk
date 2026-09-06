@@ -9,6 +9,7 @@ import { MarketView } from "@/components/views/market-view";
 import { SectorsView } from "@/components/views/sectors-view";
 import { HeatView } from "@/components/views/heat-view";
 import { ActivityView } from "@/components/views/activity-view";
+import { InvestorsView } from "@/components/views/investors-view";
 import { NewsView } from "@/components/views/news-view";
 import { WatchlistView } from "@/components/views/watchlist-view";
 import { ToolsView } from "@/components/views/tools-view";
@@ -37,6 +38,7 @@ const PRIMARY_NAV = [
 function sectionTabs(currentView: string) {
   const all = [
     { view: "market", t: T.market },
+    { view: "investors", t: T.investors },
     { view: "activity", t: T.activity },
     { view: "heat", t: T.map },
     { view: "sectors", t: T.sectors },
@@ -183,6 +185,7 @@ export function AppShell() {
           {view.name === "sectors" && <SectorsView />}
           {view.name === "heat" && <HeatView />}
           {view.name === "activity" && <ActivityView />}
+          {view.name === "investors" && <InvestorsView />}
           {view.name === "today" && <NewsView />}
           {view.name === "watchlist" && <WatchlistView />}
           {view.name === "tools" && <ToolsView />}

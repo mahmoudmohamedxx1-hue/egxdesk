@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="index, follow">
+    <!-- Google Analytics (GA4) — these SSR SEO pages had no analytics before; now measured. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SCD3LVSQFL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-SCD3LVSQFL');
+    </script>
+    <!-- Self-referencing canonical for every static page (FAQ, blog, terms, …) so each is
+         indexed in its own right and never flagged as a duplicate. -->
+    <link rel="canonical" href="https://egxbot.com/reports">
+    
+    
+<link rel="alternate" hreflang="ar" href="https://egxbot.com/reports">
+<link rel="alternate" hreflang="en" href="https://egxbot.com/en/reports">
+<link rel="alternate" hreflang="x-default" href="https://egxbot.com/reports">
+
+    <title>تقارير البورصة المصرية اليومية والأسبوعية | تحليل القطاعات - EGX</title>
+    <meta name="description" content="تقارير وتحليلات احترافية لأسهم البورصة المصرية: تقارير يومية، أسبوعية، وقطاعية مع ملخص السوق وأهم المتحركين والتوصيات بضغطة واحدة.">
+
+    <!-- Social share preview: a real branded screenshot of the terminal so links shared on
+         Facebook/WhatsApp/Telegram/Twitter show the product, not a generic/empty card.
+         Per-page title/description flow through via the og:* blocks below. -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="المحلل الآلي للبورصة المصرية">
+    <meta property="fb:app_id" content="3377644402397818">
+    <meta property="og:title" content="تقارير البورصة المصرية اليومية والأسبوعية | تحليل القطاعات - EGX">
+    <meta property="og:description" content="تقارير وتحليلات احترافية لأسهم البورصة المصرية: تقارير يومية، أسبوعية، وقطاعية مع ملخص السوق وأهم المتحركين والتوصيات بضغطة واحدة.">
+    <meta property="og:url" content="https://egxbot.com/reports">
+    <meta property="og:image" content="https://egxbot.com/static/img/og-cover.jpg">
+    <meta property="og:image:secure_url" content="https://egxbot.com/static/img/og-cover.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="منصة المحلل الآلي للبورصة المصرية">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="تقارير البورصة المصرية اليومية والأسبوعية | تحليل القطاعات - EGX">
+    <meta name="twitter:description" content="تقارير وتحليلات احترافية لأسهم البورصة المصرية: تقارير يومية، أسبوعية، وقطاعية مع ملخص السوق وأهم المتحركين والتوصيات بضغطة واحدة.">
+    <meta name="twitter:image" content="https://egxbot.com/static/img/og-cover.jpg">
+
+    <!-- BreadcrumbList: shows the "الرئيسية › <page>" trail in Google results and helps
+         search engines + AI understand each page's place in the site hierarchy. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "الرئيسية", "item": "https://egxbot.com/"},
+        {"@type": "ListItem", "position": 2, "name": "التقارير المالية", "item": "https://egxbot.com/reports"}
+      ]
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=optional" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- PWA + favicons (installable, branded) -->
+    <meta name="theme-color" content="#11806a">
+    <link rel="icon" href="/static/img/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+
+    <style>
+        :root {
+            /* Daylight design system (light/linen + sage-green). Legacy var names kept,
+               remapped to Daylight values so all content pages adopt the identity. */
+            --primary-color: #11806a;   /* brand green */
+            --secondary-color: #11806a; /* accents */
+            --accent-color: #11806a;
+            --success-color: #11806a;
+            --warning-color: #d6aa5a;   /* gold */
+            --danger-color: #c0392b;
+            --white: #ffffff;
+            --surface: #ffffff;
+            --bg-linen: #f4f1ea;
+            --light-color: #f4f1ea;
+            --text-dark: #1a2420;       /* ink */
+            --text-light: #5a6760;      /* ink-2 */
+            --ink-3: #6b746d;
+            --border-soft: rgba(26,36,32,.07);
+            --border-strong: rgba(26,36,32,.12);
+            --border-green: rgba(17,128,106,.18);
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+            /* gradient-primary stays DARK — used by the dark Daylight footer. Hero overrides it. */
+            --gradient-primary: linear-gradient(135deg, #16201c 0%, #1f2d28 100%);
+            --gradient-accent: linear-gradient(135deg, #11806a, #0c6e5a);
+            --gradient-success: linear-gradient(135deg, #11806a, #15997f);
+            --gradient-gold: linear-gradient(135deg, #d6aa5a, #c79338);
+            --shadow-sm: 0 4px 14px rgba(26,36,32,.05);
+            --shadow-md: 0 10px 28px rgba(26,36,32,.05);
+            --shadow-lg: 0 18px 40px rgba(26,36,32,.08);
+            --shadow-xl: 0 26px 54px rgba(26,36,32,.12);
+            --shadow-glow: 0 12px 28px rgba(17,128,106,.3);
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Cairo', -apple-system, sans-serif;
+            line-height: 1.7;
+            color: var(--text-dark);
+            background: var(--bg-linen);
+        }
+        ::selection { background: rgba(20,150,100,.22); }
+        /* ── Navbar (Daylight light glass) ── */
+        .navbar {
+            background: rgba(244, 241, 234, 0.85) !important;
+            backdrop-filter: saturate(150%) blur(12px);
+            padding: 0.7rem 0;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .navbar .navbar-toggler { border-color: var(--border-strong); }
+        .navbar .navbar-toggler-icon { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%231a2420' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
+        .navbar-brand { font-weight: 800; font-size: 1.35rem; color: var(--text-dark) !important; display: flex; align-items: center; }
+        .navbar-brand img { border: 2px solid var(--border-green); }
+        .navbar-nav .nav-link { color: var(--text-light) !important; font-weight: 600; margin: 0 0.2rem; padding: 0.5rem 0.9rem !important; border-radius: 10px; transition: all 0.3s; }
+        .navbar-nav .nav-link:hover { color: var(--primary-color) !important; background: var(--light-color); }
+        .btn-nav { background: var(--primary-color); color: #fff; border: none; padding: 9px 22px; border-radius: 12px; font-weight: 700; text-decoration: none; transition: all 0.3s; box-shadow: var(--shadow-glow); white-space: nowrap; }
+        .btn-nav:hover { transform: translateY(-2px); color: #fff; box-shadow: 0 16px 34px rgba(17,128,106,.38); }
+        /* ── Page Hero ── */
+        .page-hero {
+            background:
+                radial-gradient(circle at 88% 0%, rgba(17,128,106,.10), transparent 45%),
+                radial-gradient(circle at 5% 100%, rgba(214,170,90,.10), transparent 45%),
+                linear-gradient(180deg, #f7f5ef, var(--bg-linen));
+            color: var(--text-dark);
+            padding: 120px 0 56px;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .page-hero-content { position: relative; z-index: 2; }
+        .page-hero h1 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -.5px; margin-bottom: 0.75rem; }
+        .page-hero .lead { color: var(--text-light) !important; }
+        .breadcrumb-item a { color: var(--primary-color); text-decoration: none; }
+        .breadcrumb-item.active { color: var(--text-light); }
+        .breadcrumb-item + .breadcrumb-item::before { color: var(--ink-3); }
+        /* ── Content ── */
+        .page-content { padding: 60px 0; }
+        .section-card {
+            background: var(--surface);
+            border-radius: 22px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-soft);
+            margin-bottom: 1.5rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .section-card:hover { box-shadow: var(--shadow-lg); border-color: rgba(17,128,106,.22); }
+        .section-card h3 { color: var(--text-dark); font-weight: 800; margin-bottom: 1rem; }
+        .highlight-box {
+            background: #eef6f1;
+            border-right: 4px solid var(--secondary-color);
+            border-radius: 0 12px 12px 0;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+        }
+        .highlight-box.success { background: #eef6f1; border-color: var(--success-color); }
+        .highlight-box.warning { background: #faf3e3; border-color: var(--warning-color); }
+        .highlight-box.danger  { background: #fbeceb; border-color: var(--danger-color); }
+        /* English LTR: flip the highlight accent bar to the left edge */
+        html[lang="en"] .highlight-box { border-right: none; border-left: 4px solid var(--secondary-color); border-radius: 12px 0 0 12px; }
+        /* ── Footer ── */
+        .footer {
+            background: var(--gradient-primary);
+            color: rgba(255,255,255,0.8);
+            padding: 60px 0 30px;
+        }
+        .footer h5, .footer h3 { color: var(--warning-color); font-weight: 800; margin-bottom: 1.25rem; }
+        .footer-links { list-style: none; padding: 0; margin: 0; }
+        .footer-links li { margin-bottom: 0.5rem; }
+        .footer-links a { color: rgba(255,255,255,0.66); text-decoration: none; transition: color 0.3s; font-size: 0.9rem; }
+        .footer-links a:hover { color: #9fe3cf; }
+        /* Long footer "Services" list -> two balanced columns */
+        .footer-links-2col { column-count: 2; column-gap: 1.75rem; }
+        .footer-links-2col li { break-inside: avoid; }
+        @media (max-width: 575px) { .footer-links-2col { column-count: 1; } }
+        /* ── Related searches ── */
+        .related-searches { background: #efece4; border-top: 1px solid var(--border-soft); padding: 1.6rem 0; }
+        .related-searches .rs-h { font-size: 1rem; font-weight: 800; color: var(--text-light); margin-bottom: 0.8rem; }
+        .rs-links { display: flex; flex-wrap: wrap; gap: 8px; }
+        .rs-links a { display: inline-block; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 999px; padding: 6px 14px; font-size: 0.85rem; color: var(--primary-color); text-decoration: none; transition: all 0.2s; }
+        .rs-links a:hover { border-color: var(--secondary-color); color: var(--secondary-color); }
+        /* ── Sticky conversion CTA ── */
+        body { padding-bottom: 54px; }
+        .sticky-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1050; background: linear-gradient(135deg,#16201c,#1f2d28); color: #fff; box-shadow: 0 -2px 14px rgba(26,36,32,0.18); }
+        .sc-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 9px 14px; }
+        .sc-text { font-size: 0.9rem; font-weight: 600; flex: 1; line-height: 1.4; }
+        .sc-trust { display: block; font-size: 0.72rem; font-weight: 500; color: rgba(255,255,255,0.7); }
+        .sc-btn { background: #229ED9; color: #fff; font-weight: 800; font-size: 0.9rem; padding: 8px 18px; border-radius: 22px; text-decoration: none; white-space: nowrap; transition: transform 0.15s; }
+        .sc-btn:hover { color: #fff; transform: translateY(-1px); }
+        .sc-close { background: transparent; border: none; color: rgba(255,255,255,0.7); font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 0 4px; }
+        @media (max-width: 560px) { .sc-text { font-size: 0.8rem; } .sc-btn { padding: 7px 14px; font-size: 0.82rem; } }
+        .social-links { display: flex; gap: 12px; margin-top: 1rem; flex-wrap: wrap; }
+        .social-links a {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            text-decoration: none; transition: all 0.3s; font-size: 1rem;
+        }
+        .social-links a:hover { background: var(--secondary-color); transform: translateY(-3px); }
+        .copyright {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 25px; margin-top: 40px;
+            text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5);
+        }
+        /* ── Language toggle (inline inside the navbar) ── */
+        .language-toggle {
+            position: static;
+            background: var(--light-color);
+            border-radius: 999px; padding: 4px; display: inline-flex;
+            border: 1px solid var(--border-soft); flex: none;
+        }
+        .lang-btn { padding: 5px 14px; border: none; background: transparent; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 0.82rem; color: var(--text-light); transition: all 0.3s; }
+        .lang-btn.active { background: var(--primary-color); color: #fff; }
+        .lang-btn:not(.active):hover { color: var(--primary-color); }
+        html[lang="en"] { direction: ltr; }
+
+        /* ============ Mobile / small-screen refinements ============ */
+        @media (max-width: 768px) {
+            .page-hero { padding: 96px 0 30px; }
+            .page-content { padding: 30px 0; }
+            .footer { padding: 40px 0 24px; }
+        }
+        @media (max-width: 576px) {
+            .container { padding-left: 16px; padding-right: 16px; }
+            .page-hero { padding: 86px 0 24px; }
+            .page-hero h1 { font-size: clamp(1.5rem, 7vw, 2rem); line-height: 1.2; }
+            .page-hero .lead { font-size: 0.95rem; }
+            .section-card { padding: 1.1rem; border-radius: 16px; margin-bottom: 1rem; }
+            .section-card:hover { transform: none; box-shadow: var(--shadow-md); }
+            /* many-row tables stay tabular but get compact cells */
+            .section-card td, .section-card th { padding: 9px 8px; font-size: 0.84rem; }
+            /* comfortable tap targets */
+            .navbar-nav .nav-link { padding: 0.65rem 0.9rem !important; }
+            .rs-links a { padding: 8px 14px; }
+        }
+        /* momentum scroll on any horizontally-scrollable table wrapper */
+        .section-card div[style*="overflow"], .md-card div[style*="overflow"], .table-responsive { -webkit-overflow-scrolling: touch; }
+
+        /* ===== Reusable mobile table → cards (.dl-mtable) =====
+           Few-row data tables stack into cards on phones. Add data-label="…" to each <td>
+           and class dl-mcell-main to the primary (name) cell. Header row is visually hidden
+           but kept for screen readers. */
+        @media (max-width: 576px) {
+            table.dl-mtable thead { position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+            table.dl-mtable, table.dl-mtable tbody, table.dl-mtable tr, table.dl-mtable td { display:block; width:100%; }
+            table.dl-mtable tr { background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; box-shadow:var(--shadow-sm); margin-bottom:10px; padding:4px 2px; }
+            table.dl-mtable td { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:9px 14px!important; border:0!important; text-align:start; }
+            table.dl-mtable td::before { content:attr(data-label); color:var(--text-light); font-weight:700; font-size:0.8rem; flex:none; }
+            table.dl-mtable td.dl-mcell-main { padding-bottom:6px!important; border-bottom:1px solid var(--border-soft)!important; }
+            table.dl-mtable td.dl-mcell-main::before { content:none; }
+        }
+
+        /* ===== Mobile bottom quick-nav bar (phones only) ===== */
+        .dl-tabbar { display: none; }
+        @media (max-width: 767px) {
+            .dl-tabbar {
+                display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1045;
+                background: rgba(255,255,255,.97); backdrop-filter: saturate(150%) blur(10px);
+                border-top: 1px solid var(--border-soft);
+                padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+                box-shadow: 0 -4px 18px rgba(26,36,32,.07);
+            }
+            .dl-tabbar a {
+                flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+                text-decoration: none; color: var(--text-light); font-size: .64rem; font-weight: 700;
+                padding: 5px 2px; border-radius: 12px;
+            }
+            .dl-tabbar a i { font-size: 1.18rem; line-height: 1; }
+            .dl-tabbar a.active { color: var(--primary-color); background: var(--light-color); }
+            .dl-tabbar a.dl-tab-cta { color: var(--primary-color); }
+            /* the quick-nav replaces the bottom conversion bar on phones */
+            .sticky-cta { display: none !important; }
+            body { padding-bottom: calc(62px + env(safe-area-inset-bottom)) !important; }
+        }
+        
+.report-card {
+    border-radius: 14px;
+    padding: 1.75rem;
+    border: 1.5px solid rgba(44,62,80,0.1);
+    transition: all 0.3s;
+    background: #fff;
+    height: 100%;
+}
+.report-card:hover { border-color: var(--secondary-color); box-shadow: var(--shadow-lg); }
+.report-icon {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+}
+.sample-report {
+    background: linear-gradient(135deg, #1e2a35, #2c3e50);
+    border-radius: 16px;
+    padding: 2rem;
+    color: #fff;
+    font-family: monospace;
+    font-size: 0.88rem;
+    line-height: 1.9;
+}
+.sample-report .r-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: #3498db; }
+.sample-report .r-positive { color: #27ae60; }
+.sample-report .r-negative { color: #e74c3c; }
+.sample-report .r-neutral { color: #f39c12; }
+.sample-report .r-divider { border-top: 1px solid rgba(255,255,255,0.1); margin: 0.75rem 0; }
+
+    </style>
+    
+    
+    <!-- Organization + WebApplication entity — every page reinforces the egxbot entity for
+         Google's knowledge graph and AI assistants (sameAs links the official profiles). -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://egxbot.com/#organization",
+      "name": "المحلل الآلي للبورصة المصرية",
+      "alternateName": "EGX Stock AI Analyzer",
+      "url": "https://egxbot.com",
+      "logo": "https://egxbot.com/static/img/bot-logo.jpg",
+      "sameAs": [
+        "https://t.me/egx_stock_analyzer_bot",
+        "https://www.facebook.com/profile.php?id=100089722161850",
+        "https://twitter.com/egx_ai_analyzer"
+      ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://egxbot.com/#webapp",
+      "name": "egxbot — EGX Stock AI Analyzer",
+      "url": "https://egxbot.com",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, Android, iOS, Telegram",
+      "inLanguage": ["ar", "en"],
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EGP"},
+      "publisher": {"@id": "https://egxbot.com/#organization"}
+    }
+  ]
+}
+</script>
+</head>
+<body>
+    
+
+    
+
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" role="navigation" aria-label="القائمة الرئيسية">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <img src="/static/img/bot-logo.jpg" alt="EGXBot" width="40" height="40" class="me-2 rounded-circle">
+      <span class="brand-text">EGXBot</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav" aria-controls="publicNav" aria-expanded="false" aria-label="فتح القائمة">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="publicNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/">الرئيسية</a></li>
+        <li class="nav-item"><a class="nav-link" href="/market">السوق اليوم</a></li>
+        <li class="nav-item"><a class="nav-link" href="/stocks">الأسهم</a></li>
+        <li class="nav-item"><a class="nav-link" href="/learn">تعلّم</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">الأدوات</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/terminal/">المنصة اللحظية</a></li>
+            <li><a class="dropdown-item" href="/terminal/ai">المساعد الذكي</a></li>
+            <li><a class="dropdown-item" href="/market-report">تقرير السوق</a></li>
+            <li><a class="dropdown-item" href="/funds">صناديق الاستثمار</a></li>
+            <li><a class="dropdown-item" href="/guide">دليل الاستخدام</a></li>
+          </ul>
+        </li>
+      </ul>
+      <div class="d-flex align-items-center gap-2 me-0 ms-3">
+        <div class="language-toggle" role="group" aria-label="تغيير اللغة">
+          <a class="lang-btn active" href="https://egxbot.com/reports" hreflang="ar">عربي</a>
+          <a class="lang-btn " href="https://egxbot.com/en/reports" hreflang="en">EN</a>
+        </div>
+        <a href="https://t.me/egx_stock_analyzer_bot" class="btn-nav">
+          <i class="fab fa-telegram me-1"></i><span class="cta-text">ابدأ الآن</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <div class="container page-hero-content">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/">الرئيسية</a></li>
+                    <li class="breadcrumb-item active">التقارير المالية</li>
+                </ol>
+            </nav>
+            <h1>التقارير المالية</h1>
+            <p class="lead mb-0" style="color:rgba(255,255,255,0.75); max-width:600px;">تقارير احترافية جاهزة للقراءة — تحليلات عميقة بضغطة واحدة</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="page-content">
+        <div class="container">
+            
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+
+    <!-- Report Types -->
+    <div class="section-card mb-4">
+      <h3><i class="fas fa-file-chart-bar me-2 text-primary"></i>أنواع التقارير المتاحة</h3>
+      <div class="row g-3 mt-2">
+
+        <div class="col-md-4">
+          <div class="report-card">
+            <div class="report-icon" style="background:linear-gradient(135deg,#3498db22,#3498db44);color:#2980b9;"><i class="fas fa-sun"></i></div>
+            <h5 class="fw-bold mb-2">التقرير اليومي</h5>
+            <p class="text-muted mb-2" style="font-size:0.92rem;">ملخص أداء البورصة المصرية يومياً: أفضل وأسوأ الأسهم، ملخص المؤشرات الرئيسية، والإشارات النشطة.</p>
+            <span class="badge bg-success">تلقائي بعد الإغلاق</span>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="report-card">
+            <div class="report-icon" style="background:linear-gradient(135deg,#27ae6022,#27ae6044);color:#219a52;"><i class="fas fa-chart-bar"></i></div>
+            <h5 class="fw-bold mb-2">التقرير الأسبوعي</h5>
+            <p class="text-muted mb-2" style="font-size:0.92rem;">مراجعة شاملة للأسبوع: أداء المؤشرات، تحليل القطاعات، إحصائيات الإشارات، وتوقعات الأسبوع القادم.</p>
+            <span class="badge bg-primary">كل خميس</span>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="report-card">
+            <div class="report-icon" style="background:linear-gradient(135deg,#9b59b622,#9b59b644);color:#8e44ad;"><i class="fas fa-industry"></i></div>
+            <h5 class="fw-bold mb-2">التقرير القطاعي</h5>
+            <p class="text-muted mb-2" style="font-size:0.92rem;">تحليل أداء قطاع بعينه: البنوك، العقارات، الاتصالات، إلخ — مع ترتيب الأسهم حسب الأداء.</p>
+            <span class="badge bg-warning text-dark">عند الطلب</span>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="report-card">
+            <div class="report-icon" style="background:linear-gradient(135deg,#e74c3c22,#e74c3c44);color:#c0392b;"><i class="fas fa-building"></i></div>
+            <h5 class="fw-bold mb-2">تقرير الشركة</h5>
+            <p class="text-muted mb-2" style="font-size:0.92rem;">تحليل أساسي وفني لشركة محددة: المؤشرات المالية، تاريخ الأرباح، هامش الربح، والتقييم السوقي.</p>
+            <span class="badge bg-warning text-dark">عند الطلب</span>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="report-card">
+            <div class="report-icon" style="background:linear-gradient(135deg,#f39c1222,#f39c1244);color:#e67e22;"><i class="fas fa-briefcase"></i></div>
+            <h5 class="fw-bold mb-2">تقرير المحفظة</h5>
+            <p class="text-muted mb-2" style="font-size:0.92rem;">تقرير شامل لمحفظتك: العائد الكلي، مقارنة بـ EGX30، توزيع المخاطر، ومقترحات تحسين التوزيع.</p>
+            <span class="badge bg-success">مرتبط بمحفظتك</span>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="report-card">
+            <div class="report-icon" style="background:linear-gradient(135deg,#1abc9c22,#1abc9c44);color:#16a085;"><i class="fas fa-newspaper"></i></div>
+            <h5 class="fw-bold mb-2">موجز الأخبار</h5>
+            <p class="text-muted mb-2" style="font-size:0.92rem;">ملخص أهم أخبار الشركات المدرجة وتأثيرها المحتمل على الأسعار — قبل جرس التداول وبعده.</p>
+            <span class="badge bg-primary">يومي قبل الافتتاح</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Sample Report -->
+    <div class="section-card mb-4">
+      <h3><i class="fas fa-eye me-2 text-primary"></i>مثال على تقرير يومي</h3>
+      <div class="sample-report mt-3">
+        <div class="r-title">📊 ملخص جلسة البورصة المصرية — الأحد 18 مايو 2025</div>
+        <div>المؤشرات الرئيسية:</div>
+        <div class="r-positive">  EGX30  ▲ +1.23%  →  32,451.7</div>
+        <div class="r-negative">  EGX70  ▼ -0.45%  →  4,108.2</div>
+        <div class="r-positive">  EGX100 ▲ +0.87%  →  6,782.5</div>
+        <div class="r-divider"></div>
+        <div>أفضل أسهم اليوم:</div>
+        <div class="r-positive">  #1 COMI  ▲ +4.2%  |  حجم: 3.1× المتوسط</div>
+        <div class="r-positive">  #2 SWDY  ▲ +3.8%  |  كسر مقاومة 42.50</div>
+        <div class="r-positive">  #3 OCDI  ▲ +2.9%  |  إغلاق فجوة سعرية</div>
+        <div class="r-divider"></div>
+        <div>أسوأ أسهم اليوم:</div>
+        <div class="r-negative">  #1 HRHO  ▼ -3.1%  |  ضغط بيعي متواصل</div>
+        <div class="r-negative">  #2 TMGH  ▼ -2.6%  |  تحت MA200</div>
+        <div class="r-divider"></div>
+        <div>الإشارات النشطة: <span class="r-positive">4 شراء</span> | <span class="r-negative">1 بيع</span></div>
+        <div class="r-neutral">توقعات الغد: سوق محايد، مراقبة COMI و HRHO</div>
+      </div>
+    </div>
+
+    <!-- How to Get Reports -->
+    <div class="section-card mb-4">
+      <h3><i class="fas fa-download me-2 text-primary"></i>كيف أحصل على التقارير؟</h3>
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <div class="p-3 rounded" style="background:#f8f9fa; border-right: 3px solid var(--secondary-color);">
+            <strong>تلقائياً</strong>
+            <p class="mb-0 mt-1 text-muted" style="font-size:0.9rem;">التقرير اليومي والأسبوعي يصلك تلقائياً على تيليجرام دون أي طلب — شرط الاشتراك المدفوع.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3 rounded" style="background:#f8f9fa; border-right: 3px solid var(--secondary-color);">
+            <strong>عند الطلب</strong>
+            <p class="mb-0 mt-1 text-muted" style="font-size:0.9rem;">أرسل رمز سهم أو اسم قطاع للبوت وسيولد التقرير المخصص فوراً.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <a href="https://t.me/egx_stock_analyzer_bot" target="_blank" class="btn btn-primary btn-lg">
+        <i class="fab fa-telegram me-2"></i>احصل على أول تقرير الآن
+      </a>
+    </div>
+
+    
+    
+
+
+<style>
+  .dl-faq{ border:1px solid var(--border-soft,rgba(26,36,32,.08)); border-radius:12px; margin-bottom:10px;
+    background:var(--surface,#fff); overflow:hidden; }
+  .dl-faq summary{ cursor:pointer; padding:14px 16px; font-weight:700; color:var(--text-dark,#1a2420);
+    list-style:none; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .dl-faq summary::-webkit-details-marker{ display:none; }
+  .dl-faq summary::after{ content:'+'; color:var(--primary-color,#11806a); font-weight:800; font-size:1.2rem; }
+  .dl-faq[open] summary::after{ content:'\2212'; }
+  .dl-faq .dl-faq-a{ padding:0 16px 14px; color:var(--text-light,#5a6760); font-size:.94rem; line-height:1.7; }
+</style>
+<div class="section-card mb-4">
+  <h3><i class="fas fa-circle-question me-2 text-primary"></i>أسئلة شائعة</h3>
+  <div class="mt-3">
+    
+    <details class="dl-faq">
+      <summary>ما التقارير المتاحة؟</summary>
+      <div class="dl-faq-a">تقرير يومي بعد إغلاق الجلسة، ملخّص أسبوعي، تقارير قطاعية، وتقرير أداء لمحفظتك الشخصية.</div>
+    </details>
+    
+    <details class="dl-faq">
+      <summary>متى تصل التقارير؟</summary>
+      <div class="dl-faq-a">يُرسَل التقرير اليومي بعد إغلاق الجلسة، والملخّص الأسبوعي نهاية الأسبوع — عبر تيليجرام.</div>
+    </details>
+    
+    <details class="dl-faq">
+      <summary>هل التقارير مجانية؟</summary>
+      <div class="dl-faq-a">يتوفّر ملخّص مجاني للجميع، أما التقارير التفصيلية والمخصّصة فهي ضمن الباقات المدفوعة.</div>
+    </details>
+    
+  </div>
+</div>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"\u0645\u0627 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u0627\u0644\u0645\u062a\u0627\u062d\u0629\u061f","acceptedAnswer":{"@type":"Answer","text":"\u062a\u0642\u0631\u064a\u0631 \u064a\u0648\u0645\u064a \u0628\u0639\u062f \u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u062c\u0644\u0633\u0629\u060c \u0645\u0644\u062e\u0651\u0635 \u0623\u0633\u0628\u0648\u0639\u064a\u060c \u062a\u0642\u0627\u0631\u064a\u0631 \u0642\u0637\u0627\u0639\u064a\u0629\u060c \u0648\u062a\u0642\u0631\u064a\u0631 \u0623\u062f\u0627\u0621 \u0644\u0645\u062d\u0641\u0638\u062a\u0643 \u0627\u0644\u0634\u062e\u0635\u064a\u0629."}},{"@type":"Question","name":"\u0645\u062a\u0649 \u062a\u0635\u0644 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631\u061f","acceptedAnswer":{"@type":"Answer","text":"\u064a\u064f\u0631\u0633\u064e\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a \u0628\u0639\u062f \u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u062c\u0644\u0633\u0629\u060c \u0648\u0627\u0644\u0645\u0644\u062e\u0651\u0635 \u0627\u0644\u0623\u0633\u0628\u0648\u0639\u064a \u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0623\u0633\u0628\u0648\u0639 \u2014 \u0639\u0628\u0631 \u062a\u064a\u0644\u064a\u062c\u0631\u0627\u0645."}},{"@type":"Question","name":"\u0647\u0644 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u0645\u062c\u0627\u0646\u064a\u0629\u061f","acceptedAnswer":{"@type":"Answer","text":"\u064a\u062a\u0648\u0641\u0651\u0631 \u0645\u0644\u062e\u0651\u0635 \u0645\u062c\u0627\u0646\u064a \u0644\u0644\u062c\u0645\u064a\u0639\u060c \u0623\u0645\u0627 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u0627\u0644\u062a\u0641\u0635\u064a\u0644\u064a\u0629 \u0648\u0627\u0644\u0645\u062e\u0635\u0651\u0635\u0629 \u0641\u0647\u064a \u0636\u0645\u0646 \u0627\u0644\u0628\u0627\u0642\u0627\u062a \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629."}}]}
+</script>
+
+
+  </div>
+</div>
+
+        </div>
+    </main>
+
+    
+    
+    
+    <section class="related-searches">
+        <div class="container">
+            <h2 class="rs-h">عمليات بحث ذات صلة</h2>
+            <div class="rs-links">
+                <a href="/">تحليل البورصة المصرية بالذكاء الاصطناعي</a><a href="/stocks">أسعار وتحليل كل الأسهم المصرية</a><a href="/market">البورصة المصرية اليوم</a><a href="/movers">أعلى الأسهم ارتفاعاً وانخفاضاً</a><a href="/sectors">أسهم البورصة المصرية حسب القطاع</a><a href="/funds">صناديق الاستثمار المصرية</a><a href="/currencies">أسعار العملات مقابل الجنيه المصري</a><a href="/commodities">أسعار الذهب والمعادن اليوم</a><a href="/global-indices">المؤشرات العالمية اليوم</a>
+            </div>
+        </div>
+    </section>
+    
+
+    
+<footer class="footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-3 col-md-6 mb-4">
+        <h3 class="ft-h"><i class="fas fa-chart-line me-2"></i><span class="footer-brand">EGXBot</span></h3>
+        <p class="footer-desc">تحليل ذكي لأسهم البورصة المصرية، ومتابعة لحظية للسوق، ومحتوى تعليمي وأدوات تساعد على اتخاذ قرار منضبط.</p>
+        <div class="social-links">
+          <a href="https://t.me/egx_stock_analyzer_bot" aria-label="Telegram" title="Telegram"><i class="fab fa-telegram"></i></a>
+          <a href="https://web.telegram.org/a/#-1001707596997" target="_blank" rel="noopener" aria-label="Telegram Group" title="Telegram Group"><i class="fas fa-users"></i></a>
+          <a href="https://www.facebook.com/profile.php?id=100089722161850" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">السوق والتحليل</span></h3>
+        <ul class="footer-links footer-links-2col">
+          <li><a href="/market">البورصة المصرية اليوم</a></li>
+          <li><a href="/stocks">أسعار وتحليل الأسهم</a></li>
+          <li><a href="/movers">الرابحون والخاسرون</a></li>
+          <li><a href="/sectors">قطاعات البورصة</a></li>
+          <li><a href="/market-report">تقرير السوق اليومي</a></li>
+          <li><a href="/funds">صناديق الاستثمار</a></li>
+          <li><a href="/currencies">أسعار العملات</a></li>
+          <li><a href="/commodities">الذهب والسلع</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">المنتجات</span></h3>
+        <ul class="footer-links">
+          <li><a href="/terminal/">المنصة اللحظية</a></li>
+          <li><a href="/terminal/ai">المساعد الذكي</a></li>
+          <li><a href="/alerts">التنبيهات الذكية</a></li>
+          <li><a href="/reports">التقارير</a></li>
+          <li><a href="/ai-portfolio">تحليل المحفظة</a></li>
+          <li><a href="/copy-trading">نسخ التداول</a></li>
+          <li><a href="/track-record">سجل الأداء</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">التعلّم والدعم</span></h3>
+        <ul class="footer-links">
+          <li><a href="/learn">مكتبة التعلّم</a></li>
+          <li><a href="/guide">دليل الاستخدام</a></li>
+          <li><a href="/faq">الأسئلة الشائعة</a></li>
+          <li><a href="/support">الدعم الفني</a></li>
+          <li><a href="/community">المجتمع</a></li>
+          <li><a href="/affiliate/apply">برنامج المسوقين</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">الشركة</span></h3>
+        <ul class="footer-links">
+          <li><a href="/about">من نحن</a></li>
+          <li><a href="/blog">المدونة</a></li>
+          <li><a href="/press">الصحافة والأدوات</a></li>
+          <li><a href="/contact">تواصل معنا</a></li>
+          <li><a href="/terms">شروط الخدمة</a></li>
+          <li><a href="/privacy">سياسة الخصوصية</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="copyright">
+      <p>&copy; 2026 EGXBot. جميع الحقوق محفوظة.</p>
+      <p style="font-size:.9rem;">تحذير: التداول في الأسهم يحمل مخاطر مالية. الأداء السابق لا يضمن النتائج المستقبلية.</p>
+      <p><a href="mailto:support@egxbot.com" style="color:rgba(255,255,255,.65);">support@egxbot.com</a></p>
+    </div>
+  </div>
+</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Language toggle = NAVIGATE to the server-rendered twin. Real English pages now
+        // exist (/en, /en/stock/<code>, /en/market, /en/sectors, …). The route injects the
+        // exact ar/en twin URLs when it has them; otherwise we fall back to the English /
+        // Arabic landing. The SERVER language wins — no client-side DOM swap (which used to
+        // leave the page half-translated and the same Arabic content under an "en" flag).
+        var LANG_ALT_EN = "https://egxbot.com/en/reports";
+        var LANG_ALT_AR = "https://egxbot.com/reports";
+        function setLang(lang) {
+            try { localStorage.setItem('preferredLanguage', lang); } catch (e) {}
+            window.location.href = (lang === 'en') ? LANG_ALT_EN : LANG_ALT_AR;
+        }
+    </script>
+    
+    <!-- Live in-place price updates (no-ops unless the page has [data-live-code] elements). -->
+    <script src="/static/js/live.js?v=3" defer></script>
+
+    <!-- Sticky conversion CTA (dismissible; fixed — no layout shift) -->
+    <div id="stickyCta" class="sticky-cta">
+        <div class="sc-inner">
+            <span class="sc-text">تحليل كامل + إشارات + تنبيهات أسعار لأسهم البورصة المصرية — مجانًا على تيليجرام<small class="sc-trust">مجانًا • بدون تسجيل • +5000 مستثمر</small></span>
+            <a class="sc-btn" href="https://t.me/egx_stock_analyzer_bot?start=web_reports" target="_blank" rel="noopener"><i class="fab fa-telegram me-1"></i>ابدأ مجانًا</a>
+            <button class="sc-close" type="button" aria-label="إغلاق" onclick="var s=document.getElementById('stickyCta');if(s)s.style.display='none';try{sessionStorage.setItem('scHide','1')}catch(e){}">&times;</button>
+        </div>
+    </div>
+    <script>try{if(sessionStorage.getItem('scHide')){var s=document.getElementById('stickyCta');if(s)s.style.display='none';}}catch(e){}</script>
+
+    <!-- Mobile bottom quick-nav (phones only; replaces the conversion bar on small screens) -->
+    <nav class="dl-tabbar" aria-label="تنقل سريع">
+        <a href="/" >
+            <i class="fas fa-house" aria-hidden="true"></i><span>الرئيسية</span></a>
+        <a href="/market" >
+            <i class="fas fa-chart-line" aria-hidden="true"></i><span>السوق</span></a>
+        <a href="/stocks" >
+            <i class="fas fa-list-ul" aria-hidden="true"></i><span>الأسهم</span></a>
+        <a href="/market-report" >
+            <i class="fas fa-newspaper" aria-hidden="true"></i><span>التقرير</span></a>
+        <a class="dl-tab-cta" href="https://t.me/egx_stock_analyzer_bot?start=web_reports" target="_blank" rel="noopener">
+            <i class="fab fa-telegram" aria-hidden="true"></i><span>ابدأ</span></a>
+    </nav>
+    
+
+<style>
+  .dl-exit-ov{
+    position:fixed; inset:0; z-index:2000; display:none;
+    background:rgba(22,32,28,.55); backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:20px;
+    opacity:0; transition:opacity .25s ease;
+  }
+  .dl-exit-ov.show{ display:flex; opacity:1; }
+  .dl-exit-card{
+    background:var(--surface,#fff); border-radius:22px; max-width:440px; width:100%;
+    padding:34px 30px 28px; text-align:center; position:relative;
+    box-shadow:var(--shadow-xl,0 26px 54px rgba(26,36,32,.12));
+    transform:translateY(16px) scale(.98); transition:transform .3s ease;
+  }
+  .dl-exit-ov.show .dl-exit-card{ transform:none; }
+  .dl-exit-x{ position:absolute; top:12px; inset-inline-end:16px; background:none; border:none;
+    font-size:1.5rem; line-height:1; color:var(--ink-3,#6b746d); cursor:pointer; }
+  .dl-exit-badge{ display:inline-block; background:var(--green-soft,#eef6f1); color:var(--primary-color,#11806a);
+    font-weight:800; font-size:.82rem; padding:6px 14px; border-radius:999px; margin-bottom:14px; }
+  .dl-exit-card h3{ color:var(--text-dark,#1a2420); font-weight:900; font-size:1.5rem; margin:0 0 10px; }
+  .dl-exit-card p{ color:var(--text-light,#5a6760); font-size:.98rem; margin:0 0 18px; line-height:1.7; }
+  .dl-exit-code{ font-family:var(--font-mono,monospace); background:var(--primary-color,#11806a); color:#fff;
+    padding:2px 10px; border-radius:7px; font-weight:700; letter-spacing:1px; }
+  .dl-exit-cta{ display:block; text-decoration:none; background:var(--gradient-gold,linear-gradient(135deg,#d6aa5a,#c79338));
+    color:#3a2c08; font-weight:800; font-size:1.05rem; padding:14px; border-radius:14px; transition:transform .2s ease; }
+  .dl-exit-cta:hover{ transform:translateY(-2px); color:#3a2c08; }
+  .dl-exit-skip{ display:block; margin-top:14px; background:none; border:none; color:var(--ink-3,#6b746d);
+    font-size:.85rem; cursor:pointer; text-decoration:underline; width:100%; }
+  @media (max-width:768px){ .dl-exit-ov{ display:none !important; } }  /* desktop only */
+</style>
+<div id="dlExit" class="dl-exit-ov" role="dialog" aria-modal="true" aria-labelledby="dlExitTitle">
+  <div class="dl-exit-card">
+    <button class="dl-exit-x" type="button" aria-label="إغلاق">&times;</button>
+    <span class="dl-exit-badge">🎁 قبل ما تمشي</span>
+    <h3 id="dlExitTitle">حلّل أي سهم مصري — مجانًا</h3>
+    <p>
+      احصل على تحليل فني كامل بالذكاء الاصطناعي وإشارات دخول وأهداف وتنبيهات على تيليجرام. وخُد
+      <span class="dl-exit-code">WELCOME20</span> لخصم 20% على أول اشتراك.
+    </p>
+    <a class="dl-exit-cta" href="https://t.me/egx_stock_analyzer_bot?start=web_reports"
+       target="_blank" rel="noopener">
+       <i class="fab fa-telegram" aria-hidden="true"></i> ابدأ مجانًا الآن</a>
+    <a href="/ai-portfolio" style="display:block;margin-top:12px;color:var(--primary-color,#11806a);font-weight:700;text-decoration:none;font-size:.9rem;">أو حلّل محفظتك بالذكاء الاصطناعي ←</a>
+    <button class="dl-exit-skip" type="button">لا شكرًا، ربما لاحقًا</button>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='dlExitShown';
+  try{ if(sessionStorage.getItem(KEY)) return; }catch(e){}
+  if(window.matchMedia && window.matchMedia('(max-width:768px)').matches) return;       // desktop only
+  if(('ontouchstart' in window) || navigator.maxTouchPoints>0) return;                   // skip touch laptops
+  var ov=document.getElementById('dlExit'); if(!ov) return;
+  function close(){ ov.classList.remove('show'); setTimeout(function(){ov.style.display='none';},250); }
+  function open(){
+    try{ sessionStorage.setItem(KEY,'1'); }catch(e){}
+    ov.style.display='flex'; requestAnimationFrame(function(){ ov.classList.add('show'); });
+    document.removeEventListener('mouseout', onOut);
+  }
+  function onOut(e){ if(!e.relatedTarget && !e.toElement && e.clientY <= 4){ open(); } }
+  // Arm only after the visitor has had a moment on the page (avoids firing on accidental early flicks).
+  setTimeout(function(){ document.addEventListener('mouseout', onOut); }, 6000);
+  ov.querySelector('.dl-exit-x').addEventListener('click', close);
+  ov.querySelector('.dl-exit-skip').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+})();
+</script>
+    
+<style>
+  .dl-toast{
+    position:fixed; inset-inline-start:18px; bottom:90px; z-index:1090;
+    width:min(340px, calc(100vw - 32px));
+    background:var(--surface,#fff);
+    border:1px solid var(--border-soft,rgba(26,36,32,.08));
+    border-radius:16px; box-shadow:var(--shadow-lg,0 18px 40px rgba(26,36,32,.12));
+    padding:14px 16px; font-family:'Cairo',sans-serif;
+    opacity:0; transform:translateY(14px); pointer-events:none;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .dl-toast.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .dl-toast-body{ display:flex; gap:12px; align-items:flex-start; }
+  .dl-toast-body > i{
+    flex:0 0 auto; width:38px; height:38px; border-radius:11px;
+    display:flex; align-items:center; justify-content:center; font-size:1rem;
+    background:var(--green-soft,#eef6f1); color:var(--primary-color,#11806a);
+  }
+  .dl-toast-txt{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .dl-toast-line{ font-size:.9rem; font-weight:700; color:var(--text-dark,#1a2420); line-height:1.45; }
+  .dl-countdown{
+    font-family:var(--font-mono,'JetBrains Mono',monospace);
+    font-size:.82rem; font-weight:700; color:var(--danger-color,#c0392b);
+    letter-spacing:.3px;
+  }
+  .dl-toast-cta{
+    align-self:flex-start; margin-top:4px; text-decoration:none;
+    background:var(--gradient-gold,linear-gradient(135deg,#d6aa5a,#c79338));
+    color:#3a2c08; font-weight:800; font-size:.8rem; padding:6px 14px; border-radius:10px;
+    transition:transform .2s ease;
+  }
+  .dl-toast-cta:hover{ transform:translateY(-1px); color:#3a2c08; }
+  .dl-toast-x{
+    position:absolute; top:8px; inset-inline-end:10px; background:none; border:none;
+    color:var(--ink-3,#6b746d); font-size:1.1rem; line-height:1; cursor:pointer; padding:2px 4px;
+  }
+  .dl-toast-verify{ font-size:.66rem; color:var(--ink-3,#6b746d); margin-top:6px; display:flex; align-items:center; gap:4px; }
+  .dl-toast-verify i{ color:var(--primary-color,#11806a); }
+  @media (max-width:768px){ .dl-toast{ bottom:78px; } }   /* clear the mobile tab-bar */
+  @media (prefers-reduced-motion:reduce){ .dl-toast{ transition:opacity .2s ease; transform:none; } }
+</style>
+
+<div id="dlToast" class="dl-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+  <button class="dl-toast-x" type="button" aria-label="إغلاق">&times;</button>
+  <div class="dl-toast-body"><!-- filled by JS --></div>
+</div>
+
+<script>
+(function(){
+  try { if (sessionStorage.getItem('dlToastHide')) return; } catch(e){}
+  var el = document.getElementById('dlToast');
+  if(!el) return;
+  var en = (document.documentElement.lang === 'en');
+  var DEADLINE = parseInt("1789039800000", 10) || 0;
+  var body = el.querySelector('.dl-toast-body');
+  var verifyTxt = en ? 'Live data from egxbot' : 'بيانات حيّة من egxbot';
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function fmt(ms){
+    var s = Math.floor(ms/1000);
+    var d = Math.floor(s/86400); s-=d*86400;
+    var h = Math.floor(s/3600);  s-=h*3600;
+    var m = Math.floor(s/60);    s-=m*60;
+    if(d>0) return en ? (d+'d '+pad(h)+':'+pad(m)+':'+pad(s)) : (d+' يوم '+pad(h)+':'+pad(m)+':'+pad(s));
+    return pad(h)+':'+pad(m)+':'+pad(s);
+  }
+  function updateCd(){
+    var cd = document.getElementById('dlCd');
+    if(!cd || !DEADLINE) return;
+    var diff = DEADLINE - Date.now();
+    cd.textContent = diff<=0 ? (en?'Ends soon':'ينتهي قريباً')
+                             : (en?'Ends in ':'ينتهي خلال ') + fmt(diff);
+  }
+  function esc(t){ var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+  function render(s){
+    var label = en ? s.en : s.ar;
+    var html = '<i class="fas '+esc(s.icon||'fa-bolt')+'" aria-hidden="true"></i>'
+             + '<div class="dl-toast-txt"><span class="dl-toast-line">'+esc(label)+'</span>';
+    if(s.offer){
+      html += '<span class="dl-countdown" id="dlCd"></span>'
+            + '<a class="dl-toast-cta" href="https://t.me/egx_stock_analyzer_bot?start=welcome20" '
+            + 'target="_blank" rel="noopener">'+(en?'Claim now':'احصل عليه الآن')+'</a>';
+    } else if(s.href){
+      var ctaLabel = en ? (s.cta_en||'Open') : (s.cta_ar||'افتح');
+      html += '<a class="dl-toast-cta" href="'+esc(s.href)+'" target="_blank" rel="noopener">'+esc(ctaLabel)+'</a>';
+    }
+    html += '<span class="dl-toast-verify"><i class="fas fa-circle-check" aria-hidden="true"></i>'+verifyTxt+'</span>';
+    html += '</div>';
+    body.innerHTML = html;
+    updateCd();
+  }
+
+  var slides = [], idx = 0, timer = null;
+  function next(){ if(slides.length){ render(slides[idx % slides.length]); idx++; } }
+  function show(){ el.hidden=false; requestAnimationFrame(function(){ el.classList.add('show'); }); }
+
+  el.addEventListener('mouseenter', function(){ if(timer){ clearInterval(timer); timer=null; } });
+  el.addEventListener('mouseleave', function(){ if(!timer){ timer=setInterval(next, 7000); } });
+  el.querySelector('.dl-toast-x').addEventListener('click', function(){
+    el.classList.remove('show');
+    setTimeout(function(){ el.hidden=true; }, 350);
+    if(timer){ clearInterval(timer); timer=null; }
+    try{ sessionStorage.setItem('dlToastHide','1'); }catch(e){}
+  });
+
+  fetch('/live/social-proof').then(function(r){ return r.json(); }).then(function(d){
+    slides = (d && d.messages) ? d.messages.slice() : [];
+    if(!slides.length){
+      slides = [{icon:'fa-gift', offer:true,
+                 ar:'عرض هذا الأسبوع: خصم 20% بكود WELCOME20',
+                 en:'This week: 20% off with WELCOME20'}];
+    }
+    setTimeout(function(){ show(); next(); timer=setInterval(next, 7000); }, 3500);
+  }).catch(function(){ /* silent: marketing widget is non-critical */ });
+
+  setInterval(updateCd, 1000);
+})();
+</script>
+    
+
+<style>
+  .dl-cookie{
+    position:fixed; inset-inline:14px; bottom:14px; z-index:1300; display:none;
+    background:var(--surface,#fff); border:1px solid var(--border-strong,rgba(26,36,32,.12));
+    border-radius:14px; box-shadow:var(--shadow-lg,0 18px 40px rgba(26,36,32,.12));
+    padding:14px 18px; max-width:760px; margin-inline:auto;
+    align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .dl-cookie.show{ display:flex; }
+  .dl-cookie p{ flex:1 1 320px; margin:0; color:var(--text-light,#5a6760); font-size:.86rem; line-height:1.6; }
+  .dl-cookie p a{ color:var(--primary-color,#11806a); font-weight:700; }
+  .dl-cookie .dl-cookie-btns{ display:flex; gap:8px; flex:0 0 auto; }
+  .dl-cookie button{ border:none; border-radius:10px; font-weight:700; font-size:.85rem; padding:9px 18px; cursor:pointer; }
+  .dl-cookie .ck-accept{ background:var(--primary-color,#11806a); color:#fff; }
+  .dl-cookie .ck-reject{ background:var(--green-soft,#eef6f1); color:var(--primary-color,#11806a); }
+  @media (max-width:560px){ .dl-cookie .dl-cookie-btns{ flex:1 1 100%; } .dl-cookie button{ flex:1; } }
+</style>
+<div id="dlCookie" class="dl-cookie" role="region" aria-label="إشعار ملفات تعريف الارتباط">
+  <p>
+    نستخدم ملفات تعريف ارتباط محدودة لتذكّر تفضيلاتك وتحسين تجربتك. اطّلع على
+      <a href="/privacy">سياسة الخصوصية</a>.
+  </p>
+  <div class="dl-cookie-btns">
+    <button type="button" class="ck-reject" id="ckReject">رفض</button>
+    <button type="button" class="ck-accept" id="ckAccept">موافق</button>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='dlCookieConsent';
+  var el=document.getElementById('dlCookie'); if(!el) return;
+  var choice; try{ choice=localStorage.getItem(KEY); }catch(e){}
+  if(choice){ return; }                       // already chosen — never show again
+  setTimeout(function(){ el.classList.add('show'); }, 800);
+  function decide(v){ try{ localStorage.setItem(KEY, v); }catch(e){} el.classList.remove('show'); }
+  document.getElementById('ckAccept').addEventListener('click', function(){ decide('accepted'); });
+  document.getElementById('ckReject').addEventListener('click', function(){ decide('rejected'); });
+})();
+</script>
+    <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/static/sw.js').catch(function(){});});}</script>
+</body>
+</html>

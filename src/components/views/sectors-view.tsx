@@ -2,12 +2,15 @@
 
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
+import { DivergingBars, DonutChart } from "../market/charts";
 import type { SectorCard, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown, Building2 } from "lucide-react";
+
+const DONUT_COLORS = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6", "--c7", "--c8"] as const;
 
 export function SectorsView() {
   const { lang, navigate } = useApp();
@@ -32,6 +35,25 @@ export function SectorsView() {
         </p>
       </div>
       <p className="text-xs text-muted-foreground -mt-3">{tt(T.sectorClassNote, lang)}</p>
+
+      {/* sector performance chart */}
+      <section className="rounded-lg border bg-card p-4 space-y-2">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <h2 className="text-base font-bold">{tt(T.sectorPerfChart, lang)}</h2>
+          <p className="text-[11px] text-muted-foreground">{tt(T.capWeighted, lang)}</p>
+        </div>
+        <DivergingBars
+          items={sectors.map((s) => ({ label: lang === "ar" ? s.nameAr : s.nameEn, value: s.capWeightedChangePct }))}
+          unit="pct"
+          lang={lang}
+        />
+      </section>
+
+      {/* market-cap weight donut */}
+      <section className="rounded-lg border bg-card p-4 space-y-3">
+        <h2 className="text-base font-bold">{tt(T.sectorWeightChart, lang)}</h2>
+        <SectorWeightDonut sectors={sectors} lang={lang} />
+      </section>
 
       <div className="grid gap-4 md:grid-cols-2">
         {sectors.map((s) => (
@@ -126,5 +148,32 @@ function Metric({ label, value, cls }: { label: string; value: string; cls?: str
       <span className="text-muted-foreground">{label}</span>
       <span className={`num font-medium ${cls ?? ""}`}>{value}</span>
     </div>
+  );
+}
+
+/** Top sectors by market cap + an "other" bucket, as a donut. */
+function SectorWeightDonut({ sectors, lang }: { sectors: SectorCard[]; lang: "ar" | "en" }) {
+  const sorted = [...sectors].sort((a, b) => b.marketCap - a.marketCap);
+  const top = sorted.slice(0, 7);
+  const rest = sorted.slice(7);
+  const restCap = rest.reduce((a, s) => a + s.marketCap, 0);
+  const items = [
+    ...top.map((s, i) => ({
+      label: lang === "ar" ? s.nameAr : s.nameEn,
+      value: s.marketCap,
+      colorVar: DONUT_COLORS[i % DONUT_COLORS.length],
+    })),
+    ...(restCap > 0
+      ? [{ label: `${tt(T.otherSectors, lang)} (${rest.length})`, value: restCap, colorVar: "--c8" as const }]
+      : []),
+  ];
+  const total = items.reduce((a, i) => a + i.value, 0);
+  return (
+    <DonutChart
+      items={items}
+      centerTop={`EGP ${fmtValue(total)}`}
+      centerBottom={tt(T.totalMarketCap, lang)}
+      legendValueFmt={(v) => `EGP ${fmtValue(v)}`}
+    />
   );
 }

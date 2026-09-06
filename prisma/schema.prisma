@@ -188,3 +188,46 @@ model WatchItem {
 
   @@unique([userId, ticker])
 }
+
+// ── Investor-category flows (daily snapshots, real EGX data) ──
+
+/** One trading day's aggregate investor-flow figures (EGP millions). */
+model FlowDay {
+  date       String    @id // YYYY-MM-DD (trading session)
+  scope      String    @default("Equities only, OPR included, OTC not included")
+  totalBuy   Float // EGP mn
+  totalSell  Float // EGP mn
+  turnover   Float // 2-way value traded, EGP mn
+  retailPct  Float?
+  instPct    Float?
+  capturedAt DateTime  @default(now())
+  cats       FlowCat[]
+}
+
+/** Buy/sell/net per investor category for a FlowDay. */
+model FlowCat {
+  id         String  @id @default(cuid())
+  date       String
+  day        FlowDay @relation(fields: [date], references: [date], onDelete: Cascade)
+  key        String // EGY_RETAIL | EGY_INST | ARAB_RETAIL | ARAB_INST | FOR_RETAIL | FOR_INST
+  buy        Float // EGP mn
+  sell       Float // EGP mn
+  net        Float // EGP mn
+  turnover   Float // EGP mn
+  tradingPct Float // share of total trading value
+
+  @@unique([date, key])
+}
+
+/** Daily market participation by nationality (from EGXBot session reports). */
+model ParticipationDay {
+  date          String   @id // YYYY-MM-DD
+  egyptiansPct  Float?
+  arabsPct      Float?
+  foreignersPct Float?
+  totalValueEgpMn Float? // one-way value traded, EGP mn
+  egx30Close    Float?
+  egx30ChangePct Float?
+  source        String   @default("egxbot")
+  capturedAt    DateTime @default(now())
+}

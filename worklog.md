@@ -41,3 +41,24 @@ Stage Summary:
 - The app now serves only real, live, delayed (~15 min) EGX data from public sources — zero seeded/mock data, zero auth, zero OTP.
 - Key decisions: TradingView as quote source (only reliable free EGX feed reachable); company names shown in English (source provides no reliable Arabic names; old seed's Arabic names were inaccurate and were dropped); investor-flows view replaced with real market-activity metrics + explanatory note (no free public source for exchange flow data); price history replaced with real performance horizons + 52w-range position (no free daily history source).
 - Artifacts: src/lib/market.ts, src/lib/market-status.ts, src/components/market/{use-live-data,perf-chart,types}.ts, rewritten src/app/api/**, rewritten views, updated i18n/shell/context.
+
+---
+Task ID: 3
+Agent: Super Z (main agent)
+Task: Add real charts (user: "where is the charts") and deep-research + implement real investor-category flows (user: "make deep research on how to get the investor-category flows").
+
+Work Log:
+- Deep research on investor-category flow sources (searches + endpoint probing, notes in scripts/research/RESEARCH.md): EGX official InvestorsTypeCharts.aspx is authoritative but unreachable from this network (verified again); Sigma Capital's market overview page republishes the full official table (6 categories × buy/sell/net/turnover/trading%, nationality totals, retail-vs-inst, block trades) — reachable, no auth; EGXBot daily reports give nationality participation % + totals + ~11-session archive; Mubasher/Investing 403; Synergy stale (May 2025); verified Sigma vs EGXBot cross-agreement (EGX30 56,676.16 +0.72% on both).
+- Built src/lib/flows.ts: text-anchor HTML parser for Sigma's table with arithmetic self-validation (net=buy−sell per column, totals=sums; rejects bad parses), future-date filtering for as-of dating, 5-min TTL cache + stale fallback; EGXBot EN/AR parsers (participation, value with ≥EGP 2bn sanity floor, EGX30) + immutable archive cache.
+- Prisma: appended FlowDay/FlowCat/ParticipationDay models to prisma/schema.prisma, recreated src/lib/db.ts client, ran db:generate + db:push.
+- New /api/investors route: live today table (persisted to SQLite after session close), participation history (backfilled once per process from EGXBot archive), flow history, sources list.
+- Built shared chart primitives src/components/market/charts.tsx: DivergingBars (hand-rolled diverging bar rows), DonutChart (recharts donut + side legend, LTR-safe), TrendLines (recharts multi-series lines with connectNulls + custom bilingual tooltip). Added 8-color categorical palette (--c1..--c8, light+dark) to globals.css.
+- Built views/investors-view.tsx ("المستثمرون" nav tab restored): headline stats, net-flow-by-category diverging bars, trading-distribution donut, nationality participation trend (real 11-session history), net-flow-by-nationality history (starts with 1 real day, grows daily), detailed 6-category table, OPR block trades table, sources section. All AR/EN bilingual.
+- Charts added to sectors-view (sector performance diverging bars + market-cap weight donut with top-7 + other bucket) and overview-view (compact full-market sector bar chart; /api/overview extended with sectorPerformance).
+- Updated i18n (~40 new keys), liveNote/activityNote/footerNote now credit Sigma Capital + EGXBot; worklog + research doc updated.
+- Verified end-to-end with agent-browser: /?view=investors renders all 6 categories + 15 block trades with real Sep 6 numbers (EGY retail +428mn … foreign inst −256mn), donut 6 sectors, 3 trend lines; sectors view 21 sectors + sorted bar chart + 8-slice donut; overview compact chart; EN toggle, dark mode, mobile 390px no horizontal overflow; clean reload = zero console errors (one benign hydration warning only when emulating prefers-color-scheme mid-session); lint clean; dev.log 200s only; API first call 5.4s (backfill) then ~30ms cached.
+
+Stage Summary:
+- The app now has real charts everywhere the user asked: sectors view (2 charts), overview (1 chart), investors view (4 charts + 2 tables).
+- Investor-category flows are REAL, live from Sigma Capital's republish of the official EGX table, with a real history that accumulates day by day in SQLite, plus EGXBot-based participation trend — the original esthmr.com never actually shipped this feature (its investors view is an empty stub).
+- Key artifacts: src/lib/flows.ts, src/lib/db.ts, prisma/schema.prisma (FlowDay/FlowCat/ParticipationDay), src/app/api/investors/route.ts, src/components/market/charts.tsx, src/components/views/investors-view.tsx, updated sectors/overview/app-shell/i18n/globals.css, scripts/research/RESEARCH.md.

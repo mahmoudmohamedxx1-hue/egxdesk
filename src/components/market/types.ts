@@ -88,3 +88,82 @@ export type SectorCard = {
   topLoser: { ticker: string; changePct: number } | null;
   turnoverLeader: { ticker: string; valueTraded: number } | null;
 };
+
+// ── investor-category flows (real EGX data) ──
+
+export type FlowCatKey =
+  | "EGY_RETAIL"
+  | "EGY_INST"
+  | "ARAB_RETAIL"
+  | "ARAB_INST"
+  | "FOR_RETAIL"
+  | "FOR_INST";
+
+export type FlowCatRow = {
+  key: FlowCatKey;
+  buy: number; // EGP mn
+  sell: number; // EGP mn
+  net: number; // EGP mn
+  turnover: number; // EGP mn
+  tradingPct: number;
+};
+
+export type BlockTradeRow = {
+  name: string;
+  qty: number;
+  value: number; // EGP
+  count: number;
+};
+
+export type FlowsToday = {
+  asOf: string;
+  scope: string;
+  turnoverTotal: number;
+  valueTradedOneWay: number;
+  categories: FlowCatRow[];
+  nationalityNet: { egyptians: number; arabs: number; foreigners: number };
+  retailPct: number;
+  instPct: number;
+  blockTrades: BlockTradeRow[];
+  source: string;
+  sourceUrl: string;
+  capturedAt: string;
+};
+
+export type ParticipationRow = {
+  date: string;
+  egyptiansPct: number | null;
+  arabsPct: number | null;
+  foreignersPct: number | null;
+  totalValueEgpMn: number | null;
+  egx30Close: number | null;
+  egx30ChangePct: number | null;
+};
+
+export type FlowHistoryRow = {
+  date: string;
+  egyRetail: number;
+  egyInst: number;
+  arabRetail: number;
+  arabInst: number;
+  forRetail: number;
+  forInst: number;
+  egyNet: number;
+  arabNet: number;
+  forNet: number;
+  turnover: number;
+};
+
+export type FlowsSource = {
+  name: string;
+  url: string;
+  role: string;
+};
+
+export type InvestorsData = {
+  session: { asOf: string; lastSession: string; open: boolean; cairoTime: string };
+  today: FlowsToday | null;
+  flowsError: boolean;
+  history: { flows: FlowHistoryRow[]; participation: ParticipationRow[] };
+  sources: FlowsSource[];
+};

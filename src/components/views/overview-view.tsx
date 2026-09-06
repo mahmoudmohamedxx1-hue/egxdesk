@@ -2,6 +2,7 @@
 
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
+import { DivergingBars } from "../market/charts";
 import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
@@ -20,6 +21,7 @@ type Overview = {
   movers: CompanyRow[];
   colors: CompanyRow[];
   sectorsSnapshot: { best: SectorCard[]; worst: SectorCard[] };
+  sectorPerformance?: { nameEn: string; nameAr: string; v: number }[];
   news: NewsRow[];
 };
 
@@ -125,6 +127,20 @@ export function OverviewView() {
             {tt(T.viewAll, lang)}
           </button>
         </div>
+        {data.sectorPerformance && data.sectorPerformance.length > 0 && (
+          <div className="rounded-lg border bg-card p-4 mb-3">
+            <p className="text-xs font-semibold mb-2">{tt(T.sectorPerfChart, lang)}</p>
+            <DivergingBars
+              items={data.sectorPerformance.map((s) => ({
+                label: lang === "ar" ? s.nameAr : s.nameEn,
+                value: s.v,
+              }))}
+              unit="pct"
+              lang={lang}
+              compact
+            />
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
           <SectorMini title={tt(T.strongest, lang)} sectors={data.sectorsSnapshot.best} lang={lang} onOpen={() => navigate("sectors")} />
           <SectorMini title={tt(T.weakest, lang)} sectors={data.sectorsSnapshot.worst} lang={lang} onOpen={() => navigate("sectors")} />

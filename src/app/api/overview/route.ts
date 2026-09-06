@@ -32,6 +32,11 @@ export async function GET() {
     const best = [...ranked].sort((a, b) => (b.capWeightedChangePct ?? 0) - (a.capWeightedChangePct ?? 0)).slice(0, 3);
     const worst = [...ranked].sort((a, b) => (a.capWeightedChangePct ?? 0) - (b.capWeightedChangePct ?? 0)).slice(0, 3);
 
+    // compact full-market sector performance for the overview chart
+    const sectorPerformance = ranked
+      .sort((a, b) => (b.capWeightedChangePct ?? 0) - (a.capWeightedChangePct ?? 0))
+      .map((s) => ({ nameEn: s.nameEn, nameAr: s.nameAr, v: s.capWeightedChangePct as number }));
+
     return NextResponse.json({
       session: sessionMeta(),
       indices,
@@ -45,6 +50,7 @@ export async function GET() {
       movers,
       colors,
       sectorsSnapshot: { best, worst },
+      sectorPerformance,
       news: news.slice(0, 6),
     });
   } catch {
