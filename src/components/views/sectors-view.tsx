@@ -96,8 +96,10 @@ export function SectorsView() {
               <Metric label={tt(T.equalWeighted, lang)} value={fmtPct(s.avgChangePct)} cls={directionClass(s.avgChangePct)} />
               <Metric label={tt(T.marketCap, lang)} value={`EGP ${fmtValue(s.marketCap)}`} />
               <Metric label={tt(T.valueTraded, lang)} value={`EGP ${fmtValue(s.valueTraded)}`} />
-              <Metric label={lang === "ar" ? "مكرر الربحية (وسيط)" : "P/E (median)"} value={s.pe !== null ? fmtNum(s.pe, 1) : "—"} />
-              <Metric label={lang === "ar" ? "عائد التوزيعات (وسيط)" : "Div yield (median)"} value={s.divYield !== null ? `${fmtNum(s.divYield, 1)}%` : "—"} />
+              <Metric label={tt(T.medianPe, lang)} value={s.pe !== null ? fmtNum(s.pe, 1) : "—"} />
+              <Metric label={tt(T.medianPb, lang)} value={s.pb !== null ? fmtNum(s.pb, 2) : "—"} />
+              <Metric label={tt(T.medianRoe, lang)} value={s.roe !== null ? `${fmtNum(s.roe, 1)}%` : "—"} />
+              <Metric label={tt(T.medianYield, lang)} value={s.divYield !== null ? `${fmtNum(s.divYield, 1)}%` : "—"} />
             </div>
 
             {/* movers */}

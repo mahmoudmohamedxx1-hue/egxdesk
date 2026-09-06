@@ -13,15 +13,36 @@ import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
 
 const METRICS = [
-  { key: "marketCap", ar: "القيمة السوقية", en: "Market cap" },
-  { key: "close", ar: "سعر السهم", en: "Share price" },
-  { key: "divYield", ar: "عائد التوزيعات", en: "Dividend yield" },
-  { key: "pe", ar: "مضاعف الربحية", en: "P/E" },
+  { key: "marketCap", ar: "القيمة السوقية", en: "Market cap", t: T.metricMarketCap },
+  { key: "close", ar: "سعر السهم", en: "Share price", t: T.metricClose },
+  { key: "divYield", ar: "عائد التوزيعات", en: "Dividend yield", t: T.metricDivYield },
+  { key: "pe", ar: "مضاعف الربحية", en: "P/E", t: T.metricPe },
+  { key: "pb", ar: "مضاعف القيمة الدفترية", en: "P/B", t: T.metricPb },
+  { key: "netIncomeTTM", ar: "صافي الربح (١٢ شهراً)", en: "Net income (TTM)", t: T.metricNetIncome },
+  { key: "roe", ar: "العائد على حقوق الملكية", en: "ROE", t: T.metricRoe },
+  { key: "debtToEquity", ar: "الدين / حقوق الملكية", en: "Debt / equity", t: T.metricDe },
+  { key: "eps", ar: "ربحية السهم", en: "EPS", t: T.metricEps },
   { key: "volumeRatio", ar: "الحجم غير المعتاد", en: "Unusual volume" },
   { key: "perfYTD", ar: "الأداء من بداية العام", en: "YTD performance" },
 ] as const;
 
 type SortKey = (typeof METRICS)[number]["key"];
+
+function metricOf(r: CompanyRow, key: SortKey): number | null {
+  switch (key) {
+    case "marketCap": return r.marketCap;
+    case "close": return r.close;
+    case "divYield": return r.divYield;
+    case "pe": return r.pe;
+    case "pb": return r.pb ?? null;
+    case "netIncomeTTM": return r.netIncomeTTM ?? null;
+    case "roe": return r.roe ?? null;
+    case "debtToEquity": return r.debtToEquity ?? null;
+    case "eps": return r.eps;
+    case "volumeRatio": return r.volumeRatio;
+    case "perfYTD": return r.perfYTD;
+  }
+}
 
 export function MarketView() {
   const { lang, navigate } = useApp();
@@ -31,6 +52,7 @@ export function MarketView() {
   const [sector, setSector] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("marketCap");
   const [desc, setDesc] = useState(true);
+  const [compareKey, setCompareKey] = useState<SortKey | "">("");
 
   const rows = data?.rows ?? null;
 
@@ -68,11 +90,20 @@ export function MarketView() {
           case "close": return r.close;
           case "divYield": return r.divYield ?? -Infinity;
           case "pe": return r.pe ?? (desc ? -Infinity : Infinity);
+          case "pb": return r.pb ?? (desc ? -Infinity : Infinity);
+          case "netIncomeTTM": return r.netIncomeTTM ?? -Infinity;
+          case "roe": return r.roe ?? -Infinity;
+          case "debtToEquity": return r.debtToEquity ?? (desc ? -Infinity : Infinity);
+          case "eps": return r.eps ?? -Infinity;
           case "volumeRatio": return r.volumeRatio ?? -Infinity;
           case "perfYTD": return r.perfYTD ?? -Infinity;
         }
       };
-      return [...out].sort((a, b) => (desc ? get(b) - get(a) : get(a) - get(b)));
+      // companies missing the ranked metric drop to the bottom regardless
+      const withMetric = out.filter((r) => metricOf(r, sortKey) !== null);
+      const without = out.filter((r) => metricOf(r, sortKey) === null);
+      const sorted = [...withMetric].sort((a, b) => (desc ? get(b) - get(a) : get(a) - get(b)));
+      return [...sorted, ...without];
     }
     if (tab === "metrics") {
       return [...out].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
@@ -81,6 +112,17 @@ export function MarketView() {
   }, [rows, q, sector, tab, sortKey, desc, lang]);
 
   const shown = filtered?.length ?? 0;
+
+  const fmtMetric = (key: SortKey, v: number | null): string => {
+    if (v === null || v === undefined) return "—";
+    if (key === "marketCap" || key === "netIncomeTTM") return `EGP ${fmtValue(v)}`;
+    if (key === "divYield" || key === "roe" || key === "perfYTD") return `${fmtNum(v, 1)}%`;
+    if (key === "volumeRatio") return `${fmtNum(v, 1)}×`;
+    if (key === "eps" || key === "close") return fmtNum(v);
+    return fmtNum(v, 2);
+  };
+
+  const withMetricCount = rows ? rows.filter((r) => metricOf(r, sortKey) !== null).length : 0;
 
   return (
     <div className="space-y-4">
@@ -132,16 +174,28 @@ export function MarketView() {
         )}
         <span className="flex-1" />
         {tab === "rank" && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
             <Filter className="h-3.5 w-3.5" />
-            <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="h-8 rounded-md border bg-card px-2 text-xs">
-              {METRICS.map((m) => (
-                <option key={m.key} value={m.key}>{lang === "ar" ? m.ar : m.en}</option>
-              ))}
-            </select>
+            <label className="flex items-center gap-1">
+              <span className="hidden sm:inline">{tt(T.rankMetric, lang)}:</span>
+              <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="h-8 rounded-md border bg-card px-2 text-xs">
+                {METRICS.map((m) => (
+                  <option key={m.key} value={m.key}>{lang === "ar" ? m.ar : m.en}</option>
+                ))}
+              </select>
+            </label>
             <button onClick={() => setDesc(!desc)} className="h-8 rounded-md border bg-card px-2 text-xs hover:bg-accent">
               {desc ? (lang === "ar" ? "الأعلى أولاً ↓" : "Highest first ↓") : (lang === "ar" ? "الأدنى أولاً ↑" : "Lowest first ↑")}
             </button>
+            <label className="flex items-center gap-1">
+              <span className="hidden sm:inline">{tt(T.compareMetric, lang)}:</span>
+              <select value={compareKey} onChange={(e) => setCompareKey(e.target.value as SortKey | "")} className="h-8 rounded-md border bg-card px-2 text-xs">
+                <option value="">—</option>
+                {METRICS.filter((m) => m.key !== sortKey).map((m) => (
+                  <option key={m.key} value={m.key}>{lang === "ar" ? m.ar : m.en}</option>
+                ))}
+              </select>
+            </label>
           </div>
         )}
       </div>
@@ -165,6 +219,18 @@ export function MarketView() {
                     <th className="text-end font-medium px-3 py-2.5">{lang === "ar" ? "الحجم ÷ المعتاد" : "Vol ÷ usual"}</th>
                   ) : (
                     <th className="text-end font-medium px-3 py-2.5 hidden sm:table-cell">{tt(T.colValue, lang)}</th>
+                  )}
+                  {tab === "rank" && (
+                    <>
+                      <th className="text-end font-medium px-3 py-2.5 whitespace-nowrap">
+                        {METRICS.find((m) => m.key === sortKey) ? (lang === "ar" ? METRICS.find((m) => m.key === sortKey)!.ar : METRICS.find((m) => m.key === sortKey)!.en) : ""}
+                      </th>
+                      {compareKey && (
+                        <th className="text-end font-medium px-3 py-2.5 whitespace-nowrap hidden md:table-cell">
+                          {lang === "ar" ? METRICS.find((m) => m.key === compareKey)?.ar : METRICS.find((m) => m.key === compareKey)?.en}
+                        </th>
+                      )}
+                    </>
                   )}
                   <th className="text-end font-medium px-3 py-2.5 hidden md:table-cell">{tt(T.colPe, lang)}</th>
                   {tab === "metrics" && (
@@ -196,6 +262,18 @@ export function MarketView() {
                     ) : (
                       <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">{fmtValue(r.valueTraded)}</td>
                     )}
+                    {tab === "rank" && (
+                      <>
+                        <td className="num px-3 py-2.5 text-end font-semibold">
+                          {fmtMetric(sortKey, metricOf(r, sortKey))}
+                        </td>
+                        {compareKey && (
+                          <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">
+                            {fmtMetric(compareKey, metricOf(r, compareKey))}
+                          </td>
+                        )}
+                      </>
+                    )}
                     <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">
                       {r.pe ? fmtNum(r.pe, 1) : "—"}
                     </td>
@@ -224,6 +302,11 @@ export function MarketView() {
 
       {tab === "unusual" && filtered && filtered.length > 0 && (
         <p className="text-[11px] text-muted-foreground">{tt(T.unusualNote, lang)}</p>
+      )}
+      {tab === "rank" && rows && (
+        <p className="text-[11px] text-muted-foreground num">
+          <span className="font-semibold text-foreground">{withMetricCount}</span> {tt(T.companiesWithMetric, lang)} · {tt(T.rankNote, lang)}
+        </p>
       )}
       <p className="text-[11px] text-muted-foreground num">
         {tt(T.stock, lang)}: {shown}

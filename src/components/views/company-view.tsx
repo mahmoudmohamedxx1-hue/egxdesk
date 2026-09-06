@@ -10,9 +10,10 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { PerfChart, RangeBar } from "../market/perf-chart";
 import { PriceChart } from "../market/price-chart";
+import { StatementsPanel } from "../market/statements-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw } from "lucide-react";
+import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw, Zap, CalendarClock, FileSpreadsheet } from "lucide-react";
 
 type CompanyData = {
   session: SessionMeta;
@@ -26,12 +27,15 @@ type CompanyData = {
     low1M: number | null;
     beta: number | null;
     updateMode: string | null;
+    employees?: number | null;
   };
   sectorAgg: {
     count: number;
     nameAr: string;
     nameEn: string;
     pe: number | null;
+    pb: number | null;
+    roe: number | null;
     eps: number | null;
     divYield: number | null;
     beta: number | null;
@@ -39,6 +43,16 @@ type CompanyData = {
   };
   peers: CompanyRow[];
   news: NewsRow[];
+  disclosures: NewsRow[];
+  signals: {
+    streak: { direction: "up" | "down"; count: number; since: string } | null;
+    nextEarnings: string | null;
+    unusualVolume: boolean;
+    volumeRatio: number | null;
+    near52High: boolean;
+    near52Low: boolean;
+    computedFrom: string;
+  } | null;
 };
 
 export function CompanyView({ ticker, panel }: { ticker: string; panel: string }) {
@@ -106,8 +120,10 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
 
   const panels = [
     { key: "overview", t: T.panelOverview },
-    { key: "activity", t: T.panelActivity },
+    { key: "statements", t: T.panelStatements },
     { key: "fundamentals", t: T.panelFundamentals },
+    { key: "disclosures", t: T.panelDisclosures },
+    { key: "activity", t: T.panelActivity },
     { key: "news", t: T.panelNews },
   ];
 
@@ -193,6 +209,9 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             {p.key === "news" && data.news.length > 0 && (
               <span className="num ms-1.5 text-xs text-muted-foreground">{data.news.length}</span>
             )}
+            {p.key === "disclosures" && data.disclosures.length > 0 && (
+              <span className="num ms-1.5 text-xs text-muted-foreground">{data.disclosures.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -207,6 +226,8 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             </div>
             <PriceChart key={c.ticker} symbol={c.ticker} defaultRange="6M" />
           </section>
+
+          {data.signals && <SignalsCard signals={data.signals} lang={lang} />}
 
           <section className="rounded-lg border bg-card p-4">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -232,6 +253,40 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             )}
           </section>
         </div>
+      )}
+
+      {/* STATEMENTS */}
+      {activePanel === "statements" && (
+        <StatementsPanel key={c.ticker} ticker={c.ticker} />
+      )}
+
+      {/* DISCLOSURES (press-derived) */}
+      {activePanel === "disclosures" && (
+        <section className="rounded-lg border bg-card divide-y">
+          <div className="px-4 py-3">
+            <h2 className="font-bold flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+              {tt(T.panelDisclosures, lang)}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground max-w-3xl leading-relaxed">{tt(T.disclosuresNote, lang)}</p>
+          </div>
+          {data.disclosures.length === 0 && (
+            <p className="px-4 py-10 text-center text-sm text-muted-foreground">{tt(T.noDisclosures, lang)}</p>
+          )}
+          {data.disclosures.map((n) => (
+            <article key={n.id} className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
+                <span className="num text-[11px] text-muted-foreground">{fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}</span>
+              </div>
+              <a href={n.link} target="_blank" rel="noopener noreferrer" className="text-sm leading-snug font-medium hover:underline inline-flex items-start gap-1.5">
+                {n.title}
+                <ExternalLink className="h-3 w-3 mt-1 shrink-0 text-muted-foreground" />
+              </a>
+              {n.snippet && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{n.snippet}</p>}
+            </article>
+          ))}
+        </section>
       )}
 
       {/* ACTIVITY */}
@@ -277,12 +332,19 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               <VsSector label="P/E" value={c.pe} agg={data.sectorAgg.pe} fmt={(v) => fmtNum(v, 1)} />
+              <VsSector label={lang === "ar" ? "م/د (القيمة الدفترية)" : "P/B (book)"} value={c.pb} agg={data.sectorAgg.pb} fmt={(v) => fmtNum(v, 2)} />
+              <VsSector label={lang === "ar" ? "العائد على حقوق الملكية" : "ROE"} value={c.roe} agg={data.sectorAgg.roe} fmt={(v) => `${fmtNum(v, 1)}%`} higherBetter />
               <VsSector label="EPS" value={c.eps} agg={data.sectorAgg.eps} fmt={(v) => fmtNum(v)} higherBetter />
               <VsSector label={lang === "ar" ? "عائد التوزيعات" : "Div yield"} value={c.divYield} agg={data.sectorAgg.divYield} fmt={(v) => `${fmtNum(v, 1)}%`} higherBetter />
               <VsSector label={tt(T.beta, lang)} value={c.beta} agg={data.sectorAgg.beta} fmt={(v) => fmtNum(v, 2)} />
               <MetricOnly label={tt(T.netMargin, lang)} value={c.netMarginTTM !== null ? `${fmtNum(c.netMarginTTM, 1)}%` : "—"} />
+              <MetricOnly label={lang === "ar" ? "صافي الربح (١٢ شهراً)" : "Net income (TTM)"} value={c.netIncomeTTM !== null ? `EGP ${fmtValue(c.netIncomeTTM)}` : "—"} />
               <MetricOnly label={tt(T.revenueTtm, lang)} value={c.revenueTTM !== null ? `EGP ${fmtValue(c.revenueTTM)}` : "—"} />
+              <MetricOnly label={lang === "ar" ? "الدين / حقوق الملكية" : "Debt / equity"} value={c.debtToEquity !== null ? fmtNum(c.debtToEquity, 2) : "—"} />
+              <MetricOnly label={lang === "ar" ? "هامش الربح الإجمالي" : "Gross margin"} value={c.grossMarginTTM !== null ? `${fmtNum(c.grossMarginTTM, 1)}%` : "—"} />
+              <MetricOnly label={lang === "ar" ? "صافي الدين" : "Net debt"} value={c.netDebt !== null ? `EGP ${fmtValue(c.netDebt)}` : "—"} />
               <MetricOnly label={tt(T.floatShares, lang)} value={c.floatShares !== null ? fmtInt(c.floatShares) : "—"} />
+              <MetricOnly label={lang === "ar" ? "الموظفون" : "Employees"} value={c.employees !== null && c.employees !== undefined ? fmtInt(c.employees) : "—"} />
               <MetricOnly label={tt(T.marketCap, lang)} value={`EGP ${fmtValue(c.marketCap)}`} />
             </div>
           </section>
@@ -362,6 +424,78 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           : "Em-dashes mean the source has no data for the field. Data is live and delayed, and refreshes with the source."}
       </p>
     </div>
+  );
+}
+
+// comparison vs sector median
+function SignalsCard({
+  signals,
+  lang,
+}: {
+  signals: NonNullable<CompanyData["signals"]>;
+  lang: "ar" | "en";
+}) {
+  const items: { icon: React.ReactNode; text: string; cls: string }[] = [];
+  if (signals.streak) {
+    const up = signals.streak.direction === "up";
+    items.push({
+      icon: up ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />,
+      text:
+        lang === "ar"
+          ? `${signals.streak.count} ${tt(up ? T.signalStreakUp : T.signalStreakDown, lang)} — منذ ${signals.streak.since}`
+          : `${signals.streak.count} ${tt(up ? T.signalStreakUp : T.signalStreakDown, lang)} — since ${signals.streak.since}`,
+      cls: up ? "text-up bg-up-soft border-up/20" : "text-down bg-down-soft border-down/20",
+    });
+  }
+  if (signals.unusualVolume) {
+    items.push({
+      icon: <Zap className="h-3.5 w-3.5" />,
+      text:
+        lang === "ar"
+          ? `${tt(T.signalUnusualVol, lang)} — ${fmtNum(signals.volumeRatio ?? 0, 1)}× ${tt(T.avg10, lang)}`
+          : `${tt(T.signalUnusualVol, lang)} — ${fmtNum(signals.volumeRatio ?? 0, 1)}× ${tt(T.avg10, lang)}`,
+      cls: "text-primary bg-secondary border",
+    });
+  }
+  if (signals.nextEarnings) {
+    items.push({
+      icon: <CalendarClock className="h-3.5 w-3.5" />,
+      text: `${tt(T.signalNextEarnings, lang)}: ${signals.nextEarnings}`,
+      cls: "text-foreground bg-secondary border",
+    });
+  }
+  if (signals.near52High) {
+    items.push({
+      icon: <TrendingUp className="h-3.5 w-3.5" />,
+      text: tt(T.signalNear52High, lang),
+      cls: "text-up bg-up-soft border-up/20",
+    });
+  }
+  if (signals.near52Low) {
+    items.push({
+      icon: <TrendingDown className="h-3.5 w-3.5" />,
+      text: tt(T.signalNear52Low, lang),
+      cls: "text-down bg-down-soft border-down/20",
+    });
+  }
+
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <h2 className="font-bold mb-2">{tt(T.signalsTitle, lang)}</h2>
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{tt(T.noSignals, lang)}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {items.map((it, i) => (
+            <li key={i} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium ${it.cls}`}>
+              {it.icon}
+              <span className="num">{it.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-[10px] text-muted-foreground">{tt(T.signalsNote, lang)}</p>
+    </section>
   );
 }
 

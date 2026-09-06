@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, fetchNews, relatedNews, sectorAr, sectorCode, companyRow, sessionMeta, type Stock } from "@/lib/market";
-import { ensureNewsArchive, relatedNewsArchive } from "@/lib/news-archive";
+import { ensureNewsArchive, relatedNewsArchive, companyDisclosures } from "@/lib/news-archive";
+import { computeSignals } from "@/lib/signals";
 
 function median(vals: number[]): number | null {
   if (!vals.length) return null;
@@ -11,7 +12,8 @@ function median(vals: number[]): number | null {
 
 /** GET /api/company/[ticker] — live company page payload:
  *  quote, real fundamentals, performance horizons, sector medians,
- *  same-sector peers and related news. */
+ *  same-sector peers, related news, computed signals, press-disclosure log,
+ *  and whether per-period statements are published for this ticker. */
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ ticker: string }> }
@@ -41,6 +43,8 @@ export async function GET(
       nameAr: sectorAr(company.sector),
       nameEn: company.sector || "Unclassified",
       pe: median(peerPool.map((s) => s.pe).filter((v): v is number => v !== null)),
+      pb: median(peerPool.map((s) => s.pb).filter((v): v is number => v !== null)),
+      roe: median(peerPool.map((s) => s.roe).filter((v): v is number => v !== null)),
       eps: median(peerPool.map((s) => s.eps).filter((v): v is number => v !== null)),
       divYield: median(peerPool.map((s) => s.divYield).filter((v): v is number => v !== null)),
       beta: median(peerPool.map((s) => s.beta).filter((v): v is number => v !== null)),
@@ -48,7 +52,11 @@ export async function GET(
     };
 
     const c: Stock = company;
-    const archived = await relatedNewsArchive(t, c.name, 6).catch(() => []);
+    const [archived, disclosures, signals] = await Promise.all([
+      relatedNewsArchive(t, c.name, 6).catch(() => []),
+      companyDisclosures(t, c.name, 12).catch(() => []),
+      computeSignals(c),
+    ]);
     return NextResponse.json({
       session: sessionMeta(),
       company: {
@@ -62,11 +70,14 @@ export async function GET(
         low1M: c.low1M,
         beta: c.beta,
         updateMode: c.updateMode,
+        employees: c.employees,
         sectorCode: sectorCode(c.sector),
       },
       sectorAgg,
       peers,
       news: archived.length > 0 ? archived : relatedNews(c, news, 6),
+      disclosures,
+      signals,
     });
   } catch {
     return NextResponse.json({ error: "market data unavailable" }, { status: 502 });

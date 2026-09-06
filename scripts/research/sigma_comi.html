@@ -1,0 +1,2128 @@
+
+<!doctype html>
+<html class="no-js" lang="en" translate="no">
+<head>
+<meta name="google" content="notranslate">
+
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-46428XKSS7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-46428XKSS7');
+</script>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8; " />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sigma Capital</title>
+<!--[if lt IE 9]>
+<script src="/js/html5shiv.min.js"></script>
+
+<style>
+#headertag{display:block;float:left}
+</style>
+<![endif]-->
+<style>
+.divLoad {display:block; float:right; width:16px;height:16px;background:url('/images1/load.gif') no-repeat center;text-align:center;vertical-align:middle}
+.ui-autocomplete-loading { background: white url('/images1/load.gif') right center no-repeat; }
+</style>
+<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script-->
+<script src="/js/jquery.min.js"></script>
+<script src="/js/jquery-ui/jquery-ui.js"></script>
+<script type="text/javascript" src="/js/sticky-table.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">  
+<link rel="stylesheet" href="/js/jquery-ui/jquery-ui.css" >
+
+
+
+<!-- <link rel="stylesheet" href="/style/style4sbfacelift.css"> -->
+<link rel="stylesheet" type="text/css" href="/style/sticky-table.min.css">
+<link rel="stylesheet" href="/style/style4facelift_newnav.css">
+<link rel="stylesheet" href="/style/styleAlerts.css">
+<link href="/style/print.css" rel="stylesheet" media="print" type="text/css"   />
+<link rel="stylesheet" type="text/css" href="/css/styleCog.css" />
+        <link rel="stylesheet" href="/style/jquery.tabs-ie.css" type="text/css">
+       <!--  <link rel="stylesheet" href="/style/jquery.ui.all.css"> -->
+        <!--link rel="stylesheet" href="/style/jquery.ui.datepicker.css"-->
+<!-- Additional IE/Win specific style sheet (Conditional Comments) -->
+        <!--[if lte IE 7]>
+        <link rel="stylesheet" href="/style/jquery.tabs-ie.css" type="text/css">
+<![endif]-->
+
+
+<script type="text/javascript" src="/htmltestTCP/scripts/WEBSIGMAR18.js"></script>
+
+<script type="text/javascript" src="/js/ui.utils.js"></script>
+<script type="text/javascript" src="/js/ui.valueanimation.js"></script>
+<script type="text/javascript" src="/js/ui.status.js"></script>
+
+
+<!-- <script src="/newsite/js/jquery-1.11.1.min.js"></script> -->
+<script type="text/javascript" src="/js/jquery.liScroll.js" ></script>
+<script type="text/javascript" src="/js/jquery.tabs_fix.js" ></script>
+<script type="text/javascript" src="/js/superfish.js"></script>
+<script type="text/javascript" src="/js/jquery.tabs.js"></script>
+
+
+
+<script src="/js/dragtable.js"></script>
+<script src="/js/sorttable.js"></script>
+
+    <script>
+
+  function iframeLoaded(height) {
+
+      var iFrameID = document.getElementById("myFrame0");
+
+
+      if(iFrameID) {
+
+
+ iFrameID.height = height  + "px";
+
+//iFrameID.height =height+iFrameID.contentWindow.document.body.scrollHeight+ "px";
+      }   
+  }
+   function reDrawAlertDialog(TypeVal) {
+ document.getElementById("spanCondetionLB").innerText=  "Condition";
+
+        if(TypeVal==8)
+            {
+              document.getElementById("spanCondetionLB").innerText=  "Price";
+            document.getElementById("spanAfterCondetion").innerText=  "Value";
+
+                   $("#condition_as").find("option").remove().end() 
+                   .append(" <option value= '11'>Greater Than Or Equal</option> ") 
+                   .append(" <option value= '12'>Lower Than Or Equal</option> ");
+
+
+
+                $(".alertTypeConf").css("display","block");
+                $(".alertTypeConf2").css("display","block");
+
+
+
+
+
+            }else     if(TypeVal==38)
+            {
+
+
+         document.getElementById("spanCondetionLB").innerText=  "Turnover";
+            document.getElementById("spanAfterCondetion").innerText=  "Value";
+
+             $("#condition_as").find("option").remove().end().append(" <option value= '11'>Greater Than Or Equal</option> ");
+
+                $(".alertTypeConf").css("display","block");
+                $(".alertTypeConf2").css("display","block");
+
+            }
+            else     if(TypeVal==39)
+            {
+
+           document.getElementById("spanCondetionLB").innerText=  "Change%";
+            document.getElementById("spanAfterCondetion").innerText=  "Value";
+
+                  $("#condition_as").find("option").remove().end().append(" <option value= '5'>Greater Than</option> ")
+                   .append(" <option value= '6'>Lower Than</option> ") 
+
+
+                $(".alertTypeConf").css("display","block");
+                $(".alertTypeConf2").css("display","block");
+
+            }
+            else if(TypeVal==9 || TypeVal==10 || TypeVal==13 || TypeVal==14 || TypeVal==15)
+            {
+                $(".alertTypeConf2").css("display","block");
+                $(".alertTypeConf").css("display","none");
+
+            }
+            else
+            {
+                $(".alertTypeConf2").css("display","none");
+                $(".alertTypeConf").css("display","none");
+
+ document.getElementById("alertType").selectedIndex = "0";
+            }
+
+           /* $("#dialog").dialog('option', 'position', $(this).dialog('option', 'position'));*/
+
+   $( "#dialog" ).dialog( "open" );
+
+
+
+}
+
+
+
+
+
+
+
+
+function openExpandAlertDetail(uu)
+{
+
+    var alertDevPop= document.getElementById(uu).style.display;
+
+       var poopStat = alertDevPop.indexOf("no");
+
+  if(poopStat <0){
+document.getElementById(uu).style.display= "none"
+  }else{
+
+ document.getElementById(uu).style.display= "table-row"
+  }
+
+   var serialIdIsplit="";
+  var serialIdIs =""; 
+
+  var result = uu.includes("AlertPopUpIdCallAll");
+  if(result){
+  serialIdIsplit=uu.split("AlertPopUpIdCallAll");
+    serialIdIs = serialIdIsplit[0];
+  }else {
+
+   result = uu.includes("AlertPopUpIdCallAccountAccount");
+    if(result){
+  serialIdIsplit=uu.split("AlertPopUpIdCallAccountAccount");
+    serialIdIs = serialIdIsplit[0];
+  }else{
+
+   result = uu.includes("AlertPopUpIdCallStock");
+    if(result){
+  serialIdIsplit=uu.split("AlertPopUpIdCallStock");
+    serialIdIs = serialIdIsplit[0];
+  }
+
+
+  }
+
+
+
+
+
+
+  }
+
+
+  $.ajax({
+                                       type: "GET",
+                                       url: "/CheckAlertsService/RecentAlertServiceServlet?updateSeen=true&serialID="+serialIdIs,
+                                       //data: "{'id': '" + $(this).attr("id") + "' }",
+                                       contentType: "application/html; charset=utf-8",
+                                       dataType: "html",
+                                       success: function(result, status)
+                                             {
+
+                               $("#btn-alert-sub ").find(tabId).find(".blueBgTab").nextAll().remove(); 
+                              $("#btn-alert-sub ").find(tabId).find(".blueBgTab").after(result);
+                                             }
+
+                                       });
+
+
+
+
+
+
+    }
+
+    function getInitAlerts(tabId,typeId) 
+  {
+        $.ajax({
+                                       type: "GET",
+                                       url: "/CheckAlertsService/RecentAlertServiceServlet?loadRecentDays=90&u_sess=&lang=0&userID=&from=1&to=5&type="+typeId,
+                                       //data: "{'id': '" + $(this).attr("id") + "' }",
+                                       contentType: "application/html; charset=utf-8",
+                                       dataType: "html",
+                                       success: function(result, status)
+                                             {
+
+                               $("#btn-alert-sub ").find(tabId).find(".blueBgTab").nextAll().remove(); 
+                              $("#btn-alert-sub ").find(tabId).find(".blueBgTab").after(result);
+                                             }
+
+                                       });
+                                       }
+
+
+
+
+    function getuploadedHelpDeskBas64( ) 
+  {
+  return  document.getElementById("base64IdTextArea").value; 
+    }
+
+    function getuploadedFileName( ) 
+  {
+  return  document.getElementById("upadedFileName").value; 
+    }
+
+    function getuploadedFilemimType( ) 
+  {
+  return  document.getElementById("upadedmimetype").value; 
+    }
+$(document).ready(function () {
+
+
+     var handleFileSelect = function(evt) {
+    var files = evt.target.files;
+    var file = files[0];
+
+    if (files && file) {
+        var reader = new FileReader();
+
+        reader.onload = function(readerEvt) {
+            var binaryString = readerEvt.target.result;
+var filesize=  file.size / 1024 / 1024; 
+
+
+           if(filesize>10){
+            alert("The image exceeds the maximum size limit");
+        document.getElementById("myFile").value = "";
+            return;
+            }
+            document.getElementById("base64IdTextArea").value = btoa(binaryString);
+
+             document.getElementById("upadedFileName").value =file.name;
+              document.getElementById("upadedmimetype").value = file.type;
+
+
+
+        };
+
+        reader.readAsBinaryString(file);
+    }
+};
+
+  document.getElementById("myFile")
+            .addEventListener("change", handleFileSelect, false);
+
+
+
+
+$('.tabsContent').tabs({fxFade: true, fxSpeed: 'fast' });
+$('.tabsContent2').tabs({fxFade: true, fxSpeed: 'fast' });
+$(window).click(function() {
+$('#AlertPopMenueID')[0].classList.remove('open');
+});
+
+$('#AlertPopMenueID').click(function(event){
+    event.stopPropagation();
+});
+
+
+});
+
+function alertsBtnClicked()
+{             
+    //$('.Alert-dropdown-menu').css('display','block');
+    $('#AlertPopMenueID')[0].classList.add('open');
+} 
+
+function changesymAddAlert()
+{
+ if (el("eq_code2").value=="") return;
+  setQuote_as(el("eq_code2").value);
+
+}
+
+
+function submitenterAddAlert(myfield,e)
+{
+    var keycode;
+    if (window.event) keycode = window.event.keyCode;
+    else if (e) keycode = e.which;
+    else return true;
+
+   if (keycode == 13)
+   {
+
+       setQuote_as(myfield.value);
+       return false
+   }
+   else
+   return true;
+}  
+
+
+</script>
+
+
+<script>
+
+ function all2(){
+
+        numsave=window.open('Alert.custom_alert?u_sess=','New','width=680,height=500,resizable=0,scrollbars=yes,menubar=yes,status=yes');
+//            numsave.creator = self;
+//            numsave.document.close();
+            numsave.focus();
+        }
+
+    jQuery.browser = {};
+        (function () {
+            jQuery.browser.msie = false;
+            jQuery.browser.version = 0;
+            if (navigator.userAgent.match(/MSIE ([0-9]+)\./)) {
+                jQuery.browser.msie = true;
+                jQuery.browser.version = RegExp.$1;
+            }
+        })();
+
+
+    $(document).ready(function () {
+           showad();
+
+    getInitAlerts("#fragment-alerts1","3");     
+
+    /* add dialogue */
+
+    var dialog, form,eq_code = $( "#eq_code2" ),isUpdate=$("#isUpdate").val(),alertId=$("#alertId").val(),
+         label=$("#label_as"),
+         alertType =$("#alertType"),         
+         allFields = $( [] ).add( eq_code ).add(label).add(alertType).add($("#price_as")),
+         tips = $( ".validateTips" );
+
+
+       function receiveMessage(event)
+{
+
+if(event.data.indexOf("placeNewAlertDialog:") >-1){
+
+reDrawAlertDialog(0);
+}
+
+if(event.data.indexOf("goToMyAlertsPage") > -1)
+{
+   window.location = "myalerts?u_sess=";
+}
+
+
+
+
+if(event.data.indexOf("closeAlertDialog") > -1)
+{
+   document.getElementById("AlertPopMenueID").className = "alertDiv";
+}
+
+
+if(event.data.indexOf("resizeFrame:") > -1){
+
+var event =event.data.split(":");
+
+iframeLoaded(event[1]);
+
+}else{
+if(event.data.indexOf("--") > -1){
+
+ var event =event.data.split("--");
+  var symbolName  = event[0];
+  var alertName  = event[1];
+  var isNewsAlert  = event[2];
+  var alertTypeVar  = event[3];
+ // var isSigmaResearchAlert  = event[4];
+ // var isPriceAlert  = event[5];
+  var conditionas  = event[4];
+var priceas  = event[5];
+var desas  = event[6];
+var alertID  = event[7];
+
+
+$("#addALert").html("Update") ;
+        $("#isUpdate").val(true) ;
+        $("#alertId").val(alertID) ;
+        $("#eq_code2").val(symbolName) ;
+        $("#label_as").val(alertName) ;
+
+
+        $("#eq_code2").attr("disabled", true) ;
+
+
+
+        if(alertTypeVar == 8){
+
+            $("#price_as").attr("disabled", false) ;
+            $("#condition_as").attr("disabled", false) ;
+            $("#condition_as").val(conditionas);
+
+        }
+
+           reDrawAlertDialog(alertTypeVar);
+
+
+
+        $("#price_as").val(priceas) ;
+      //  $("#des_as").val(desas) ;
+
+    $("#alertType").val(alertTypeVar+"");
+   $("#alertType").attr("disabled", true) ;
+
+     $("#alertType").attr("style","background-color:rgb(235, 235, 228)") ;
+
+        $("#dialog").dialog("open");
+
+
+}
+}
+
+
+}
+
+
+addEventListener("message", receiveMessage, false);
+
+
+      function updateTips( t ) 
+      {
+          tips.text( t ).addClass( "ui-state-highlight" );
+          setTimeout(function() 
+          {
+            tips.removeClass( "ui-state-highlight", 1500 );
+          }, 500 );
+      }
+
+
+
+
+    function checkLength( o, n, min ) 
+    {
+      if ( o.val().length < min ) 
+      {
+        if(o.val() == "OIH")return true;
+
+        o.addClass( "ui-state-error" );
+        if(min ==1)updateTips(n+" shouldn't be empty.");
+        else
+        updateTips( "Length of " + n + " must be not less " + min + "." );
+        return false;
+      } else 
+      {
+        return true;
+      }
+    }
+
+    function checkRegexp( o, regexp, n ) 
+    {
+      if ( !( regexp.test( o.val() ) ) ) 
+      {
+        o.addClass( "ui-state-error" );
+        updateTips( n );
+        return false;
+      } else 
+      {
+        return true;
+      }
+    }
+
+    function checkAnyChecked()
+    {
+        var v = true ;
+        v = checkChecked(priceCheck)||checkChecked(news)||checkChecked(ec)||checkChecked(sr);
+        if(!v)
+        {
+            updateTips("Please check any of alert type configuration");
+        }
+
+        return v;
+    }
+
+    function checkChecked(o)
+    {
+        if(o.attr("checked"))return true;
+        else
+        {
+            return false;
+
+        }
+    }  
+
+    function checkAlertType()
+    {    
+        if(alertType.val() =="" )
+        {            
+            alertType.addClass( "ui-state-error" );
+            updateTips("Please Choose Alert Type.");
+            return false;
+        } else 
+        {
+            return true;
+        }        
+    }  
+
+
+    function addAlert() 
+    {
+      var valid = true;
+      allFields.removeClass( "ui-state-error" );
+      valid = valid && checkAlertType();  
+      valid = valid && checkLength( eq_code, "Symbol", 4 ) ;
+      if(alertType.val()==8)
+      {
+        valid = valid && checkRegexp($("#price_as"),/^\d+(?:[.,]\d+)*$/gm,"Symbol price should be a number");
+      }  
+       if(alertType.val()==38)
+      {
+        valid = valid && checkRegexp($("#price_as"),/^\d+(?:[.,]\d+)*$/gm,"Symbol value should be a number");
+      } 
+      if(alertType.val()==39)
+      {
+        valid = valid && checkRegexp($("#price_as"),/^\d+(?:[.,]\d+)*$/gm,"Symbol value should be a number");
+      }
+      if( alertType.val() !=9 && $("#price_as").val() <0.1){
+          valid=false;
+       $("#price_as").addClass( "ui-state-error" );
+        updateTips( "Value cannot be less than or equal zero" );
+      }
+
+        if( alertType.val() ==39 && $("#price_as").val() >100){
+          valid=false;
+       $("#price_as").addClass( "ui-state-error" );
+        updateTips( "Percentage cannot be greater than 100" );
+      }
+
+
+
+      valid = valid && checkLength( label, "Label", 1 );    
+
+
+
+      if ( valid ) 
+      {
+        tips.html("");
+        var alertTypeVal = alertType.val();
+        var alrtName=encodeURIComponent($("#label_as").val()); 
+        $.ajax({
+                                       type: "GET",
+                                       url: '/CheckAlertsService/AlertServiceServlet?u_sess=&newAlertID='+$("#alertId").val()+'&alertName='+alrtName+'&DESCRIPTION=&message=&alertType='+alertTypeVal+'&sendingType=3&symbolName='+eq_code.val()+'&isnCondtion='+$("#condition_as").val()+'&isnValue='+$("#price_as").val()+'&isUpdate='+$("#isUpdate").val()+'&lang=0&status=1',
+                                       contentType: "application/html; charset=utf-8",
+                                       dataType: "html",
+                                       success: function(result, status)
+                                       {
+                                          var msg ;                                           
+                                          switch(result) 
+                                          {                                           
+                                            case "0":
+                                            msg = "The Alert is Placed Successfully";
+                                            break;
+                                            case "1":
+                                            msg = "The Alert is Updated Successfully";
+                                            break;
+                                            case "2":
+                                            msg = "The Alert Already Exists";
+                                            break;
+                                            case "3":
+                                            msg = "Error in Saving , Please Try Again. ";
+                                            break;
+                                            case "4":
+                                            msg = "You are not logged on to SIGMA. This feature requires logging on to our system.";
+                                            break;
+                                            default:
+                                            msg = "Unknown Error!,Please Try Again.";
+                                            break;
+                                          }  
+
+                                          dialog.dialog( "close" );                                          
+                                          $("body").append('<div id="diaMsg" title="System Message"><p class="ui-state-highlight">'+msg+'</p></div>');
+                                          var dialogMsg = $( "#diaMsg" ).dialog({ modal: true,close: function() {
+
+                                                                if (window.location.href.indexOf("myalerts") > -1) {
+ if(result==0 || result==1){ location.reload(); }   
+} 
+
+                                          $("#diaMsg").remove();}});
+                                       }
+
+                                       });
+
+        //dialog.dialog( "close" );
+      }
+
+      return valid;
+    }
+
+/**** start send message ***/
+
+
+function sendNewMessage() 
+{
+
+
+  var valid = true;
+  allFields.removeClass( "ui-state-error" );
+
+
+
+  var titleMSG=$("#messageHeaderIdas").val();
+  var mesg=$("#MessageDetailas").val();
+
+  var helpDeskUploadedDocumentsBase64Param=encodeURIComponent(getuploadedHelpDeskBas64());
+  var fileName=getuploadedFileName();
+ var  uploadedFilemimType=getuploadedFilemimType();
+  if(titleMSG == ""||mesg == ""){
+    alert("Please fill title , message");
+      valid= false;
+  }
+
+
+  if ( valid ) 
+  {
+
+
+
+
+
+    var     alerttitleMSG=btoa(unescape(encodeURIComponent(titleMSG)))   ;
+ var     MSGP=btoa(unescape(encodeURIComponent(mesg)))   ;
+
+
+    $.ajax({
+                                   type: "POST",
+
+                                   url: '/CheckAlertsService/AlertServiceServlet?u_sess=&fName='+fileName+'&fType='+uploadedFilemimType+'&userID=&FMSG='+MSGP+'&helpDesktitle='+alerttitleMSG+'&alertType=36&sendingType=3&lang=0&status=1&fireHelpDeskMessage=true',
+
+
+
+
+                                   contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+                                   dataType: "html",
+                                   data:'helpDeskUploadedDocumentsBase64='+helpDeskUploadedDocumentsBase64Param+'',
+                                   success: function(result, status)
+                                   {
+                                      var msg ;                                           
+                                      switch(result) 
+                                      {                                           
+                                        case "0":
+                                        msg = "The Message Sent Successfully";
+                                        break; 
+                                        case "3":
+                                        msg = "Error in Saving , Please Try Again. ";
+                                        break;
+                                        case "4":
+                                        msg = "You are not logged on to SIGMA. This feature requires logging on to our system.";
+                                        break;
+                                        default:
+                                        msg = "Unknown Error!,Please Try Again.";
+                                        break;
+                                      }  
+
+                                      messagesdialog.dialog( "close" );                                          
+                                      $("body").append('<div id="diaMsg" title="System Message"><p class="ui-state-highlight">'+msg+'</p></div>');
+                                      var dialogMsg = $( "#diaMsg" ).dialog({ modal: true,close: function() {
+
+                                                            if (window.location.href.indexOf("MyAlerts.jsp") > -1) {
+if(result==0 || result==1){ location.reload(); }   
+} 
+
+                                      $("#diaMsg").remove();}});
+                                   }
+
+                                   });
+
+    //dialog.dialog( "close" );
+  }
+
+  return valid;
+}
+/**********end send message ********/
+
+          dialog = $( "#dialog" ).dialog({
+          autoOpen: false,
+          modal: true,
+          width:"auto",
+          autoReposition: true, 
+          open: function (event, ui) 
+          {
+                    $('#AlertPopMenueID')[0].classList.remove('open');
+                    dialog.css("overflow", "hidden"); 
+            },
+          buttons: {            
+            Cancel: function() 
+            {
+              dialog.dialog( "close" );
+
+            }
+          },
+          close: function() 
+          {
+             allFields.removeClass( "ui-state-error" );
+            $("#addAlertForm").find("input[type=text], textarea").val("");
+            $(".rightWrapperClip").css("display","none");
+            $(".alertTypeConf").css("display","none");
+            $(".alertTypeConf2").css("display","none");
+            $("#alertType option[value='']").attr("selected","selected");
+            if($("#alertType").val()==8)cancelSetQuote_as();
+            $("#addALert").html("Add Alert");
+            $("#isUpdate").val(false);
+
+          }
+        });
+
+        $( "#placeALertLink" ).click( "click", function() 
+        {
+          $(".alertTypeConf2").css("display","none");
+          dialog.dialog( "open" );
+
+          document.getElementById("alertType").selectedIndex = "0";
+        });
+
+     $( "#sendAlertMessage" ).click( "click", function() 
+        { $(".alertTypeConf2").css("display","block");
+          messagesdialog.dialog( "open" );
+        });
+
+        $("#addALert").click("click",function(){addAlert();});
+
+        $("#addSendALertMessage").click("click",function(){sendNewMessage();});
+
+
+
+
+
+        alertType.change(function() 
+        {
+         document.getElementById("spanCondetionLB").innerText=  "Condition";
+
+            if(alertType.val()==8)
+            {
+
+       document.getElementById("spanCondetionLB").innerText=  "Price";
+            document.getElementById("spanAfterCondetion").innerText=  "Value";
+
+
+
+
+                   $("#condition_as").find("option").remove().end() 
+                   .append(" <option value= '11'>Greater Than Or Equal</option> ") 
+                   .append(" <option value= '12'>Lower Than Or Equal</option> ");
+
+
+                $(".alertTypeConf").css("display","block");
+                $(".alertTypeConf2").css("display","block");
+
+            }else    if(alertType.val()==38)
+            {
+
+            var span =  $("#spanAfterCondetion");
+
+	    document.getElementById("spanCondetionLB").innerText=  "TurnOver";
+            document.getElementById("spanAfterCondetion").innerText=  "Value";
+
+
+
+             $("#condition_as").find("option").remove().end().append(" <option value= '11'>Greater Than Or Equal</option> ");
+
+                $(".alertTypeConf").css("display","block");
+                $(".alertTypeConf2").css("display","block");
+
+            }
+            else     if(alertType.val()==39)
+            {
+
+              document.getElementById("spanCondetionLB").innerText=  "Change%";
+
+
+         document.getElementById("spanAfterCondetion").innerText=  "Value";
+
+                  $("#condition_as").find("option").remove().end().append(" <option value= '5'>Greater Than</option> ")
+                   .append(" <option value= '6'>Lower Than</option> ") 
+
+
+
+                $(".alertTypeConf").css("display","block");
+                $(".alertTypeConf2").css("display","block");
+
+            }
+            else if(alertType.val()==9 || alertType.val()==10 || alertType.val()==13 || alertType.val()==14 || alertType.val()==15)
+            {
+                $(".alertTypeConf2").css("display","block");
+                $(".alertTypeConf").css("display","none");
+
+            }
+            else
+            {
+                $(".alertTypeConf2").css("display","none");
+                $(".alertTypeConf").css("display","none");
+
+            }
+
+            dialog.dialog('option', 'position', dialog.dialog('option', 'position'));
+
+
+        });
+
+ /* end dialogue */
+messagesdialog = $( "#alertmessagedialog" ).dialog({
+autoOpen: false,
+modal: true,
+width:"auto",
+autoReposition: true,
+open: function (event, ui)
+{
+
+        messagesdialog.css("overflow", "hidden");
+      $('#AlertPopMenueID')[0].classList.remove('open');
+
+},
+buttons: {
+Cancel: function()
+{
+    messagesdialog.dialog( "close" );
+
+}
+},
+close: function()
+{
+allFields.removeClass( "ui-state-error" );
+   $("#addMessageForm").find("input[type=text], textarea").val("");
+
+
+}
+});
+
+      jQuery(window).bind('beforeunload',  
+        function (e) {  
+
+           cleanup();
+
+        } 
+      );
+
+
+
+
+         $("#menu li").click(function() 
+         {                  
+            $(this).children(":first").addClass("menuFixIphone");
+         })         
+
+         $('#container-1').tabs({fxFade: true, fxSpeed: 'fast' });
+         $('#container-2').tabs({fxFade: true, fxSpeed: 'fast' });
+
+
+         tabify( '#otherTabs' );
+
+
+         $('#container-1-acc1-1').tabs({fxFade: true, fxSpeed: 'fast' });
+         $(".liScrollExample").removeClass("hideme");
+         $(".liScrollExample").liScroll({showControls:true});
+
+         /*dropdown lis*/
+
+
+            $('.down-list').width($('.dropdown-menu').width() - 2);
+
+            $('.menu-first').click(
+      function() {
+          $('.menu-first', $(this).parent()).addClass('slide-down');
+          $('.down-list', $(this).parent()).slideDown(100);
+      });
+
+            $('.down-list li').click(
+           function() {
+               obj = this;
+               $($(obj).parent()).slideUp(100, function() { $('.menu-first', $(obj).parent()).removeClass('slide-down'); });
+              //alert($(obj).find('a').find('span').html());
+              var con = $(obj).parent().parent();
+              $(con).find('.menu-first').html($(obj).find('a').find('span').html());
+              if($(this).parent().attr('id')=="performanceSelect")  /* wil lonly work for type elector in stock performance*/
+                      {
+                                       var body = $(this).closest(".clipContentPlain").find(".tradingSummary");
+                                       var height=$(body).height();
+                                       $.ajax({
+                                       type: "Post",
+                                       url: "content_snippets.stock_performance?u_sess=&t=1&typ="+$(obj).find('a').find('span').html()+"&buttons=yes",
+                                       //data: "{'id': '" + $(this).attr("id") + "' }",
+                                       contentType: "application/html; charset=utf-8",
+                                       dataType: "html",
+                                       success: function(result, status)
+                                             {
+                                                 $(body).fadeTo( 0, 0);
+                                                $(body).html(result);
+                                                $(body).fadeTo( 500, 1);
+                                             }
+
+                                       });
+                                       $(body).html("<div class='divLoading'></div>");
+                                       $(".divLoading").height(height);
+                    }
+                    /*************************************************************************************************************************************/
+              if($(this).parent().attr('id')=="logonSelect")  /* wil lonly work for type elector in stock performance*/
+                      {
+                                       var choice=$(obj).find('a').find('span').html();
+
+                                       if(choice=="Trading") $("#st").val("1");
+                                       if(choice=="My Account") $("#st").val("3");
+                                       if(choice=="Market &amp; Res.") $("#st").val("2");
+
+                    }
+
+           }
+      );
+
+
+            $('.down-list').mouseleave(
+           function() {
+               obj = this;
+              $(this).slideUp(100, function() { $('.menu-first', obj).removeClass('slide-down'); });
+           }
+      );  
+      $(".accord").on("click",function() {
+
+         var similarITems = $(this).closest('.accordParnt').find(".accordItm").find('.accordBody');
+
+         $(similarITems).slideUp(500, function() {
+            var spanIcon = $(this).closest('.accordItm').find(".arrowIcon");
+            $(spanIcon).removeClass("sDown")
+            $(spanIcon).addClass("sUp")
+         });
+
+         var body = $(this).closest('.accordItm').find(".accordBody");
+         var spanIcon = $(this).closest('.accordItm').find(".arrowIcon");
+         if ($(body).is(":hidden")) {
+            $(body).slideDown(500, function() { $(spanIcon).addClass("sDown");
+                                       $(spanIcon).removeClass("sUp");
+
+
+                                       /*********/
+                                      if ($(this).closest('.accordParnt').attr("url")=="none")return;
+                                       var ur=$(this).closest('.accordParnt').attr("url")+"?u_sess=&"+$(this).attr("params");
+
+                                       if($(this).attr("id")=="topinsbuy" || $(this).attr("id")=="topinssell" ) return;
+                                       $.ajax({
+                                       type: "Post",
+                                       url: ur,
+                                       //data: "{'id': '" + $(this).attr("id") + "' }",
+                                       contentType: "application/html; charset=utf-8",
+                                       dataType: "html",
+                                       success: function(result, status)
+                                             {
+                                                 $(body).fadeTo( 0, 0);
+                                                $(body).html(result);
+                                                $(body).fadeTo( 500, 1);
+
+                                             }
+
+                                       });
+                                       $(body).html("<div class='divLoading'></div>");
+
+
+
+
+                                       /*******/
+                                        });
+
+
+         } else {
+            $(body).slideUp(500, function() { $(spanIcon).removeClass("sDown") ;$(spanIcon).addClass("sUp")});
+
+         }
+      })
+
+
+
+      $(".inner_ver_tabs p a").on("click",function(){
+
+         var tabClick = $(this).parent();
+         var ahref = $(this).parent().parent().find('p');
+
+            if($(ahref).hasClass("locked") ) {return;}
+            if($(ahref).hasClass("selected") )
+            {
+               $(ahref).removeClass("selected");
+            }
+            $(tabClick).addClass("selected");
+
+              /*********/
+                                       var ur=$(this).closest('.inner_ver_tabs').attr("url")+"?u_sess=&"+$(this).attr("params");
+                                       if ($(this).closest(".inner_ver_tabs").attr("id")=="tabs1")
+                                    {
+                                    ur=ur+"&buttons=no";
+                                    var bodys = $(this).closest('.inner_ver_tabs').parent().find(".imageHolder");
+                                    }
+                                    else
+                                    {
+                                    var bodys = $(this).closest('.inner_ver_tabs').next();
+                                    }
+
+                                       if ($(this).closest(".inner_ver_tabs").attr("id")=="block_insider")
+                                    {
+                                     if ($(this).attr("params")=="topinsider" )
+                                             ur="content_snippets.top_insider_body?u_sess=";
+                                    if ($(this).attr("params")=="blocktrades")
+                                             ur="content_snippets.block_trades_body?u_sess=";
+                                     var body = $(this).closest('.inner_ver_tabs').next();
+                                    }
+                                          var height=$(body).height();
+                                       $.ajax({
+                                       type: "Post",
+                                       url: ur,
+                                       //data: "{'id': '" + $(this).attr("id") + "' }",
+                                       contentType: "application/html; charset=utf-8",
+                                       dataType: "html",
+                                       success: function(result, status)
+                                             {
+                                                 $(bodys).fadeTo( 0, 0);
+                                                $(bodys).html(result);
+                                                $(bodys).fadeTo( 500, 1);
+                                             }
+
+                                       });
+                                       $(bodys).html("<div class='divLoading'></div>");
+                                       $(".divLoading").height(height);
+
+
+
+
+      })
+})
+
+jQuery(function(){
+         jQuery('ul.sf-menu').superfish({delay:200,delay2:0});              
+    });
+        function el(id) { return document.getElementById(id); }
+
+        function updateNormal(elem, value)
+        {
+         elem.innerHTML=value;
+        }
+
+                    function updateTable(table, rowIndex, colIndex, value, bImage)
+            {
+                var td = document.getElementById("tbl").rows[rowIndex+1].cells[colIndex+1];
+                animation.doValueAnimation(td, value, !bImage);
+            }
+
+        function updateHandler(elem, record, fieldName, value, bImage)
+        {
+        //value = value.replace(/^\s+|\s+$/g, '') ;
+        //value = value.replace(",", "")
+        animation.doValueAnimation(elem, value, !bImage);
+        if (fieldName=="change_percentage" || fieldName=="change")
+        {
+            if (value>0)
+                elem.parentNode.className="up";
+            if(value<0)
+                elem.parentNode.className="down";
+            if(value==0)
+                elem.parentNode.className="middel";
+
+        }
+
+        switch(fieldName.toLowerCase())
+            {
+            case "first":
+            case "last":
+            case "high":
+            case "low":
+              if (value==0)
+                   elem.innerHTML = "N.T."
+              else
+                    if (!isNaN(value)) elem.innerHTML=addCommas(value);
+              break;
+            default:
+                    if (!isNaN(value)) elem.innerHTML=addCommas(value);
+            }
+            if (fieldName.toLowerCase()=="change_percentage") elem.innerHTML += "%";
+        }
+
+        function addCommas(nStr)
+            {
+                nStr += '';
+                x = nStr.split('.');
+                x1 = x[0];
+                x2 = x.length > 1 ? '.' + x[1] : '';
+                var rgx = /(\d+)(\d{3})/;
+                while (rgx.test(x1)) {
+                    x1 = x1.replace(rgx, '$1' + ',' + '$2');
+                }
+                return x1 + x2;
+            }
+
+        function updateNetChangeImg(img, value)
+        {
+
+            if (value>0)
+                img.parentNode.className="up";
+            if(value<0)
+                img.parentNode.className="down";
+            if(value==0)
+                img.parentNode.className="middel";
+
+
+        }
+
+function StatusHandler(v_statusElement, v_options)
+{
+    var C_undefined;
+
+    if (!v_statusElement)
+        return C_undefined;
+
+    if (!v_options)
+        v_options={};
+
+    var M =
+    {
+        m_cssError:v_options.cssError || "statusError",
+        m_cssOk:v_options.cssOk || "statusOk",
+        m_cssStale:v_options.cssStale || "statusStale"
+    };
+
+    M.onConnectionStatus = function(status, errorType, errMsg)
+    {
+
+/*        M.m_text.innerHTML = data.utils.enumLookupString(status, data.DatState);
+        if (M.m_text.innerHTML=="Live")
+            M.m_text.innerHTML="ON";
+        else
+            M.m_text.innerHTML="OFF";*/
+        M.m_text.innerHTML = "OFF"
+        switch (status)
+        {
+            case data.DatState.Closed:
+                M.m_text.className = M.m_cssError;
+                M.m_img.className =  M.m_cssError;
+                M.m_text.innerHTML = "OFF";//data.utils.enumLookupString(errorType, data.DatError) + " " + errMsg;
+                break;
+            case data.DatState.Stale:
+            case data.DatState.Pending:
+                M.m_text.className = M.m_cssStale;
+                M.m_img.className =  M.m_cssStale;
+                M.m_text.innerHTML = "OFF";
+                break;
+            case data.DatState.Live:
+                M.m_text.className = M.m_cssOk;
+                M.m_img.className =  M.m_cssOk;
+                M.m_text.innerHTML="ON";
+                break;
+
+        }
+
+        if (v_options.onConnectionStatus)
+            v_options.onConnectionStatus(status, errorType, errMsg);
+    };
+
+    while (v_statusElement.childNodes.length)
+    {
+        v_statusElement.removeChild(v_statusElement.childNodes[0]);
+    };
+
+    // create the DOM elements:
+
+    // ... an image
+    M.m_img = document.createElement("img");
+    M.m_img.className = M.m_cssStale;
+    M.m_img.border="0";
+    M.m_img.hspace="2";
+    M.m_img.align="middle";
+    M.m_img.src="/css/CogImage/blank.png";
+    v_statusElement.appendChild(M.m_img);
+
+    // ... some text
+    M.m_text = document.createElement("span");
+    M.m_text.className = M.m_cssStale;
+    M.m_text.innerHTML = "Init."
+
+    v_statusElement.appendChild(M.m_text);
+
+
+    return M.onConnectionStatus;
+}    
+
+$(function()
+{
+  var hideDelay = 500;
+  var currentID;
+  var hideTimer = null;
+
+  // One instance that's reused to show info for the current person
+  var container = $('<div id="PopupContainer"  style="max-width:450px">'
+      + '<table width="" border="0" cellspacing="0" cellpadding="0" align="center" class="PopupPopup">'
+      + '<tr>'
+      + '   <td class="corner topLeft"></td>'
+      + '   <td class="top"></td>'
+      + '   <td class="corner topRight"></td>'
+      + '</tr>'
+      + '<tr>'
+      + '   <td class="left">&nbsp;</td>'
+      + '   <td><div id="PopupContent"></div></td>'
+      + '   <td class="right">&nbsp;</td>'
+      + '</tr>'
+      + '<tr>'
+      + '   <td class="corner bottomLeft">&nbsp;</td>'
+      + '   <td class="bottom">&nbsp;</td>'
+      + '   <td class="corner bottomRight"></td>'
+      + '</tr>'
+      + '</table>'
+      + '</div>');
+
+  $('body').append(container);
+
+  $('.PopupTrigger').on('mouseover', function()
+  {
+      // format of 'rel' tag: pageid,guid
+      var settings = $(this).attr('rel').split(',');
+      var pageID = settings[0];
+      currentID = settings[1];
+
+      // If no guid in url rel tag, don't popup blank
+      if (currentID == '')
+          return;
+
+      if (hideTimer)
+          clearTimeout(hideTimer);
+
+      var pos = $(this).offset();
+      var width = $(this).width();
+      container.css({
+          left: (pos.left + width) + 'px',
+          top: pos.top - 5 + 'px'
+      });
+
+      $('#PopupContent').html('&nbsp;');
+
+      $.ajax({
+          type: 'GET',
+          url: '/test/searchresults.popups?u_sess=',
+          data: 'page=' + pageID ,
+          success: function(data)
+          {
+
+
+              // Verify requested person is this person since we could have multiple ajax
+              // requests out if the server is taking a while.
+
+                  $('#PopupContent').html(data);
+
+          }
+      });
+
+      $('#PopupContent').html('<div class=divLoading></div>');
+
+      container.css('display', 'block');
+  });
+
+  $('.PopupTrigger').on('mouseout', function()
+  {
+      if (hideTimer)
+          clearTimeout(hideTimer);
+      hideTimer = setTimeout(function()
+      {
+          container.css('display', 'none');
+      }, hideDelay);
+  });
+
+  // Allow mouse over of details without hiding details
+  $('#PopupContainer').mouseover(function()
+  {
+      if (hideTimer)
+          clearTimeout(hideTimer);
+  });
+
+  // Hide after mouseout
+  $('#PopupContainer').mouseout(function()
+  {
+      if (hideTimer)
+          clearTimeout(hideTimer);
+      hideTimer = setTimeout(function()
+      {
+          container.css('display', 'none');
+      }, hideDelay);
+  });
+
+
+
+        function repDateSTR(start) 
+        {
+            return replaceAll("-","/",start);
+        }
+function replaceAll(find, replace, str) 
+{
+    var str1=str+"";
+  return str1.replace(new RegExp(find, 'g'), replace);
+}     
+
+       
+
+});    
+ 
+</script>
+
+<script>   
+              var submitcount=0;
+              function check()
+              {
+                   if (submitcount == 0)
+                      {
+                      submitcount++;
+                      return true;
+                      }
+                   else
+                      {
+                      return false;
+                      }
+              }
+
+        function submitenter(myfield,e)
+        {
+        var keycode;
+        if (window.event) keycode = window.event.keyCode;
+        else if (e) keycode = e.which;
+        else return true;
+
+        if (keycode == 13)
+           {
+           myfield.form.submit();
+           return false;
+           }
+        else
+           return true;
+        }
+   function launchv2()
+            {
+        stoqslaunch = window.open('https://www.sigma-cap.com/securestreamer/index.html?sessionid=&lang=en','_blank');
+          stoqslaunch.focus();
+            }
+
+
+            function launchv3()
+            {
+        stoqslaunch = window.open('https://www.sigma-cap.com/main/sigma_flash_streamer.launch?u_sess=&old=Y','NewStoqsWindow','resizable=1,scrollbars=yes,menubar=no');
+          stoqslaunch.focus();
+            }            
+
+
+        function startup()
+        {
+
+        }
+
+        function cleanup()
+        {
+
+        }
+       
+
+</script>
+
+<style>
+#popup {display:none;height:fit-content;    width: fit-content;position:absolute;margin:0 background-color:white; auto;top:332px;left: 50%;transform: translate(-50%, -50%);box-shadow: 0px 0px 25px 1px #000;z-index:5;left:150px\8;top:160px\8}
+#close{position: relative;top: 0}
+.panel-footer{position: absolute;top: 0;right: 0;}
+//.logowrapper{width:180px}
+.adWrapper{float:left;margin-top:0.8em}
+#close{background:#000;font-weight:bold;color:#fff;border:none;font-size:17px;padding:10px;cursor:pointer}
+</style>
+
+</head>
+
+<body onload="startup();">
+
+<!-- Add alert div -->
+<div id="dialog" style="  display: none;" title="Create New Alert" class="addAlertDia ui-dialog-content ui-widget-content">
+<div class="leftWrapperClip">
+<div class="wrap">
+<div class="addAlertClip">
+<p class="validateTips"></p>
+<from id="addAlertForm">
+<input type="hidden" id="isUpdate" value="false" />
+<input type="hidden" id="alertId" />
+<p class="pgroup"><span class="lbl">Choose</span><span><select id="alertType"  style="width: 70%;">
+<option selected value=""></option>
+
+<OPTION value=9>News Alerts
+<OPTION value=8>Price Alerts
+<OPTION value=38>Turn Over Alerts
+<OPTION value=39>% Change Alerts
+
+</select></span></p>
+<p class="pgroup"><span class="lbl">Symbol</span><span> <input type="text" class="input-text" id="eq_code2" name="eq_code2" onblur="changesymAddAlert();" onKeyPress="return submitenterAddAlert(this,event)"/></span></p>
+
+<div class="alertTypeConf" style="display:none">
+<p  class="pgroup"><span class="lbl" id="spanCondetionLB"> 
+
+ Condition 
+</span>
+<span><select name="condition_as" id="condition_as">
+
+<option value="4">Equal</option>
+<option value="11">Greater Than Or Equal</option>
+<option value="12">Lower Than Or Equal</option>
+</select></span></p>
+<p class="pgroup"><span class="lbl" id="spanAfterCondetion" >Price</span><input type="text" name="price_as" class="input-text" id="price_as" />
+</p></div>
+<div class="alertTypeConf2" style="display:none">
+<p class="pgroup"><span class="lbl">Label</span><span> <input type="text" class="input-text" id="label_as" name="label_as" /></span></p>
+<p  style="display:none"  class="pgroup"><span class="lbl">Description</span><span><textarea   rows="3" name="des_as" id="des_as" ></textarea></span></p>
+</div>
+<p class="lastpgroup"><a href="#" class="input_btn" id="addALert">Add Alert</a></p>
+</form>
+</div>
+</div>
+</div>
+
+<div class="rightWrapperClip" style="display:none">
+<div class="wrap">
+<div class="">
+<div id="quickQuote">
+  <table border="0" cellspacing="0" width="100%">
+    <tbody><tr>
+    <td>
+    <script>
+
+                        $(function() {
+                            $( "#eq_code2" ).autocomplete({
+                                source: "/test/searchresults.symbol",
+                                minLength: 2,
+                                select: function( event, ui ) {
+                                        if(ui.item.value)
+                                            {
+                                                if($("#alertType").val()==8)setQuote_as(ui.item.value);
+                                            }
+                                                    }
+                            })
+                                .autocomplete( "instance" )._renderItem = function( ul, item ) {
+                                    return $( "<li></li>" )
+                                        .data( "item.autocomplete", item )
+                                        .append( "<a><strong>" + item.value + "</strong><br>" + item.label + "</a>" )
+                                        .appendTo( ul );
+                                };
+                        });
+
+  </script>
+
+  </td></tr>
+  <tr>
+    <td width="100%">
+    <div id="quoteCont_as">
+     <table  style="display: none;" source="Quotes" symbol="MARKET" id="QuotesTab_Time">
+    <tr>
+    <td field="LAST_TIME"></td>      
+  </tr>
+    </table>
+        <table source="Quotes" symbol="" id="QuotesTab_as" width="100%" class="marginTable" border="0" cellpadding="1" cellspacing="1">
+          <tbody>
+          <tr>
+            <td style="border:none">
+            <h2>
+
+            <span field="ENG_NAME" id="currentSymbol" style="float:left;" class="priceNormaNoChange"></span>
+
+            </h2>
+            </td>
+          </tr> 
+          <tr>
+            <td>
+                <div style="float:left;"><strong>Price Limit</strong></div>
+                <div style="float:right">
+                <span field="PRICE_LIMIT" class="priceNormaNoChange"></span>
+                </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+                <div style="float:left;"><strong>Price</strong></div>
+                <div style="float:right" id="updown_as">
+                <span field="LAST" class="priceNormaNoChange"></span><span class="arrow" style="display:inline-block; height:11px;"></span>
+                <span field="CHANGE_PERCENTAGE" class="priceNormaNoChange"></span>
+                </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+                <div style="float:left;"><strong>Volume</strong></div>
+                <div style="float:right">
+                <span field="VOLUME" class="priceNormaNoChange"></span>
+                </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+                <div style="float:left;"><strong>Turnover</strong></div>
+                <div style="float:right">
+                <span field="TURNOVER" class="priceNormaNoChange"></span>
+                </div>
+            </td>
+          </tr>
+          </tbody></table>
+        <table width="100%" border="0" cellpadding="1" cellspacing="1">
+          <tbody><tr>
+            <td style="margin:0px; padding:0px" width="100%">
+                   <table class="bidAskTradeTable" id="BidsAsksTab" style="padding:0px; margin:0px;" width="100%">
+                   <tbody><tr class="row">
+                   <td style="margin:0px; padding:0px; border-right:1px solid #CCC;" width="50%">
+                   <table cellspacing="0" style="padding:0px; margin:0px;" width="100%" id="BidsTab_as" source="Bids" dataformat="3" symbol="">
+                   <tbody><tr class="colHeading"><td colspan="3">Bids Details<table width="100%"><tbody><tr><td style="border-bottom:none;">Qty.</td><td style="text-align:right; border-bottom:none;">Price</td></tr></tbody></table></td></tr>
+                     <tr rowindex="0"><td align="right"><span colindex="1" class="priceNormalUp"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange"></span></td></tr>                   <tr rowindex="1"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange"></span></td></tr>                   <tr rowindex="2"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange"></span></td></tr> <tr rowindex="3"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange"></span></td></tr>                   <tr rowindex="4"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange"></span></td></tr><tr rowindex="5"><td align="right" style="border:none"><span colindex="1" class="priceNormaNoChange"></span></td><td style="border:none">&nbsp;</td><td align="right" style="border:none"><span colindex="0" class="priceNormaNoChange"></span></td></tr>
+                   </tbody></table>
+                   </td>
+                   <td style="margin:0px; padding:0px;" width="50%">
+                   <table cellspacing="0" style="margin:0px;" width="100%" id="AsksTab_as" source="Asks" dataformat="3" symbol="">
+                   <tbody><tr class="colHeading"><td colspan="3">Asks Details<table width="100%"><tbody><tr><td style="border-bottom:none;">Qty.</td><td style="text-align:right; border-bottom:none;">Price</td></tr></tbody></table></td></tr>
+                                      <tr rowindex="0"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange"> </span></td></tr>                   <tr rowindex="1"><td align="right"><span colindex="1" class="priceNormalUp"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange">        </span></td></tr>                   <tr rowindex="2"><td align="right"><span colindex="1" class="priceNormalDown"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange">        </span></td></tr>                   <tr rowindex="3"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange">       </span></td></tr>                   <tr rowindex="4"><td align="right"><span colindex="1" class="priceNormaNoChange"></span></td><td>&nbsp;</td><td align="right"><span colindex="0" class="priceNormaNoChange">        </span></td></tr>                   <tr rowindex="5"><td align="right" style="border:none"><span colindex="1" class="priceNormaNoChange"></span></td><td style="border:none">&nbsp;</td><td align="right" style="border:none"><span colindex="0" class="priceNormaNoChange"></span></td></tr>
+                   </tbody></table>
+                   </td>
+                   </tr>
+                   </tbody></table>
+            </td>
+          </tr>
+        </tbody></table>
+    </div>
+    </td>
+  </tr>
+
+</tbody></table>
+
+
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+var id1_as;
+var id2_as;
+var id3_as;
+var id4_as;
+var oldSym_as;
+
+
+function setQuote_as(sym)
+{
+             if(!data.stream)
+                {
+                    data.init({    server: "https://streamer.sigma-cap.com" });
+                    data.connect();
+                }
+    //$(".rightWrapperClip").css("display","block");
+    //$("#dialog").dialog("option", "position", "center");            
+    $(".rightWrapperClip").fadeIn(500);
+    //dialog.dialog('option', 'position', $(this).dialog('option', 'position'));
+    if (sym.toUpperCase()==oldSym_as || sym=="") return;
+    $("#quoteCont_as").find("span").empty();
+    $("#updown_as").removeClass();
+    if (id1_as) data.cancelDOM(id1_as);
+    if (id2_as) data.cancelDOM(id2_as);
+    if (id3_as) data.cancelDOM(id3_as);
+  if (id4_as) data.cancelDOM(id4_as);
+    $('#currentSymbol').html('<div class=divLoad></div>');
+
+
+    sym=sym.toUpperCase();
+
+    $("#QuotesTab_as").attr("symbol",sym);
+    $("#BidsTab_as").attr("symbol",sym);
+    $("#AsksTab_as").attr("symbol",sym);
+
+    id1_as=data.parseDOM(el("QuotesTab_as"),{ onUpdate:updateHandler });
+    id2_as=data.parseDOM(el("BidsTab_as"),{ onUpdate:updateHandler });
+    id3_as=data.parseDOM(el("AskssTab_as"),{ onUpdate:updateHandler });
+     id4_as=data.parseDOM(el("QuotesTab_Time"),{ onUpdate:updateHandler });
+
+   //data.commit;
+    oldSym_as=sym;
+    $("#quoteCont_as").fadeIn(500);
+}
+
+function cancelSetQuote_as()
+{
+
+    $("#quoteCont_as").find("span").empty();
+    $("#updown_as").removeClass();
+    if (id1_as) data.cancelDOM(id1_as);
+    if (id2_as) data.cancelDOM(id2_as);
+    if (id3_as) data.cancelDOM(id3_as);
+     if (id4_as) data.cancelDOM(id4_as);
+
+}
+
+</script
+<!-- End add alert form -->
+<!-- End alert div -->
+
+<!--start Message alert div -->
+  <!-- Add message alert div -->
+<div id="alertmessagedialog" style="  display: none;"  title="Contact Sigma Help Desk" class="addAlertDia">
+    <div class="leftWrapperClip">
+        <div class="wrap">
+            <div class="addAlertClip">
+                <p class="validateTips"></p>
+                <from id="addMessageForm">
+
+                    <input type="hidden" id="isUpdate" value="false" />
+                    <input type="hidden" id="alertId" />
+                    <div class="alertTypeConf2"  >
+                 <p class=" "><span class="lbl"> </span>
+    <span style="color: black;font-size:=initial;font-weight: bold;
+">Send Message To Sigma</span>
+</p>
+                    <p class=""><span class="lbl" style="width: 30%;">Message Header</span><span>
+
+                            <input type="text" class="input-text" id="messageHeaderIdas" style="width: 63%;" name="messageHeaderIdas" />
+
+                        </span>
+<span style="color:red;vertical-align:top">*</span>
+
+                    </p>
+
+                    <p class="">
+
+
+                        <span class="lbl" style="width: 30%;">Message Detail</span><span><textarea style="width: 63%;" rows="10" name="MessageDetailas"
+                                id="MessageDetailas"></textarea>
+
+
+                                <textarea style="display: none;" rows="10" name="base64IdTextArea"
+                                id="base64IdTextArea"></textarea>
+                                  <textarea style="display: none;" rows="10" name="upadedFileName"
+                                id="upadedFileName"></textarea>
+                                  <textarea style="display: none;" rows="10" name="upadedmimetype"
+                                id="upadedmimetype"></textarea>
+
+
+                                </span>
+<span style="color:red;vertical-align:top">*</span>
+                    </p>
+<p><span class="lbl" style="width: 30%;"> Upload Image</span>
+ <input type="file" id="myFile" name="filename" accept="image/*">
+</p>
+
+<p><span class="lbl" style="width: 30%;"> </span>
+
+    <span style="color:red;font-size:x-small">* Required</span>
+
+</p>
+
+
+                </div>
+                <p class="lastpgroup"><a href="#" style="width: 30%;background: #208ed0;color: white;border: none;display: block;margin-left: 30%;" class="input_btn" id="addSendALertMessage">Send Message</a></p>
+                    </form>
+                  
+            </br> 
+                   <div style="border-top: solid #4287f5;font-weight: bold;direction: ltr;width: 100;">
+
+     <p style="margin-top: 6px;"> 
+    <svg height="12px" version="1.1"
+ viewBox="0 0 18 18" width="20px" xmlns="https://www.w3.org/2000/svg"
+  xmlns:sketch="https://www.bohemiancoding.com/sketch/ns"
+   xmlns:xlink="https://www.w3.org/1999/xlink"><title/><desc/><defs/><g fill="none" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#000000" id="Icons-Communication" transform="translate(-85.000000, -126.000000)"><g id="phone" transform="translate(85.000000, 126.000000)"><path d="M3.6,7.8 C5,10.6 7.4,12.9 10.2,14.4 L12.4,12.2 C12.7,11.9 13.1,11.8 13.4,12 C14.5,12.4 15.7,12.6 17,12.6 C17.6,12.6 18,13 18,13.6 L18,17 C18,17.6 17.6,18 17,18 C7.6,18 0,10.4 0,1 C0,0.4 0.4,0 1,0 L4.5,0 C5.1,0 5.5,0.4 5.5,1 C5.5,2.2 5.7,3.4 6.1,4.6 C6.2,4.9 6.1,5.3 5.9,5.6 L3.6,7.8 L3.6,7.8 Z" id="Shape"/></g></g></g></svg>
+
+
+    16675 / +20(2)33357575 </p>
+ <p>
+
+<svg data-name="Layer 45" height="15px" id="Layer_45" viewBox="0 0 18 18" width="20" xmlns="https://www.w3.org/2000/svg">
+ <title></title><rect height="8.875" style="fill:#fff" width="15.5" x="4.3125" y="6.0625"></rect>
+ <path d="M19,5H5A2,2,0,0,0,3,7V17a2,2,0,0,0,2,2H19a2,2,0,0,0,2-2V7A2,2,0,0,0,19,5Zm0,4-7,5L5,9V7l7,5,7-5Z" style="fill:#4c9ae8"></path></svg>
+
+ shd@sigma-capital.com </p>
+
+
+</div>
+
+
+            </div>
+        </div>
+    </div>
+
+
+</div>
+<!--end Message alert div -->
+
+
+
+
+<script>
+    function showad () {
+
+    //select the POPUP FRAME and show it
+    var x = readCookie("announcement0");
+
+    if(x == null)
+    {    
+        $("#popup").hide().fadeIn(500);
+    }
+
+    //close the POPUP if the button with id="close" is clicked
+    $("#close").click(function (e) {
+        e.preventDefault();
+        $("#popup").fadeOut(500);
+         createCookie("announcement0","testcookie",7);
+    });        
+      };
+
+
+
+function createCookie(name,value,days) {
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime()+(days*24*60*60*1000));
+        var expires = "; expires="+date.toGMTString();
+    }
+    else var expires = "";
+    document.cookie = name+"="+value+expires+"; path=/";
+}
+
+function readCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0;i < ca.length;i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    }
+    return null;
+}
+</script>
+
+<div class="top-root-nav" style="background-color: #02a6e5; padding: 2px; box-sizing: border-box; ">
+<div style="display: flex; justify-content: space-between; height: 100%;">
+<div style="display: flex; flex-wrap: wrap; align-content: center; gap: 12px;">
+<a href="/max/?sessionid=&lang=en" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; padding: 4px; text-decoration: none; color: #fff; transition: 0.3s; border-radius: 12px; font-family: inherit;">
+<svg class="font-size-small btn-outline-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+  <polyline points="15 3 21 3 21 9"></polyline>
+  <line x1="10" y1="14" x2="21" y2="3"></line>
+</svg>
+<span style="font-weight: 600; padding: 0 8px;">SIGMA Max</span>
+</a>
+</div>
+ <div style="display: flex; align-content: center; gap: 12px; align-items: center;">
+  <a href="https://www.sigma-cap.com/corporate/?sessionid=&lang=en" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; padding: 4px; text-decoration: none; color: #fff; transition: 0.3s; font-family: inherit;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 0px;">
+ <div style="width: 10px; height: 3px; background: white; margin-bottom: 3px;"></div>
+<div style="width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 10px solid white;"></div>
+<div style="width: 10px; height: 3px; background: white; margin-top: 3px;"></div>
+ </div>
+ <span style="font-weight: 600; padding: 0 8px;">Corporate</span>
+ </a>
+</div>
+</div>
+</div>
+<header id="headertag">
+         
+
+    <div id="wrapper">
+        <div class="logowrapper">        
+             <h1><a href="x_homepage?u_sess=">Sigma Capital</a></h1>
+             <div id="millnav">
+                <ul>
+                <li>
+<div id="clientsection"  >
+    <a href="https://www.sigma-cap.com/main/x_logon.logon_page">Login</a>
+</div></li>
+                <li><a href="x_homepage?u_sess=">Home</a></li>
+
+                <li><a target="_blank" href="/corporate/?u_sess=&lang=en">Corporate</a></li>            
+                </ul>
+            <a href="x_quotes_ar.stock_quotes?u_sess=" class="navlang">Ú</a>
+             </div>
+        </div>
+
+
+   
+
+     <!-- START NEW NAV -->
+     <nav>
+        <ul id="menu">
+        
+<li>
+<a>Account</a>
+<div class="dropdown_2columns">
+<ul>        <li  class="noitemborder"><h4>Trading</h4><ul>        <li  class=""><a href="x_ordering.html?u_sess=">Place Order</a>        <li  class=""><a href="x_orders$.list_query_notify?serial_p=">View Orders</a>        <li  class=""><a href="x_confirmation.filter?u_sess=">Trade History</a>        <li  class=""><a href="x_cust_orders_rep.driving_form?serial_p=">Order Tracer</a>        <li  class=""><a href="x_user_watch_list.show?u_sess=">Watch List</a>        <li  class=""><a href="x_visitor_links.marginsharespercent?u_sess=">Margin Shares List</a></li></ul>        <li  class="noitemborder"><h4>Portfolio</h4><ul>        <li  class=""><a href="x_portfolio.positions?u_sess=">Positions</a>        <li  class=""><a href="x_customer_balance.display_cust_balance?u_sess=">Balance</a>        <li  class=""><a href="x_cust_activity.gen_filter?u_sess=">Account Activity</a>        <li  class=""><a href="x_cust_activity.gen_filter_funds?u_sess=">Funds Activity</a>        <li  class=""><a href="x_move.money_html?u_sess=">Wallet</a>        <li  class="menuitemsublink"><a href="money_withdraw_display.display_money?u_sess=">Cancel Request</a></li></ul></li></ul>
+</div>
+<ul>        <li  class="noitemborder"><a>Trading</a><ul>        <li  class=""><a href="x_ordering.html?u_sess=">Place Order</a>        <li  class=""><a href="x_orders$.list_query_notify?serial_p=">View Orders</a>        <li  class=""><a href="x_confirmation.filter?u_sess=">Trade History</a>        <li  class=""><a href="x_cust_orders_rep.driving_form?serial_p=">Order Tracer</a>        <li  class=""><a href="x_user_watch_list.show?u_sess=">Watch List</a>        <li  class=""><a href="x_visitor_links.marginsharespercent?u_sess=">Margin Shares List</a></li></ul>        <li  class="noitemborder"><a>Portfolio</a><ul>        <li  class=""><a href="x_portfolio.positions?u_sess=">Positions</a>        <li  class=""><a href="x_customer_balance.display_cust_balance?u_sess=">Balance</a>        <li  class=""><a href="x_cust_activity.gen_filter?u_sess=">Account Activity</a>        <li  class=""><a href="x_cust_activity.gen_filter_funds?u_sess=">Funds Activity</a>        <li  class=""><a href="x_move.money_html?u_sess=">Wallet</a>        <li  class="menuitemsublink"><a href="money_withdraw_display.display_money?u_sess=">Cancel Request</a></li></ul></li></ul>
+</li>
+<li>
+<a>Markets</a>
+<div class="dropdown_2columns">
+<ul>        <li  class="noitemborder"><h4>Overview</h4><ul>        <li  class=""><a href="x_market_page.overview?u_sess=">Market Data</a>        <li  class=""><a href="x_user_watch_list.show?u_sess=">Watch List</a>        <li  class=""><a href="x_market_page.historic?u_sess=">News & Archives</a>        <li  class=""><a href="sigmacalendar?u_sess=">Calendar</a>        <li  class="noitemborder"><h4>Realtime Prices</h4>        <li  class=""><a href="javascript:launchv2();">Streamer</a>        <li  class=""><a href="javascript:launchv3();">Streamer (FLASH)</a></li></ul>        <li  class="noitemborder"><h4>Analysis</h4><ul>        <li  class=""><a href="fund_research_fl.landingpage?u_sess=">Financial Analysis</a>        <li  class=""><a href="tech_recommendations_fl.landingpage?u_sess=">Technical Analysis</a></li></ul></li></ul>
+</div>
+<ul>        <li  class="noitemborder"><a>Overview</a><ul>        <li  class=""><a href="x_market_page.overview?u_sess=">Market Data</a>        <li  class=""><a href="x_user_watch_list.show?u_sess=">Watch List</a>        <li  class=""><a href="x_market_page.historic?u_sess=">News & Archives</a>        <li  class=""><a href="sigmacalendar?u_sess=">Calendar</a>        <li  class="noitemborder"><a>Realtime Prices</a>        <li  class=""><a href="javascript:launchv2();">Streamer</a>        <li  class=""><a href="javascript:launchv3();">Streamer (FLASH)</a></li></ul>        <li  class="noitemborder"><a>Analysis</a><ul>        <li  class=""><a href="fund_research_fl.landingpage?u_sess=">Financial Analysis</a>        <li  class=""><a href="tech_recommendations_fl.landingpage?u_sess=">Technical Analysis</a></li></ul></li></ul>
+</li>
+<li>
+<a>Resources</a>
+<div class="dropdown_1column">
+<ul>        <li><a href="x_visitor_links.resources?u_sess=">Useful Links</a>        <li><a href="x_visitor_links.client_account?u_sess=">Open Account</a>        <li><a href="x_demo_pkg.register_en?u_sess=">Free Live Streamer</a>        <li><a href="x_visitor_links.privacy?u_sess=">Privacy Policy</a></li></ul>
+</div>
+<ul>        <li><a href="x_visitor_links.resources?u_sess=">Useful Links</a>        <li><a href="x_visitor_links.client_account?u_sess=">Open Account</a>        <li><a href="x_demo_pkg.register_en?u_sess=">Free Live Streamer</a>        <li><a href="x_visitor_links.privacy?u_sess=">Privacy Policy</a></li></ul>
+</li>
+            
+            <li ><a href="fl_market_page.overview?u_sess=">Market Data</a></li>
+            <li ><a href="x_ordering.html?u_sess=">E-Trade</a></li>
+            <li ><a href="javascript:launchv2();">Streamer</a></li>
+        </ul>
+
+    </nav>
+    <!-- END NEW NAV -->
+     
+
+
+     <div class="m-dropdown">      
+        <ul class="e-list" style="display: none;">
+        
+
+            <li class="mainLeftlink "><a href="#">Account</a>
+                <ul class="e-list2">
+             
+        <li  class="noitemborder"><h4>Trading</h4>        <li  class=""><a href="x_ordering.html?u_sess=">Place Order</a>        <li  class=""><a href="x_orders$.list_query_notify?serial_p=">View Orders</a>        <li  class=""><a href="x_confirmation.filter?u_sess=">Trade History</a>        <li  class=""><a href="x_cust_orders_rep.driving_form?serial_p=">Order Tracer</a>        <li  class=""><a href="x_user_watch_list.show?u_sess=">Watch List</a>        <li  class=""><a href="x_visitor_links.marginsharespercent?u_sess=">Margin Shares List</a>        <li  class="noitemborder"><h4>Portfolio</h4>        <li  class=""><a href="x_portfolio.positions?u_sess=">Positions</a>        <li  class=""><a href="x_customer_balance.display_cust_balance?u_sess=">Balance</a>        <li  class=""><a href="x_cust_activity.gen_filter?u_sess=">Account Activity</a>        <li  class=""><a href="x_cust_activity.gen_filter_funds?u_sess=">Funds Activity</a>        <li  class=""><a href="x_move.money_html?u_sess=">Wallet</a>        <li  class="menuitemsublink"><a href="money_withdraw_display.display_money?u_sess=">Cancel Request</a>
+
+                </ul>
+            </li>
+            
+
+            <li class="mainLeftlink "><a href="#">Markets</a>
+                <ul class="e-list2">
+             
+        <li  class="noitemborder"><h4>Overview</h4>        <li  class=""><a href="x_market_page.overview?u_sess=">Market Data</a>        <li  class=""><a href="x_user_watch_list.show?u_sess=">Watch List</a>        <li  class=""><a href="x_market_page.historic?u_sess=">News & Archives</a>        <li  class=""><a href="sigmacalendar?u_sess=">Calendar</a>        <li  class="noitemborder"><h4>Realtime Prices</h4>        <li  class=""><a href="javascript:launchv2();">Streamer</a>        <li  class=""><a href="javascript:launchv3();">Streamer (FLASH)</a>        <li  class="noitemborder"><h4>Analysis</h4>        <li  class=""><a href="fund_research_fl.landingpage?u_sess=">Financial Analysis</a>        <li  class=""><a href="tech_recommendations_fl.landingpage?u_sess=">Technical Analysis</a>
+
+                </ul>
+            </li>
+            
+
+            <li class="mainLeftlink "><a href="#">Resources</a>
+                <ul class="e-list2">
+             
+        <li><a href="x_visitor_links.resources?u_sess=">Useful Links</a>        <li><a href="x_visitor_links.client_account?u_sess=">Open Account</a>        <li><a href="x_demo_pkg.register_en?u_sess=">Free Live Streamer</a>        <li><a href="x_visitor_links.privacy?u_sess=">Privacy Policy</a>
+
+                </ul>
+            </li>
+            
+</ul>
+     
+        </div>  
+    </div>
+</header> 
+<div id="bodyContent">
+<BR>
+<TABLE   style="border-spacing:1px;" align=center cellspacing=5>
+<TR>
+<td align=center >
+<div class="alrtDiv">
+<span class="alertMsg">
+You have requested access to a privileged only feature
+</span>
+</div>
+<strong>Please log on to take advantage of Sigma Services.</strong>
+<br class=clear>
+</td>
+</TR>
+<TR>
+<TD COLSPAN="3" height=10> </TD>
+</TR>
+<TR>
+<td  valign=top align=center>
+<big><big><big>Open an account</big></big></big>
+<BR>
+<BR>
+Take advantage of Sigma Services and stay ahead of the curve by opening an account today
+<BR>
+<BR>
+<BR>
+<A HREF="x_visitor_links.client_account"><IMG SRC="/image/newaccount.gif" border=0></A>
+</td>
+</TR>
+<TR>
+<TD height=10> </TD>
+</TR>
+<TR>
+<TD ALIGN="center" COLSPAN="3"> <span style="border-style: solid; border-width: 1;border-color:#cccccc; background:#F5F5F5" >Investment Products - No Guarantees - May Lose Value</span></TD>
+</TR>
+<TR>
+<TD height=10> </TD>
+</TR>
+<TR>
+<TD ALIGN="center" COLSPAN="3"><small>System response and access times may vary due to numerous factors, including and not limited to system performance, market conditions, trading volumes and connectivity factors. </TD>
+</TR>
+</TABLE>
+
+</div>
+
+<!--  contentwarapper -->
+
+<footer id="footer">
+<!-- trust-->
+
+</div>
+<!-- trust-->
+
+
+<!-- copyRights -->
+<div id="copyrights">
+<div class="wrap" >
+Copyright © 2019 - 2026, SIGMA CAPITAL 
+</div>
+</div>
+
+<!-- start sigmago -->
+<div class="sigmago-footer">
+
+<div style="display: flex; flex-direction: row; align-content: center; justify-content: flex-start; align-items: center;gap: 2px;margin-top: 3px;">
+<div style="background: url(/images1/sigmago_icon_med.png) no-repeat;background-size: contain;width: 41px;height: 41px;"></div>
+<div style="padding-left: 3px;">
+<div style="display:flex;flex-direction: row;justify-content: space-between;gap: 2px;">
+<a href="https://play.google.com/store/apps/details?id=com.sigma.sigmarNative" target="_blank" style="background:url(/images1/android-link.png) no-repeat;width: 110px;height: 35px;background-size: contain"></a>
+<a href="https://apps.apple.com/us/app/sigma-go/id6478456739" target="_blank" style="background:url(/images1/ios-link.png) no-repeat;width: 110px;height: 35px;background-size: contain"></a>
+</div>
+</div>
+<div style="background:url(/images1/qrcode.png) no-repeat center center;background-size: contain;width: 35px; height: 35px;;padding-left: 10px;"></div>
+</div>
+ 
+
+
+<div class="followUs">
+<div class="footer-social-icons">
+    <h4 class="_14"></h4>
+    <ul class="social-icons">        
+        <li><a href="https://www.facebook.com/SigmaCapital" target="_new" class="social-icon"> <i class="fa fa-facebook"></i></a></li>
+        <li><a href="https://www.instagram.com/sigma_capital_" target="_new" class="social-icon"> <i class="fa fa-instagram"></i></a></li>     
+        <li><a href="https://www.youtube.com/@Sigma.Capital." target="_new" class="social-icon"> <i class="fa fa-youtube"></i></a></li>   
+        <li><a href="https://www.linkedin.com/company/sigma-securities/" target="_new" class="social-icon"> <i class="fa fa-linkedin"></i></a></li>        
+    </ul>
+</div>
+</div>
+  
+  
+    
+
+</div>
+<!-- end sigmago -->
+<!-- copyRights -->
+</footer>
+
+
+
+    <script src="/js/jquery.meanmenu.min.js"></script>
+    <script>
+  function showbottom () {
+
+    //select and show 
+    var x = readCookie("bottomslide");
+  
+    if(x == null)
+    {    
+     // alert("a");
+        $("#bottomslider").hide().fadeIn(500);
+    }
+
+    //closeif the button with id="close" is clicked
+    $(".bottomsliderclose").click(function (e) {
+        //e.preventDefault();
+        $("#bottomslider").fadeOut(500);
+         createCookie("bottomslide","DoNotShow",700);
+    });        
+      };
+      
+          
+    $(document).ready(function () 
+    {
+        /*$(".e-list").slideUp(function() 
+        {
+            $(".e-button").removeClass("open");
+        });*/
+        showbottom()
+        setTimeout(function() {
+        // Your code here
+         $("#bottomslider").hide().fadeOut(1000);
+        }, 4000);  // 10000 milliseconds = 10 seconds
+        $(".e-button").click(function() {
+            if ($(this).hasClass("open")) {
+                $(".e-list").slideUp(function() {
+                    $(".e-button").removeClass("open");
+                });
+            } else {
+                $(this).addClass("open");
+                setTimeout(function() {
+                    $(".e-list").stop().slideDown();
+                }, 50);
+            }
+        });
+        
+        $(".m-dropdown .e-list .mainLeftlink").hover(function(){            
+            
+            $(".m-dropdown .e-list").find(".highLighted").removeClass("highLighted");
+              $(this).addClass("highLighted"); 
+            $(".m-dropdown .e-list ").height($(this).find(".e-list2").height() + 20);
+            //alert($(this).find(".e-list2").height());
+                          
+          });    
+        
+        $(document).mouseup(function(e) 
+        {           
+           if($("#menu").hasClass("mean-remove")) return ; 
+            var container = $(".m-dropdown");           
+            
+            if (!container.is(e.target) && container.has(e.target).length === 0 ) 
+            {
+                $(".e-list").slideUp(function() {
+                    $(".e-button").removeClass("open");
+                });
+            }
+        });    
+        
+        $('header .m-dropdown').meanmenu();
+    });
+    </script>
+    
+
+    <script>
+    var _gaq = _gaq || [];
+
+  _gaq.push(['_setAccount', 'UA-31820839-1']);
+
+  _gaq.push(['_trackPageview']);
+
+
+
+  (function() {
+
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.timeouasync = true;
+
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+
+  })();
+  </script>
+
+ 
+<div id="bottomslider" style="display:none;">
+<div  class="sigmagodiv sigmago-class-container" style=" box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.7), 0 0px 8px 0 rgba(0, 0, 0, 0.19)">
+<span class="bottomsliderclose" style="position: absolute; right: 20px;border: 1px solid; padding: 2px 5px; font-size: small; background: #ffffff;cursor:pointer">Close x </span>
+<div style="display: flex; flex-direction: row; align-content: center; justify-content: flex-start; align-items: center;gap: 5px;margin: 0 auto; max-width: 650px;">
+<div style="background:url(/images1/sigmago_icon_med.png) no-repeat;width:125px;height:125px"></div>
+<div style="margin-top: -10px;padding-left: 1rem;">
+<p style="color: #0079c2; text-align: center;padding: 0 !important;  margin: 0 !important; font-size: xx-large;">Install Our App</p>
+<p style="color: #009dff;    text-align: center;    font-size: xxx-large;    padding: 0;    margin: 0;margin-top: -20px;">SIGMA GO</p>
+<div style="display:flex;flex-direction: row;justify-content: space-between;gap: 2px;margin-top: -10px;">
+<a href="https://play.google.com/store/apps/details?id=com.sigma.sigmarNative" target="_blank" style="background-image:url(/images1/android-link.png);width:136px;height:41px"></a>
+<a href="https://apps.apple.com/us/app/sigma-go/id6478456739" target="_blank" style="background-image:url(/images1/ios-link.png);width:136px;height:41px"></a>
+</div>
+</div>
+<div style="background:url(/images1/qrcode.png) no-repeat center center;width:100px;height:100px;padding-left: 1rem;"></div>
+</div>
+</div>
+
+<div class="sigmagodivmob sigmago-mob-container">
+<div style="display: flex; flex-direction: row; align-content: center; justify-content: flex-start; align-items: center;gap: 5px;margin: 0 auto;">
+<div style="background:url(/images1/sigmago_icon_med.png) no-repeat;width:70px;height:70px;;background-size: contain"></div>
+<div style="padding-left: 0.2rem;">
+<p style="color: #0079c2; text-align: left;padding: 0 !important;  margin: 0 !important;">Install Our App</p>
+<div style="display:flex;flex-direction: row;justify-content: space-between;gap: 15px;align-items: center;font-size: 15px;">
+<a class="bottomsliderclose" style="align-content: center;border:1px solid #c6c6c6;background:#fff;color:#333;width:100px;height:41px;border-radius:10px;text-align:center">Not Now</a>
+<a class="bottomsliderclose" href="/main/mobileapp" target="_blank" style="align-content: center;background:#1b75bb;color:#fff;width:100px;height:41px;border-radius:10px;text-align:center">Get App</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+

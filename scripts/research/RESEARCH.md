@@ -89,3 +89,29 @@ empty stub: "لم يُنشر شيء لهذا بعد").
 - Both publishers run WordPress with public REST APIs: `/wp-json/wp/v2/posts?per_page=100&page=N&_fields=id,date,link,title,excerpt,categories` (title/date/excerpt/categories). Category maps via `/wp-json/wp/v2/categories`.
 - Backfill persisted in SQLite (NewsPost, link-unique, in-memory dedupe because Prisma skipDuplicates is unsupported on SQLite).
 - Related news for companies: Arabic brand-name alias map (COMI→التجاري الدولي/CIB etc.) since Arabic titles never contain English tickers.
+
+## Task 5 — financial statements & disclosures sources (2026-09-07, evening)
+
+**User asked:** deep research on company financial statements and disclosure data availability.
+
+### Financial statements — ✅ FOUND & IMPLEMENTED
+
+| # | Source | What | Reachable | Verdict |
+|---|--------|------|-----------|---------|
+| 1 | **stockanalysis.com** `/quote/egx/{TICKER}/financials/` (+ `/balance-sheet/`, `/cash-flow-statement/`, `?p=quarterly`) | FULL statements: income (TTM + 5 FY + quarterly), balance sheet (4 sections, ~47 lines), cash flow (~29 lines), segment breakdowns. EGP millions, cumulative as filed. HTML SSR tables, no key, no auth | ✅ 200 (also verified from Node runtime) | **IMPLEMENTED** — `src/lib/statements.ts` + `/api/statements/[ticker]` |
+| 2 | Yahoo quoteSummary | Fundamentals per symbol | ✅ but "No fundamentals data found for symbol: *.CA" (verified COMI, TMGH, with valid crumb; EGX30 index works) | Rejected |
+| 3 | TradingView scanner historical-period columns (`total_revenue__FY__2024` etc.) | Per-period financials | ✅ but returns null for all patterns tried | Rejected (TTM ratios only) |
+| 4 | Sigma Capital `fund_research_fl.landingpage` | Company financial analysis | 200 but login-gated error page ("حدث خطأ") without session | Rejected (auth) |
+| 5 | Mubasher / Investing / EGX official / marketscreener | — | 403 / 403 / unreachable / blocked | Rejected |
+| 6 | CBE (cbe.org.eg) | FX official | Request rejected by WAF | Rejected (FX from open.er-api.com instead) |
+
+**Coverage measured:** 52/80 sampled universe tickers have statements (all liquid large/mid caps; the misses are small caps and bond/warrant codes). Cross-verified COMI FY2025 net income 61,634 mn EGP and TMGH FY2025 net income 14,384 mn EGP — both match the published figures.
+
+**Parser design** (src/lib/statements.ts): table-scoped regex extraction — the primary label from the `row-label` div (avoids the "Growth" echo text), balance/cash pages merge their 4 consecutive sections, ratio/margin tables are skipped by first-label marker, growth rows dropped, `—`-cells → null. 6-hour TTL cache + stale fallback, 15s timeout, per-page isolation. Values cross-checked against TradingView TTM fields (COMI net income TTM 71.4bn TV vs 66.4bn SA — different snapshots, consistent).
+
+### Disclosures — official archive unreachable, press-derived implemented
+
+- EGX official disclosure archive: unreachable from this network.
+- Mubasher (heaviest republisher of EGX filings): Cloudflare-blocked even from a real browser (verified again).
+- **Implemented instead:** a per-company disclosure LOG from our 9,000-article news archive — company aliases (Arabic brand names) + disclosure-type keywords (إفصاح/توزيعات/القوائم المالية/نتائج/أرباح/عمومية/اكتتاب/استحواذ/صفقة). Honest labeling in the UI: "press coverage, not the official archive". TMGH: 6 real filings (H1-2026 results 9.94bn EGP etc.); COMI: 11.
+- Scan window widened from 1200/1500 recent rows to the full archive (9k rows, low-ms regex cost).

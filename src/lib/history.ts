@@ -10,11 +10,12 @@
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
-export type ChartRange = "1M" | "3M" | "6M" | "1Y" | "5Y";
+export type ChartRange = "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
 
-export const CHART_RANGES: ChartRange[] = ["1M", "3M", "6M", "1Y", "5Y"];
+export const CHART_RANGES: ChartRange[] = ["1W", "1M", "3M", "6M", "1Y", "5Y"];
 
 const RANGE_MAP: Record<ChartRange, { yahoo: string; interval: string; maxDays: number }> = {
+  "1W": { yahoo: "5d", interval: "1d", maxDays: 9 },
   "1M": { yahoo: "1mo", interval: "1d", maxDays: 31 },
   "3M": { yahoo: "3mo", interval: "1d", maxDays: 95 },
   "6M": { yahoo: "6mo", interval: "1d", maxDays: 190 },

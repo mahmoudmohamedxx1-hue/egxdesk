@@ -7,7 +7,12 @@ data-source probes for every gap (results inline).*
 
 ## What we MISS — feature blocks esthmr has and we don't
 
-### 1. Company financial statements & analysis tab  ❌ no free source
+### 1. Company financial statements & analysis tab  ✅ FOUND & IMPLEMENTED (2026-09-07 evening)
+**Update: stockanalysis.com serves full EGX statements** (income TTM+5FY+quarterly, balance sheet,
+cash flow; EGP mn; ~52/80 universe coverage, all liquid names). Implemented: src/lib/statements.ts,
+/api/statements/[ticker], "القوائم والتحليل" company tab with annual/quarterly toggle, income/
+balance/cashflow sub-tabs, bilingual line labels, FY-vs-FY comparison. Cross-verified COMI FY2025
+net income 61,634 mn and TMGH FY2025 14,384 mn.
 esthmr company view has a 2nd tab "القوائم والتحليل" (5 financial periods):
 - Per-period income statement (revenues, gross, operating, net)
 - Balance sheet (assets, liabilities, equity, loans ST/LT, cash)
@@ -25,14 +30,16 @@ historical-period columns (`total_revenue__FY__2024` etc.) → null. EGX officia
 live for COMI: P/B 2.03, D/E 0.346, ROE 34.4%, net debt −109.7bn, payout ratio,
 gross margin, employees 8,665, next earnings date.
 
-### 2. Company disclosures archive tab  ❌ blocked
-esthmr's 3rd company tab lists every filed document (financial statements, AGM
-invitations, dividend disclosures) with dates + document links. EGX official
-disclosure archive is unreachable from this network; Mubasher 403. Our
-related-news (Arabic alias matching) partially covers major filings as articles.
-**Verdict: not implementable as a structured archive from here.**
+### 2. Company disclosures archive tab  ⚠️ press-derived log IMPLEMENTED
+esthmr's 3rd company tab lists every filed document with dates + links. EGX
+official archive unreachable; Mubasher Cloudflare-blocked (re-verified via real
+browser). Implemented a per-company "الإفصاحات" tab: real press-covered filings
+from our 9k-article archive (aliases + disclosure keywords), honestly labeled
+as financial-press coverage rather than the official archive. TMGH: 6, COMI: 11.
+**Verdict: best achievable without the EGX archive; document links unavailable,
+article links instead.**
 
-### 3. Signals engine  ⚠️ partial (buildable "lite")
+### 3. Signals engine  ✅ IMPLEMENTED (lite)
 esthmr auto-computes and surfaces signals on home + company pages:
 - Pattern break (e.g. "first down session after 5 up sessions")
 - Loan movement (short-term loans vs prior balance sheet)
@@ -43,7 +50,7 @@ esthmr auto-computes and surfaces signals on home + company pages:
 available from TradingView `earnings_release_date` ✓ (epoch returned); loan
 movement + silence need the disclosure feed ✗. **Verdict: signals-lite buildable.**
 
-### 4. Exchange & economy view (البورصة والاقتصاد)  ✅ buildable
+### 4. Exchange & economy view  ✅ IMPLEMENTED
 We redirect `?view=exchange` → home. esthmr has a dedicated view: indices +
 traded value + **five EGP FX rates** (last reading) + economic-indicators
 section ("مؤشرات الاقتصاد بلغة واضحة" — empty even in their demo).
@@ -52,7 +59,7 @@ present, daily) ✓. api.gold-api.com: XAU $4,431/oz live ✓ → EGP per gram
 computable. CBE site blocked (request rejected). **Verdict: real FX + gold +
 traded-value panel buildable; economic indicators need a news-derived source.**
 
-### 5. Ranking & comparison metrics  ✅ easy win (data verified today)
+### 5. Ranking & comparison metrics  ✅ IMPLEMENTED
 esthmr's "الترتيب والمقارنة" ranks by market cap / share price / **dividend
 yield** / **annual net profit** / **debt-to-equity**, each with a
 "قارنه مع" compare-against second metric. We only rank market cap / price /
@@ -64,22 +71,22 @@ change / P/E.
 `earnings_release_date`. **Verdict: add columns to our existing fetch — 8 new
 ranking metrics + P/B across the app.**
 
-### 6. Sector cards fundamentals  ✅ easy win (same data)
+### 6. Sector cards fundamentals  ✅ IMPLEMENTED
 esthmr sector cards show **median P/E, median P/B, dividend yield, biggest
 mover**. Ours show count / up-down / cap / value / turnover leader / biggest
 mover + 2 charts (no P/E, no P/B, no yield). Same TradingView columns fill all
 three.
 
-### 7. Tools view: comparison calculator + glossary  ✅ trivial
+### 7. Tools view  ✅ IMPLEMENTED
 esthmr tools adds: amount presets (50k/100k/250k/500k), monthly-equivalent
 income, **payback period**, and a **stocks-vs-bank-vs-gold comparison**
 (assumed 28% / 23.5% / 25%, 1Y and 3Y compounding) + a **plain-Arabic
 glossary** (P/E, P/B, ROE, earnings quality). We have the base coupon calc only.
 
-### 8. 1W price-chart range  ✅ trivial
+### 8. 1W price-chart range  ✅ IMPLEMENTED
 esthmr: 1W/1M/3M/1Y/5Y. Ours: 1M/3M/6M/1Y/5Y. Yahoo 5d candles work.
 
-### 9. "Behind the market move" (وراء حركة السوق)  ✅ easy win
+### 9. "Behind the market move"  ✅ IMPLEMENTED
 esthmr home summarizes which investor categories moved the market, linking to
 the investors view. We already HAVE the live flows table — just surface a
 compact net-flow summary + retail-vs-inst split on home.

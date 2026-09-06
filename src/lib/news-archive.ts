@@ -293,7 +293,8 @@ export async function relatedNewsArchive(ticker: string, name: string, limit = 6
     .map((w) => new RegExp(`\\b${w}\\b`, "i"));
   const aliases = (AR_ALIASES[t] ?? []).map((a) => new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   if (!tickerRe.source && words.length === 0 && aliases.length === 0) return [];
-  const recent = await db.newsPost.findMany({ orderBy: { publishedAt: "desc" }, take: 1200 });
+  // scan the full archive (9k rows — regex matching stays in the low milliseconds)
+  const recent = await db.newsPost.findMany({ orderBy: { publishedAt: "desc" } });
   const hit = (s: string) =>
     tickerRe.test(s) ||
     aliases.some((re) => re.test(s)) ||
@@ -308,4 +309,29 @@ export async function relatedNewsArchive(ticker: string, name: string, limit = 6
 export async function archiveOldest(): Promise<string | null> {
   const r = await db.newsPost.findFirst({ orderBy: { publishedAt: "asc" }, select: { publishedAt: true } });
   return r ? r.publishedAt.toISOString() : null;
+}
+
+/** Disclosure log for one company: archived articles that mention the
+ *  company (aliases) AND disclosure-type keywords (filings, dividends,
+ *  AGMs, results). Real press coverage — not the official EGX archive. */
+export async function companyDisclosures(ticker: string, name: string, limit = 12): Promise<ArchivedNews[]> {
+  const t = ticker.toUpperCase();
+  const tickerRe = new RegExp(`\\b${t.replace(/[^A-Z0-9]/g, "")}\\b`, "i");
+  const words = name
+    .split(/[^A-Za-z]+/)
+    .filter((w) => w.length > 3 && !["Egypt", "Egyptian", "Company", "S.A.E", "Holding", "Limited", "Corporation"].includes(w))
+    .slice(0, 2)
+    .map((w) => new RegExp(`\\b${w}\\b`, "i"));
+  const aliases = (AR_ALIASES[t] ?? []).map((a) => new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  if (!tickerRe.source && words.length === 0 && aliases.length === 0) return [];
+  const recent = await db.newsPost.findMany({ orderBy: { publishedAt: "desc" } });
+  const companyHit = (s: string) =>
+    tickerRe.test(s) ||
+    aliases.some((re) => re.test(s)) ||
+    (words.length > 0 && words.every((re) => re.test(s)));
+  const kw = /إفصاح|إفصاحات|العمومية|عمومية|توزيعات|كوبون|القوائم المالية|قوائم مالية|نتائج|أرباح|نصف سنوي|ربع سنوي|زيادة رأس المال|اكتتاب|إدراج|شطب|تغيرات جوهرية|مجلس الإدارة|صفقة|استحواذ|توقيع|عقد/i;
+  return recent
+    .filter((r) => companyHit(`${r.title} ${r.snippet ?? ""}`) && kw.test(`${r.title} ${r.snippet ?? ""}`))
+    .slice(0, limit)
+    .map(toRow);
 }

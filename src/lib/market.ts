@@ -45,6 +45,17 @@ export type Stock = {
   netMarginTTM: number | null;
   beta: number | null;
   updateMode: string | null;
+  // extended fundamentals (TradingView scanner)
+  pb: number | null; // price / book (FQ)
+  debtToEquity: number | null; // ratio
+  roe: number | null; // %
+  netIncomeTTM: number | null; // EGP
+  payoutRatio: number | null; // 0..1
+  grossMarginTTM: number | null; // %
+  revenueGrowthQ: number | null; // %
+  netDebt: number | null; // EGP
+  employees: number | null;
+  nextEarnings: number | null; // epoch seconds
 };
 
 export type IndexQuote = {
@@ -83,6 +94,8 @@ export type SectorRow = {
   marketCap: number;
   valueTraded: number;
   pe: number | null; // median
+  pb: number | null; // median
+  roe: number | null; // median
   divYield: number | null; // median
   biggestMover: { ticker: string; changePct: number } | null;
   topGainer: { ticker: string; changePct: number } | null;
@@ -103,6 +116,10 @@ const STOCK_COLUMNS = [
   "price_52_week_high", "price_52_week_low", "High.1M", "Low.1M",
   "average_volume_10d_calc", "average_turnover_30d_calc", "float_shares_outstanding",
   "total_revenue_ttm", "net_margin_ttm", "beta_1_year", "update_mode",
+  // extended fundamentals (verified populated for EGX on the TV scanner)
+  "price_book_fq", "debt_to_equity", "return_on_equity", "net_income_ttm",
+  "dividend_payout_ratio_ttm", "gross_margin_ttm", "revenue_growth_quarterly",
+  "net_debt", "number_of_employees", "earnings_release_date",
 ];
 
 const INDEX_TICKERS: { symbol: string; code: IndexQuote["code"] }[] = [
@@ -246,6 +263,16 @@ export async function fetchUniverse(): Promise<Stock[]> {
           netMarginTTM: n(d[28]),
           beta: n(d[29]),
           updateMode: typeof d[30] === "string" ? d[30] : null,
+          pb: n(d[31]),
+          debtToEquity: n(d[32]),
+          roe: n(d[33]),
+          netIncomeTTM: n(d[34]),
+          payoutRatio: n(d[35]),
+          grossMarginTTM: n(d[36]),
+          revenueGrowthQ: n(d[37]),
+          netDebt: n(d[38]),
+          employees: n(d[39]),
+          nextEarnings: n(d[40]),
         };
       })
       .filter((s) => s.ticker && s.close > 0);
@@ -429,6 +456,16 @@ export function companyRow(s: Stock) {
     low52: s.low52,
     avgVolume: s.avgVolume,
     volumeRatio: s.avgVolume && s.avgVolume > 0 ? s.volume / s.avgVolume : null,
+    pb: s.pb,
+    debtToEquity: s.debtToEquity,
+    roe: s.roe,
+    netIncomeTTM: s.netIncomeTTM,
+    payoutRatio: s.payoutRatio,
+    grossMarginTTM: s.grossMarginTTM,
+    revenueGrowthQ: s.revenueGrowthQ,
+    netDebt: s.netDebt,
+    employees: s.employees,
+    nextEarnings: s.nextEarnings,
   };
 }
 
@@ -476,6 +513,8 @@ export function sectorRows(stocks: Stock[]): SectorRow[] {
       marketCap: capTotal,
       valueTraded: cos.reduce((a, c) => a + c.valueTraded, 0),
       pe: median(cos.map((c) => c.pe).filter((v): v is number => v !== null)),
+      pb: median(cos.map((c) => c.pb).filter((v): v is number => v !== null)),
+      roe: median(cos.map((c) => c.roe).filter((v): v is number => v !== null)),
       divYield: median(cos.map((c) => c.divYield).filter((v): v is number => v !== null)),
       biggestMover: sortedByMove[0]
         ? { ticker: sortedByMove[0].ticker, changePct: sortedByMove[0].changePct }

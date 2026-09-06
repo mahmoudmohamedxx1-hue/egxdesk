@@ -64,8 +64,11 @@ export async function GET(req: NextRequest) {
   // ── indices: real closes persisted from EGXBot session reports ──
   if (symbol in INDEX_KEYS) {
     const code = symbol as IndexCode;
-    const range = rangeParam === "1M" || rangeParam === "3M" || rangeParam === "6M" || rangeParam === "ALL" ? rangeParam : "3M";
-    const days = range === "1M" ? 31 : range === "3M" ? 95 : range === "6M" ? 190 : 400;
+    const range =
+      rangeParam === "1W" || rangeParam === "1M" || rangeParam === "3M" || rangeParam === "6M" || rangeParam === "ALL"
+        ? rangeParam
+        : "3M";
+    const days = range === "1W" ? 9 : range === "1M" ? 31 : range === "3M" ? 95 : range === "6M" ? 190 : 400;
     // warm the archive in the background; the client polls and picks up rows
     ensureHistory().catch(() => {});
     let points: { date: string; close: number }[] = [];

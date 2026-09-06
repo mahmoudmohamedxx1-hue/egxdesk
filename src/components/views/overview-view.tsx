@@ -18,6 +18,15 @@ type Overview = {
   session: SessionMeta;
   indices: IndexRow[];
   breadth: { total: number; up: number; down: number; flat: number };
+  flowsSummary?: {
+    asOf: string;
+    egyNet: number;
+    arabNet: number;
+    forNet: number;
+    retailPct: number;
+    instPct: number;
+    turnoverTotal: number;
+  } | null;
   totals: { valueTraded: number; volume: number; marketCap: number };
   actives: CompanyRow[];
   movers: CompanyRow[];
@@ -148,6 +157,48 @@ export function OverviewView() {
           {lang === "ar" ? "القيمة ≈ حجم الجلسة × آخر سعر لكل سهم." : "Value ≈ session volume × last price per stock."}
         </p>
       </section>
+
+      {/* behind the market move — real investor-category net flows */}
+      {data.flowsSummary && (
+        <section aria-label="behind the move" className="rounded-lg border bg-card p-4">
+          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+            <h2 className="text-lg font-bold">{tt(T.behindMove, lang)}</h2>
+            <button onClick={() => navigate("investors")} className="text-xs text-primary hover:underline">
+              {tt(T.seeInvestorFlows, lang)}
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-3">{tt(T.behindMoveNote, lang)}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              {([
+                [tt(T.egyptiansTotal, lang), data.flowsSummary.egyNet],
+                [tt(T.arabsTotal, lang), data.flowsSummary.arabNet],
+                [tt(T.foreignersTotal, lang), data.flowsSummary.forNet],
+              ] as const).map(([label, v]) => (
+                <div key={label} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className={`num font-bold ${v > 0 ? "text-up" : v < 0 ? "text-down" : "text-muted-foreground"}`}>
+                    {v > 0 ? "+" : v < 0 ? "−" : ""}
+                    {fmtValue(Math.abs(v) * 1_000_000)} <span className="text-[10px] font-normal text-muted-foreground">{lang === "ar" ? "ج.م" : "EGP"}</span>
+                  </span>
+                </div>
+              ))}
+              <p className="num text-[10px] text-muted-foreground">{data.flowsSummary.asOf} · {tt(T.netFlowLabel, lang)} ({tt(T.egpMn, lang)})</p>
+            </div>
+            <div className="rounded-md bg-secondary/60 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground">{tt(T.retailVsInst, lang)}</p>
+              <div className="flex items-center gap-2 h-3" dir="ltr">
+                <div className="h-full rounded-s-sm bg-primary" style={{ width: `${data.flowsSummary.retailPct}%` }} />
+                <div className="h-full flex-1 rounded-e-sm bg-muted-foreground/40" />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="num">{tt(T.retailShare, lang)} {fmtPct(data.flowsSummary.retailPct, false)}</span>
+                <span className="num">{tt(T.instShare, lang)} {fmtPct(data.flowsSummary.instPct, false)}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* sector snapshot */}
       <section aria-label="sector snapshot">

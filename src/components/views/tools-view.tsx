@@ -5,7 +5,7 @@ import { useApp } from "../market/app-context";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { Input } from "@/components/ui/input";
-import { Calculator, TrendingUp } from "lucide-react";
+import { Calculator, TrendingUp, Scale, BookOpen } from "lucide-react";
 
 type Row = { ticker: string; name: string; close: number; divYield: number | null };
 
@@ -43,6 +43,14 @@ export function ToolsView() {
   const income = shares * coupon;
   const invested = shares * price;
   const yieldOnCost = invested > 0 && coupon > 0 ? (coupon / price) * 100 : null;
+  const monthly = income / 12;
+  const paybackYears = income > 0 && invested > 0 ? invested / income : null;
+
+  // comparison calculator state (hypothetical, compounded)
+  const [rateStocks, setRateStocks] = useState(28);
+  const [rateBank, setRateBank] = useState(23.5);
+  const [rateGold, setRateGold] = useState(25);
+  const comp = (ratePct: number, years: number) => amount * Math.pow(1 + ratePct / 100, years);
 
   return (
     <div className="space-y-5">
@@ -135,6 +143,18 @@ export function ToolsView() {
                 <p className="num text-xl font-bold text-up">{yieldOnCost !== null ? fmtPct(yieldOnCost, false) : "—"}</p>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">{tt(T.monthlyEquivalent, lang)}</p>
+                <p className="num text-lg font-bold">{monthly.toLocaleString("en-US", { maximumFractionDigits: 0 })} <span className="text-xs font-normal text-muted-foreground">EGP/mo</span></p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">{tt(T.paybackPeriod, lang)}</p>
+                <p className="num text-lg font-bold">
+                  {paybackYears !== null ? `${fmtNum(paybackYears, 1)} ${tt(T.yearsUnit, lang)}` : "—"}
+                </p>
+              </div>
+            </div>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between border-b border-dotted pb-2">
                 <dt className="text-muted-foreground">{lang === "ar" ? "المبلغ المستثمر فعلياً" : "Actually invested"}</dt>
@@ -152,6 +172,125 @@ export function ToolsView() {
           </div>
         </div>
       </section>
+
+      {/* comparison calculator */}
+      <section className="rounded-lg border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <Scale className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <h2 className="font-bold">{tt(T.comparisonTitle, lang)}</h2>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {([
+              [tt(T.compStocks, lang), rateStocks, setRateStocks],
+              [tt(T.compBank, lang), rateBank, setRateBank],
+              [tt(T.compGold, lang), rateGold, setRateGold],
+            ] as const).map(([label, val, set]) => (
+              <div key={label} className="rounded-lg border p-3 space-y-1.5">
+                <p className="text-xs font-medium">{label} · {tt(T.customRate, lang)}</p>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={-50}
+                  max={100}
+                  className="num h-8"
+                  value={val}
+                  onChange={(e) => set(Number(e.target.value) || 0)}
+                  dir="ltr"
+                  aria-label={`${label} ${tt(T.customRate, lang)}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="overflow-x-auto thin-scroll">
+            <table className="w-full text-sm">
+              <thead className="border-b">
+                <tr className="text-[11px] text-muted-foreground">
+                  <th className="text-start font-medium py-2">{tt(T.stock, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2">{tt(T.after1y, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2">{tt(T.after3y, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2 hidden sm:table-cell">{tt(T.effectiveYield, lang)}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {([
+                  [tt(T.compStocks, lang), rateStocks, "text-primary"],
+                  [tt(T.compBank, lang), rateBank, ""],
+                  [tt(T.compGold, lang), rateGold, ""],
+                ] as const).map(([label, rate, cls]) => (
+                  <tr key={label}>
+                    <td className="py-2.5 font-medium">{label}</td>
+                    <td className={`num px-3 py-2.5 text-end font-semibold ${cls}`}>
+                      EGP {comp(rate, 1).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td className={`num px-3 py-2.5 text-end font-semibold ${cls}`}>
+                      EGP {comp(rate, 3).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">
+                      {fmtPct(rate, false)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-muted-foreground">{tt(T.comparisonNote, lang)}</p>
+        </div>
+      </section>
+
+      {/* glossary */}
+      <section className="rounded-lg border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <BookOpen className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <h2 className="font-bold">{tt(T.glossaryTitle, lang)}</h2>
+        </div>
+        <dl className="p-4 divide-y">
+          {GLOSSARY.map((g) => (
+            <div key={g.title.en} className="py-3 first:pt-0 last:pb-0">
+              <dt className="text-sm font-bold">{lang === "ar" ? g.title.ar : g.title.en}</dt>
+              <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">{lang === "ar" ? g.body.ar : g.body.en}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </div>
   );
 }
+
+const GLOSSARY = [
+  {
+    title: { ar: "مكرر الربحية (P/E)", en: "Price-to-earnings (P/E)" },
+    body: {
+      ar: "القيمة السوقية مقسومة على الربح: كم تدفع مقابل كل جنيه تربحه الشركة. انخفاض المضاعف قد يعني أن السعر رخص أو أن الأرباح تحسّنت، وهما حكايتان مختلفتان. لا تقرأه أبداً بمعزل عن سطر الأرباح تحته.",
+      en: "Market cap divided by earnings: how much you pay for each pound the company earns. A low multiple can mean a cheap price or improved earnings — two different stories. Never read it apart from the earnings line below it.",
+    },
+  },
+  {
+    title: { ar: "مضاعف القيمة الدفترية (P/B)", en: "Price-to-book (P/B)" },
+    body: {
+      ar: "القيمة السوقية مقسومة على حقوق المساهمين. أقل من ١ يعني أن السوق يقيّم الشركة دون حقوق ملكيتها الدفترية — وهذا لا يكون فرصة إلا إذا كانت الأصول منتِجة. اقرأه بجوار العائد على حقوق الملكية.",
+      en: "Market cap divided by shareholders' equity. Below 1 means the market values the company under its book equity — only a bargain if the assets are productive. Read it next to ROE.",
+    },
+  },
+  {
+    title: { ar: "العائد على حقوق الملكية (ROE)", en: "Return on equity (ROE)" },
+    body: {
+      ar: "الربح منسوباً إلى حقوق المساهمين. والعائد المرتفع ليس مبهراً بالضرورة — فالاقتراض يُصغّر حقوق الملكية فترتفع النسبة دون أن يتحسّن النشاط. اقرأه دائماً بجوار نسبة الدين إلى حقوق الملكية.",
+      en: "Earnings relative to shareholders' equity. A high return isn't necessarily impressive — borrowing shrinks equity and lifts the ratio without improving the business. Always read it beside debt-to-equity.",
+    },
+  },
+  {
+    title: { ar: "جودة الأرباح والتدفق النقدي", en: "Earnings quality & cash flow" },
+    body: {
+      ar: "التدفق النقدي التشغيلي مقارناً بالربح المعلن. حين يصعد الربح ولا يتبعه نقد، فذلك ما يستحق البحث — والتدفق يشغّل التوزيعات، لا الربح المحاسبي.",
+      en: "Operating cash flow compared to reported profit. When earnings climb without cash following, that's what deserves a look — dividends run on cash flow, not accounting profit.",
+    },
+  },
+  {
+    title: { ar: "الحجم غير المعتاد", en: "Unusual volume" },
+    body: {
+      ar: "حجم الجلسة مقسوماً على متوسط ١٠ جلسات. عند ٢× فأكثر يكون النشاط استثنائياً — وهو مقياس اهتمام لا إشارة شراء أو بيع.",
+      en: "Session volume divided by the 10-session average. At 2× or more the activity is exceptional — an interest gauge, not a buy or sell signal.",
+    },
+  },
+];

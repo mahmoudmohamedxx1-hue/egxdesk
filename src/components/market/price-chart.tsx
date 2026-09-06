@@ -42,6 +42,7 @@ type ChartResponse = {
 };
 
 const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
+  "1W": { ar: "أسبوع", en: "1W" },
   "1M": { ar: "شهر", en: "1M" },
   "3M": { ar: "٣ أشهر", en: "3M" },
   "6M": { ar: "٦ أشهر", en: "6M" },

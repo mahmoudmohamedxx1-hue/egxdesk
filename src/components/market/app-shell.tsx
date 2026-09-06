@@ -14,6 +14,7 @@ import { NewsView } from "@/components/views/news-view";
 import { WatchlistView } from "@/components/views/watchlist-view";
 import { ToolsView } from "@/components/views/tools-view";
 import { CompanyView } from "@/components/views/company-view";
+import { ExchangeView } from "@/components/views/exchange-view";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -191,7 +192,7 @@ export function AppShell() {
           {view.name === "watchlist" && <WatchlistView />}
           {view.name === "tools" && <ToolsView />}
           {view.name === "company" && <CompanyView ticker={view.ticker ?? "COMI"} panel={view.panel ?? "overview"} />}
-          {view.name === "exchange" && <OverviewView />}
+          {view.name === "exchange" && <ExchangeView />}
         </div>
       </main>
 

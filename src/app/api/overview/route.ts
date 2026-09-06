@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { fetchUniverse, fetchIndices, fetchNews, sectorRows, companyRow, sessionMeta } from "@/lib/market";
+import { fetchFlows } from "@/lib/flows";
 
 /** GET /api/overview — live landing payload: indices, breadth, totals,
- *  unusual-volume actives, biggest movers, top caps, sector snapshot, news. */
+ *  unusual-volume actives, biggest movers, top caps, sector snapshot, news,
+ *  and an investor-flows summary ("who moved the market today"). */
 export async function GET() {
   try {
     const [stocks, indices, news] = await Promise.all([fetchUniverse(), fetchIndices(), fetchNews()]);
@@ -37,6 +39,38 @@ export async function GET() {
       .sort((a, b) => (b.capWeightedChangePct ?? 0) - (a.capWeightedChangePct ?? 0))
       .map((s) => ({ nameEn: s.nameEn, nameAr: s.nameAr, v: s.capWeightedChangePct as number }));
 
+    // "behind the market move": today's investor-category net flows (real
+    // Sigma table — same source as the investors view). Race-bounded so the
+    // overview never blocks on it; degrades to null.
+    let flowsSummary: {
+      asOf: string;
+      egyNet: number;
+      arabNet: number;
+      forNet: number;
+      retailPct: number;
+      instPct: number;
+      turnoverTotal: number;
+    } | null = null;
+    try {
+      const snap = await Promise.race([
+        fetchFlows(),
+        new Promise<null>((r) => setTimeout(() => r(null), 4000)),
+      ]);
+      if (snap) {
+        flowsSummary = {
+          asOf: snap.asOf,
+          egyNet: snap.nationalityNet.egyptians,
+          arabNet: snap.nationalityNet.arabs,
+          forNet: snap.nationalityNet.foreigners,
+          retailPct: snap.retailPct,
+          instPct: snap.instPct,
+          turnoverTotal: snap.turnoverTotal,
+        };
+      }
+    } catch {
+      // flows layer hiccup — section hides itself
+    }
+
     return NextResponse.json({
       session: sessionMeta(),
       indices,
@@ -51,6 +85,7 @@ export async function GET() {
       colors,
       sectorsSnapshot: { best, worst },
       sectorPerformance,
+      flowsSummary,
       news: news.slice(0, 6),
     });
   } catch {

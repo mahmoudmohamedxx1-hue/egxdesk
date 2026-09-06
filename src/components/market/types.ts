@@ -35,6 +35,17 @@ export type CompanyRow = {
   high1M?: number | null;
   low1M?: number | null;
   updateMode?: string | null;
+  // extended fundamentals (TradingView scanner)
+  pb?: number | null;
+  debtToEquity?: number | null;
+  roe?: number | null;
+  netIncomeTTM?: number | null;
+  payoutRatio?: number | null;
+  grossMarginTTM?: number | null;
+  revenueGrowthQ?: number | null;
+  netDebt?: number | null;
+  employees?: number | null;
+  nextEarnings?: number | null;
 };
 
 export type SessionMeta = {
@@ -82,6 +93,8 @@ export type SectorCard = {
   marketCap: number;
   valueTraded: number;
   pe: number | null;
+  pb: number | null;
+  roe: number | null;
   divYield: number | null;
   biggestMover: { ticker: string; changePct: number } | null;
   topGainer: { ticker: string; changePct: number } | null;

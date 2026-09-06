@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- The URL that lands here carries ?proc=&errcode=&errmsg= from mod_owa.
+     This page never reads them, strips them from the address bar on load,
+     and sends no Referer so they cannot leak to any other site. -->
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' https://www.sigma-cap.com data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Cache-Control" content="no-store">
+
+<title>حدث خطأ · SIGMA Capital</title>
+
+<style>
+/* If Inter is not installed on client machines, self-host it and
+   uncomment this block (drop Inter.woff2 next to this file):
+
+@font-face{
+  font-family:"Inter";
+  src:url("/sigma-err/Inter.woff2") format("woff2");
+  font-weight:400 700; font-display:swap;
+}
+*/
+
+:root{
+  --brand:#0E3A5C;   /* ← set to SIGMA brand navy */
+  --ink:#1A1F26;
+  --slate:#5F6B78;
+  --paper:#F4F6F7;
+  --rule:#E2E6EA;
+  --alert:#B3261E;
+
+  --ar:Tahoma, Arial, sans-serif;
+  --en:"Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono:Consolas, "Courier New", monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--ar);
+  line-height:1.7; min-height:100vh;
+  display:flex; align-items:center; justify-content:center; padding:24px;
+  -webkit-text-size-adjust:100%;
+}
+
+.card{
+  background:#fff; width:100%; max-width:600px;
+  border:1px solid var(--rule); border-radius:3px;
+}
+
+.brandbar{padding:22px 30px; border-bottom:1px solid var(--rule); text-align:center}
+.brandbar img{max-height:52px; max-width:230px; width:auto; height:auto; display:inline-block}
+
+.body{padding:30px}
+
+.tag{
+  font-family:var(--en); font-size:11px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--alert);
+  margin:0 0 12px; direction:ltr; text-align:right;
+}
+
+h1{font-size:23px; font-weight:700; margin:0 0 4px}
+h2{font-family:var(--en); font-size:16px; font-weight:600; color:var(--slate);
+   margin:0 0 20px; direction:ltr; text-align:left}
+
+.msg-ar{font-size:15.5px; margin:0 0 6px}
+.msg-en{font-family:var(--en); font-size:14.5px; color:var(--slate);
+        margin:0 0 22px; direction:ltr; text-align:left}
+
+.ref{border:1px solid var(--rule); background:var(--paper); padding:16px 18px;
+     display:flex; align-items:center; justify-content:space-between;
+     gap:12px; flex-wrap:wrap; margin-bottom:22px}
+.ref-label{font-family:var(--en); font-size:10.5px; font-weight:600;
+           letter-spacing:.1em; text-transform:uppercase; color:var(--slate); margin:0 0 5px}
+.ref-code{font-family:var(--mono); font-size:16px; font-weight:700;
+          letter-spacing:.05em; direction:ltr; margin:0; word-break:break-all}
+.ref-time{font-family:var(--mono); font-size:11px; color:var(--slate);
+          direction:ltr; margin:5px 0 0}
+.copy{font-family:var(--en); font-size:12.5px; font-weight:600; color:var(--brand);
+      background:#fff; border:1px solid var(--rule); border-radius:2px;
+      padding:7px 15px; cursor:pointer}
+.copy:hover{border-color:var(--brand)}
+
+.support{margin:0 0 24px; padding-top:16px; border-top:1px solid var(--rule)}
+.sup-head{display:flex; justify-content:space-between; align-items:baseline;
+          gap:10px; flex-wrap:wrap; direction:rtl}
+.sup-head p{margin:0}
+.sup-ar{font-size:14.5px; font-weight:600}
+.sup-en{font-family:var(--en); font-size:13.5px; font-weight:600;
+        color:var(--slate); direction:ltr}
+.contact{font-family:var(--en); direction:ltr; text-align:center;
+         font-size:15px; font-weight:600; margin:9px 0 0}
+.support a{color:var(--brand); text-decoration:none}
+.support a:hover{text-decoration:underline}
+
+.acts{display:flex; gap:10px; flex-wrap:wrap}
+.btn{font-family:var(--en); font-size:14px; font-weight:600; text-decoration:none;
+     text-align:center; padding:11px 20px; border-radius:2px;
+     border:1px solid var(--brand); cursor:pointer; flex:1 1 auto}
+.solid{background:var(--brand); color:#fff}
+.line{background:#fff; color:var(--brand)}
+.btn:hover{opacity:.88}
+
+.foot{padding:14px 30px; border-top:1px solid var(--rule); font-family:var(--en);
+      font-size:11px; color:var(--slate); text-align:center; direction:ltr}
+
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+
+@media (max-width:560px){
+  body{padding:0}
+  .card{border:none; border-radius:0; min-height:100vh}
+  .body{padding:24px 20px}
+  h1{font-size:20px}
+  .btn{flex:1 1 100%}
+}
+</style>
+</head>
+
+<body>
+<main class="card">
+
+  <div class="brandbar">
+    <img src="https://www.sigma-cap.com/images1/sclogo26.png" alt="SIGMA Capital">
+  </div>
+
+  <div class="body">
+
+    <p class="tag">Error</p>
+
+    <h1>حدث خطأ أثناء تنفيذ طلبك</h1>
+    <h2>An error occurred while processing your request</h2>
+
+    <p class="msg-ar">لم تكتمل العملية ولم يتم تنفيذ أي أمر. برجاء إبلاغ خدمة العملاء بالرقم المرجعي الموضح أدناه حتى نتمكن من متابعة المشكلة.</p>
+    <p class="msg-en">The request was not completed and no order was executed. Please report the reference number below to customer support so we can follow up.</p>
+
+    <div class="ref">
+      <div>
+        <p class="ref-label">Reference · رقم المرجع</p>
+        <p class="ref-code" id="ref">—</p>
+        <p class="ref-time" id="ts"></p>
+      </div>
+      <button class="copy" type="button" id="copy">Copy</button>
+    </div>
+
+    <div class="support">
+      <div class="sup-head">
+        <p class="sup-ar">خدمة العملاء</p>
+        <p class="sup-en">Customer support</p>
+      </div>
+      <p class="contact">
+        <a href="tel:16675">16675</a> &nbsp;·&nbsp;
+        <a href="mailto:shd@sigma-capital.com" id="mail">shd@sigma-capital.com</a>
+      </p>
+    </div>
+
+    <div class="acts">
+      <a class="btn solid" href="https://www.sigma-cap.com">الصفحة الرئيسية · Home page</a>
+      <button class="btn line" type="button" id="back">الصفحة السابقة · Go back</button>
+    </div>
+
+  </div>
+
+  <div class="foot">SIGMA Capital Securities &amp; Bonds Brokerage</div>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* Remove proc / errcode / errmsg from the address bar. */
+  try{
+    if (window.location.search || window.location.hash){
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }catch(e){}
+
+  /* Reference = UTC timestamp + random suffix. Carries nothing about the
+     failure; support matches it against owa.log by time. */
+  var d = new Date();
+  function p(n){ return (n < 10 ? "0" : "") + n; }
+  var abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", rnd = "";
+  for (var i = 0; i < 4; i++) rnd += abc.charAt(Math.floor(Math.random() * abc.length));
+
+  var code = "SG-" + String(d.getUTCFullYear()).slice(2) + p(d.getUTCMonth()+1) + p(d.getUTCDate())
+           + "-" + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + "-" + rnd;
+
+  document.getElementById("ref").textContent = code;
+  document.getElementById("ts").textContent =
+    d.getUTCFullYear() + "-" + p(d.getUTCMonth()+1) + "-" + p(d.getUTCDate()) + " " +
+    p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds()) + " UTC";
+
+  /* Pre-fill the support email subject with the reference. */
+  var mail = document.getElementById("mail");
+  mail.href = "mailto:shd@sigma-capital.com?subject=" +
+              encodeURIComponent("Error reference " + code);
+
+  /* Copy the reference. */
+  var btn = document.getElementById("copy");
+  btn.addEventListener("click", function(){
+    function done(){
+      btn.textContent = "Copied";
+      setTimeout(function(){ btn.textContent = "Copy"; }, 1800);
+    }
+    function fallback(){
+      var t = document.createElement("textarea");
+      t.value = code; t.setAttribute("readonly", "");
+      t.style.position = "absolute"; t.style.left = "-9999px";
+      document.body.appendChild(t); t.select();
+      try{ document.execCommand("copy"); done(); }catch(e){}
+      document.body.removeChild(t);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(done, fallback);
+    } else { fallback(); }
+  });
+
+  /* Go back — hidden when there is no history to go back to. */
+  var back = document.getElementById("back");
+  if (window.history.length > 1){
+    back.addEventListener("click", function(){ window.history.back(); });
+  } else {
+    back.style.display = "none";
+  }
+})();
+</script>
+</body>
+</html>
