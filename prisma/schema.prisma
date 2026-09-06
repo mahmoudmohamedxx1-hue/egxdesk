@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../db/custom.db"
+}
+
+// EGX market sectors
+model Sector {
+  id       String    @id @default(cuid())
+  code     String    @unique // slug
+  order    Int       @default(0)
+  dataset  String    @default("live") // 'demo' | 'live'
+  nameAr   String
+  nameEn   String
+  companies Company[]
+}
+
+// Listed companies
+model Company {
+  id            String   @id @default(cuid())
+  dataset       String   @default("live")
+  ticker        String
+  nameAr        String
+  nameEn        String
+  sectorId      String
+  sector        Sector   @relation(fields: [sectorId], references: [id])
+  // session quote
+  close         Float
+  prevClose     Float
+  changePct     Float    @default(0)
+  week1Pct      Float    @default(0)
+  month1Pct     Float    @default(0)
+  volume        Float    @default(0)
+  avgVolume30d  Float    @default(0)
+  trades        Int      @default(0)
+  valueTraded   Float    @default(0)
+  marketCap     Float    @default(0)
+  // fundamentals
+  pe            Float?
+  pb            Float?
+  eps           Float?
+  divYield      Float?
+  netProfit     Float?  // EGP millions
+  totalAssets   Float?  // EGP millions
+  roe           Float?
+  roa           Float?
+  debtToEquity  Float?
+  cashConversion Float?
+  freeFloat     Float?
+  issuedShares  Float?
+  priceEarnings12m Float?
+  // membership
+  inEgx30       Boolean  @default(false)
+  inEgx70       Boolean  @default(false)
+  inEgx100      Boolean  @default(false)
+  // narrative
+  briefAr       String?
+  briefEn       String?
+  hasFullFinancials Boolean @default(true)
+  priceHistory  PricePoint[]
+  financials    FinancialPeriod[]
+  disclosures   Disclosure[]
+
+  @@unique([dataset, ticker])
+  @@index([dataset, sectorId])
+}
+
+// Daily price history
+model PricePoint {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  date      String   // YYYY-MM-DD
+  close     Float
+
+  @@unique([companyId, date])
+}
+
+// Financial statements per period
+model FinancialPeriod {
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  label       String  // e.g. FY 2025, H1 2026, 9M 2025
+  labelOrder  Int     @default(0)
+  periodType  String  @default("FY") // FY | H1 | Q | 9M
+  revenue     Float?  // EGP millions
+  netProfit   Float?  // EGP millions
+  totalAssets Float?  // EGP millions
+  equity      Float?  // EGP millions
+  eps         Float?
+
+  @@unique([companyId, label])
+}
+
+// Company disclosures
+model Disclosure {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  titleAr   String
+  kind      String   @default("إفصاح")
+  date      String   // YYYY-MM-DD
+  firstSince String? // ISO date of previous disclosure
+  createdAt DateTime @default(now())
+}
+
+// Market news feed
+model NewsItem {
+  id          String   @id @default(cuid())
+  titleAr     String
+  impactAr    String
+  publisherAr String
+  categoryAr  String   @default("أثر مالي")
+  publishedAt DateTime
+  sourceUrl   String?
+  imageUrl    String?
+  sourceName  String?
+}
+
+// Index quotes (EGX 30 / 70 / 100)
+model IndexQuote {
+  id        String @id @default(cuid())
+  code      String @unique // EGX30 | EGX70 | EGX100
+  nameAr    String
+  nameEn    String
+  value     Float
+  change    Float
+  changePct Float
+  members   Int
+}
+
+// Investor category flows (period-to-date)
+model InvestorFlow {
+  id        String @id @default(cuid())
+  dataset   String @default("live")
+  categoryAr String
+  categoryEn String
+  sharePct  Float  // share of total trading value
+  buyValue  Float  // EGP
+  sellValue Float  // EGP
+  netFlow   Float  // EGP millions (buy - sell) in millions
+  updatedAt DateTime @default(now())
+  labelAr   String  @default("الفترة الحالية")
+}
+
+// Users (passwordless email OTP)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  sessions  Session[]
+  watch     WatchItem[]
+}
+
+// One-time OTP codes
+model OtpCode {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
+// Sessions (HttpOnly cookie token)
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// Watchlist items (only tickers stored)
+model WatchItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, ticker])
+}

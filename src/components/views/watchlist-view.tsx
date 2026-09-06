@@ -1,0 +1,118 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useApp } from "../market/app-context";
+import { T, tt } from "@/lib/i18n";
+import { fmtNum, fmtValue } from "@/lib/format";
+import { WatchStar } from "../market/watch-star";
+import { ChangeCell } from "../market/change-cell";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Star } from "lucide-react";
+
+type Row = {
+  ticker: string; nameAr: string; nameEn: string; sectorAr: string; sectorEn: string;
+  close: number; changePct: number; valueTraded: number; pe: number | null;
+  volume: number; avgVolume30d: number; marketCap: number;
+};
+
+export function WatchlistView() {
+  const { auth, watch, lang, navigate } = useApp();
+  const [rows, setRows] = useState<Row[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/companies")
+      .then((r) => r.json())
+      .then((d) => {
+        const all: Row[] = d.rows ?? [];
+        // filter to watchlist tickers, preserving watch order
+        const byTicker = new Map(all.map((r) => [r.ticker, r]));
+        setRows(watch.tickers.map((t) => byTicker.get(t)).filter((r): r is Row => !!r));
+      })
+      .catch(() => setRows([]));
+  }, [watch.tickers]);
+
+  if (!auth.email) {
+    return (
+      <Empty
+        title={tt(T.watchTitle, lang)}
+        hint={lang === "ar" ? "سجّل الدخول لعرض قائمة متابعتك المحفوظة." : "Sign in to see your saved watchlist."}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-baseline justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">{tt(T.watchTitle, lang)}</h1>
+        <p className="num text-xs text-muted-foreground">
+          <span className="font-semibold">{watch.tickers.length}</span> · 06 Sep 2026
+        </p>
+      </div>
+      <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.watchNote, lang)}</p>
+
+      {watch.loading || !rows ? (
+        <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12" />)}</div>
+      ) : rows.length === 0 ? (
+        <Empty title={tt(T.emptyWatch, lang)} hint={tt(T.emptyWatchHint, lang)} action />
+      ) : (
+        <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="overflow-x-auto thin-scroll">
+            <table className="w-full text-sm">
+              <thead className="border-b bg-card sticky top-0">
+                <tr className="text-[11px] text-muted-foreground">
+                  <th className="w-10" aria-label="watch" />
+                  <th className="text-start font-medium px-3 py-2.5">{tt(T.colTicker, lang)}</th>
+                  <th className="text-start font-medium px-3 py-2.5 hidden md:table-cell">{tt(T.colName, lang)}</th>
+                  <th className="text-start font-medium px-3 py-2.5 hidden lg:table-cell">{tt(T.colSector, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2.5">{tt(T.colClose, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2.5">{tt(T.colChange, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2.5 hidden sm:table-cell">{tt(T.colValue, lang)}</th>
+                  <th className="text-end font-medium px-3 py-2.5 hidden md:table-cell">{tt(T.colPe, lang)}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {rows.map((r) => (
+                  <tr key={r.ticker} className="hover:bg-accent/30 cursor-pointer transition-colors"
+                    onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}>
+                    <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
+                    <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
+                    <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">
+                      {lang === "ar" ? r.nameAr : r.nameEn}
+                    </td>
+                    <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted-foreground max-w-[150px] truncate">
+                      {lang === "ar" ? r.sectorAr : r.sectorEn}
+                    </td>
+                    <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}</td>
+                    <td className="px-3 py-2.5 text-end"><ChangeCell pct={r.changePct} /></td>
+                    <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">{fmtValue(r.valueTraded)}</td>
+                    <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">
+                      {r.pe ? fmtNum(r.pe, 1) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Empty({ title, hint, action }: { title: string; hint: string; action?: boolean }) {
+  const { lang, navigate } = useApp();
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+      <div className="rounded-lg border bg-card p-10 text-center space-y-3">
+        <Star className="h-8 w-8 mx-auto text-muted-foreground" aria-hidden />
+        <p className="font-medium">{hint}</p>
+        {action && (
+          <button onClick={() => navigate("market")} className="text-sm text-primary hover:underline">
+            {tt(T.browseMarket, lang)}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
