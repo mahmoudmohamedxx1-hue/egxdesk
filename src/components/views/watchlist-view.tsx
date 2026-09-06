@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
+import { useLiveData } from "../market/use-live-data";
+import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtValue } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
@@ -9,48 +10,27 @@ import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
 
-type Row = {
-  ticker: string; nameAr: string; nameEn: string; sectorAr: string; sectorEn: string;
-  close: number; changePct: number; valueTraded: number; pe: number | null;
-  volume: number; avgVolume30d: number; marketCap: number;
-};
+type Row = CompanyRow;
 
 export function WatchlistView() {
-  const { auth, watch, lang, navigate } = useApp();
-  const [rows, setRows] = useState<Row[] | null>(null);
+  const { watch, lang, navigate } = useApp();
+  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
 
-  useEffect(() => {
-    fetch("/api/companies")
-      .then((r) => r.json())
-      .then((d) => {
-        const all: Row[] = d.rows ?? [];
-        // filter to watchlist tickers, preserving watch order
-        const byTicker = new Map(all.map((r) => [r.ticker, r]));
-        setRows(watch.tickers.map((t) => byTicker.get(t)).filter((r): r is Row => !!r));
-      })
-      .catch(() => setRows([]));
-  }, [watch.tickers]);
-
-  if (!auth.email) {
-    return (
-      <Empty
-        title={tt(T.watchTitle, lang)}
-        hint={lang === "ar" ? "سجّل الدخول لعرض قائمة متابعتك المحفوظة." : "Sign in to see your saved watchlist."}
-      />
-    );
-  }
+  const rows = data
+    ? watch.tickers.map((t) => data.rows.find((r) => r.ticker === t)).filter((r): r is Row => !!r)
+    : null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.watchTitle, lang)}</h1>
         <p className="num text-xs text-muted-foreground">
-          <span className="font-semibold">{watch.tickers.length}</span> · 06 Sep 2026
+          <span className="font-semibold">{watch.tickers.length}</span> · {data?.session.lastSession} · {tt(T.delayed, lang)}
         </p>
       </div>
       <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.watchNote, lang)}</p>
 
-      {watch.loading || !rows ? (
+      {!watch.ready || !rows ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : rows.length === 0 ? (
         <Empty title={tt(T.emptyWatch, lang)} hint={tt(T.emptyWatchHint, lang)} action />
@@ -77,7 +57,7 @@ export function WatchlistView() {
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
                     <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">
-                      {lang === "ar" ? r.nameAr : r.nameEn}
+                      {r.name}
                     </td>
                     <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted-foreground max-w-[150px] truncate">
                       {lang === "ar" ? r.sectorAr : r.sectorEn}

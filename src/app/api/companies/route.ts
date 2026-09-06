@@ -1,56 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { resolveDataset } from "@/lib/auth";
+import { fetchUniverse, companyRow, sessionMeta } from "@/lib/market";
 
-/**
- * GET /api/companies — the market table.
- * Query: q (search), sector (code), limit, offset.
- */
+/** GET /api/companies — the live market table.
+ *  Query: q (search), sector (code slug). */
 export async function GET(req: NextRequest) {
-  const { user, dataset } = await resolveDataset();
-  const sp = req.nextUrl.searchParams;
-  const q = (sp.get("q") ?? "").trim().toLowerCase();
-  const sector = sp.get("sector") ?? "";
-  const index = sp.get("index") ?? ""; // EGX30 | EGX70 | EGX100
+  try {
+    const sp = req.nextUrl.searchParams;
+    const q = (sp.get("q") ?? "").trim().toLowerCase();
+    const sector = sp.get("sector") ?? "";
 
-  const companies = await db.company.findMany({
-    where: { dataset },
-    include: { sector: true },
-  });
+    const stocks = await fetchUniverse();
+    let rows = stocks.map(companyRow);
 
-  let rows = companies;
-  if (sector) rows = rows.filter((c) => c.sector.code === sector);
-  if (index === "EGX30") rows = rows.filter((c) => c.inEgx30);
-  if (index === "EGX70") rows = rows.filter((c) => c.inEgx70);
-  if (index === "EGX100") rows = rows.filter((c) => c.inEgx100);
-  if (q) {
-    rows = rows.filter(
-      (c) =>
-        c.ticker.toLowerCase().includes(q) ||
-        c.nameAr.includes(q) ||
-        c.nameEn.toLowerCase().includes(q)
-    );
+    if (sector) rows = rows.filter((r) => r.sectorCode === sector);
+    if (q) {
+      rows = rows.filter(
+        (r) =>
+          r.ticker.toLowerCase().includes(q) ||
+          r.name.toLowerCase().includes(q) ||
+          r.sectorEn.toLowerCase().includes(q)
+      );
+    }
+    rows = [...rows].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+
+    return NextResponse.json({
+      session: sessionMeta(),
+      total: rows.length,
+      rows,
+    });
+  } catch {
+    return NextResponse.json({ error: "market data unavailable" }, { status: 502 });
   }
-  rows = rows.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
-
-  return NextResponse.json({
-    authed: !!user,
-    dataset,
-    total: rows.length,
-    rows: rows.map((c) => ({
-      ticker: c.ticker,
-      nameAr: c.nameAr,
-      nameEn: c.nameEn,
-      sectorAr: c.sector.nameAr,
-      sectorEn: c.sector.nameEn,
-      sectorCode: c.sector.code,
-      close: c.close,
-      changePct: c.changePct,
-      valueTraded: c.valueTraded,
-      pe: c.pe,
-      marketCap: c.marketCap,
-      volume: c.volume,
-      avgVolume30d: c.avgVolume30d,
-    })),
-  });
 }

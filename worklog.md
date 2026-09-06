@@ -19,3 +19,25 @@ Stage Summary:
 - Deliverable: runnable Next.js app at / (dev server on port 3000) — "EGX Desk".
 - Key decisions: sandbox has no SMTP, so the OTP is returned in the sign-in response and auto-filled (labeled dev note in the UI); data is simulated and labeled as demo; only tickers/sector names are factual.
 - Artifacts: prisma/schema.prisma, prisma/seed.ts, src/app/api/**, src/components/market/**, src/components/views/**, src/lib/{i18n,format,auth}.ts.
+
+---
+Task ID: 2
+Agent: Super Z (main agent)
+Task: Replace the app's simulated dataset with real live EGX market data and remove authentication entirely.
+
+Work Log:
+- Clarified user intent: "clone the API routes" meant real (not demo/mock) data, and "remove the auth" meant no login at all.
+- Verified reachable public data sources from the sandbox: TradingView Egypt screener (296 common stocks, ~15-min delayed quotes, sector/industry, P/E, EPS, div yield, 52w range, 1M hi/lo, 10d avg volume, TTM revenue, net margin, beta, perf W/1M/3M/6M/YTD/1Y/3Y/5Y), TradingView global scanner (EGX30, EGX70 EWI, EGX100 EWI index quotes + perf), Alborsaanews RSS + Amwal Alghad RSS (Arabic market news). Rejected: Yahoo (stale/delisted mirror), EGX official site (unreachable), Mubasher (403), investing.com API (403).
+- Built src/lib/market.ts server data layer: typed fetchers with 60s/60s/300s in-memory TTL caches, in-flight dedup, stale-fallback on upstream failure, fast-xml-parser RSS parsing (CDATA/entities/categories), sector aggregation (equal + cap-weighted change, up/down counts, medians, movers, turnover leader), related-news matcher, companyRow mapper.
+- Added src/lib/market-status.ts (shared client/server): EGX session state from Africa/Cairo time (Sun-Thu 10:00-14:30) + last-session date roll-back.
+- Rewrote API routes on real data: /api/overview, /api/sectors, /api/companies, /api/company/[ticker] (quote + fundamentals vs sector medians + peers + related news), /api/news, /api/search, /api/activity (replaced investor-flows view — exchange flow data has no free public feed, so the view now shows real turnover leaders / unusual volume / breadth with an honest note).
+- Deleted auth entirely: /api/auth/*, /api/watchlist, src/lib/auth.ts, src/lib/db.ts, sign-in-sheet.tsx; watchlist moved to browser localStorage (no account, no OTP).
+- Client rewires: app-context (no auth, localStorage watchlist, live market-status chip), app-shell (no sign-in/out UI, live status header), useLiveData hook (60s polling + focus refresh + error/retry states), perf-chart.tsx (real performance-horizon bars + 52-week range marker replacing fake price history), all 9 views updated for real field shapes; tools-view patched off auth/nameAr.
+- i18n: removed all auth/demo copy; added live-data provenance, activity, fundamentals, peers, related-news, range/perf labels; footer credits TradingView + both news feeds and delay disclosure. layout metadata updated.
+- Fixed during verification: nested <button> (WatchStar inside row buttons) causing hydration error -> converted rows to role=button divs with keyboard handlers; react-hooks/set-state-in-effect lint errors (SSR-safe localStorage init with documented disable; render-adjust pattern for panel prop); DialogContent aria-describedby warning.
+- Verified end-to-end with agent-browser: all views (home, market, sectors, heat, activity, news, watchlist, tools, company tabs) render real data; star -> localStorage -> watchlist works; search type-ahead returns live quotes; AR/EN toggle, dark mode, mobile 390px no-overflow; sticky footer (gap 0); console clean; lint clean; dev.log 200s only.
+
+Stage Summary:
+- The app now serves only real, live, delayed (~15 min) EGX data from public sources — zero seeded/mock data, zero auth, zero OTP.
+- Key decisions: TradingView as quote source (only reliable free EGX feed reachable); company names shown in English (source provides no reliable Arabic names; old seed's Arabic names were inaccurate and were dropped); investor-flows view replaced with real market-activity metrics + explanatory note (no free public source for exchange flow data); price history replaced with real performance horizons + 52w-range position (no free daily history source).
+- Artifacts: src/lib/market.ts, src/lib/market-status.ts, src/components/market/{use-live-data,perf-chart,types}.ts, rewritten src/app/api/**, rewritten views, updated i18n/shell/context.

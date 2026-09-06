@@ -1,32 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
+import { useLiveData } from "../market/use-live-data";
+import type { SectorCard, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
-import { fmtNum, fmtValue, fmtPct } from "@/lib/format";
+import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown, Building2 } from "lucide-react";
 
-type SectorCard = {
-  code: string; nameAr: string; nameEn: string; count: number;
-  up: number; down: number; flat: number;
-  pe: number | null; pb: number | null; roe: number | null; roa: number | null;
-  debtToEquity: number | null; divYield: number | null; netProfit: number | null;
-  eps: number | null; totalAssets: number | null; marketCap: number;
-  biggestMover: { ticker: string; changePct: number } | null;
-};
-
 export function SectorsView() {
-  const { lang, navigate, auth } = useApp();
-  const [sectors, setSectors] = useState<SectorCard[] | null>(null);
-
-  useEffect(() => {
-    fetch("/api/sectors")
-      .then((r) => r.json())
-      .then((d) => setSectors(d.sectors ?? []))
-      .catch(() => setSectors([]));
-  }, [auth.email]);
+  const { lang, navigate } = useApp();
+  const { data } = useLiveData<{ session: SessionMeta; total: number; sectors: SectorCard[] }>("/api/sectors");
+  const sectors = data?.sectors ?? null;
 
   if (!sectors) {
     return (
@@ -42,9 +28,10 @@ export function SectorsView() {
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.sectors, lang)}</h1>
         <p className="num text-xs text-muted-foreground">
-          <span className="font-semibold">{sectors.length}</span> {tt(T.sectorCount, lang)} · 06 Sep 2026
+          <span className="font-semibold">{sectors.length}</span> {tt(T.sectorCount, lang)} · {data?.session.lastSession} · {tt(T.delayed, lang)}
         </p>
       </div>
+      <p className="text-xs text-muted-foreground -mt-3">{tt(T.sectorClassNote, lang)}</p>
 
       <div className="grid gap-4 md:grid-cols-2">
         {sectors.map((s) => (
@@ -54,17 +41,19 @@ export function SectorsView() {
             className="group rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors"
           >
             {/* header */}
-            <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" aria-hidden />
-                <h2 className="font-bold leading-tight">{lang === "ar" ? s.nameAr : s.nameEn}</h2>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+                <h2 className="font-bold leading-tight truncate">{lang === "ar" ? s.nameAr : s.nameEn}</h2>
               </div>
-              <span className="num text-sm font-bold shrink-0">{s.count}</span>
+              <ChangeCell pct={s.capWeightedChangePct} size="md" />
             </div>
 
             {/* breadth */}
             <div className="flex items-center gap-2 mb-3 text-xs">
-              <span className="num text-muted-foreground">{tt(T.companies, lang)}</span>
+              <span className="num text-muted-foreground">
+                <span className="font-semibold">{s.count}</span> {tt(T.companies, lang)}
+              </span>
               <span className="flex-1 min-w-8 h-1.5 rounded-full bg-secondary overflow-hidden" aria-hidden>
                 <span className={`block h-full ${s.up > 0 ? "bg-up" : ""}`} style={{ width: `${(s.up / s.count) * 100}%`, float: "inline-end" }} />
               </span>
@@ -81,26 +70,49 @@ export function SectorsView() {
 
             {/* metrics */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-              <Metric label={lang === "ar" ? "مكرر الربحية" : "P/E"} value={s.pe ? fmtNum(s.pe, 1) : "—"} />
-              <Metric label={lang === "ar" ? "العائد على الملكية" : "ROE"} value={s.roe !== null ? `${fmtNum(s.roe, 1)}%` : "—"} />
-              <Metric label={lang === "ar" ? "العائد على الأصول" : "ROA"} value={s.roa !== null ? `${fmtNum(s.roa, 1)}%` : "—"} />
-              <Metric label={lang === "ar" ? "الدين / الملكية" : "D/E"} value={s.debtToEquity !== null ? `${fmtNum(s.debtToEquity, 2)}×` : "—"} />
-              <Metric label={lang === "ar" ? "عائد التوزيعات" : "Div yield"} value={s.divYield !== null ? `${fmtNum(s.divYield, 1)}%` : "—"} />
-              <Metric label={lang === "ar" ? "صافي الربح" : "Net profit"} value={s.netProfit !== null ? `${fmtValue(s.netProfit * 1e6)}` : "—"} />
-              <Metric label={lang === "ar" ? "ربحية السهم" : "EPS"} value={s.eps !== null ? fmtNum(s.eps) : "—"} />
-              <Metric label={lang === "ar" ? "إجمالي الأصول" : "Assets"} value={s.totalAssets !== null ? fmtValue(s.totalAssets * 1e6) : "—"} />
+              <Metric label={tt(T.capWeighted, lang)} value={fmtPct(s.capWeightedChangePct)} cls={directionClass(s.capWeightedChangePct)} />
+              <Metric label={tt(T.equalWeighted, lang)} value={fmtPct(s.avgChangePct)} cls={directionClass(s.avgChangePct)} />
+              <Metric label={tt(T.marketCap, lang)} value={`EGP ${fmtValue(s.marketCap)}`} />
+              <Metric label={tt(T.valueTraded, lang)} value={`EGP ${fmtValue(s.valueTraded)}`} />
+              <Metric label={lang === "ar" ? "مكرر الربحية (وسيط)" : "P/E (median)"} value={s.pe !== null ? fmtNum(s.pe, 1) : "—"} />
+              <Metric label={lang === "ar" ? "عائد التوزيعات (وسيط)" : "Div yield (median)"} value={s.divYield !== null ? `${fmtNum(s.divYield, 1)}%` : "—"} />
             </div>
 
-            {/* biggest mover */}
-            {s.biggestMover && (
-              <div className="mt-3 pt-3 border-t flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">{tt(T.biggestMover, lang)}</span>
-                <span className="flex items-center gap-2">
-                  <span className="num text-sm font-bold">{s.biggestMover.ticker}</span>
-                  <ChangeCell pct={s.biggestMover.changePct} />
-                </span>
+            {/* movers */}
+            <div className="mt-3 pt-3 border-t space-y-1.5">
+              {s.biggestMover && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">{tt(T.biggestMover, lang)}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="num text-sm font-bold">{s.biggestMover.ticker}</span>
+                    <ChangeCell pct={s.biggestMover.changePct} />
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                {s.topGainer && (
+                  <span className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-muted-foreground">{tt(T.topGainer, lang)}</span>
+                    <span className="num font-bold">{s.topGainer.ticker}</span>
+                    <ChangeCell pct={s.topGainer.changePct} />
+                  </span>
+                )}
+                {s.topLoser && (
+                  <span className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-muted-foreground">{tt(T.topLoser, lang)}</span>
+                    <span className="num font-bold">{s.topLoser.ticker}</span>
+                    <ChangeCell pct={s.topLoser.changePct} />
+                  </span>
+                )}
+                {s.turnoverLeader && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    {tt(T.turnoverLeader, lang)}:
+                    <span className="num font-bold text-foreground">{s.turnoverLeader.ticker}</span>
+                    <span className="num">EGP {fmtValue(s.turnoverLeader.valueTraded)}</span>
+                  </span>
+                )}
               </div>
-            )}
+            </div>
           </button>
         ))}
       </div>
@@ -108,11 +120,11 @@ export function SectorsView() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-2 border-b border-dotted pb-1">
       <span className="text-muted-foreground">{label}</span>
-      <span className="num font-medium">{value}</span>
+      <span className={`num font-medium ${cls ?? ""}`}>{value}</span>
     </div>
   );
 }

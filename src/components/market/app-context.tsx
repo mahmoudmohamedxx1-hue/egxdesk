@@ -9,38 +9,33 @@ import {
   useState,
 } from "react";
 import type { Lang } from "@/lib/i18n";
-
-type AuthState = {
-  email: string | null;
-  loading: boolean;
-};
+import { marketStatus, type MarketStatus } from "@/lib/market-status";
 
 type WatchState = {
   tickers: string[];
-  loading: boolean;
+  ready: boolean;
 };
 
 type View = {
-  name: string; // home | market | investors | heat | sectors | exchange | today | watchlist | tools | company | search
+  name: string; // home | market | activity | heat | sectors | today | watchlist | tools | company | search
   ticker?: string;
   panel?: string;
 };
 
 type Ctx = {
-  auth: AuthState;
   watch: WatchState;
   lang: Lang;
   setLang: (l: Lang) => void;
   view: View;
   navigate: (v: string, extra?: { ticker?: string; panel?: string }) => void;
-  refreshAuth: () => Promise<void>;
-  refreshWatch: () => Promise<void>;
-  toggleWatch: (ticker: string) => Promise<void>;
+  toggleWatch: (ticker: string) => void;
   isWatched: (ticker: string) => boolean;
   toast: (msg: string) => void;
+  status: MarketStatus;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
+const WATCH_KEY = "egx-watchlist";
 
 export function useApp() {
   const ctx = useContext(AppCtx);
@@ -49,23 +44,39 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [auth, setAuth] = useState<AuthState>({ email: null, loading: true });
-  const [watch, setWatch] = useState<WatchState>({ tickers: [], loading: true });
+  const [watch, setWatch] = useState<WatchState>({ tickers: [], ready: false });
   const [lang, setLangState] = useState<Lang>("ar");
   const [view, setView] = useState<View>({ name: "home" });
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
+  const [status, setStatus] = useState<MarketStatus>(() => marketStatus());
 
-  // initial language + view from URL/localStorage
+  // one-time hydration init from browser-only stores (localStorage + URL) —
+  // cannot run in render because this component is also server-rendered
   useEffect(() => {
     try {
       const stored = localStorage.getItem("egx-lang") as Lang | null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored === "ar" || stored === "en") setLangState(stored);
+      const raw = localStorage.getItem(WATCH_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) setWatch({ tickers: arr.filter((x) => typeof x === "string"), ready: true });
+        else setWatch((w) => ({ ...w, ready: true }));
+      } else {
+        setWatch((w) => ({ ...w, ready: true }));
+      }
     } catch {}
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view") ?? "home";
     const ticker = params.get("ticker") ?? undefined;
     const panel = params.get("panel") ?? undefined;
     if (v) setView({ name: v, ticker, panel });
+  }, []);
+
+  // keep market status fresh (every minute)
+  useEffect(() => {
+    const t = setInterval(() => setStatus(marketStatus()), 60_000);
+    return () => clearInterval(t);
   }, []);
 
   // sync dir/lang on the document
@@ -111,43 +122,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  const refreshAuth = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setAuth({ email: data.email, loading: false });
-      } else {
-        setAuth({ email: null, loading: false });
-      }
-    } catch {
-      setAuth({ email: null, loading: false });
-    }
-  }, []);
-
-  const refreshWatch = useCallback(async () => {
-    try {
-      const res = await fetch("/api/watchlist");
-      if (res.ok) {
-        const data = await res.json();
-        setWatch({ tickers: data.tickers ?? [], loading: false });
-      } else {
-        setWatch({ tickers: [], loading: false });
-      }
-    } catch {
-      setWatch({ tickers: [], loading: false });
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshAuth();
-  }, [refreshAuth]);
-
-  useEffect(() => {
-    if (auth.email) refreshWatch();
-    else setWatch({ tickers: [], loading: false });
-  }, [auth.email, refreshWatch]);
-
   const toast = useCallback((msg: string) => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, msg }]);
@@ -155,35 +129,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleWatch = useCallback(
-    async (ticker: string) => {
-      if (!auth.email) {
-        toast(lang === "ar" ? "سجّل الدخول أولاً لاستخدام المتابعة" : "Sign in first to use the watchlist");
-        return;
-      }
+    (ticker: string) => {
       const t = ticker.toUpperCase();
-      const next = watch.tickers.includes(t)
-        ? watch.tickers.filter((x) => x !== t)
-        : [...watch.tickers, t];
-      // optimistic
-      setWatch({ tickers: next, loading: false });
-      try {
-        const res = await fetch("/api/watchlist", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tickers: next }),
-        });
-        if (!res.ok) throw new Error();
+      setWatch((w) => {
+        const next = w.tickers.includes(t)
+          ? w.tickers.filter((x) => x !== t)
+          : [...w.tickers, t];
+        try {
+          localStorage.setItem(WATCH_KEY, JSON.stringify(next));
+        } catch {}
         toast(
           next.includes(t)
             ? lang === "ar" ? `أُضيف ${t} إلى المتابعة` : `${t} added to watchlist`
             : lang === "ar" ? `أُزيل ${t} من المتابعة` : `${t} removed from watchlist`
         );
-      } catch {
-        setWatch({ tickers: watch.tickers, loading: false });
-        toast(lang === "ar" ? "تعذر حفظ المتابعة" : "Could not save the watchlist");
-      }
+        return { tickers: next, ready: true };
+      });
     },
-    [auth.email, watch.tickers, toast, lang]
+    [toast, lang]
   );
 
   const isWatched = useCallback(
@@ -193,19 +156,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      auth,
       watch,
       lang,
       setLang,
       view,
       navigate,
-      refreshAuth,
-      refreshWatch,
       toggleWatch,
       isWatched,
       toast,
+      status,
     }),
-    [auth, watch, lang, setLang, view, navigate, refreshAuth, refreshWatch, toggleWatch, isWatched, toast]
+    [watch, lang, setLang, view, navigate, toggleWatch, isWatched, toast, status]
   );
 
   return (

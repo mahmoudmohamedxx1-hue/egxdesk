@@ -1,20 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
+import { useLiveData } from "../market/use-live-data";
+import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
-import { fmtNum, fmtValue, fmtPct } from "@/lib/format";
+import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
-
-type Row = {
-  ticker: string; nameAr: string; nameEn: string; sectorAr: string; sectorEn: string;
-  sectorCode: string; close: number; changePct: number; valueTraded: number;
-  pe: number | null; marketCap: number; volume: number; avgVolume30d: number;
-};
 
 const METRICS = [
   { key: "marketCap", ar: "القيمة السوقية", en: "Market cap" },
@@ -22,59 +18,67 @@ const METRICS = [
   { key: "divYield", ar: "عائد التوزيعات", en: "Dividend yield" },
   { key: "pe", ar: "مضاعف الربحية", en: "P/E" },
   { key: "volumeRatio", ar: "الحجم غير المعتاد", en: "Unusual volume" },
+  { key: "perfYTD", ar: "الأداء من بداية العام", en: "YTD performance" },
 ] as const;
 
 type SortKey = (typeof METRICS)[number]["key"];
 
 export function MarketView() {
-  const { lang, navigate, auth } = useApp();
-  const [rows, setRows] = useState<Row[] | null>(null);
+  const { lang, navigate } = useApp();
+  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
   const [tab, setTab] = useState<"prices" | "rank" | "unusual" | "metrics">("prices");
   const [q, setQ] = useState("");
   const [sector, setSector] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("marketCap");
   const [desc, setDesc] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/companies")
-      .then((r) => r.json())
-      .then((d) => setRows(d.rows ?? []))
-      .catch(() => setRows([]));
-  }, [auth.email]);
+  const rows = data?.rows ?? null;
 
   const sectors = useMemo(() => {
     if (!rows) return [];
     const seen = new Map<string, string>();
     rows.forEach((r) => seen.set(r.sectorCode, lang === "ar" ? r.sectorAr : r.sectorEn));
-    return Array.from(seen, ([code, name]) => ({ code, name }));
+    return Array.from(seen.entries())
+      .map(([code, name]) => ({ code, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, lang === "ar" ? "ar" : "en"));
   }, [rows, lang]);
 
   const filtered = useMemo(() => {
     if (!rows) return null;
-    let out = [...rows];
-    if (q.trim()) {
-      const s = q.trim().toLowerCase();
-      out = out.filter((r) => r.ticker.toLowerCase().includes(s) || r.nameAr.includes(s) || r.nameEn.toLowerCase().includes(s));
+    let out = rows;
+    if (q) {
+      const needle = q.toLowerCase();
+      out = out.filter(
+        (r) =>
+          r.ticker.toLowerCase().includes(needle) ||
+          r.name.toLowerCase().includes(needle) ||
+          (lang === "ar" ? r.sectorAr : r.sectorEn).includes(q)
+      );
     }
     if (sector) out = out.filter((r) => r.sectorCode === sector);
     if (tab === "unusual") {
-      out = out.filter((r) => r.avgVolume30d > 0);
-      out.sort((a, b) => b.volume / b.avgVolume30d - a.volume / a.avgVolume30d);
+      out = out.filter((r) => r.avgVolume && r.avgVolume > 0);
+      out = [...out].sort((a, b) => (b.volumeRatio ?? 0) - (a.volumeRatio ?? 0));
       return out;
     }
     if (tab === "rank") {
-      const get = (r: Row) =>
-        sortKey === "marketCap" ? r.marketCap
-        : sortKey === "close" ? r.close
-        : sortKey === "pe" ? (r.pe ?? -Infinity)
-        : sortKey === "divYield" ? (r.close ? -Infinity : 0) // handled below with fallback
-        : r.volume / Math.max(r.avgVolume30d, 1);
-      out.sort((a, b) => (desc ? get(b) - get(a) : get(a) - get(b)));
-      return out;
+      const get = (r: CompanyRow): number => {
+        switch (sortKey) {
+          case "marketCap": return r.marketCap ?? -Infinity;
+          case "close": return r.close;
+          case "divYield": return r.divYield ?? -Infinity;
+          case "pe": return r.pe ?? (desc ? -Infinity : Infinity);
+          case "volumeRatio": return r.volumeRatio ?? -Infinity;
+          case "perfYTD": return r.perfYTD ?? -Infinity;
+        }
+      };
+      return [...out].sort((a, b) => (desc ? get(b) - get(a) : get(a) - get(b)));
     }
-    out.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
-    return out;
-  }, [rows, q, sector, tab, sortKey, desc]);
+    if (tab === "metrics") {
+      return [...out].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+    }
+    return [...out].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+  }, [rows, q, sector, tab, sortKey, desc, lang]);
 
   const shown = filtered?.length ?? 0;
 
@@ -83,7 +87,9 @@ export function MarketView() {
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.allCompanies, lang)}</h1>
         {filtered && (
-          <p className="num text-xs text-muted-foreground">{shown} / {rows?.length ?? 0}</p>
+          <p className="num text-xs text-muted-foreground">
+            {shown} / {rows?.length ?? 0} · {data?.session.lastSession} · {tt(T.delayed, lang)}
+          </p>
         )}
       </div>
 
@@ -155,8 +161,18 @@ export function MarketView() {
                   <th className="text-start font-medium px-3 py-2.5 hidden lg:table-cell">{tt(T.colSector, lang)}</th>
                   <th className="text-end font-medium px-3 py-2.5">{tt(T.colClose, lang)}</th>
                   <th className="text-end font-medium px-3 py-2.5">{tt(T.colChange, lang)}</th>
-                  <th className="text-end font-medium px-3 py-2.5 hidden sm:table-cell">{tt(T.colValue, lang)}</th>
+                  {tab === "unusual" ? (
+                    <th className="text-end font-medium px-3 py-2.5">{lang === "ar" ? "الحجم ÷ المعتاد" : "Vol ÷ usual"}</th>
+                  ) : (
+                    <th className="text-end font-medium px-3 py-2.5 hidden sm:table-cell">{tt(T.colValue, lang)}</th>
+                  )}
                   <th className="text-end font-medium px-3 py-2.5 hidden md:table-cell">{tt(T.colPe, lang)}</th>
+                  {tab === "metrics" && (
+                    <>
+                      <th className="text-end font-medium px-3 py-2.5 hidden sm:table-cell">{tt(T.col52w, lang)}</th>
+                      <th className="text-end font-medium px-3 py-2.5 hidden md:table-cell">{tt(T.ytd, lang)}</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -166,21 +182,37 @@ export function MarketView() {
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
                     <td className="px-3 py-2.5 hidden md:table-cell max-w-[260px] truncate text-muted-foreground">
-                      {lang === "ar" ? r.nameAr : r.nameEn}
+                      {r.name}
                     </td>
                     <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted-foreground max-w-[160px] truncate">
                       {lang === "ar" ? r.sectorAr : r.sectorEn}
                     </td>
                     <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}</td>
                     <td className="px-3 py-2.5 text-end"><ChangeCell pct={r.changePct} /></td>
-                    <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">{fmtValue(r.valueTraded)}</td>
+                    {tab === "unusual" ? (
+                      <td className="num px-3 py-2.5 text-end font-semibold text-primary">
+                        {r.volumeRatio !== null ? `${fmtNum(r.volumeRatio, 1)}×` : "—"}
+                      </td>
+                    ) : (
+                      <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">{fmtValue(r.valueTraded)}</td>
+                    )}
                     <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">
                       {r.pe ? fmtNum(r.pe, 1) : "—"}
                     </td>
+                    {tab === "metrics" && (
+                      <>
+                        <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground text-xs">
+                          {r.high52 !== null && r.low52 !== null ? `${fmtNum(r.low52, 1)} – ${fmtNum(r.high52, 1)}` : "—"}
+                        </td>
+                        <td className={`num px-3 py-2.5 text-end hidden md:table-cell ${directionClass(r.perfYTD)}`}>
+                          {fmtPct(r.perfYTD)}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground text-sm">
+                  <tr><td colSpan={tab === "metrics" ? 10 : 8} className="px-3 py-10 text-center text-muted-foreground text-sm">
                     {lang === "ar" ? "لا نتائج مطابقة" : "No matching rows"}
                   </td></tr>
                 )}
@@ -194,7 +226,7 @@ export function MarketView() {
         <p className="text-[11px] text-muted-foreground">{tt(T.unusualNote, lang)}</p>
       )}
       <p className="text-[11px] text-muted-foreground num">
-        {tt(T.stock, lang)}: {shown} · {fmtPct(0, false) && ""}06 Sep 2026
+        {tt(T.stock, lang)}: {shown}
       </p>
     </div>
   );

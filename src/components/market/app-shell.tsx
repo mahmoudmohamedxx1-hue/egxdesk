@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { useApp } from "./app-context";
-import { T, tt, type Lang } from "@/lib/i18n";
-import { SignInSheet } from "./sign-in-sheet";
+import { T, tt } from "@/lib/i18n";
 import { SearchDialog } from "./search-dialog";
 import { OverviewView } from "@/components/views/overview-view";
 import { MarketView } from "@/components/views/market-view";
 import { SectorsView } from "@/components/views/sectors-view";
 import { HeatView } from "@/components/views/heat-view";
-import { InvestorsView } from "@/components/views/investors-view";
+import { ActivityView } from "@/components/views/activity-view";
 import { NewsView } from "@/components/views/news-view";
 import { WatchlistView } from "@/components/views/watchlist-view";
 import { ToolsView } from "@/components/views/tools-view";
@@ -23,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Languages, Moon, Sun, LogIn, LogOut, ChevronDown } from "lucide-react";
+import { Search, Languages, Moon, Sun, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
 
 const PRIMARY_NAV = [
@@ -38,7 +37,7 @@ const PRIMARY_NAV = [
 function sectionTabs(currentView: string) {
   const all = [
     { view: "market", t: T.market },
-    { view: "investors", t: T.investors },
+    { view: "activity", t: T.activity },
     { view: "heat", t: T.map },
     { view: "sectors", t: T.sectors },
   ];
@@ -49,31 +48,12 @@ function sectionTabs(currentView: string) {
 }
 
 export function AppShell() {
-  const { auth, lang, setLang, view, navigate, refreshAuth, toast } = useApp();
-  const [signInOpen, setSignInOpen] = useState(false);
+  const { lang, setLang, view, navigate, status } = useApp();
   const [searchOpen, setSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  async function signOut() {
-    await fetch("/api/auth/signout", { method: "POST" });
-    await refreshAuth();
-    navigate("home");
-    toast(tt({ ar: "سجّلت الخروج — عدت إلى وضع العرض التجريبي", en: "Signed out — back to demo mode" }, lang));
-  }
-
-  const isDemo = !auth.loading && !auth.email;
-
   return (
     <div className="min-h-screen flex flex-col">
-      {/* demo banner */}
-      {isDemo && (
-        <div className="bg-secondary text-secondary-foreground">
-          <div className="mx-auto max-w-6xl px-4 py-1.5 text-xs leading-relaxed text-center">
-            {tt(T.demoBanner, lang)}
-          </div>
-        </div>
-      )}
-
       {/* header */}
       <header className="border-b bg-card sticky top-0 z-40">
         <div className="mx-auto max-w-6xl px-4">
@@ -90,7 +70,11 @@ export function AppShell() {
                 {tt(T.tagline, lang)}
                 <br />
                 <span className="num">
-                  {tt(T.session, lang)} 06 Sep 2026 · {tt(T.updated, lang)} 15:46 · {tt(T.closePrices, lang)}
+                  {tt(T.session, lang)} {status.lastSession} ·{" "}
+                  <span className={status.open ? "text-up font-medium" : "text-muted-foreground font-medium"}>
+                    {tt(status.open ? T.marketOpen : T.marketClosed, lang)}
+                  </span>{" "}
+                  · {tt(T.delayed, lang)}
                 </span>
               </span>
             </div>
@@ -126,27 +110,17 @@ export function AppShell() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {auth.email ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="num max-w-[220px] text-xs" dir="ltr">
-                      <span className="truncate">{auth.email}</span>
-                      <ChevronDown className="h-3 w-3 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={signOut}>
-                      <LogOut className="h-4 w-4 me-2" />
-                      {tt(T.signOut, lang)}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button size="sm" onClick={() => setSignInOpen(true)}>
-                  <LogIn className="h-4 w-4 me-1" />
-                  <span className="text-xs">{tt(T.signIn, lang)}</span>
-                </Button>
-              )}
+              {/* live status chip */}
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                  status.open ? "text-up bg-up-soft border-up/20" : "text-muted-foreground bg-secondary"
+                }`}
+                title={tt(T.delayed, lang)}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${status.open ? "bg-up animate-pulse" : "bg-muted-foreground"}`} aria-hidden />
+                <span className="num">{status.cairoTime}</span>
+                {tt(T.cairoTime, lang)}
+              </span>
             </div>
           </div>
 
@@ -208,7 +182,7 @@ export function AppShell() {
           {view.name === "market" && <MarketView />}
           {view.name === "sectors" && <SectorsView />}
           {view.name === "heat" && <HeatView />}
-          {view.name === "investors" && <InvestorsView />}
+          {view.name === "activity" && <ActivityView />}
           {view.name === "today" && <NewsView />}
           {view.name === "watchlist" && <WatchlistView />}
           {view.name === "tools" && <ToolsView />}
@@ -228,7 +202,6 @@ export function AppShell() {
         </div>
       </footer>
 
-      <SignInSheet open={signInOpen} onOpenChange={setSignInOpen} />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );

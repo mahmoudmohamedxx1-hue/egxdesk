@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 
 type Result = {
   ticker: string;
-  nameAr: string;
-  nameEn: string;
+  name: string;
   sectorAr: string;
+  sectorEn: string;
   close: number;
   changePct: number;
 };
@@ -54,7 +54,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <DialogContent className="sm:max-w-lg" dir={lang === "ar" ? "rtl" : "ltr"} aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">{tt(T.searchCompany, lang)}</DialogTitle>
         </DialogHeader>
@@ -84,9 +84,9 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="num text-sm font-semibold">{r.ticker}</span>
-                  <span className="truncate text-xs text-muted-foreground">{r.sectorAr}</span>
+                  <span className="truncate text-xs text-muted-foreground">{lang === "ar" ? r.sectorAr : r.sectorEn}</span>
                 </div>
-                <p className="truncate text-sm">{lang === "ar" ? r.nameAr : r.nameEn}</p>
+                <p className="truncate text-sm">{r.name}</p>
               </div>
               <div className="text-end shrink-0">
                 <div className="num text-sm font-medium">{fmtNum(r.close)}</div>

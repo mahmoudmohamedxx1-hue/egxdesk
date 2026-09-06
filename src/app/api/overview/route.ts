@@ -1,82 +1,53 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { resolveDataset } from "@/lib/auth";
+import { fetchUniverse, fetchIndices, fetchNews, sectorRows, companyRow, sessionMeta } from "@/lib/market";
 
-/**
- * GET /api/overview — everything the landing view needs:
- * indices, investor flows, unusual-volume actives, breadth,
- * biggest movers, top market cap tiles, latest disclosures & news.
- */
+/** GET /api/overview — live landing payload: indices, breadth, totals,
+ *  unusual-volume actives, biggest movers, top caps, sector snapshot, news. */
 export async function GET() {
-  const { user, dataset } = await resolveDataset();
+  try {
+    const [stocks, indices, news] = await Promise.all([fetchUniverse(), fetchIndices(), fetchNews()]);
+    const sectors = sectorRows(stocks);
 
-  const [indices, flows, companies, news] = await Promise.all([
-    db.indexQuote.findMany(),
-    db.investorFlow.findMany({ where: { dataset: "live" } }),
-    db.company.findMany({
-      where: { dataset },
-      include: { sector: true },
-    }),
-    db.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 6 }),
-  ]);
+    const up = stocks.filter((c) => c.changePct > 0).length;
+    const down = stocks.filter((c) => c.changePct < 0).length;
 
-  // breadth
-  const up = companies.filter((c) => c.changePct > 0).length;
-  const down = companies.filter((c) => c.changePct < 0).length;
-  const flat = companies.filter((c) => c.changePct === 0).length;
+    const actives = stocks
+      .filter((c) => c.avgVolume && c.avgVolume > 0)
+      .map((c) => ({ ...companyRow(c), volumeRatio: c.volume / c.avgVolume! }))
+      .sort((a, b) => b.volumeRatio - a.volumeRatio)
+      .slice(0, 4);
 
-  // unusual volume actives: session volume ÷ 30-day average
-  const actives = [...companies]
-    .filter((c) => c.avgVolume30d > 0)
-    .map((c) => ({ ...c, volumeRatio: c.volume / c.avgVolume30d }))
-    .sort((a, b) => b.volumeRatio - a.volumeRatio)
-    .slice(0, 4);
+    const movers = [...stocks]
+      .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+      .slice(0, 6)
+      .map(companyRow);
 
-  // biggest movers by |changePct|
-  const movers = [...companies]
-    .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
-    .slice(0, 6);
+    const colors = [...stocks]
+      .filter((c) => c.marketCap)
+      .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
+      .slice(0, 12)
+      .map(companyRow);
 
-  // market colors: largest market caps, tile color = session change
-  const colors = [...companies]
-    .sort((a, b) => b.marketCap - a.marketCap)
-    .slice(0, 12);
+    const ranked = sectors.filter((s) => s.count >= 3 && s.capWeightedChangePct !== null);
+    const best = [...ranked].sort((a, b) => (b.capWeightedChangePct ?? 0) - (a.capWeightedChangePct ?? 0)).slice(0, 3);
+    const worst = [...ranked].sort((a, b) => (a.capWeightedChangePct ?? 0) - (b.capWeightedChangePct ?? 0)).slice(0, 3);
 
-  return NextResponse.json({
-    authed: !!user,
-    dataset,
-    session: { date: "2026-09-06", updated: "15:46", kind: "أسعار إغلاق" },
-    indices,
-    flows,
-    breadth: { total: companies.length, up, down, flat },
-    actives: actives.map(toRow),
-    movers: movers.map(toRow),
-    colors: colors.map(toRow),
-    news: news.map((n) => ({
-      id: n.id,
-      title: n.titleAr,
-      impact: n.impactAr,
-      publisher: n.publisherAr,
-      category: n.categoryAr,
-      publishedAt: n.publishedAt,
-    })),
-  });
-}
-
-function toRow(c: any) {
-  return {
-    ticker: c.ticker,
-    nameAr: c.nameAr,
-    nameEn: c.nameEn,
-    sectorAr: c.sector?.nameAr ?? "",
-    sectorEn: c.sector?.nameEn ?? "",
-    close: c.close,
-    changePct: c.changePct,
-    marketCap: c.marketCap,
-    valueTraded: c.valueTraded,
-    pe: c.pe,
-    volumeRatio: c.volumeRatio ?? null,
-    volume: c.volume,
-    avgVolume30d: c.avgVolume30d,
-  };
+    return NextResponse.json({
+      session: sessionMeta(),
+      indices,
+      breadth: { total: stocks.length, up, down, flat: stocks.length - up - down },
+      totals: {
+        valueTraded: stocks.reduce((a, c) => a + c.valueTraded, 0),
+        volume: stocks.reduce((a, c) => a + c.volume, 0),
+        marketCap: stocks.reduce((a, c) => a + (c.marketCap ?? 0), 0),
+      },
+      actives,
+      movers,
+      colors,
+      sectorsSnapshot: { best, worst },
+      news: news.slice(0, 6),
+    });
+  } catch {
+    return NextResponse.json({ error: "market data unavailable" }, { status: 502 });
+  }
 }

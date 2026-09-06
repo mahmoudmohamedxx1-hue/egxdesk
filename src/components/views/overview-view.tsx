@@ -1,45 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
+import { useLiveData } from "../market/use-live-data";
+import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
-import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass } from "@/lib/format";
+import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, ArrowDownRight, MoveRight } from "lucide-react";
-import { fmtDateAr, fmtTimeAr } from "@/lib/format";
-
-type Row = {
-  ticker: string; nameAr: string; nameEn: string; sectorAr: string; sectorEn: string;
-  close: number; changePct: number; marketCap: number; valueTraded: number;
-  pe: number | null; volumeRatio: number | null; volume: number; avgVolume30d: number;
-};
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle } from "lucide-react";
 
 type Overview = {
-  authed: boolean;
-  session: { date: string; updated: string; kind: string };
-  indices: { code: string; nameAr: string; nameEn: string; value: number; change: number; changePct: number }[];
-  flows: { categoryAr: string; categoryEn: string; sharePct: number; buyValue: number; sellValue: number; netFlow: number }[];
+  session: SessionMeta;
+  indices: IndexRow[];
   breadth: { total: number; up: number; down: number; flat: number };
-  actives: Row[];
-  movers: Row[];
-  colors: Row[];
-  news: { id: string; title: string; impact: string; publisher: string; category: string; publishedAt: string }[];
+  totals: { valueTraded: number; volume: number; marketCap: number };
+  actives: CompanyRow[];
+  movers: CompanyRow[];
+  colors: CompanyRow[];
+  sectorsSnapshot: { best: SectorCard[]; worst: SectorCard[] };
+  news: NewsRow[];
 };
 
 export function OverviewView() {
-  const { lang, navigate, auth } = useApp();
-  const [data, setData] = useState<Overview | null>(null);
+  const { lang, navigate } = useApp();
+  const { data, error, loading, refresh } = useLiveData<Overview>("/api/overview");
 
-  useEffect(() => {
-    fetch("/api/overview")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData(null));
-  }, [auth.email]);
-
-  if (!data) {
+  if (error && !data) {
+    return <ErrorCard lang={lang} onRetry={refresh} />;
+  }
+  if (loading && !data) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-64" />
@@ -49,14 +40,23 @@ export function OverviewView() {
       </div>
     );
   }
+  if (!data) return null;
 
   return (
     <div className="space-y-8">
       {/* session line */}
-      <p className="text-xs text-muted-foreground num">
-        {fmtDateAr(data.session.date)} · {data.session.kind}
-      </p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-xs text-muted-foreground num">
+          {fmtDateAr(data.session.lastSession)} · {tt(T.delayed, lang)} · {tt(T.updated, lang)}{" "}
+          <span className="text-up font-medium">{data.session.cairoTime}</span> {tt(T.cairoTime, lang)}
+        </p>
+        <Button variant="ghost" size="sm" onClick={refresh} aria-label="refresh">
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span className="text-xs ms-1">{tt(T.updated, lang)}</span>
+        </Button>
+      </div>
       <h1 className="text-2xl font-bold tracking-tight">{tt(T.marketGlance, lang)}</h1>
+      <p className="text-xs text-muted-foreground -mt-4">{tt(T.liveNote, lang)}</p>
 
       {/* quick links */}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -80,67 +80,84 @@ export function OverviewView() {
       <section aria-label="indices" className="grid gap-3 sm:grid-cols-3">
         {data.indices.map((ix) => (
           <button key={ix.code} onClick={() => navigate("heat")} className="rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
-            <p className="text-sm text-muted-foreground">{lang === "ar" ? ix.nameAr : ix.nameEn}</p>
-            <p className="num text-2xl font-bold tracking-tight">{fmtNum(ix.value)}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{ix.name}</p>
+              {ix.perfYTD !== null && (
+                <span className={`num text-[10px] font-medium px-1.5 py-0.5 rounded-sm ${directionClass(ix.perfYTD)} ${ix.perfYTD > 0 ? "bg-up-soft" : "bg-down-soft"}`}>
+                  {lang === "ar" ? "من بداية العام" : "YTD"} {fmtPct(ix.perfYTD)}
+                </span>
+              )}
+            </div>
+            <p className="num text-2xl font-bold tracking-tight">{fmtNum(ix.close, 1)}</p>
             <p className={`num text-sm font-medium ${directionClass(ix.changePct)} flex items-center gap-1`}>
               {ix.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-              {ix.change > 0 ? "+" : ""}{fmtNum(ix.change)} ({fmtPct(ix.changePct)})
+              {ix.changeAbs > 0 ? "+" : ""}{fmtNum(ix.changeAbs, 1)} ({fmtPct(ix.changePct)})
             </p>
           </button>
         ))}
       </section>
 
-      {/* investor flows */}
-      <section aria-label="investor categories">
+      {/* session totals + breadth */}
+      <section aria-label="session totals" className="rounded-lg border bg-card p-4">
+        <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+          <h2 className="text-lg font-bold">{tt(T.sessionTotals, lang)}</h2>
+          <div className="flex items-center gap-1.5">
+            <Badge label={tt(T.rose, lang)} value={data.breadth.up} cls="text-up bg-up-soft" />
+            <Badge label={tt(T.fell, lang)} value={data.breadth.down} cls="text-down bg-down-soft" />
+            <Badge label={tt(T.steady, lang)} value={data.breadth.flat} cls="text-muted-foreground bg-secondary" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Stat label={tt(T.valueTradedTotal, lang)} value={`EGP ${fmtValue(data.totals.valueTraded)}`} />
+          <Stat label={tt(T.volumeTotal, lang)} value={fmtInt(data.totals.volume)} />
+          <Stat label={tt(T.capTotal, lang)} value={`EGP ${fmtValue(data.totals.marketCap)}`} />
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {lang === "ar" ? "القيمة ≈ حجم الجلسة × آخر سعر لكل سهم." : "Value ≈ session volume × last price per stock."}
+        </p>
+      </section>
+
+      {/* sector snapshot */}
+      <section aria-label="sector snapshot">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-lg font-bold">{tt(T.behindMoves, lang)}</h2>
-          <button onClick={() => navigate("investors")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
-            {tt(T.catsDetail, lang)}
+          <h2 className="text-lg font-bold">{tt(T.sectorSnapshot, lang)}</h2>
+          <button onClick={() => navigate("sectors")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+            {tt(T.viewAll, lang)}
           </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {data.flows.map((f) => (
-            <div key={f.categoryAr} className="rounded-lg border bg-card p-4">
-              <p className="font-semibold">{lang === "ar" ? f.categoryAr : f.categoryEn}</p>
-              <p className="num text-xl font-bold">{f.sharePct.toFixed(2)}%</p>
-              <p className="text-xs text-muted-foreground">{lang === "ar" ? "صافي التعاملات (شراء/بيع)" : "Net trading (buy/sell)"}</p>
-              <p className={`num text-sm font-semibold ${directionClass(f.netFlow)}`}>
-                {f.netFlow > 0 ? "+" : ""}{f.netFlow.toFixed(1)}{" "}
-                <span className="text-xs font-normal text-muted-foreground">
-                  {lang === "ar" ? "مليون ج.م" : "EGP mn"}
-                </span>
-              </p>
-              {/* share bar */}
-              <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
-                <div className="h-full rounded-full bg-primary/70" style={{ width: `${f.sharePct}%` }} />
-              </div>
-            </div>
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+          <SectorMini title={tt(T.strongest, lang)} sectors={data.sectorsSnapshot.best} lang={lang} onOpen={() => navigate("sectors")} />
+          <SectorMini title={tt(T.weakest, lang)} sectors={data.sectorsSnapshot.worst} lang={lang} onOpen={() => navigate("sectors")} />
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">{tt(T.capWeighted, lang)} · {tt(T.sectorClassNote, lang)}</p>
       </section>
 
       {/* unusual volume actives */}
       <section aria-label="most active">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-lg font-bold">{tt(T.activeStocks, lang)}</h2>
+          <button onClick={() => navigate("activity")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+            {tt(T.viewAll, lang)}
+          </button>
         </div>
         <div className="rounded-lg border bg-card divide-y">
           {data.actives.map((r) => (
-            <button key={r.ticker} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
-              className="flex w-full items-center gap-3 p-3 text-start hover:bg-accent/40 transition-colors">
+            <div key={r.ticker} role="button" tabIndex={0} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("company", { ticker: r.ticker, panel: "overview" }); }}
+              className="flex w-full items-center gap-3 p-3 text-start hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring outline-none cursor-pointer transition-colors">
               <WatchStar ticker={r.ticker} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="num text-sm font-bold">{r.ticker}</span>
                   <ChangeCell pct={r.changePct} />
                 </div>
-                <p className="truncate text-xs text-muted-foreground">{lang === "ar" ? r.nameAr : r.nameEn}</p>
+                <p className="truncate text-xs text-muted-foreground">{r.name}</p>
               </div>
               <div className="text-end shrink-0">
                 <p className="num text-sm font-semibold text-primary">{fmtNum(r.volumeRatio, 1)}×</p>
                 <p className="text-[10px] text-muted-foreground">{lang === "ar" ? "حجم ÷ المعتاد" : "vol ÷ usual"}</p>
               </div>
-            </button>
+            </div>
           ))}
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">{tt(T.unusualNote, lang)}</p>
@@ -166,19 +183,6 @@ export function OverviewView() {
         </div>
       </section>
 
-      {/* breadth */}
-      <section aria-label="breadth" className="rounded-lg border bg-card p-4">
-        <h2 className="text-lg font-bold mb-3">{tt(T.breadth, lang)}</h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="num text-2xl font-bold">{data.breadth.total}</span>
-          <span className="text-sm text-muted-foreground">{tt(T.stock, lang)}</span>
-          <span className="flex-1" />
-          <Badge label={tt(T.rose, lang)} value={data.breadth.up} cls="text-up bg-up-soft" />
-          <Badge label={tt(T.fell, lang)} value={data.breadth.down} cls="text-down bg-down-soft" />
-          <Badge label={tt(T.steady, lang)} value={data.breadth.flat} cls="text-muted-foreground bg-secondary" />
-        </div>
-      </section>
-
       {/* biggest movers */}
       <section aria-label="biggest movers">
         <div className="flex items-baseline justify-between mb-3">
@@ -187,16 +191,17 @@ export function OverviewView() {
         </div>
         <div className="rounded-lg border bg-card divide-y">
           {data.movers.map((r) => (
-            <button key={r.ticker} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
-              className="flex w-full items-center gap-3 p-3 text-start hover:bg-accent/40 transition-colors">
+            <div key={r.ticker} role="button" tabIndex={0} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("company", { ticker: r.ticker, panel: "overview" }); }}
+              className="flex w-full items-center gap-3 p-3 text-start hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring outline-none cursor-pointer transition-colors">
               <WatchStar ticker={r.ticker} />
               <div className="min-w-0 flex-1">
                 <span className="num text-sm font-bold">{r.ticker}</span>
-                <p className="truncate text-xs text-muted-foreground">{lang === "ar" ? r.nameAr : r.nameEn}</p>
+                <p className="truncate text-xs text-muted-foreground">{r.name}</p>
               </div>
               <div className="num text-sm font-semibold">{fmtNum(r.close)}</div>
               <ChangeCell pct={r.changePct} />
-            </button>
+            </div>
           ))}
         </div>
       </section>
@@ -209,17 +214,49 @@ export function OverviewView() {
         </div>
         <div className="grid gap-2 md:grid-cols-2">
           {data.news.map((n) => (
-            <button key={n.id} onClick={() => navigate("today")} className="rounded-lg border bg-card p-3.5 text-start hover:border-ring transition-colors">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.category}</span>
+            <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" className="rounded-lg border bg-card p-3.5 text-start hover:border-ring transition-colors">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
+                {n.categories[0] && <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium">{n.categories[0]}</span>}
                 <span className="num text-[10px] text-muted-foreground">{fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}</span>
               </div>
               <p className="text-sm font-medium leading-snug line-clamp-2">{n.title}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{n.publisher}</p>
-            </button>
+            </a>
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function SectorMini({ title, sectors, lang, onOpen }: { title: string; sectors: SectorCard[]; lang: "ar" | "en"; onOpen: () => void }) {
+  return (
+    <div className="rounded-lg border bg-card divide-y">
+      <div className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">{title}</div>
+      {sectors.map((s) => (
+        <button key={s.code} onClick={onOpen} className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-start hover:bg-accent/40 transition-colors">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{lang === "ar" ? s.nameAr : s.nameEn}</p>
+            <p className="text-[11px] text-muted-foreground num">
+              {s.count} {tt(T.companies, lang)} · EGP {fmtValue(s.marketCap)}
+            </p>
+          </div>
+          <ChangeCell pct={s.capWeightedChangePct} size="md" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ErrorCard({ lang, onRetry }: { lang: "ar" | "en"; onRetry: () => void }) {
+  return (
+    <div className="rounded-lg border bg-card p-8 text-center space-y-3">
+      <AlertTriangle className="h-8 w-8 mx-auto text-muted-foreground" aria-hidden />
+      <p className="font-medium">{tt(T.errorLoad, lang)}</p>
+      <Button size="sm" onClick={onRetry}>
+        <RefreshCw className="h-3.5 w-3.5 me-1.5" />
+        {tt(T.retry, lang)}
+      </Button>
     </div>
   );
 }
@@ -230,5 +267,14 @@ function Badge({ label, value, cls }: { label: string; value: number; cls: strin
       <span className="num font-bold">{fmtInt(value)}</span>
       {label}
     </span>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-secondary/50 px-3 py-2.5">
+      <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
+      <p className="num text-lg font-bold">{value}</p>
+    </div>
   );
 }

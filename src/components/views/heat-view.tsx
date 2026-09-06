@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
+import { useLiveData } from "../market/use-live-data";
+import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtPct } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Row = {
-  ticker: string; nameAr: string; nameEn: string; sectorAr: string; sectorEn: string;
-  sectorCode: string; close: number; changePct: number; marketCap: number;
-  inEgx30: boolean; inEgx70: boolean; inEgx100: boolean;
-};
 
 function heatColor(pct: number): { bg: string; fg: string } {
   if (pct === 0) return { bg: "var(--secondary)", fg: "var(--muted-foreground)" };
@@ -22,30 +18,27 @@ function heatColor(pct: number): { bg: string; fg: string } {
 }
 
 export function HeatView() {
-  const { lang, navigate, auth } = useApp();
-  const [rows, setRows] = useState<Row[] | null>(null);
-  const [scope, setScope] = useState<"all" | "EGX30" | "EGX70" | "EGX100">("all");
+  const { lang, navigate } = useApp();
+  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
+  const [scope, setScope] = useState<"all" | "top30">("all");
   const [sectorFocus, setSectorFocus] = useState<string>("");
 
-  useEffect(() => {
-    fetch("/api/companies")
-      .then((r) => r.json())
-      .then((d) => setRows(d.rows ?? []))
-      .catch(() => setRows([]));
-  }, [auth.email]);
+  const rows = data?.rows ?? null;
 
   const scoped = useMemo(() => {
     if (!rows) return null;
-    let out = rows;
-    if (scope === "EGX30") out = out.filter((r) => r.inEgx30);
-    if (scope === "EGX70") out = out.filter((r) => r.inEgx70);
-    if (scope === "EGX100") out = out.filter((r) => r.inEgx100);
-    return out;
+    if (scope === "top30") {
+      return [...rows]
+        .filter((r) => r.marketCap !== null)
+        .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
+        .slice(0, 30);
+    }
+    return rows;
   }, [rows, scope]);
 
   const groups = useMemo(() => {
     if (!scoped) return [];
-    const bySector = new Map<string, { name: string; rows: Row[] }>();
+    const bySector = new Map<string, { name: string; rows: CompanyRow[] }>();
     scoped.forEach((r) => {
       if (sectorFocus && r.sectorCode !== sectorFocus) return;
       const g = bySector.get(r.sectorCode) ?? { name: lang === "ar" ? r.sectorAr : r.sectorEn, rows: [] };
@@ -56,8 +49,8 @@ export function HeatView() {
       .map(([code, g]) => ({
         code,
         name: g.name,
-        rows: [...g.rows].sort((a, b) => b.marketCap - a.marketCap),
-        cap: g.rows.reduce((acc, r) => acc + r.marketCap, 0),
+        rows: [...g.rows].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)),
+        cap: g.rows.reduce((acc, r) => acc + (r.marketCap ?? 0), 0),
       }))
       .sort((a, b) => b.cap - a.cap);
   }, [scoped, sectorFocus, lang]);
@@ -78,19 +71,13 @@ export function HeatView() {
 
       {/* scope selector */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="num text-xs text-muted-foreground">06 Sep 2026</span>
+        <span className="num text-xs text-muted-foreground">{data?.session.lastSession} · {tt(T.delayed, lang)}</span>
         <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
           {([
-            ["all", { ar: "البورصة كلها", en: "Whole exchange" }],
-            ["EGX30", { ar: "إيجي إكس 30", en: "EGX 30" }],
-            ["EGX70", { ar: "إيجي إكس 70", en: "EGX 70" }],
-            ["EGX100", { ar: "إيجي إكس 100", en: "EGX 100" }],
+            ["all", T.wholeExchange],
+            ["top30", T.topCaps],
           ] as const).map(([key, label]) => {
-            const count =
-              key === "all" ? rows.length
-              : key === "EGX30" ? rows.filter((r) => r.inEgx30).length
-              : key === "EGX70" ? rows.filter((r) => r.inEgx70).length
-              : rows.filter((r) => r.inEgx100).length;
+            const count = key === "all" ? rows.length : Math.min(30, rows.filter((r) => r.marketCap !== null).length);
             return (
               <button
                 key={key}
