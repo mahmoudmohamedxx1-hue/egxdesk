@@ -76,3 +76,16 @@ empty stub: "لم يُنشر شيء لهذا بعد").
   every session close adds one immutable real row.
 - Paid route (Bloomberg `EGX30 Index` + broker flow reports, EPFR) only if
   fund-classification granularity is needed.
+
+## Task 4 — price charts / full news archive / flows discoverability (2026-09-07)
+
+**Price history sources (verified reachable, no auth):**
+- Yahoo Finance chart API `query1.finance.yahoo.com/v8/finance/chart/{TICKER}.CA` — full EGX stock daily history (1y = 253 sessions; 5y weekly), EGP, Africa/Cairo session dates. 10/10 sampled tickers OK. Last candle can be null until Yahoo finalizes (parser drops nulls).
+- Yahoo EGX index symbols exist (^CASE30, ^EGX70EWI.CA, ^EGX100EWI.CA, ^EGX30CAPPED.CA, ^SHARIAH.CA) but carry only ~1 point of history — unusable for charts.
+- EGXBot dated archive pages `/en/market-report/{date}` serve EVERY past Sun–Thu session (arbitrary dates work; 404 on holidays) with the summary table "EGX30 X / EGX70 EWI Y / EGX100 EWI Z" (older EN pages omit the "EWI" suffix — regex accepts both, value ranges validated). → real index history backfilled ~98 days into IndexDay.
+- Stooq blocked (JS challenge). Sigma "Historical Investors Distribution" endpoint requires login (rejected). EGX official site unreachable.
+
+**News archive sources:**
+- Both publishers run WordPress with public REST APIs: `/wp-json/wp/v2/posts?per_page=100&page=N&_fields=id,date,link,title,excerpt,categories` (title/date/excerpt/categories). Category maps via `/wp-json/wp/v2/categories`.
+- Backfill persisted in SQLite (NewsPost, link-unique, in-memory dedupe because Prisma skipDuplicates is unsupported on SQLite).
+- Related news for companies: Arabic brand-name alias map (COMI→التجاري الدولي/CIB etc.) since Arabic titles never contain English tickers.

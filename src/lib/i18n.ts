@@ -28,11 +28,11 @@ export const T = {
   map: { ar: "الخريطة", en: "Map" },
   sectors: { ar: "القطاعات", en: "Sectors" },
   exchange: { ar: "البورصة", en: "Exchange" },
-  investors: { ar: "المستثمرون", en: "Investors" },
+  investors: { ar: "تدفقات المستثمرين", en: "Investor flows" },
   // data provenance
   liveNote: {
-    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وأموال الغد) — لا بيانات تجريبية.",
-    en: "Every figure is live from public sources (TradingView for quotes; Sigma Capital for investor-category flows; EGXBot for participation; Alborsaa & Amwal Alghad for news) — no demo data.",
+    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار، Yahoo Finance لتاريخ الأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وأموال الغد) — لا بيانات تجريبية.",
+    en: "Every figure is live from public sources (TradingView for quotes; Yahoo Finance for price history; Sigma Capital for investor-category flows; EGXBot for participation; Alborsaa & Amwal Alghad for news) — no demo data.",
   },
   errorLoad: { ar: "تعذر تحميل البيانات الآن", en: "Could not load the data right now" },
   retry: { ar: "أعد المحاولة", en: "Retry" },
@@ -183,8 +183,8 @@ export const T = {
   valueTraded: { ar: "قيمة التداول", en: "Value traded" },
   performance: { ar: "الأداء عبر الفترات", en: "Performance across horizons" },
   perfNote: {
-    ar: "التغير الفعلي المركّم على مدى كل فترة — لا تاريخ سعر يومي في المصدر المجاني.",
-    en: "Actual cumulative change over each horizon — no daily price history in the free source.",
+    ar: "التغير الفعلي المركّم على مدى كل فترة، من نفس مصدر الرسم البياني أعلاه.",
+    en: "Actual cumulative change over each horizon, from the same source as the price chart above.",
   },
   range52: { ar: "موقع السعر في مدى ٥٢ أسبوعاً", en: "Price position in the 52-week range" },
   vsSector: { ar: "مقابل وسيط القطاع", en: "vs sector median" },
@@ -229,12 +229,39 @@ export const T = {
   // news view
   newsTitle: { ar: "الأخبار", en: "News" },
   headlinesShown: { ar: "عنواناً، الأحدث أولاً", en: "headlines, newest first" },
+  archiveCovers: { ar: "الأرشيف الكامل منذ", en: "Full archive since" },
+  loadOlder: { ar: "تحميل أخبار أقدم", en: "Load older news" },
+  loading: { ar: "جارٍ التحميل…", en: "Loading…" },
+  endOfArchive: { ar: "وصلت إلى نهاية الأرشيف المتاح", en: "You reached the end of the available archive" },
+  backToTop: { ar: "أحدث الأخبار", en: "Back to top" },
   readSource: { ar: "اقرأ في المصدر →", en: "Read at source →" },
   listen: { ar: "استمع", en: "Listen" },
+  // price charts (stocks & indices)
+  priceChart: { ar: "حركة السعر", en: "Price chart" },
+  rangeChange: { ar: "على المدى المعروض", en: "over shown range" },
+  chartHigh: { ar: "الأعلى", en: "High" },
+  chartLow: { ar: "الأدنى", en: "Low" },
+  chartRange: { ar: "المدى الزمني", en: "Time range" },
+  chartUnavailable: {
+    ar: "لا يتوفر تاريخ سعري لهذا الرمز من المصدر العام حالياً",
+    en: "No price history for this symbol from the public source yet",
+  },
+  chartWarming: {
+    ar: "جارٍ تجميع سجل الأسعار الحقيقي من تقارير الجلسات — يعمل في الخلفية…",
+    en: "Collecting the real price history from session reports — running in the background…",
+  },
+  indexPoints: { ar: "نقطة", en: "pts" },
+  close: { ar: "الإغلاق", en: "Close" },
+  priceChartNote: { ar: "أسعار إغلاق حقيقية", en: "Real closing prices" },
+  indexChartTitle: { ar: "رسوم مؤشرات البورصة", en: "Index price charts" },
+  indexChartNote: {
+    ar: "إغلاقات يومية حقيقية — يبدأ السجل من ~٣ أشهر ويتراكم يوماً بيوم",
+    en: "Real daily closes — the history starts ~3 months back and accumulates daily",
+  },
   // footer
   footerNote: {
-    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات من EGXBot، والأخبار من جريدة البورصة وأموال الغد — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
-    en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes from TradingView; investor-category flows from Sigma Capital; nationality participation from EGXBot; news from Alborsaa and Amwal Alghad — and may be delayed. Nothing here is a recommendation to trade any security.",
+    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والأخبار من جريدة البورصة وأموال الغد — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
+    en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes from TradingView; price history from Yahoo Finance; investor-category flows from Sigma Capital; nationality participation and index closes from EGXBot; news from Alborsaa and Amwal Alghad — and may be delayed. Nothing here is a recommendation to trade any security.",
   },
 } as const;
 

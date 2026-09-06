@@ -1,0 +1,553 @@
+{
+  "yahooStocks": {
+    "COMI.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "COMI.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "HRHO.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "HRHO.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "TMGH.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "TMGH.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "SWDY.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "SWDY.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "ETEL.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "ETEL.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "ABUK.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "ABUK.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "ISPH.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "ISPH.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "MFPC.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "MFPC.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "ORWE.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "ORWE.CA",
+      "currency": "EGP",
+      "first": "2025-09-07",
+      "last": "2026-09-06",
+      "points": 253,
+      "nonNullCloses": 248,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    },
+    "EKHO.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "EKHO.CA",
+      "currency": "USD",
+      "first": "2026-07-16",
+      "last": "2026-09-06",
+      "points": 37,
+      "nonNullCloses": 36,
+      "sampleClose": null,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    }
+  },
+  "yahooIndices": {
+    "%5EEGX30": {
+      "status": 404,
+      "ok": false,
+      "why": "no result",
+      "meta": {
+        "code": "Not Found",
+        "description": "No data found, symbol may be delisted"
+      }
+    },
+    "EGX30": {
+      "status": 404,
+      "ok": false,
+      "why": "no result",
+      "meta": {
+        "code": "Not Found",
+        "description": "No data found, symbol may be delisted"
+      }
+    },
+    "%5EEGX70": {
+      "status": 404,
+      "ok": false,
+      "why": "no result",
+      "meta": {
+        "code": "Not Found",
+        "description": "No data found, symbol may be delisted"
+      }
+    },
+    "%5EEGX100": {
+      "status": 404,
+      "ok": false,
+      "why": "no result",
+      "meta": {
+        "code": "Not Found",
+        "description": "No data found, symbol may be delisted"
+      }
+    },
+    "EGX100.CA": {
+      "status": 200,
+      "ok": true,
+      "symbol": "EGX100.CA",
+      "currency": "EGP",
+      "first": null,
+      "last": null,
+      "points": 0,
+      "nonNullCloses": 0,
+      "timezone": "Africa/Cairo",
+      "gmtoffset": 10800
+    }
+  },
+  "yahooSearchEGX": {
+    "status": 200,
+    "quotes": [
+      {
+        "symbol": "^SHARIAH.CA",
+        "name": "EGX 33 Shariah",
+        "exch": "CAI"
+      },
+      {
+        "symbol": "^EGX70EWI.CA",
+        "name": "EGX70 EWI",
+        "exch": "CAI"
+      },
+      {
+        "symbol": "EGX-USD",
+        "name": "Enegra (EGX) USD",
+        "exch": "CCC"
+      },
+      {
+        "symbol": "EGS69491M015.CA",
+        "name": "EGX 30 INDEX ETF",
+        "exch": "CAI"
+      },
+      {
+        "symbol": "EGXU.FGI",
+        "name": "EPRA/NAREIT Global ex US Index",
+        "exch": "FGI"
+      },
+      {
+        "symbol": "^CASE30",
+        "name": "EGX 30 Price Return Index",
+        "exch": "CAI"
+      },
+      {
+        "symbol": "^EGX30CAPPED.CA",
+        "name": "EGX30 Capped",
+        "exch": "CAI"
+      }
+    ]
+  },
+  "wpJson": {
+    "https://www.alborsaanews.com": {
+      "status": 200,
+      "count": 5,
+      "sample": [
+        {
+          "date": "2026-09-06T20:06:23",
+          "link": "https://www.alborsaanews.com/2026/09/06/1990834",
+          "title": "مؤشر EGX30 يقترب من 57 ألف نقطة.. هل تبدأ موجة صعود جديدة؟"
+        },
+        {
+          "date": "2026-09-06T19:46:18",
+          "link": "https://www.alborsaanews.com/2026/09/06/1990871",
+          "title": "«آى صاغة» تقود تحالفًا مصريًا سعوديًا لتأسيس منظومة موحدة لتداول الذهب والفضة"
+        },
+        {
+          "date": "2026-09-06T19:08:19",
+          "link": "https://www.alborsaanews.com/2026/09/06/1990873",
+          "title": "&#8220;عبدالغفار&#8221; لـ&#8221;البورصة&#8221;: &#8220;الصحة&#8221; تستثمر 1.9 "
+        }
+      ]
+    },
+    "https://www.alborsaanews.com_head": 200,
+    "https://www.amwalalghad.com": {
+      "status": 200,
+      "count": 5,
+      "sample": [
+        {
+          "date": "2026-09-06T19:53:38",
+          "link": "https://amwalalghad.com/2026/09/06/%d8%aa%d8%ad%d8%a7%d9%84%d9%81-%d9%85%d8%b5%d8%b1%d9%8a-%d8%b3%d8%b9%d9%88%d8%af%d9%8a-%d9%8a%d8%b3%d8%aa%d9%87%d8%af%d9%81-%d8%b1%d9%81%d8%b9-%d8%a5%d9%86%d8%aa%d8%a7%d8%ac-%d8%a7%d9%84%d8%b0%d9%87/",
+          "title": "تحالف مصري سعودي يستهدف رفع إنتاج الذهب إلى 150 كيلوجرامًا شهريًا"
+        },
+        {
+          "date": "2026-09-06T17:44:12",
+          "link": "https://amwalalghad.com/2026/09/06/%d9%85%d8%b5%d8%b1%d9%81-%d8%a3%d8%a8%d9%88-%d8%b8%d8%a8%d9%8a-%d8%a7%d9%84%d8%a5%d8%b3%d9%84%d8%a7%d9%85%d9%8a-%d9%85%d8%b5%d8%b1-%d9%8a%d9%81%d8%aa%d8%aa%d8%ad-%d9%85%d8%af%d8%b1%d8%b3%d8%aa%d9%87/",
+          "title": "مصرف أبو ظبي الإسلامي- مصر يفتتح مدرسته بالنزهة الجديدة عقب تطويرها"
+        },
+        {
+          "date": "2026-09-06T17:29:13",
+          "link": "https://amwalalghad.com/2026/09/06/%d8%b7%d8%b1%d8%ad-%d9%85%d9%86%d8%aa%d8%ac%d8%a7%d8%aa-%d8%a7%d9%84%d8%b0%d9%87%d8%a8-%d9%88%d8%a7%d9%84%d9%81%d8%b6%d8%a9-%d9%84%d8%aa%d8%ad%d8%a7%d9%84%d9%81-4-%d8%b4%d8%b1%d9%83%d8%a7%d8%aa-%d9%85/",
+          "title": "طرح منتجات الذهب والفضة لتحالف 4 شركات مصرية وسعودية أول أكتوبر"
+        }
+      ]
+    },
+    "https://www.amwalalghad.com_head": 200
+  },
+  "amwalCats": {
+    "status": 200,
+    "cats": [
+      {
+        "id": 91158,
+        "count": 642,
+        "name": "أخبار عاجلة"
+      },
+      {
+        "id": 87126,
+        "count": 1203,
+        "name": "أسعار الأسهم"
+      },
+      {
+        "id": 4,
+        "count": 55375,
+        "name": "أسواق المال"
+      },
+      {
+        "id": 84130,
+        "count": 916,
+        "name": "أسواق عربية"
+      },
+      {
+        "id": 82150,
+        "count": 1257,
+        "name": "أسواق عربية وعالمية"
+      },
+      {
+        "id": 1185,
+        "count": 407,
+        "name": "أعمده ومقالات"
+      },
+      {
+        "id": 82054,
+        "count": 324,
+        "name": "أموال TV"
+      },
+      {
+        "id": 17,
+        "count": 12847,
+        "name": "اخبار عربية و عالمية"
+      },
+      {
+        "id": 34,
+        "count": 33735,
+        "name": "اخبار محلية"
+      },
+      {
+        "id": 137,
+        "count": 1024,
+        "name": "اختيار المحرر"
+      },
+      {
+        "id": 77187,
+        "count": 233,
+        "name": "ارشيف"
+      },
+      {
+        "id": 3,
+        "count": 52372,
+        "name": "استثمار"
+      },
+      {
+        "id": 82156,
+        "count": 41,
+        "name": "الأسواق العالمية"
+      },
+      {
+        "id": 84334,
+        "count": 203,
+        "name": "البورصة الأمريكية"
+      },
+      {
+        "id": 82151,
+        "count": 138,
+        "name": "البورصة السعودية"
+      },
+      {
+        "id": 82015,
+        "count": 14978,
+        "name": "البورصة المصرية"
+      },
+      {
+        "id": 82042,
+        "count": 507,
+        "name": "المرأة"
+      },
+      {
+        "id": 61,
+        "count": 693,
+        "name": "اموال الغد جاليرى"
+      },
+      {
+        "id": 565,
+        "count": 203,
+        "name": "اموال الغد فيديو"
+      },
+      {
+        "id": 82043,
+        "count": 78,
+        "name": "انفوجراف"
+      },
+      {
+        "id": 78320,
+        "count": 1310,
+        "name": "بالأخضر"
+      },
+      {
+        "id": 81848,
+        "count": 17,
+        "name": "بروفايل"
+      },
+      {
+        "id": 82027,
+        "count": 20285,
+        "name": "بنوك"
+      },
+      {
+        "id": 117811,
+        "count": 7235,
+        "name": "بنوك وتمويل"
+      },
+      {
+        "id": 7,
+        "count": 53019,
+        "name": "بنوك ومؤسسات مالية"
+      },
+      {
+        "id": 82016,
+        "count": 17,
+        "name": "بورصات الخليج"
+      },
+      {
+        "id": 82153,
+        "count": 128,
+        "name": "بورصة الإمارات"
+      },
+      {
+        "id": 82154,
+        "count": 53,
+        "name": "بورصة البحرين"
+      },
+      {
+        "id": 28514,
+        "count": 8243,
+        "name": "بورصة السلع"
+      },
+      {
+        "id": 82152,
+        "count": 317,
+        "name": "بورصة الكويت"
+      }
+    ]
+  },
+  "borsaCats": {
+    "status": 200,
+    "cats": [
+      {
+        "id": 106922,
+        "count": 11,
+        "name": "أجندة المعارض"
+      },
+      {
+        "id": 106921,
+        "count": 161,
+        "name": "أخبار المعارض"
+      },
+      {
+        "id": 13,
+        "count": 32327,
+        "name": "أسواق"
+      },
+      {
+        "id": 106435,
+        "count": 80,
+        "name": "إنفوجراف"
+      },
+      {
+        "id": 1424,
+        "count": 68032,
+        "name": "استثمار وأعمال"
+      },
+      {
+        "id": 69020,
+        "count": 20901,
+        "name": "الاتصالات والتكنولوجيا"
+      },
+      {
+        "id": 106416,
+        "count": 791,
+        "name": "الاقتصاد الأخضر"
+      },
+      {
+        "id": 69022,
+        "count": 93648,
+        "name": "الاقتصاد العالمى"
+      },
+      {
+        "id": 69018,
+        "count": 46284,
+        "name": "الاقتصاد المصرى"
+      },
+      {
+        "id": 69119,
+        "count": 26384,
+        "name": "البنوك"
+      },
+      {
+        "id": 10,
+        "count": 68524,
+        "name": "البورصة والشركات"
+      },
+      {
+        "id": 69027,
+        "count": 11456,
+        "name": "السيارات"
+      },
+      {
+        "id": 69019,
+        "count": 17852,
+        "name": "الطاقة"
+      },
+      {
+        "id": 69026,
+        "count": 23896,
+        "name": "العقارات"
+      },
+      {
+        "id": 100334,
+        "count": 1442,
+        "name": "المسؤولية المجتمعية"
+      },
+      {
+        "id": 69024,
+        "count": 15069,
+        "name": "النقل والملاحة"
+      },
+      {
+        "id": 106923,
+        "count": 8,
+        "name": "تغطية خاصة"
+      },
+      {
+        "id": 1,
+        "count": 26291,
+        "name": "عام"
+      },
+      {
+        "id": 106924,
+        "count": 3,
+        "name": "عين على الفعاليات"
+      },
+      {
+        "id": 106920,
+        "count": 101,
+        "name": "مؤتمرات مميزة"
+      },
+      {
+        "id": 33,
+        "count": 3960,
+        "name": "مالتيميديا"
+      },
+      {
+        "id": 35,
+        "count": 2767,
+        "name": "مقالات الرأى"
+      },
+      {
+        "id": 41,
+        "count": 30936,
+        "name": "منوعات"
+      },
+      {
+        "id": 106439,
+        "count": 15492,
+        "name": "موضوعات مميزة"
+      }
+    ]
+  },
+  "sigma": {
+    "error": "Error: Unable to connect. Is the computer able to access the url?"
+  }
+}

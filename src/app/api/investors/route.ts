@@ -7,6 +7,7 @@ import {
   flowHistory,
   participationHistory,
   FLOWS_SOURCES,
+  type FlowsSnapshot,
 } from "@/lib/flows";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  *  history, and stored daily flow history. No auth, no demo data. */
 export async function GET() {
   const status = marketStatus();
-  let today = null;
+  let today: FlowsSnapshot | null = null;
   let flowsError = false;
   try {
     today = await fetchFlows();
@@ -29,7 +30,8 @@ export async function GET() {
     await persistFlowDay(today);
   }
 
-  await ensureHistory();
+  // deep EGXBot backfill — bounded wait, keeps filling in the background
+  await Promise.race([ensureHistory(), new Promise((r) => setTimeout(r, 12_000))]);
 
   const [flows, participation] = await Promise.all([flowHistory(), participationHistory()]);
 

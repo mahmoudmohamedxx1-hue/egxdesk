@@ -30,6 +30,7 @@ const PRIMARY_NAV = [
   { key: "overview", view: "home", t: T.overview },
   { key: "explore", view: "market", t: T.explore },
   { key: "news", view: "today", t: T.news },
+  { key: "investors", view: "investors", t: T.investors },
   { key: "watch", view: "watchlist", t: T.watchlist },
   { key: "tools", view: "tools", t: T.tools },
 ];

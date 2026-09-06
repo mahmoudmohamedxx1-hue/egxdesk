@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, fetchNews, relatedNews, sectorAr, sectorCode, companyRow, sessionMeta, type Stock } from "@/lib/market";
+import { ensureNewsArchive, relatedNewsArchive } from "@/lib/news-archive";
 
 function median(vals: number[]): number | null {
   if (!vals.length) return null;
@@ -18,6 +19,9 @@ export async function GET(
   try {
     const { ticker } = await ctx.params;
     const t = decodeURIComponent(ticker).toUpperCase();
+
+    // warm the news archive in the background (related-news tab reads from it)
+    ensureNewsArchive().catch(() => {});
 
     const [stocks, news] = await Promise.all([fetchUniverse(), fetchNews()]);
     const company = stocks.find((s) => s.ticker === t);
@@ -44,6 +48,7 @@ export async function GET(
     };
 
     const c: Stock = company;
+    const archived = await relatedNewsArchive(t, c.name, 6).catch(() => []);
     return NextResponse.json({
       session: sessionMeta(),
       company: {
@@ -55,12 +60,13 @@ export async function GET(
         avgTurnover30: c.avgTurnover30,
         high1M: c.high1M,
         low1M: c.low1M,
+        beta: c.beta,
         updateMode: c.updateMode,
         sectorCode: sectorCode(c.sector),
       },
       sectorAgg,
       peers,
-      news: relatedNews(c, news, 6),
+      news: archived.length > 0 ? archived : relatedNews(c, news, 6),
     });
   } catch {
     return NextResponse.json({ error: "market data unavailable" }, { status: 502 });

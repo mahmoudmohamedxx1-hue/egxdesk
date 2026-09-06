@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import { DivergingBars } from "../market/charts";
+import { PriceChart } from "../market/price-chart";
 import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
@@ -28,6 +30,7 @@ type Overview = {
 export function OverviewView() {
   const { lang, navigate } = useApp();
   const { data, error, loading, refresh } = useLiveData<Overview>("/api/overview");
+  const [indexSel, setIndexSel] = useState<string>("EGX30");
 
   if (error && !data) {
     return <ErrorCard lang={lang} onRetry={refresh} />;
@@ -81,7 +84,7 @@ export function OverviewView() {
       {/* indices */}
       <section aria-label="indices" className="grid gap-3 sm:grid-cols-3">
         {data.indices.map((ix) => (
-          <button key={ix.code} onClick={() => navigate("heat")} className="rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
+          <button key={ix.code} onClick={() => { setIndexSel(ix.code); document.getElementById("index-charts")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{ix.name}</p>
               {ix.perfYTD !== null && (
@@ -97,6 +100,33 @@ export function OverviewView() {
             </p>
           </button>
         ))}
+      </section>
+
+      {/* index price charts */}
+      <section id="index-charts" aria-label="index price charts" className="rounded-lg border bg-card p-4 scroll-mt-24">
+        <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+          <h2 className="text-lg font-bold">{tt(T.indexChartTitle, lang)}</h2>
+          <p className="text-[11px] text-muted-foreground">{tt(T.indexChartNote, lang)}</p>
+        </div>
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap" role="tablist" aria-label={tt(T.indexChartTitle, lang)}>
+          {data.indices.map((ix) => {
+            const active = indexSel === ix.code;
+            return (
+              <button
+                key={ix.code}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setIndexSel(ix.code)}
+                className={`num rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                  active ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
+                }`}
+              >
+                {ix.code}
+              </button>
+            );
+          })}
+        </div>
+        <PriceChart key={indexSel} symbol={indexSel} defaultRange="3M" />
       </section>
 
       {/* session totals + breadth */}

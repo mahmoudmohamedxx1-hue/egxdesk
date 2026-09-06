@@ -1,19 +1,94 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
 import type { NewsRow, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
-import { fmtDateAr, fmtTimeAr } from "@/lib/format";
+import { fmtDateAr, fmtTimeAr, fmtInt } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Volume2, ExternalLink, Newspaper } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Volume2, ExternalLink, Newspaper, History, ChevronUp } from "lucide-react";
+
+type NewsPage = {
+  session: SessionMeta;
+  total: number;
+  page: number;
+  hasMore: boolean;
+  coverageFrom: string | null;
+  shown: number;
+  items: NewsRow[];
+};
+
+const PAGE_SIZE = 40;
 
 export function NewsView() {
   const { lang } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; shown: number; items: NewsRow[] }>("/api/news?limit=40");
+  const [items, setItems] = useState<NewsRow[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [coverageFrom, setCoverageFrom] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(false);
+  const pageRef = useRef(1);
+  const mounted = useRef(true);
+
+  const load = useCallback(async (page: number, append: boolean) => {
+    try {
+      const res = await fetch(`/api/news?page=${page}&limit=${PAGE_SIZE}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as NewsPage;
+      if (!mounted.current) return;
+      setItems((prev) => (append && prev ? [...prev, ...json.items] : json.items));
+      setTotal(json.total);
+      setHasMore(json.hasMore);
+      setCoverageFrom(json.coverageFrom);
+      setError(false);
+    } catch {
+      if (mounted.current) setError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    mounted.current = true;
+    pageRef.current = 1;
+    load(1, false);
+    // silently refresh the loaded pages every 2 minutes
+    const t = setInterval(async () => {
+      const all: NewsRow[] = [];
+      let tot = 0;
+      let more = false;
+      try {
+        for (let p = 1; p <= pageRef.current; p++) {
+          const res = await fetch(`/api/news?page=${p}&limit=${PAGE_SIZE}`, { cache: "no-store" });
+          if (!res.ok) return;
+          const j = (await res.json()) as NewsPage;
+          all.push(...j.items);
+          tot = j.total;
+          more = j.hasMore;
+        }
+        if (mounted.current && all.length) {
+          setItems(all);
+          setTotal(tot);
+          setHasMore(more);
+        }
+      } catch {
+        /* keep showing what we have */
+      }
+    }, 120_000);
+    return () => {
+      mounted.current = false;
+      clearInterval(t);
+    };
+  }, [load]);
+
+  function loadOlder() {
+    const next = pageRef.current + 1;
+    pageRef.current = next;
+    setLoadingMore(true);
+    load(next, true).finally(() => setLoadingMore(false));
+  }
+
   const [speakingId, setSpeakingId] = useState<string | null>(null);
-  const items = data?.items ?? null;
 
   function speak(item: NewsRow) {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -37,11 +112,11 @@ export function NewsView() {
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.newsTitle, lang)}</h1>
         <p className="num text-xs text-muted-foreground">
-          <span className="font-semibold">{items?.length ?? 0}</span> {tt(T.headlinesShown, lang)}
+          <span className="font-semibold">{fmtInt(total)}</span> {tt(T.headlinesShown, lang)}
         </p>
       </div>
 
-      {/* source chips */}
+      {/* archive coverage line */}
       <div className="flex flex-wrap items-center gap-1.5">
         {["جريدة البورصة", "أموال الغد"].map((s) => (
           <span key={s} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs text-muted-foreground">
@@ -49,12 +124,27 @@ export function NewsView() {
             {s}
           </span>
         ))}
-        <span className="text-[11px] text-muted-foreground">{tt(T.liveNote, lang)}</span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <History className="h-3 w-3" />
+          {coverageFrom ? (
+            <>
+              {tt(T.archiveCovers, lang)} <span className="num">{fmtDateAr(coverageFrom)}</span> → <span className="num">{lang === "ar" ? "اليوم" : "today"}</span>
+            </>
+          ) : (
+            tt(T.liveNote, lang)
+          )}
+        </span>
       </div>
 
-      {!items ? (
+      {error && !items && (
+        <p className="py-10 text-center text-sm text-muted-foreground">{tt(T.errorLoad, lang)}</p>
+      )}
+
+      {!items && !error && (
         <div className="space-y-3">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32" />)}</div>
-      ) : (
+      )}
+
+      {items && (
         <div className="space-y-3">
           {items.map((n) => (
             <article key={n.id} className="rounded-lg border bg-card p-4">
@@ -101,8 +191,28 @@ export function NewsView() {
               </div>
             </article>
           ))}
+
           {items.length === 0 && (
             <p className="py-10 text-center text-sm text-muted-foreground">{tt(T.errorLoad, lang)}</p>
+          )}
+
+          {/* pager */}
+          {items.length > 0 && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              {hasMore ? (
+                <Button variant="outline" size="sm" onClick={loadOlder} disabled={loadingMore}>
+                  {loadingMore ? tt(T.loading, lang) : tt(T.loadOlder, lang)}
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground">{tt(T.endOfArchive, lang)}</p>
+              )}
+              {items.length > PAGE_SIZE && (
+                <Button variant="ghost" size="sm" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+                  <ChevronUp className="h-3.5 w-3.5 me-1 rtl:rotate-180" />
+                  {tt(T.backToTop, lang)}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

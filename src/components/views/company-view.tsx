@@ -9,6 +9,7 @@ import { fmtNum, fmtValue, fmtPct, fmtInt, fmtDateAr, fmtTimeAr, directionClass 
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { PerfChart, RangeBar } from "../market/perf-chart";
+import { PriceChart } from "../market/price-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw } from "lucide-react";
@@ -23,6 +24,7 @@ type CompanyData = {
     avgTurnover30: number | null;
     high1M: number | null;
     low1M: number | null;
+    beta: number | null;
     updateMode: string | null;
   };
   sectorAgg: {
@@ -198,6 +200,14 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
       {/* OVERVIEW */}
       {activePanel === "overview" && (
         <div className="space-y-5">
+          <section className="rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="font-bold">{tt(T.priceChart, lang)}</h2>
+              <span className="num text-xs text-muted-foreground">{c.ticker} · EGX</span>
+            </div>
+            <PriceChart key={c.ticker} symbol={c.ticker} defaultRange="6M" />
+          </section>
+
           <section className="rounded-lg border bg-card p-4">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <h2 className="font-bold">{tt(T.performance, lang)}</h2>

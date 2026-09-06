@@ -219,6 +219,31 @@ model FlowCat {
   @@unique([date, key])
 }
 
+/** Real daily closes for the EGX indices (backfilled from EGXBot session reports). */
+model IndexDay {
+  date       String   @id // YYYY-MM-DD trading session
+  egx30      Float?
+  egx70      Float?
+  egx100     Float?
+  source     String   @default("egxbot")
+  capturedAt DateTime @default(now())
+}
+
+/** Archived news posts (backfilled from the publishers' WordPress REST APIs,
+ *  kept fresh from their RSS feeds) — newest first in the news view. */
+model NewsPost {
+  id          String   @id @default(cuid())
+  link        String   @unique
+  title       String
+  snippet     String?
+  source      String
+  categories  String   @default("") // "،"-joined display names
+  publishedAt DateTime
+  firstSeenAt DateTime @default(now())
+
+  @@index([publishedAt])
+}
+
 /** Daily market participation by nationality (from EGXBot session reports). */
 model ParticipationDay {
   date          String   @id // YYYY-MM-DD

@@ -62,3 +62,40 @@ Stage Summary:
 - The app now has real charts everywhere the user asked: sectors view (2 charts), overview (1 chart), investors view (4 charts + 2 tables).
 - Investor-category flows are REAL, live from Sigma Capital's republish of the official EGX table, with a real history that accumulates day by day in SQLite, plus EGXBot-based participation trend — the original esthmr.com never actually shipped this feature (its investors view is an empty stub).
 - Key artifacts: src/lib/flows.ts, src/lib/db.ts, prisma/schema.prisma (FlowDay/FlowCat/ParticipationDay), src/app/api/investors/route.ts, src/components/market/charts.tsx, src/components/views/investors-view.tsx, updated sectors/overview/app-shell/i18n/globals.css, scripts/research/RESEARCH.md.
+
+---
+Task ID: 4
+Agent: Super Z (main agent)
+Task: Real price charts for every stock and index; full news archive newest→oldest (not today-only); make investor-category flows discoverable.
+
+Work Log:
+- Probed sources (scripts/research/probe2.ts, probe3.ts + ad-hoc; notes appended to RESEARCH.md): Yahoo chart API has full EGX stock history (.CA suffix) but only 1 point for indices; EGXBot serves ARBITRARY past dates /en/market-report/{date} with all 3 index closes + participation; both news publishers expose public WP REST APIs with full post history; Sigma's historical-flows endpoint requires login (rejected); Stooq JS-blocked.
+- Prisma: added IndexDay (real daily EGX30/70/100 closes) + NewsPost (archived news) models; db push; regenerated client (dev server restarted to pick it up).
+- Price charts: new src/lib/history.ts (Yahoo fetcher, ranges 1M/3M/6M/1Y daily + 5Y weekly, Cairo-day date labeling, null-candle filtering, 5-min cache + stale fallback); new /api/chart?symbol=&range= (stocks validated against the live universe; indices from IndexDay with background warm-up + warming flag); new PriceChart component (recharts area+volume, range tabs, bilingual tooltip/labels, up/down coloring, warming poll).
+- Integrated charts: company view — "حركة السعر / Price chart" card at top of the overview panel (COMI 6M +15.66%, 1Y +49.84% verified); overview view — new "رسوم مؤشرات البورصة" section with EGX30/70/100 tabs (index cards now select+scroll to it); 52w-range + performance panels kept below.
+- Index history backfill: flows.ts parseEgxbot now extracts EGX70/EGX100 (EWI optional, range-validated) and EGX30 with a robust fallback; ensureHistory iterates all Sun–Thu sessions of the last 98 days (concurrency 5, null-marker rows for holidays) and persists IndexDay + ParticipationDay; indexHistory() reads it. 57 real sessions stored (Jun 14 → Sep 6), growing daily.
+- News archive: new src/lib/news-archive.ts — WP REST backfill per site (resume-from-known-page, ~90-day coverage target, 45-page cap, per-site error isolation, page retries with backoff, 400ms inter-page delay); RSS items synced every call for freshness; /api/news rewritten with page/limit pagination (total 8,500 posts, coverage since Jul 1); news view rebuilt with "load older" pager, coverage line, 2-min silent refresh; related news now matches Arabic brand names via an alias map (COMI/TMGH verified) and falls back to RSS matching.
+- Investors discoverability: "تدفقات المستثمرين / Investor flows" added to the PRIMARY nav (4th tab) with a clearer label; participation trend now spans 57 real sessions; /api/investors backfill wait bounded to 12s (background completion); /api/news bounded to 10s.
+- Fixed during verification: stale Prisma client in dev (restart); SQLite has no Prisma skipDuplicates → in-memory dedupe; one WP publisher throttling → retries + per-site isolation; EN archive pages omit the "EWI" suffix in index names → optional-suffix regex; duplicate i18n block cleanup; company beta field now returned by the API (latent type error); tsc src errors 0.
+- Verified with agent-browser: company price chart (5 ranges, volume bars, real data), overview index-chart tabs (EGX30 56,676.16 +9.0% 3M; EGX70 switch works), news view 6,000→8,500 items with working load-older (40→80 articles), investors view with primary-nav entry + 3 trend lines + 57-session history, EN toggle ("Price chart", TMGH 97.80 +25.56%), mobile 390px no overflow, dark mode, clean console, lint clean, dev.log 200s only.
+
+Stage Summary:
+- Price charts for EVERY stock (Yahoo real candles) and every index (real EGX session closes from EGXBot, ~3-month series that accumulates daily) — no free source offers multi-year EGX index history; honestly noted in the UI.
+- News is now the full real archive (8,500 articles, ~10 weeks deep, newest→oldest, paginated) instead of today's RSS only.
+- Investor-category flows: one tap away in the top nav, with live Sigma table + deeper real history.
+- Key artifacts: src/lib/{history,news-archive}.ts, src/app/api/chart/route.ts, rewritten /api/news, src/components/market/price-chart.tsx, prisma/schema.prisma (IndexDay, NewsPost), updated flows/company/overview/news views + i18n.
+
+---
+Task ID: 5
+Agent: Super Z (main agent)
+Task: Deep gap analysis — compare esthmr.com's full feature surface against our app and identify what is missing (user: "NOW MAKE DEEP ANALYSIS AND TELL ME WHAT WE MISS").
+
+Work Log:
+- Re-audited esthmr.com in the browser (all views; re-login now impossible — the site rejects disposable emails, old session cookie expired): sectors cards (median P/E, median P/B, dividend yield, biggest mover), market view 4 tabs (prices / ranking+compare / unusual volume / sector+metrics), company 3 tabs (overview / financial statements with 5 periods incl. balance sheet + cash flow + debt-structure / disclosures with signals + filing archive), exchange view (indices + traded value + 5 EGP FX rates + economic indicators), tools (coupon calc with payback + stocks-vs-bank-vs-gold comparison + plain-Arabic glossary), news (impact annotations, publisher logos, TTS, disclosures interleaved), home (behind-the-move flows summary, ranking widget, heatmap, breadth, movers, top news+signals), Arabic search normalization.
+- Probed data feasibility for every gap: Yahoo has NO fundamentals for .CA symbols (crumb flow works, data absent — verified COMI/TMGH); TradingView scanner historical-period columns return null; TradingView DOES serve 14 extra populated fields for EGX (price_book_fq, debt_to_equity, return_on_equity, net_income_ttm, dividends_yield_current, dividend_payout_ratio_ttm, gross_margin_ttm, revenue_growth_quarterly, net_debt, total_current_assets, number_of_employees, float_shares_outstanding, earnings_release_date, beta_1_year); open.er-api.com free live FX incl. EGP; api.gold-api.com free XAU spot; CBE site blocked.
+- Wrote full analysis to scripts/research/GAP-ANALYSIS.md (13 gaps, each with feasibility verdict; thin-data areas; where we lead esthmr; P1/P2/P3 priority plan).
+
+Stage Summary:
+- 13 missing features identified: full statements tab (blocked), disclosures archive (blocked), signals engine (lite buildable), exchange/economy view (buildable: FX+gold+value), ranking metrics incl. P/B/D/E/ROE/net-profit (easy — TV columns verified), sector-card medians (easy), tools comparison+glossary (trivial), 1W chart range (trivial), home behind-the-move summary (easy), Arabic names (curation), Arabic search normalization (minor), company brief (auto-gen), news impact chips (partial).
+- Key unlocks found: TradingView extended columns (verified live values for COMI/SWDY) fill ranking + sector medians + fundamentals gaps; open.er-api + gold-api fill the exchange view.
+- Delivered as in-chat analysis + scripts/research/GAP-ANALYSIS.md.

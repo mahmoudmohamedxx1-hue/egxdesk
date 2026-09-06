@@ -347,7 +347,11 @@ export async function fetchFlows(): Promise<FlowsSnapshot> {
 
 // ────────────────────────────────── EGXBot session report parsing ───
 
-type EgxbotReport = ParticipationPoint & { archiveDates: string[] };
+type EgxbotReport = ParticipationPoint & {
+  egx70Close: number | null;
+  egx100Close: number | null;
+  archiveDates: string[];
+};
 
 function parseEgxbot(html: string, fallbackDate: string): EgxbotReport {
   const text = html
@@ -406,14 +410,36 @@ function parseEgxbot(html: string, fallbackDate: string): EgxbotReport {
     }
   }
 
-  // EGX30 close + change
+  // EGX30 close + change — try the strict "close + change + %" shape first,
+  // then fall back to the first plausible close value anywhere after EGX30.
   let egx30Close: number | null = null;
   let egx30ChangePct: number | null = null;
   const idx = text.match(/EGX30\D{0,40}?([\d,.]+)\s*(?:نقطة)?\s*[+−-]?\s*[\d,.]+\s*[+−-]\s*([\d.]+)%/);
   if (idx) {
     egx30Close = Number(idx[1].replace(/,/g, ""));
     egx30ChangePct = Number(idx[2]);
+  } else {
+    for (const m of text.matchAll(/EGX30\D{0,40}?([\d][\d,.]{3,})/g)) {
+      const v = Number(m[1].replace(/,/g, ""));
+      if (Number.isFinite(v) && v > 10_000 && v < 200_000) {
+        egx30Close = v;
+        break;
+      }
+    }
   }
+
+  // EGX70 EWI / EGX100 EWI closes — the report's market-summary table lists
+  // them right after EGX30; validate the value range to avoid picking up
+  // stray percentages or prose numbers.
+  const pick = (re: RegExp, lo: number, hi: number): number | null => {
+    for (const m of text.matchAll(re)) {
+      const v = Number(m[1].replace(/,/g, ""));
+      if (Number.isFinite(v) && v > lo && v < hi) return v;
+    }
+    return null;
+  };
+  const egx70Close = pick(/EGX70(?:\s*EWI)?\s*([\d][\d,.]*)/gi, 4_000, 60_000);
+  const egx100Close = pick(/EGX100(?:\s*EWI)?\s*([\d][\d,.]*)/gi, 8_000, 80_000);
 
   const archiveDates = [...html.matchAll(/\/en\/market-report\/(\d{4}-\d{2}-\d{2})/g)].map((m) => m[1]);
   const uniqueDates = [...new Set(archiveDates)];
@@ -426,6 +452,8 @@ function parseEgxbot(html: string, fallbackDate: string): EgxbotReport {
     totalValueEgpMn,
     egx30Close,
     egx30ChangePct,
+    egx70Close,
+    egx100Close,
     archiveDates: uniqueDates,
   };
 }
@@ -440,37 +468,19 @@ async function fetchEgxbotPage(path: string): Promise<string> {
 }
 
 /** Current EGXBot session report (30 min cache). */
-export async function fetchEgxbotCurrent(): Promise<ParticipationPoint> {
+export async function fetchEgxbotCurrent(): Promise<EgxbotReport> {
   return cached("egxbot:current", 1_800_000, async () => {
     const html = await fetchEgxbotPage("/en/market-report");
-    const r = parseEgxbot(html, marketStatus().lastSession);
-    return {
-      date: r.date,
-      egyptiansPct: r.egyptiansPct,
-      arabsPct: r.arabsPct,
-      foreignersPct: r.foreignersPct,
-      totalValueEgpMn: r.totalValueEgpMn,
-      egx30Close: r.egx30Close,
-      egx30ChangePct: r.egx30ChangePct,
-    };
+    return parseEgxbot(html, marketStatus().lastSession);
   });
 }
 
 /** Immutable archive page (cached for the process lifetime). */
-async function fetchEgxbotArchive(date: string): Promise<ParticipationPoint | null> {
+async function fetchEgxbotArchive(date: string): Promise<EgxbotReport | null> {
   return cached(`egxbot:arc:${date}`, 86_400_000, async () => {
     try {
       const html = await fetchEgxbotPage(`/en/market-report/${date}`);
-      const r = parseEgxbot(html, date);
-      return {
-        date,
-        egyptiansPct: r.egyptiansPct,
-        arabsPct: r.arabsPct,
-        foreignersPct: r.foreignersPct,
-        totalValueEgpMn: r.totalValueEgpMn,
-        egx30Close: r.egx30Close,
-        egx30ChangePct: r.egx30ChangePct,
-      };
+      return parseEgxbot(html, date);
     } catch {
       return null;
     }
@@ -543,30 +553,98 @@ async function upsertParticipation(p: ParticipationPoint) {
   }
 }
 
+/** Store one day's real index closes (nulls allowed as "checked, no data"). */
+async function upsertIndexDay(r: EgxbotReport) {
+  try {
+    await db.indexDay.upsert({
+      where: { date: r.date },
+      create: {
+        date: r.date,
+        egx30: r.egx30Close,
+        egx70: r.egx70Close,
+        egx100: r.egx100Close,
+      },
+      update: {
+        egx30: r.egx30Close,
+        egx70: r.egx70Close,
+        egx100: r.egx100Close,
+        capturedAt: new Date(),
+      },
+    });
+  } catch (err) {
+    console.error("flows: index day persist failed", err);
+  }
+}
+
+/** Sun–Thu trading dates (Africa/Cairo week), oldest first, excluding today —
+ *  today is covered separately by the live current-report fetch. */
+function tradingDaysBack(calendarDays: number): string[] {
+  const cairoNow = new Date(Date.now() + 3 * 3600 * 1000);
+  const today = Date.UTC(cairoNow.getUTCFullYear(), cairoNow.getUTCMonth(), cairoNow.getUTCDate());
+  const out: string[] = [];
+  for (let i = 1; i <= calendarDays; i++) {
+    const d = new Date(today - i * 86_400_000);
+    const wd = d.getUTCDay(); // 0 Sun … 6 Sat
+    if (wd !== 5 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+  }
+  return out.reverse();
+}
+
+/** Fetch a bounded list of dates with small concurrency. */
+async function mapLimit<T>(items: string[], limit: number, fn: (item: string) => Promise<T>): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; i < items.length; i += limit) {
+    const chunk = items.slice(i, i + limit);
+    out.push(...(await Promise.all(chunk.map(fn))));
+  }
+  return out;
+}
+
 let historyEnsured = false;
 
-/** Make sure we have the participation history backfilled from EGXBot's
- *  public archive (bounded: at most the ~12 archived sessions) and the
- *  current report stored. Runs at most once per process. */
+/** One-time-per-process backfill of REAL daily history from EGXBot's public
+ *  archive: participation % by nationality + EGX30/EGX70/EGX100 closes for
+ *  every Sun–Thu session of the last ~14 weeks. Results persist in SQLite
+ *  (null-marker rows mark holidays so they are not refetched), and each new
+ *  trading day is appended automatically as the app keeps running. */
 export async function ensureHistory(): Promise<void> {
   if (historyEnsured) return;
   historyEnsured = true;
   try {
+    // 1) live current report → participation + today's index closes
     const current = await fetchEgxbotCurrent();
     await upsertParticipation(current);
+    await upsertIndexDay(current);
 
-    // archive links from the same current report page
-    const html = await fetchEgxbotPage("/en/market-report");
-    const dates = [...new Set([...html.matchAll(/\/en\/market-report\/(\d{4}-\d{2}-\d{2})/g)].map((m) => m[1]))];
-    const existing = new Set((await db.participationDay.findMany({ select: { date: true } })).map((r) => r.date));
-    const missing = dates.filter((d) => !existing.has(d)).slice(0, 15);
-    const results = await Promise.allSettled(missing.map((d) => fetchEgxbotArchive(d)));
-    for (const r of results) {
-      if (r.status === "fulfilled" && r.value) await upsertParticipation(r.value);
+    // 2) backfill past sessions from the dated archive pages
+    const dates = tradingDaysBack(98);
+    const existing = new Set((await db.indexDay.findMany({ select: { date: true } })).map((r) => r.date));
+    const missing = dates.filter((d) => !existing.has(d));
+    const reports = await mapLimit(missing, 5, (d) => fetchEgxbotArchive(d));
+    for (const r of reports) {
+      if (!r) continue; // network/5xx hiccup — retried on next process start
+      await upsertIndexDay(r); // marker row even when values are null (holidays)
+      if (r.egyptiansPct !== null || r.totalValueEgpMn !== null || r.egx30Close !== null) {
+        await upsertParticipation(r);
+      }
     }
   } catch (err) {
     console.error("flows: history backfill failed", err);
   }
+}
+
+/** Real index close history from the persisted archive, oldest first.
+ *  @param days  window length in calendar days
+ *  @param key   "egx30" | "egx70" | "egx100" */
+export async function indexHistory(days: number, key: "egx30" | "egx70" | "egx100"): Promise<{ date: string; close: number }[]> {
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const rows = await db.indexDay.findMany({
+    where: { date: { gte: cutoff } },
+    orderBy: { date: "asc" },
+  });
+  return rows
+    .filter((r) => r[key] !== null)
+    .map((r) => ({ date: r.date, close: r[key] as number }));
 }
 
 /** Stored flow history, newest first (today included once persisted). */
