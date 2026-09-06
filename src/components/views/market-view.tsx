@@ -172,6 +172,13 @@ export function MarketView() {
             <X className="h-3 w-3" /> {tt(T.clearFilters, lang)}
           </button>
         )}
+        <button
+          onClick={() => navigate("screener")}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          title={tt(T.screenerNote, lang)}
+        >
+          <Filter className="h-3 w-3" /> {tt(T.fullScreener, lang)}
+        </button>
         <span className="flex-1" />
         {tab === "rank" && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">

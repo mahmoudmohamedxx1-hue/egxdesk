@@ -6,6 +6,7 @@ import { T, tt } from "@/lib/i18n";
 import { SearchDialog } from "./search-dialog";
 import { OverviewView } from "@/components/views/overview-view";
 import { MarketView } from "@/components/views/market-view";
+import { ScreenerView } from "@/components/views/screener-view";
 import { SectorsView } from "@/components/views/sectors-view";
 import { HeatView } from "@/components/views/heat-view";
 import { ActivityView } from "@/components/views/activity-view";
@@ -40,6 +41,7 @@ const PRIMARY_NAV = [
 function sectionTabs(currentView: string) {
   const all = [
     { view: "market", t: T.market },
+    { view: "screener", t: { ar: "الفرز", en: "Screener" } },
     { view: "investors", t: T.investors },
     { view: "activity", t: T.activity },
     { view: "heat", t: T.map },
@@ -133,7 +135,8 @@ export function AppShell() {
             {PRIMARY_NAV.map((item) => {
               const active =
                 (item.view === "home" && (view.name === "home" || view.name === "exchange")) ||
-                (item.view === "market" && (view.name === "market" || view.name === "company")) ||
+                (item.view === "market" &&
+                  (view.name === "market" || view.name === "company" || view.name === "screener")) ||
                 view.name === item.view;
               return (
                 <button
@@ -184,6 +187,7 @@ export function AppShell() {
           </a>
           {view.name === "home" && <OverviewView />}
           {view.name === "market" && <MarketView />}
+          {view.name === "screener" && <ScreenerView />}
           {view.name === "sectors" && <SectorsView />}
           {view.name === "heat" && <HeatView />}
           {view.name === "activity" && <ActivityView />}

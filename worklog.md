@@ -120,3 +120,26 @@ Work Log:
 Stage Summary:
 - esthmr's two "impossible" features are now REAL: full per-period financial statements (stockanalysis.com) and a press-derived disclosures log per company; plus signals-lite, exchange/economy view (FX+gold), 11-metric ranking with compare column, sector medians, tools comparison+glossary, 1W chart range, home behind-the-move section.
 - Key artifacts: src/lib/{statements,economy,signals}.ts, src/app/api/{economy,statements/[ticker]}/route.ts, src/components/{views/exchange-view,market/statements-panel}.tsx, updated {market,history,news-archive,i18n}.ts + company/market/sectors/tools/overview views + app-shell.
+
+---
+Task ID: 7
+Agent: Super Z (main agent)
+Task: Add Investing.com-style stock screener + chart technical indicators, then run deep E2E/agentic-browser tests as an end user and fix every issue found (user: "ADD FILTERS TO SEARCH STOCKS WITH ALL THE FILTERS LIKE INVESTING.COM AND TO ADD ALSO SOME INDICATORS TO THE CHARTS MAKE THOSE FIRST THEN RUN YOUR TEST").
+
+Work Log:
+- Built NEW view src/components/views/screener-view.tsx (الفرز / Screener, ?view=screener): preset chips (gainers/losers/dividend payers/P-E<10/unusual vol 2x+/large caps), collapsible filter panel with grouped fields — basics (text search + 21-sector dropdown), price & performance (price min/max, session change %, performance min/max with 8-period selector 1W/1M/3M/6M/YTD/1Y/3Y/5Y), valuation & profitability (P/E, P/B, yield, ROE, D/E, EPS, market cap in EGP mn), activity (volume min, value traded min, vol÷usual min), 52w position (near high 95%+/near low <10%/any); rows missing a bounded metric are excluded (noted in UI); active-filter chips with per-chip removal + clear-all; sortable 11-column results table (missing-metric rows sink); all client-side on the live /api/companies rows.
+- Wired discoverability: section-tab "الفرز" (Explore active-state extended), full-screener link in market view controls, "open the stock screener" footer link in the search dialog.
+- Rewrote src/components/market/price-chart.tsx with client-computed indicators: SMA20 (default on), SMA50, EMA20, Bollinger(20,2) overlays; RSI(14) sub-panel with 30/50/70 guide lines + overbought/oversold/neutral state chip; MACD(12,26,9) sub-panel with per-bar up/down histogram + macd/signal lines + current values; Volume MA(20) line on the volume axis; toggle chips with colored dots (palette vars --c1..--c8), availability-gated per range length (disabled chips + "not enough points" note e.g. 1W), synced tooltip cursors across panels (syncId), extended bilingual tooltip rows, overlay legend, indicator provenance note.
+- i18n: ~85 new keys (screener groups/filters/presets/columns + indicator names/panels/states).
+
+Issues found by agentic E2E and fixed:
+1. Bollinger bands silently not rendering — recharts 2.x does not traverse children wrapped in a React Fragment; unwrapped the 3 BB <Line>s into individual {sBb && <Line/>} conditionals (verified: 3 var(--c4) curves render).
+2. Vol MA toggle button only rendered while already enabled (could never be re-enabled after switching off); now shows whenever volume + 21 points exist.
+3. Investigated flaky dev-mode hydration error (Radix useId mismatch, ~50% of dev reloads): isolated storage/theme/lang as NOT the cause; ran production build + next start stress test (6 reloads + all-view tests on :3101) — ZERO hydration/console errors in production, zero non-200s in prod.log → classified as a Next.js dev-overlay/HMR artifact, not a user-facing bug; documented here.
+
+E2E verification (agent-browser as end user): screener 296→133 (gainers preset)→296 (chip removal)→106 (price 10–50)→26 (+banks sector); sort by close desc/asc verified incl. missing-metric sink; row click → company view; FAIT/COMI charts: 9 curves with BB/RSI/MACD/SMA all rendering (DOM + VLM visual checks), RSI state chip, MACD histogram bars, Vol MA toggle persistence, 1W all-disabled + note; overview EGX30 index chart + RSI; all 11 views render (market/sectors/heat/activity/investors/news/watchlist/tools/exchange/company incl. statements+disclosures tabs); search dialog type-ahead + result navigation + screener link; watchlist from localStorage; EN/LTR + dark + mobile 390px no-overflow (screener, company chart, home); console clean (prod); tsc src 0 errors; eslint clean.
+
+Stage Summary:
+- Two new user-facing features delivered: a full Investing.com-style stock screener (16 filter dimensions + 6 presets + sortable results) and a technical-indicators suite on every stock/index chart (SMA/EMA/BB overlays + RSI + MACD + Vol MA panels).
+- Deep E2E (DOM-level + visual VLM + production-build stress) completed with 2 real bugs found & fixed and 1 dev-only artifact root-caused.
+- Key artifacts: src/components/views/screener-view.tsx, rewritten src/components/market/price-chart.tsx, updated app-shell.tsx / search-dialog.tsx / market-view.tsx / i18n.ts; screenshots in scripts/data-test/t7-*.png.

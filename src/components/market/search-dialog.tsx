@@ -23,6 +23,18 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const [loading, setLoading] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  function go(ticker: string) {
+    onOpenChange(false);
+    setQ("");
+    navigate("company", { ticker, panel: "overview" });
+  }
+
+  function openScreener() {
+    onOpenChange(false);
+    setQ("");
+    navigate("screener");
+  }
+
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     if (!q.trim()) {
@@ -45,12 +57,6 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       if (timer.current) clearTimeout(timer.current);
     };
   }, [q]);
-
-  function go(ticker: string) {
-    onOpenChange(false);
-    setQ("");
-    navigate("company", { ticker, panel: "overview" });
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,6 +101,12 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             </button>
           ))}
         </div>
+        <button
+          onClick={openScreener}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors text-start"
+        >
+          {tt(T.openScreener, lang)}
+        </button>
       </DialogContent>
     </Dialog>
   );
