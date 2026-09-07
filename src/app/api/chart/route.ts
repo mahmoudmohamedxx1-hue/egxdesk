@@ -65,9 +65,12 @@ export async function GET(req: NextRequest) {
   if (symbol in INDEX_KEYS) {
     const code = symbol as IndexCode;
     const range =
-      rangeParam === "1W" || rangeParam === "1M" || rangeParam === "3M" || rangeParam === "6M" || rangeParam === "ALL"
+      rangeParam === "1W" || rangeParam === "1M" || rangeParam === "3M" || rangeParam === "6M" || rangeParam === "1Y" || rangeParam === "5Y" || rangeParam === "ALL"
         ? rangeParam
         : "3M";
+    // 1Y/5Y/ALL all read the full stored archive (the published record
+    // reaches back to Nov 2025 and grows daily) — the chart labels the
+    // first date, so the window is honest about what it holds.
     const days = range === "1W" ? 9 : range === "1M" ? 31 : range === "3M" ? 95 : range === "6M" ? 190 : 400;
     // warm the archive in the background; the client polls and picks up rows
     ensureHistory().catch(() => {});
@@ -88,7 +91,7 @@ export async function GET(req: NextRequest) {
       ...stats(mapped),
       source: "EGXBot — real daily closes (EGX sessions)",
       warming: points.length < 5,
-      availableRanges: ["1M", "3M", "6M", "ALL"],
+      availableRanges: ["1M", "3M", "6M", "1Y", "ALL"],
     };
     return NextResponse.json(body);
   }

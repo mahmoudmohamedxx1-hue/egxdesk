@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, fetchNews, relatedNews, sectorAr, sectorCode, companyRow, sessionMeta, type Stock } from "@/lib/market";
 import { ensureNewsArchive, relatedNewsArchive, companyDisclosures } from "@/lib/news-archive";
 import { computeSignals } from "@/lib/signals";
+import { arCompanySector } from "@/lib/ar-names";
 
 function median(vals: number[]): number | null {
   if (!vals.length) return null;
@@ -40,7 +41,7 @@ export async function GET(
     const peerPool = stocks.filter((s) => s.sector === company.sector);
     const sectorAgg = {
       count: peerPool.length,
-      nameAr: sectorAr(company.sector),
+      nameAr: arCompanySector(t) ?? sectorAr(company.sector),
       nameEn: company.sector || "Unclassified",
       pe: median(peerPool.map((s) => s.pe).filter((v): v is number => v !== null)),
       pb: median(peerPool.map((s) => s.pb).filter((v): v is number => v !== null)),

@@ -3,6 +3,10 @@
 export type CompanyRow = {
   ticker: string;
   name: string;
+  /** Official EGX Arabic name (falls back to English name server-side). */
+  nameAr: string;
+  /** True when the exchange quotes this listing in US dollars. */
+  usdQuoted?: boolean;
   sectorEn: string;
   sectorAr: string;
   sectorCode: string;
@@ -60,6 +64,7 @@ export type SessionMeta = {
 export type IndexRow = {
   code: string;
   name: string;
+  nameAr?: string;
   close: number;
   changePct: number;
   changeAbs: number;

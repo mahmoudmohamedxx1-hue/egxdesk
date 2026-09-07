@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, NewsRow, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, fmtInt, fmtDateAr, fmtTimeAr, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -108,7 +108,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
       ? (lang === "ar" ? "مرتفع" : "up")
       : (lang === "ar" ? "منخفض" : "down");
     const text = lang === "ar"
-      ? `${c.ticker}. ${c.name}. آخر سعر ${fmtNum(c.close)} جنيه، ${dir} بنسبة ${fmtNum(Math.abs(c.changePct))} بالمئة.`
+      ? `${c.ticker}. ${dn(c, lang)}. آخر سعر ${fmtNum(c.close)} جنيه، ${dir} بنسبة ${fmtNum(Math.abs(c.changePct))} بالمئة.`
       : `${c.ticker}. ${c.name}. Last ${fmtNum(c.close)} Egyptian pounds, ${dir} ${fmtNum(Math.abs(c.changePct))} percent.`;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang === "ar" ? "ar-EG" : "en-US";
@@ -168,7 +168,13 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
               {lang === "ar" ? c.sectorAr : c.sectorEn}
               {c.industry ? ` · ${c.industry}` : ""}
             </p>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{c.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{dn(c, lang)}</h1>
+            {lang === "ar" && c.nameAr && c.nameAr !== c.name && (
+              <p className="text-xs text-muted-foreground truncate">{c.name}</p>
+            )}
+            {lang === "en" && c.nameAr && (
+              <p className="text-xs text-muted-foreground truncate" dir="rtl">{c.nameAr}</p>
+            )}
             <p className="num text-xs text-muted-foreground">EGX · EGP · {tt(T.delayed, lang)}</p>
           </div>
           <div className="text-end space-y-0.5">
@@ -371,7 +377,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
                     <tr key={p.ticker} className="hover:bg-accent/30 cursor-pointer transition-colors"
                       onClick={() => navigate("company", { ticker: p.ticker, panel: "fundamentals" })}>
                       <td className="num px-3 py-2.5 font-bold">{p.ticker}</td>
-                      <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">{p.name}</td>
+                      <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">{dn(p, lang)}</td>
                       <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(p.close)}</td>
                       <td className="px-3 py-2.5 text-end"><ChangeCell pct={p.changePct} /></td>
                       <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">EGP {fmtValue(p.marketCap)}</td>

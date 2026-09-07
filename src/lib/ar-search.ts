@@ -79,6 +79,22 @@ export const AR_ALIASES: Record<string, string[]> = {
   POUL: ["القاهرة للدواجن"],
   SAUD: ["البركة", "بنك البركة"],
   ISPH: ["ابن سينا", "ابن سينا فارما"],
+  // The 14 listings the exchange directory carries without an Arabic name —
+  // press-standard renderings so no row ever shows Latin-only in Arabic mode.
+  ANCC: ["النهضة للصناعات"],
+  CID: ["الصناعات الكيماوية للتنمية"],
+  EEP: ["منصة مصر للتعليم"],
+  EGOTH: ["صندوق المصرية للسياحة إيجي إكس 100"],
+  GOUR: ["جورميه مصر للأغذية"],
+  GROV: ["جروفا للاستحواذ ذات غرض خاص"],
+  KNGC: ["النصر للزجاج والكريستال"],
+  LKGP: ["مجموعة لاكه القابضة للاستثمار المالي"],
+  MITR: ["صندوق مصر للسفر والسياحة"],
+  MMHC: ["المعمورة للتعمير والتنمية السياحية"],
+  NFCI: ["النصر للأسمدة والصناعات الكيماوية"],
+  NMIN: ["صندوق النصر للتعدين"],
+  OCAP: ["أو جي كابيتال للاستثمار"],
+  YAYT: ["الينابيع لصناعة احتياجات النقل"],
 };
 
 /** Best Arabic display name for a ticker (first alias) or null. */

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, sectorAr } from "@/lib/market";
 import { matchArabic, normalizeAr, arabicName, AR_ALIASES } from "@/lib/ar-search";
+import { arName, arCompanySector } from "@/lib/ar-names";
 
 /** GET /api/search?q= — type-ahead live company search.
  *  Matches ticker / English name / industry, plus the curated Arabic
@@ -44,8 +45,8 @@ export async function GET(req: NextRequest) {
       .map(({ c }) => ({
         ticker: c.ticker,
         name: c.name,
-        nameAr: arabicName(c.ticker),
-        sectorAr: sectorAr(c.sector),
+        nameAr: arName(c.ticker) ?? arabicName(c.ticker),
+        sectorAr: arCompanySector(c.ticker) ?? sectorAr(c.sector),
         sectorEn: c.sector || "Unclassified",
         close: c.close,
         changePct: c.changePct,

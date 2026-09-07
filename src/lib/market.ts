@@ -61,6 +61,8 @@ export type Stock = {
 export type IndexQuote = {
   code: "EGX30" | "EGX70" | "EGX100";
   name: string;
+  /** Standard Arabic index label (إيجي إكس ٣٠ …). */
+  nameAr: string;
   close: number;
   changePct: number;
   changeAbs: number;
@@ -127,6 +129,15 @@ const INDEX_TICKERS: { symbol: string; code: IndexQuote["code"] }[] = [
   { symbol: "EGX:EGX70EWI", code: "EGX70" },
   { symbol: "EGX:EGX100EWI", code: "EGX100" },
 ];
+
+/** The exchange's own Arabic labels for its three headline indices. */
+const INDEX_AR: Record<IndexQuote["code"], string> = {
+  EGX30: "إيجي إكس 30",
+  EGX70: "إيجي إكس 70",
+  EGX100: "إيجي إكس 100",
+};
+
+import { arName, arCompanySector, isUsdQuoted } from "./ar-names";
 
 const NEWS_FEEDS: { url: string; source: string }[] = [
   { url: "https://www.alborsaanews.com/feed", source: "جريدة البورصة" },
@@ -307,6 +318,7 @@ export async function fetchIndices(): Promise<IndexQuote[]> {
       const idx: IndexQuote = {
         code,
         name: String(d[1] ?? d[0] ?? code),
+        nameAr: INDEX_AR[code],
         close: n(d[2]) ?? 0,
         changePct: n(d[3]) ?? 0,
         changeAbs: n(d[4]) ?? 0,
@@ -432,9 +444,14 @@ export function companyRow(s: Stock) {
   return {
     ticker: s.ticker,
     name: s.name,
+    // Official EGX Arabic name (exchange directory), curated alias, then English.
+    nameAr: arName(s.ticker) ?? s.name,
     sectorEn: s.sector || "Unclassified",
-    sectorAr: sectorAr(s.sector),
+    sectorAr: arCompanySector(s.ticker) ?? sectorAr(s.sector),
     sectorCode: sectorCode(s.sector),
+    // Listings the exchange quotes in dollars — flagged so a pound column
+    // never prints an eleven-times-wrong number without saying so.
+    usdQuoted: isUsdQuoted(s.ticker),
     close: s.close,
     changePct: s.changePct,
     changeAbs: s.changeAbs,

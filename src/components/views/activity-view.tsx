@@ -3,7 +3,7 @@
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtValue, fmtInt, fmtNum } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -108,7 +108,7 @@ export function ActivityView() {
                     onClick={() => navigate("company", { ticker: r.ticker, panel: "activity" })}>
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
-                    <td className="px-3 py-2.5 hidden md:table-cell max-w-[260px] truncate text-muted-foreground">{r.name}</td>
+                    <td className="px-3 py-2.5 hidden md:table-cell max-w-[260px] truncate text-muted-foreground">{dn(r, lang)}</td>
                     <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}</td>
                     <td className="px-3 py-2.5 text-end"><ChangeCell pct={r.changePct} /></td>
                     <td className="num px-3 py-2.5 text-end font-semibold text-primary">EGP {fmtValue(r.valueTraded)}</td>
@@ -143,7 +143,7 @@ export function ActivityView() {
                   <span className="num text-sm font-bold">{r.ticker}</span>
                   <ChangeCell pct={r.changePct} />
                 </div>
-                <p className="truncate text-xs text-muted-foreground">{r.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{dn(r, lang)}</p>
               </div>
               <div className="text-end shrink-0">
                 <p className="num text-sm font-semibold text-primary">{fmtNum(r.volumeRatio, 1)}×</p>

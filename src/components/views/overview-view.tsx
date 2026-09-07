@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
-import { DivergingBars } from "../market/charts";
+import { DivergingBars, BreadthTrend } from "../market/charts";
 import { PriceChart } from "../market/price-chart";
 import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -18,6 +18,7 @@ type Overview = {
   session: SessionMeta;
   indices: IndexRow[];
   breadth: { total: number; up: number; down: number; flat: number };
+  breadthHistory?: { date: string; up: number; down: number; flat: number; counted: number }[];
   flowsSummary?: {
     asOf: string;
     egyNet: number;
@@ -95,7 +96,7 @@ export function OverviewView() {
         {data.indices.map((ix) => (
           <button key={ix.code} onClick={() => { setIndexSel(ix.code); document.getElementById("index-charts")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{ix.name}</p>
+              <p className="text-sm text-muted-foreground">{lang === "ar" && ix.nameAr ? ix.nameAr : ix.name}</p>
               {ix.perfYTD !== null && (
                 <span className={`num text-[10px] font-medium px-1.5 py-0.5 rounded-sm ${directionClass(ix.perfYTD)} ${ix.perfYTD > 0 ? "bg-up-soft" : "bg-down-soft"}`}>
                   {lang === "ar" ? "من بداية العام" : "YTD"} {fmtPct(ix.perfYTD)}
@@ -156,6 +157,14 @@ export function OverviewView() {
         <p className="mt-2 text-[11px] text-muted-foreground">
           {lang === "ar" ? "القيمة ≈ حجم الجلسة × آخر سعر لكل سهم." : "Value ≈ session volume × last price per stock."}
         </p>
+        {data.breadthHistory && data.breadthHistory.length > 1 && (
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-xs font-semibold text-muted-foreground mb-1">
+              {lang === "ar" ? "اتساع حركة السوق — آخر الجلسات المسجلة" : "Market breadth trend — recent stored sessions"}
+            </p>
+            <BreadthTrend data={data.breadthHistory} lang={lang} />
+          </div>
+        )}
       </section>
 
       {/* behind the market move — real investor-category net flows */}
@@ -248,7 +257,7 @@ export function OverviewView() {
                   <span className="num text-sm font-bold">{r.ticker}</span>
                   <ChangeCell pct={r.changePct} />
                 </div>
-                <p className="truncate text-xs text-muted-foreground">{r.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{dn(r, lang)}</p>
               </div>
               <div className="text-end shrink-0">
                 <p className="num text-sm font-semibold text-primary">{fmtNum(r.volumeRatio, 1)}×</p>
@@ -294,7 +303,7 @@ export function OverviewView() {
               <WatchStar ticker={r.ticker} />
               <div className="min-w-0 flex-1">
                 <span className="num text-sm font-bold">{r.ticker}</span>
-                <p className="truncate text-xs text-muted-foreground">{r.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{dn(r, lang)}</p>
               </div>
               <div className="num text-sm font-semibold">{fmtNum(r.close)}</div>
               <ChangeCell pct={r.changePct} />

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -75,6 +75,7 @@ export function MarketView() {
         (r) =>
           r.ticker.toLowerCase().includes(needle) ||
           r.name.toLowerCase().includes(needle) ||
+          (r.nameAr ?? "").includes(q) ||
           (lang === "ar" ? r.sectorAr : r.sectorEn).includes(q) ||
           rowMatchesArabic(r.ticker, q)
       );
@@ -257,12 +258,12 @@ export function MarketView() {
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
                     <td className="px-3 py-2.5 hidden md:table-cell max-w-[260px] truncate text-muted-foreground">
-                      {r.name}
+                      {dn(r, lang)}
                     </td>
                     <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted-foreground max-w-[160px] truncate">
                       {lang === "ar" ? r.sectorAr : r.sectorEn}
                     </td>
-                    <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}</td>
+                    <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}{r.usdQuoted ? <span className="ms-1 text-[9px] text-muted-foreground">US$</span> : null}</td>
                     <td className="px-3 py-2.5 text-end"><ChangeCell pct={r.changePct} /></td>
                     {tab === "unusual" ? (
                       <td className="num px-3 py-2.5 text-end font-semibold text-primary">

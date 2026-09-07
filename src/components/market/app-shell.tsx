@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
-import { SearchDialog } from "./search-dialog";
+import { HeaderSearch } from "./header-search";
 import { OverviewView } from "@/components/views/overview-view";
 import { MarketView } from "@/components/views/market-view";
 import { ScreenerView } from "@/components/views/screener-view";
@@ -25,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Languages, Moon, Sun, ChevronDown } from "lucide-react";
+import { Languages, Moon, Sun, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
 
 const PRIMARY_NAV = [
@@ -55,7 +54,6 @@ function sectionTabs(currentView: string) {
 
 export function AppShell() {
   const { lang, setLang, view, navigate, status } = useApp();
-  const [searchOpen, setSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
   return (
@@ -92,10 +90,8 @@ export function AppShell() {
             </div>
 
             <div className="flex items-center gap-1.5">
-              <Button variant="ghost" size="sm" onClick={() => setSearchOpen(true)} aria-label={tt(T.searchCompany, lang)}>
-                <Search className="h-4 w-4" />
-                <span className="hidden md:inline text-xs">{tt(T.searchCompany, lang)}</span>
-              </Button>
+              {/* inline header search — expands inside the header, never a modal */}
+              <HeaderSearch />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -218,7 +214,6 @@ export function AppShell() {
         </div>
       </footer>
 
-      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

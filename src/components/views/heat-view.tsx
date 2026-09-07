@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtPct } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -133,10 +133,11 @@ export function HeatView() {
                     onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
                     style={{ backgroundColor: bg, color: fg }}
                     className={`${span} flex flex-col items-center justify-center rounded-md p-2 min-h-14 transition-transform hover:scale-105 hover:z-10`}
-                    title={`${r.ticker} · ${fmtPct(r.changePct)}`}
+                    title={`${r.ticker} · ${dn(r, lang)} · ${fmtPct(r.changePct)}`}
                   >
                     <span className="num text-xs font-bold">{r.ticker}</span>
-                    <span className="num text-[10px]">{fmtPct(r.changePct)}</span>
+                    <span className={`num text-[10px] ${span ? "" : "hidden sm:inline"}`}>{fmtPct(r.changePct)}</span>
+                    <span className={`truncate text-[9px] leading-tight opacity-90 ${span ? "" : "hidden md:block"}`}>{dn(r, lang)}</span>
                   </button>
                 );
               })}

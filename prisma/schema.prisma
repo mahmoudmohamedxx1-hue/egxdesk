@@ -256,3 +256,15 @@ model ParticipationDay {
   source        String   @default("egxbot")
   capturedAt    DateTime @default(now())
 }
+
+/** Daily market breadth (how many listed shares rose / fell / held) —
+ *  imported from the published exchange record. */
+model BreadthDay {
+  date       String   @id // YYYY-MM-DD trading session
+  up         Int?
+  down       Int?
+  flat       Int?
+  counted    Int?
+  source     String   @default("esthmr")
+  capturedAt DateTime @default(now())
+}

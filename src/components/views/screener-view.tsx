@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
-import { T, tt, type Lang } from "@/lib/i18n";
+import { T, tt, dn, type Lang } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, fmtInt, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -341,7 +341,7 @@ export function ScreenerView() {
     const needle = f.q.trim().toLowerCase();
     const out = rows.filter((r) => {
       if (needle) {
-        const hay = `${r.ticker} ${r.name} ${r.sectorEn} ${r.sectorAr}`.toLowerCase();
+        const hay = `${r.ticker} ${r.name} ${r.nameAr ?? ""} ${r.sectorEn} ${r.sectorAr}`.toLowerCase();
         if (!hay.includes(needle) && !rowMatchesArabic(r.ticker, f.q.trim())) return false;
       }
       if (f.sector && r.sectorCode !== f.sector) return false;
@@ -730,7 +730,7 @@ export function ScreenerView() {
                     </td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
                     <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">
-                      {r.name}
+                      {dn(r, lang)}
                     </td>
                     <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted-foreground max-w-[150px] truncate">
                       {lang === "ar" ? r.sectorAr : r.sectorEn}

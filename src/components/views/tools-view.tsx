@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Calculator, TrendingUp, Scale, BookOpen } from "lucide-react";
 
-type Row = { ticker: string; name: string; close: number; divYield: number | null };
+type Row = { ticker: string; name: string; nameAr?: string; close: number; divYield: number | null };
 
 export function ToolsView() {
   const { lang } = useApp();
@@ -28,7 +28,7 @@ export function ToolsView() {
     if (!query.trim()) return [];
     const s = query.trim().toLowerCase();
     return companies
-      .filter((c) => c.ticker.toLowerCase().includes(s) || c.name.toLowerCase().includes(s))
+      .filter((c) => c.ticker.toLowerCase().includes(s) || c.name.toLowerCase().includes(s) || (c.nameAr ?? "").includes(query.trim()))
       .slice(0, 6);
   }, [query, companies]);
 
@@ -36,7 +36,7 @@ export function ToolsView() {
     setPrice(+c.close.toFixed(2));
     // derive a plausible annual coupon from yield if present
     setCoupon(c.divYield ? +(c.close * (c.divYield / 100)).toFixed(2) : 0);
-    setQuery(`${c.ticker} — ${c.name}`);
+    setQuery(`${c.ticker} — ${dn(c, lang)}`);
   }
 
   const shares = price > 0 ? Math.floor(amount / price) : 0;
@@ -96,7 +96,7 @@ export function ToolsView() {
                       {matches.map((m) => (
                         <button key={m.ticker} onClick={() => pick(m)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-xs hover:bg-accent/50">
                           <span className="min-w-0 truncate">
-                            <span className="num font-semibold">{m.ticker}</span> · {m.name}
+                            <span className="num font-semibold">{m.ticker}</span> · {dn(m, lang)}
                           </span>
                           <span className="num shrink-0 text-muted-foreground">{fmtNum(m.close)}</span>
                         </button>

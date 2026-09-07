@@ -7,6 +7,8 @@ import {
   Cell,
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -227,6 +229,48 @@ export function TrendLines({
             />
           ))}
         </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** ─────────────────────────────────────────────────────────────────────
+ *  Market-breadth trend: for each stored session, a thin stacked bar of
+ *  risers (green) over fallers (red) — how widely the market moved,
+ *  beyond what the headline index says. Real stored sessions only.
+ *  ───────────────────────────────────────────────────────────────────── */
+export function BreadthTrend({
+  data,
+  lang,
+}: {
+  data: { date: string; up: number; down: number; flat: number; counted?: number }[];
+  lang: "ar" | "en";
+}) {
+  if (!data || data.length < 2) return null;
+  return (
+    <div dir="ltr" className="h-16 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }} barCategoryGap="1">
+          <XAxis dataKey="date" hide />
+          <YAxis hide />
+          <Tooltip
+            cursor={{ fill: "var(--accent)", fillOpacity: 0.08 }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload as { date: string; up: number; down: number; flat: number; counted?: number };
+              return (
+                <div dir={lang === "ar" ? "rtl" : "ltr"} className="rounded-md border bg-popover px-2.5 py-1.5 text-[11px] shadow-md">
+                  <p className="num mb-0.5">{d.date}</p>
+                  <p className="text-up num">{lang === "ar" ? "صعدت" : "Up"}: {d.up}</p>
+                  <p className="text-down num">{lang === "ar" ? "هبطت" : "Down"}: {d.down}</p>
+                  <p className="text-muted-foreground num">{lang === "ar" ? "ثابتة" : "Flat"}: {d.flat}</p>
+                </div>
+              );
+            }}
+          />
+          <Bar dataKey="up" stackId="a" fill="var(--up)" />
+          <Bar dataKey="down" stackId="a" fill="var(--down)" />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

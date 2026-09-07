@@ -3,11 +3,11 @@
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { IndexRow, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, directionClass } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownRight, RefreshCw, Coins, Globe2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, RefreshCw, Coins, Globe2, LineChart, TrendingUp } from "lucide-react";
 
 type FxRate = {
   code: string;
@@ -23,12 +23,31 @@ type EconomyData = {
     usdPerOunce: number | null;
     egpPerGram: number | null;
     egpPerGram21: number | null;
+    egpPerGram18: number | null;
     asOf: string | null;
   };
+  world?: {
+    quotes: {
+      key: string;
+      nameAr: string;
+      nameEn: string;
+      group: "index" | "commodity";
+      price: number | null;
+      changePct: number | null;
+      currency: string;
+      unitAr: string;
+      unitEn: string;
+      whyAr: string;
+      whyEn: string;
+    }[];
+    silver: { usdPerOunce: number | null; egpPerGram: number | null };
+    asOf: string | null;
+  } | null;
   fxUpdatedAt: string | null;
   sources: { name: string; url: string; role: string }[];
   fxNote: { ar: string; en: string };
   goldNote: { ar: string; en: string };
+  worldNote?: { ar: string; en: string };
 };
 
 type OverviewLite = {
@@ -83,7 +102,7 @@ export function ExchangeView() {
         <section aria-label="indices" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {mkt.indices.map((ix) => (
             <div key={ix.code} className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">{ix.name}</p>
+              <p className="text-sm text-muted-foreground">{lang === "ar" && ix.nameAr ? ix.nameAr : ix.name}</p>
               <p className="num text-2xl font-bold tracking-tight">{fmtNum(ix.close, 1)}</p>
               <p className={`num text-sm font-medium ${directionClass(ix.changePct)} flex items-center gap-1`}>
                 {ix.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
@@ -99,7 +118,7 @@ export function ExchangeView() {
         </section>
       )}
 
-      {/* gold */}
+      {/* gold + silver */}
       <section aria-label="gold" className="rounded-lg border bg-card p-4">
         <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
           <h2 className="text-lg font-bold flex items-center gap-2">
@@ -112,13 +131,61 @@ export function ExchangeView() {
             </span>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <GoldStat label={tt(T.goldPerGram21, lang)} value={data.gold.egpPerGram21} unit={lang === "ar" ? "ج.م" : "EGP"} highlight />
           <GoldStat label={tt(T.goldPerGram24, lang)} value={data.gold.egpPerGram} unit={lang === "ar" ? "ج.م" : "EGP"} />
+          <GoldStat label={lang === "ar" ? "جرام ١٨ قيراط" : "18k per gram"} value={data.gold.egpPerGram18} unit={lang === "ar" ? "ج.م" : "EGP"} />
           <GoldStat label={tt(T.goldUsdOunce, lang)} value={data.gold.usdPerOunce} unit="$" />
         </div>
+        {data.world?.silver.egpPerGram != null && (
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <GoldStat label={lang === "ar" ? "الفضة — جرام" : "Silver per gram"} value={data.world.silver.egpPerGram} unit={lang === "ar" ? "ج.م" : "EGP"} />
+            <GoldStat label={lang === "ar" ? "الفضة — أونصة بالدولار" : "Silver per ounce"} value={data.world.silver.usdPerOunce} unit="$" />
+          </div>
+        )}
         <p className="mt-3 text-[11px] text-muted-foreground">{tt(data.goldNote, lang)}</p>
       </section>
+
+      {/* world markets & commodities — what the local prices are read against */}
+      {data.world && data.world.quotes.some((q) => q.price !== null) && (
+        <section aria-label="world markets" className="rounded-lg border bg-card p-4">
+          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <LineChart className="h-4 w-4 text-primary" />
+              {lang === "ar" ? "الأسواق العالمية والسلع" : "World markets & commodities"}
+            </h2>
+            {data.world.asOf && (
+              <span className="num text-[11px] text-muted-foreground">
+                {new Date(data.world.asOf).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">{data.worldNote ? tt(data.worldNote, lang) : ""}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.world.quotes.map((q) => (
+              <div key={q.key} className="rounded-md border bg-secondary/30 p-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold">{lang === "ar" ? q.nameAr : q.nameEn}</p>
+                  {q.changePct !== null && (
+                    <span className={`num text-xs font-semibold ${directionClass(q.changePct)} flex items-center gap-0.5`}>
+                      {q.changePct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                      {fmtPct(q.changePct)}
+                    </span>
+                  )}
+                </div>
+                <p className="num text-xl font-bold tracking-tight mt-0.5">
+                  {q.price !== null ? fmtNum(q.price, q.price < 100 ? 2 : 0) : "—"}
+                  <span className="text-[10px] font-normal text-muted-foreground ms-1.5">{q.currency} · {lang === "ar" ? q.unitAr : q.unitEn}</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-snug mt-1.5 flex gap-1">
+                  <TrendingUp className="h-3 w-3 shrink-0 mt-0.5 text-primary/70" />
+                  {lang === "ar" ? q.whyAr : q.whyEn}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* FX table */}
       <section aria-label="fx rates" className="rounded-lg border bg-card overflow-hidden">

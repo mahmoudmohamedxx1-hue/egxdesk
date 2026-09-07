@@ -3,7 +3,7 @@
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -57,12 +57,12 @@ export function WatchlistView() {
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
                     <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">
-                      {r.name}
+                      {dn(r, lang)}
                     </td>
                     <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted-foreground max-w-[150px] truncate">
                       {lang === "ar" ? r.sectorAr : r.sectorEn}
                     </td>
-                    <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}</td>
+                    <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(r.close)}{r.usdQuoted ? <span className="ms-1 text-[9px] text-muted-foreground">US$</span> : null}</td>
                     <td className="px-3 py-2.5 text-end"><ChangeCell pct={r.changePct} /></td>
                     <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">{fmtValue(r.valueTraded)}</td>
                     <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">

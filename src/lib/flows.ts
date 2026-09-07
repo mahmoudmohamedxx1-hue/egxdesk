@@ -647,6 +647,21 @@ export async function indexHistory(days: number, key: "egx30" | "egx70" | "egx10
     .map((r) => ({ date: r.date, close: r[key] as number }));
 }
 
+/** Stored market-breadth history (shares up / down / flat per session), oldest first. */
+export async function breadthHistory(take = 40): Promise<{ date: string; up: number; down: number; flat: number; counted: number }[]> {
+  const rows = await db.breadthDay.findMany({
+    orderBy: { date: "desc" },
+    take,
+  });
+  return rows.reverse().map((r) => ({
+    date: r.date,
+    up: r.up ?? 0,
+    down: r.down ?? 0,
+    flat: r.flat ?? 0,
+    counted: r.counted ?? 0,
+  }));
+}
+
 /** Stored flow history, newest first (today included once persisted). */
 export async function flowHistory(): Promise<FlowHistoryPoint[]> {
   const days = await db.flowDay.findMany({

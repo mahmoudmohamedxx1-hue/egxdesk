@@ -255,8 +255,8 @@ export const T = {
   priceChartNote: { ar: "أسعار إغلاق حقيقية", en: "Real closing prices" },
   indexChartTitle: { ar: "رسوم مؤشرات البورصة", en: "Index price charts" },
   indexChartNote: {
-    ar: "إغلاقات يومية حقيقية — يبدأ السجل من ~٣ أشهر ويتراكم يوماً بيوم",
-    en: "Real daily closes — the history starts ~3 months back and accumulates daily",
+    ar: "إغلاقات يومية حقيقية — يمتد السجل إلى نوفمبر ٢٠٢٥ ويتراكم يوماً بيوم (المصدر: سجل الجلسات المنشور)",
+    en: "Real daily closes — the record reaches back to Nov 2025 and accumulates daily (source: the published session record)",
   },
   // ─────────────── statements (company financials) ───────────────
   panelStatements: { ar: "القوائم والتحليل", en: "Statements & analysis" },
@@ -450,11 +450,16 @@ export const T = {
   volMaLine: { ar: "متوسط الحجم ٢٠", en: "Volume MA 20" },
   // footer
   footerNote: {
-    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والقوائم المالية من stockanalysis.com، والصرف والذهب من er-api و gold-api، والأخبار من جريدة البورصة وأموال الغد — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
-    en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes from TradingView; price history from Yahoo Finance; investor-category flows from Sigma Capital; nationality participation and index closes from EGXBot; financial statements from stockanalysis.com; FX and gold from er-api and gold-api; news from Alborsaa and Amwal Alghad — and may be delayed. Nothing here is a recommendation to trade any security.",
+    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والقوائم المالية من stockanalysis.com، والصرف والذهب والأسواق العالمية من er-api و gold-api و Yahoo، والأخبار من جريدة البورصة وأموال الغد، والأسماء العربية الرسمية وإفصاحات الداخليين وتاريخ المؤشرات الموسّع من مستندات منشورة لـ esthmr.com — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
+    en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes from TradingView; price history from Yahoo Finance; investor-category flows from Sigma Capital; nationality participation and index closes from EGXBot; financial statements from stockanalysis.com; FX, gold and world markets from er-api, gold-api and Yahoo; news from Alborsaa and Amwal Alghad; official Arabic company names, the insider-dealings log and the extended index history from esthmr.com's published documents — and may be delayed. Nothing here is a recommendation to trade any security.",
   },
 } as const;
 
 export function tt(key: { ar: string; en: string }, lang: Lang) {
   return lang === "ar" ? key.ar : key.en;
+}
+
+/** Company display name in the active language — Arabic (official EGX name) or English. */
+export function dn(row: { name?: string | null; nameAr?: string | null }, lang: Lang): string {
+  return (lang === "ar" && row.nameAr) || row.name || "";
 }

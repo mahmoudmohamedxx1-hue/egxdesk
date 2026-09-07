@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchUniverse, fetchIndices, fetchNews, sectorRows, companyRow, sessionMeta } from "@/lib/market";
-import { fetchFlows } from "@/lib/flows";
+import { fetchFlows, breadthHistory } from "@/lib/flows";
 
 /** GET /api/overview — live landing payload: indices, breadth, totals,
  *  unusual-volume actives, biggest movers, top caps, sector snapshot, news,
@@ -75,6 +75,7 @@ export async function GET() {
       session: sessionMeta(),
       indices,
       breadth: { total: stocks.length, up, down, flat: stocks.length - up - down },
+      breadthHistory: await breadthHistory(30).catch(() => []),
       totals: {
         valueTraded: stocks.reduce((a, c) => a + c.valueTraded, 0),
         volume: stocks.reduce((a, c) => a + c.volume, 0),

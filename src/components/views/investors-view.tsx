@@ -4,6 +4,7 @@ import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import { DivergingBars, DonutChart, TrendLines } from "../market/charts";
 import { ErrorCard } from "./overview-view";
+import { InsidersPanel } from "./insiders-panel";
 import type { FlowCatKey, InvestorsData } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtInt, fmtValue } from "@/lib/format";
@@ -283,6 +284,9 @@ export function InvestorsView() {
           ))}
         </ul>
       </section>
+
+      {/* insider & treasury-share dealing log — real filed EGX disclosures */}
+      <InsidersPanel />
     </div>
   );
 }
