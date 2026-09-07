@@ -37,7 +37,7 @@ export default function RootLayout({
       <body
         className={`${plexArabic.variable} ${plexMono.variable} ${plexSans.variable} antialiased bg-background text-foreground`}
       >
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
           <Toaster />
         </ThemeProvider>
