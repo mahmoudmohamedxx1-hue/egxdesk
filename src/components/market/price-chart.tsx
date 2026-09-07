@@ -17,6 +17,7 @@ import {
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtInt, fmtValue, directionClass } from "@/lib/format";
+import { smaSeries, emaFull, emaSparse, bollingerSeries, rsiSeries, macdSeries } from "@/lib/indicators";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** Real price chart for one stock or index, with range switching and
@@ -25,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  *  candles for stocks, persisted EGX session closes for indices).
  *  Chart canvas is LTR; labels are bilingual. Remount per symbol. */
 
-type ChartPoint = { date: string; close: number; volume: number | null };
+type ChartPoint = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
 
 type ChartResponse = {
   symbol: string;
@@ -55,121 +56,8 @@ const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
   ALL: { ar: "الكل", en: "All" },
 };
 
-// ── indicator math (standard definitions, computed client-side) ──
-
-function smaSeries(v: number[], n: number): (number | null)[] {
-  const out: (number | null)[] = [];
-  let sum = 0;
-  for (let i = 0; i < v.length; i++) {
-    sum += v[i];
-    if (i >= n) sum -= v[i - n];
-    out.push(i >= n - 1 ? sum / n : null);
-  }
-  return out;
-}
-
-function emaFull(v: number[], n: number): (number | null)[] {
-  const out: (number | null)[] = new Array(v.length).fill(null);
-  if (v.length < n) return out;
-  const k = 2 / (n + 1);
-  let seed = 0;
-  for (let i = 0; i < n; i++) seed += v[i];
-  let prev = seed / n;
-  out[n - 1] = prev;
-  for (let i = n; i < v.length; i++) {
-    prev = v[i] * k + prev * (1 - k);
-    out[i] = prev;
-  }
-  return out;
-}
-
-/** EMA over a series that may start with nulls (MACD line). */
-function emaSparse(v: (number | null)[], n: number): (number | null)[] {
-  const idx: number[] = [];
-  const vals: number[] = [];
-  v.forEach((x, i) => {
-    if (x !== null && x !== undefined && Number.isFinite(x)) {
-      idx.push(i);
-      vals.push(x);
-    }
-  });
-  const out: (number | null)[] = new Array(v.length).fill(null);
-  if (vals.length < n) return out;
-  const k = 2 / (n + 1);
-  let seed = 0;
-  for (let j = 0; j < n; j++) seed += vals[j];
-  let prev = seed / n;
-  out[idx[n - 1]] = prev;
-  for (let j = n; j < vals.length; j++) {
-    prev = vals[j] * k + prev * (1 - k);
-    out[idx[j]] = prev;
-  }
-  return out;
-}
-
-function bollingerSeries(v: number[], n = 20, k = 2) {
-  const mid: (number | null)[] = [];
-  const up: (number | null)[] = [];
-  const lo: (number | null)[] = [];
-  for (let i = 0; i < v.length; i++) {
-    if (i < n - 1) {
-      mid.push(null);
-      up.push(null);
-      lo.push(null);
-      continue;
-    }
-    let sum = 0;
-    for (let j = i - n + 1; j <= i; j++) sum += v[j];
-    const m = sum / n;
-    let sq = 0;
-    for (let j = i - n + 1; j <= i; j++) sq += (v[j] - m) ** 2;
-    const sd = Math.sqrt(sq / n);
-    mid.push(m);
-    up.push(m + k * sd);
-    lo.push(m - k * sd);
-  }
-  return { mid, up, lo };
-}
-
-function rsiSeries(v: number[], n = 14): (number | null)[] {
-  const out: (number | null)[] = new Array(v.length).fill(null);
-  if (v.length <= n) return out;
-  let gain = 0;
-  let loss = 0;
-  for (let i = 1; i <= n; i++) {
-    const ch = v[i] - v[i - 1];
-    gain += Math.max(ch, 0) / n;
-    loss += Math.max(-ch, 0) / n;
-  }
-  const rsi = (g: number, l: number) => (l === 0 ? 100 : 100 - 100 / (1 + g / l));
-  out[n] = rsi(gain, loss);
-  for (let i = n + 1; i < v.length; i++) {
-    const ch = v[i] - v[i - 1];
-    gain = (gain * (n - 1) + Math.max(ch, 0)) / n;
-    loss = (loss * (n - 1) + Math.max(-ch, 0)) / n;
-    out[i] = rsi(gain, loss);
-  }
-  return out;
-}
-
-function macdSeries(v: number[], fast = 12, slow = 26, sig = 9) {
-  const ef = emaFull(v, fast);
-  const es = emaFull(v, slow);
-  const macd: (number | null)[] = [];
-  for (let i = 0; i < v.length; i++) {
-    const a = ef[i];
-    const b = es[i];
-    macd.push(a !== null && b !== null ? a - b : null);
-  }
-  const signal = emaSparse(macd, sig);
-  const hist: (number | null)[] = [];
-  for (let i = 0; i < v.length; i++) {
-    const m = macd[i];
-    const s = signal[i];
-    hist.push(m !== null && s !== null ? m - s : null);
-  }
-  return { macd, signal, hist };
-}
+// ── indicator math lives in @/lib/indicators (shared with the technical
+//    analysis panel) — imported above. ──
 
 // ── indicator toggle config ──
 

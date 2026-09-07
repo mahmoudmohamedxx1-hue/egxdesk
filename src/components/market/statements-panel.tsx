@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
-import { fmtNum } from "@/lib/format";
+import { fmtNum, fmtValue } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, FileSpreadsheet } from "lucide-react";
@@ -99,9 +110,12 @@ export function StatementsPanel({ ticker }: { ticker: string }) {
           : data.annual.cashflow;
 
   const cmp = data.annual.income; // FY-vs-FY comparison from the income table
+  const showFinCharts = mode === "annual" && stmt === "income" && !!data.annual.income;
 
   return (
     <div className="space-y-4">
+      {/* financial charts — revenue / net income / EPS history */}
+      {showFinCharts && <FinCharts table={data.annual.income as StmtTable} lang={lang} />}
       {/* mode + statement switches */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center rounded-lg border overflow-hidden text-xs" role="tablist">
@@ -215,6 +229,144 @@ export function StatementsPanel({ ticker }: { ticker: string }) {
         <FyCompare table={cmp} lang={lang} />
       )}
     </div>
+  );
+}
+
+/** Annual revenue / net income bars + EPS line, from the parsed income
+ *  statement (same numbers as the table — a visual, not a new source). */
+function FinCharts({ table, lang }: { table: StmtTable; lang: "ar" | "en" }) {
+  const find = (needle: string) =>
+    table.lines.find((l) => l.label.toLowerCase().includes(needle)) ?? null;
+  const rev = find("revenue");
+  const ni = find("net income");
+  const eps = find("earnings per share");
+
+  // periods are newest-first (TTM, FY 2025, …) — reverse for a left→right time axis
+  const order = table.periods.map((p, i) => ({ p, i })).reverse();
+  const rows = order
+    .map(({ p, i }) => ({
+      period: p,
+      revenue: rev?.values[i] ?? null,
+      netIncome: ni?.values[i] ?? null,
+      eps: eps?.values[i] ?? null,
+    }))
+    .filter((r) => r.revenue !== null || r.netIncome !== null);
+
+  if (rows.length < 2) return null;
+
+  return (
+    <section aria-label="financial charts" className="rounded-lg border bg-card p-4">
+      <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+        <h2 className="text-lg font-bold">{tt(T.finChartsTitle, lang)}</h2>
+        <span className="text-[11px] text-muted-foreground num">{tt(T.inMnEgp, lang)}</span>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">{tt(T.finChartsNote, lang)}</p>
+      <div className="h-72" dir="ltr">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="period"
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+              tickLine={false}
+              axisLine={{ stroke: "var(--border)" }}
+            />
+            <YAxis
+              yAxisId="mn"
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+              tickLine={false}
+              axisLine={false}
+              width={54}
+              tickFormatter={(v: number) => fmtValue(v * 1e6)}
+            />
+            {eps && (
+              <YAxis
+                yAxisId="eps"
+                orientation="right"
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                tickLine={false}
+                axisLine={false}
+                width={40}
+                domain={["auto", "auto"]}
+                tickFormatter={(v: number) => fmtNum(v, 1)}
+              />
+            )}
+            <Tooltip
+              contentStyle={{
+                background: "var(--popover)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                color: "var(--popover-foreground)",
+              }}
+              labelStyle={{ color: "var(--muted-foreground)" }}
+              formatter={(value: number, key: string) => [
+                key === "eps" ? fmtNum(value, 2) : fmtValue(value * 1e6),
+                key === "revenue"
+                  ? tt(T.revenueName, lang)
+                  : key === "netIncome"
+                    ? tt(T.netIncomeName, lang)
+                    : tt(T.epsName, lang),
+              ]}
+            />
+            <Legend
+              formatter={(key: string) => (
+                <span style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+                  {key === "revenue"
+                    ? tt(T.revenueName, lang)
+                    : key === "netIncome"
+                      ? tt(T.netIncomeName, lang)
+                      : tt(T.epsName, lang)}
+                </span>
+              )}
+            />
+            <Bar yAxisId="mn" dataKey="revenue" fill="var(--c4)" fillOpacity={0.75} radius={[3, 3, 0, 0]} maxBarSize={42} />
+            <Bar yAxisId="mn" dataKey="netIncome" fill="var(--c3)" fillOpacity={0.85} radius={[3, 3, 0, 0]} maxBarSize={42} />
+            {eps && (
+              <Line
+                yAxisId="eps"
+                type="monotone"
+                dataKey="eps"
+                stroke="var(--c5)"
+                strokeWidth={2}
+                dot={{ r: 2.5, fill: "var(--c5)", strokeWidth: 0 }}
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {/* quick stat readouts for the two headline bars */}
+      <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {(
+          [
+            [tt(T.revenueName, lang), rows[rows.length - 1].revenue],
+            [tt(T.netIncomeName, lang), rows[rows.length - 1].netIncome],
+            [tt(T.epsName, lang), rows[rows.length - 1].eps],
+          ] as [string, number | null][]
+        ).map(([label, v]) => {
+          const prev = rows[rows.length - 2];
+          const pv = label === tt(T.revenueName, lang) ? prev?.revenue : label === tt(T.netIncomeName, lang) ? prev?.netIncome : prev?.eps;
+          const growth = v !== null && pv != null && pv !== 0 ? ((v - pv) / Math.abs(pv)) * 100 : null;
+          return (
+            <div key={label} className="rounded-md bg-secondary/50 p-2.5">
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                {label} · <span className="num">{rows[rows.length - 1].period}</span>
+              </p>
+              <p className="num text-sm font-bold">{v === null ? "—" : label === tt(T.epsName, lang) ? fmtNum(v, 2) : fmtValue(v * 1e6)}</p>
+              {growth !== null && (
+                <p className={`num text-[10px] ${growth >= 0 ? "text-up" : "text-down"}`}>
+                  {growth >= 0 ? "+" : ""}
+                  {fmtNum(growth, 1)}% vs {rows[rows.length - 2].period}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        {tt(T.finEpsTitle, lang)} — {tt(T.epsName, lang)} × <span className="num">{tt(T.inMnEgp, lang)}</span>
+      </p>
+    </section>
   );
 }
 

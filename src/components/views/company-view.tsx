@@ -11,6 +11,7 @@ import { ChangeCell } from "../market/change-cell";
 import { PerfChart, RangeBar } from "../market/perf-chart";
 import { PriceChart } from "../market/price-chart";
 import { StatementsPanel } from "../market/statements-panel";
+import { TechnicalPanel } from "../market/technical-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw, Zap, CalendarClock, FileSpreadsheet } from "lucide-react";
@@ -120,6 +121,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
 
   const panels = [
     { key: "overview", t: T.panelOverview },
+    { key: "technical", t: T.panelTechnical },
     { key: "statements", t: T.panelStatements },
     { key: "fundamentals", t: T.panelFundamentals },
     { key: "disclosures", t: T.panelDisclosures },
@@ -260,6 +262,9 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           </section>
         </div>
       )}
+
+      {/* TECHNICAL ANALYSIS */}
+      {activePanel === "technical" && <TechnicalPanel key={c.ticker} ticker={c.ticker} />}
 
       {/* STATEMENTS */}
       {activePanel === "statements" && (

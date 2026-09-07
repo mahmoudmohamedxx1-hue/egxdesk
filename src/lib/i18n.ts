@@ -448,6 +448,84 @@ export const T = {
   macdSignal: { ar: "خط الإشارة", en: "Signal line" },
   macdHist: { ar: "الفرق", en: "Histogram" },
   volMaLine: { ar: "متوسط الحجم ٢٠", en: "Volume MA 20" },
+
+  // ── theme toggle ──
+  switchToLight: { ar: "التبديل إلى المظهر النهاري", en: "Switch to light mode" },
+  switchToDark: { ar: "التبديل إلى المظهر الليلي", en: "Switch to dark mode" },
+
+  // ── home: world markets ──
+  worldHomeTitle: { ar: "الأسواق العالمية والسلع", en: "World markets & commodities" },
+  worldHomeNote: {
+    ar: "ما الذي سعّره العالم بين عشية وضحاها — السياق الذي تُقرأ به الأسعار المحلية. تحديث كل ١٠ دقائق.",
+    en: "What the world priced overnight — the context local prices are read against. Refreshed every 10 minutes.",
+  },
+  worldIndices: { ar: "المؤشرات العالمية", en: "Global indices" },
+  worldCommodities: { ar: "السلع", en: "Commodities" },
+  worldGoldSilver: { ar: "الذهب والفضة", en: "Gold & silver" },
+  usdEgp: { ar: "دولار / جنيه", en: "USD / EGP" },
+  silverPerGram: { ar: "الفضة — جرام", en: "Silver per gram" },
+  seeExchangeFull: { ar: "الذهب والعملات بالتفصيل ←", en: "Full gold & FX view →" },
+
+  // ── company: technical analysis ──
+  panelTechnical: { ar: "التحليل الفني", en: "Technical" },
+  techSummaryTitle: { ar: "الملخص الفني", en: "Technical summary" },
+  techSummaryLabel: { ar: "التقييم الإجمالي", en: "Summary rating" },
+  techNote: {
+    ar: "المؤشرات تُحسب محلياً من الإغلاقات اليومية لآخر سنة (بيانات مؤجلة من Yahoo Finance). هذا تقرير تعليمي وليس توصية.",
+    en: "Indicators are computed locally from the last year of daily closes (delayed data from Yahoo Finance). Educational reading, not advice.",
+  },
+  techMaGroup: { ar: "المتوسطات المتحركة", en: "Moving averages" },
+  techOscGroup: { ar: "مؤشرات الزخم", en: "Oscillators" },
+  techPivotGroup: { ar: "نقاط الارتكاز (كلاسيكي)", en: "Pivot points (classic)" },
+  techColIndicator: { ar: "المؤشر", en: "Indicator" },
+  techColValue: { ar: "القيمة", en: "Value" },
+  techColSignal: { ar: "الإشارة", en: "Signal" },
+  techBuy: { ar: "شراء", en: "Buy" },
+  techSell: { ar: "بيع", en: "Sell" },
+  techNeutral: { ar: "محايد", en: "Neutral" },
+  techStrongBuy: { ar: "شراء قوي", en: "Strong Buy" },
+  techStrongSell: { ar: "بيع قوي", en: "Strong Sell" },
+  techCountsNote: { ar: "إشارات المؤشرات", en: "indicator signals" },
+  techPivotNote: {
+    ar: "الارتكاز الكلاسيكي من إغلاق الجلسة الأخيرة وأعلى/أدنى الجلسة — مستويات مرجعية يراقبها المتداولون.",
+    en: "Classic pivots from the last session's close and high/low — reference levels traders watch.",
+  },
+  stochK: { ar: "ستوكاستيك %K (١٤، ٣)", en: "Stochastic %K (14, 3)" },
+  stochD: { ar: "ستوكاستيك %D (٣)", en: "Stochastic %D (3)" },
+  cciName: { ar: "قناة السلع CCI (٢٠)", en: "CCI (20)" },
+  momentumName: { ar: "الزخم (١٠)", en: "Momentum (10)" },
+  williamsR: { ar: "ويليامز %R (١٤)", en: "Williams %R (14)" },
+  pivotP: { ar: "الارتكاز", en: "Pivot" },
+  pivotR: { ar: "مقاومة", en: "Resistance" },
+  pivotS: { ar: "دعم", en: "Support" },
+  techVsEgx30: { ar: "السهم مقابل إيجي إكس ٣٠", en: "Stock vs EGX 30" },
+  techVsEgx30Note: {
+    ar: "الأداء مقارنةً بالمؤشر على سنة، منّم إلى ١٠٠ عند بداية الفترة — سهم أبطأ/أسرع من السوق؟",
+    en: "Performance vs the index over one year, rebased to 100 at the start — is the stock slower or faster than the market?",
+  },
+  techNoData: { ar: "لا توجد بيانات كافية لحساب المؤشرات.", en: "Not enough data to compute indicators." },
+  techCompany: { ar: "السهم", en: "Stock" },
+  techPrevClose: { ar: "الإغلاق السابق", en: "Previous close" },
+
+  // ── statements financial charts ──
+  finChartsTitle: { ar: "الإيرادات وصافي الربح — سنوياً", en: "Revenue & net income — annual" },
+  finChartsNote: {
+    ar: "من قوائم الدخل المالية المفصصلة (نفس بيانات جدول القوائم أدناه). الفترة الأخيرة قد تكون ١٢ شهراً متداولة (TTM) لا سنة مالية كاملة.",
+    en: "From the parsed income statements (same data as the tables below). The latest period may be TTM, not a full fiscal year.",
+  },
+  finEpsTitle: { ar: "ربح السهم لكل فترة", en: "Earnings per share" },
+  revenueName: { ar: "الإيرادات", en: "Revenue" },
+  netIncomeName: { ar: "صافي الربح", en: "Net income" },
+  epsName: { ar: "ربح السهم", en: "EPS" },
+
+  // ── screener pro filter UX ──
+  addFilter: { ar: "إضافة فلتر", en: "Add filter" },
+  removeFilter: { ar: "إزالة الفلتر", en: "Remove this filter" },
+  editFilterHint: { ar: "اضغط لتعديل الفلتر", en: "Click to edit filter" },
+  activeFilters: { ar: "الفلاتر المفعّلة", en: "Active filters" },
+  noActiveFilters: { ar: "لا فلاتر مفعّلة — كل الشركات معروضة", en: "No active filters — all companies shown" },
+  presetLabel: { ar: "قوائم جاهزة", en: "Presets" },
+
   // footer
   footerNote: {
     ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والقوائم المالية من stockanalysis.com، والصرف والذهب والأسواق العالمية من er-api و gold-api و Yahoo، والأخبار من جريدة البورصة وأموال الغد، والأسماء العربية الرسمية وإفصاحات الداخليين وتاريخ المؤشرات الموسّع من مستندات منشورة لـ esthmr.com — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",

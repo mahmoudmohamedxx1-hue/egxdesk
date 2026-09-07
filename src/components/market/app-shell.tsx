@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Languages, Moon, Sun, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect } from "react";
 
 const PRIMARY_NAV = [
   { key: "overview", view: "home", t: T.overview },
@@ -55,6 +56,19 @@ function sectionTabs(currentView: string) {
 export function AppShell() {
   const { lang, setLang, view, navigate, status } = useApp();
   const { theme, setTheme } = useTheme();
+
+  // One-time theme migration: the old default was LIGHT and next-themes
+  // auto-stored it for visitors who never explicitly chose a theme. Dark is
+  // now the default — flip via setTheme (keeps provider state in sync) once;
+  // an explicit toggle sets egx-theme-chosen and is respected forever after.
+  useEffect(() => {
+    try {
+      const chosen = localStorage.getItem("egx-theme-chosen");
+      if (!chosen && (theme ?? "dark") === "light") {
+        setTheme("dark");
+      }
+    } catch {}
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -93,6 +107,28 @@ export function AppShell() {
               {/* inline header search — expands inside the header, never a modal */}
               <HeaderSearch />
 
+              {/* direct light/dark toggle — dark is the default; theme state is
+                  undefined until mount, so we fall back to "dark" pre-mount to
+                  keep prerendered HTML matching hydration */}
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={tt((theme ?? "dark") === "dark" ? T.switchToLight : T.switchToDark, lang)}
+                title={tt((theme ?? "dark") === "dark" ? T.switchToLight : T.switchToDark, lang)}
+                onClick={() => {
+                  try {
+                    localStorage.setItem("egx-theme-chosen", "1");
+                  } catch {}
+                  setTheme((theme ?? "dark") === "dark" ? "light" : "dark");
+                }}
+              >
+                {(theme ?? "dark") === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" aria-label={tt(T.langAppearance, lang)}>
@@ -109,11 +145,6 @@ export function AppShell() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLang("en")}>
                     English {lang === "en" && "✓"}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-                    {theme === "dark" ? <Sun className="h-4 w-4 me-2" /> : <Moon className="h-4 w-4 me-2" />}
-                    {theme === "dark" ? (lang === "ar" ? "المظهر النهاري" : "Light theme") : lang === "ar" ? "المظهر الليلي" : "Dark theme"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

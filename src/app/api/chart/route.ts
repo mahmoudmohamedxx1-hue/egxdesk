@@ -22,13 +22,15 @@ const INDEX_META: Record<IndexCode, { nameAr: string; nameEn: string }> = {
   EGX100: { nameAr: "مؤشر إيجي إكس ١٠٠ EWI", nameEn: "EGX 100 EWI" },
 };
 
+type ChartPointOut = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
+
 type ChartResponse = {
   symbol: string;
   name: string;
   kind: "stock" | "index";
   range: string;
   currency: string;
-  points: { date: string; close: number; volume: number | null }[];
+  points: ChartPointOut[];
   first: number | null;
   last: number | null;
   high: number | null;

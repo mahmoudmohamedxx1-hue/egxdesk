@@ -10,7 +10,19 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Search, X, SlidersHorizontal, ChevronDown, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, X, Plus, ChevronDown, Zap, Trash2 } from "lucide-react";
 import { rowMatchesArabic } from "@/lib/ar-search";
 
 /** Investing.com-style stock screener over the live company universe.
@@ -90,6 +102,59 @@ const PRESETS: { key: string; t: { ar: string; en: string }; patch: Partial<Filt
   { key: "unusual", t: T.presetUnusual, patch: { volRatioMin: "2" } },
   { key: "largeCaps", t: T.presetLargeCaps, patch: { cap: { min: "10000", max: "" } } },
 ];
+
+// ── Investing.com Pro-style filter registry ──
+
+type FilterKind = "bound" | "perf" | "min" | "range52";
+type FilterKey =
+  | "price" | "change" | "perf" | "cap" | "pe" | "pb" | "yield" | "roe" | "de" | "eps"
+  | "volumeMin" | "valueMin" | "volRatioMin" | "range52";
+type BoundKey = "price" | "change" | "cap" | "pe" | "pb" | "yield" | "roe" | "de" | "eps";
+type MinKey = "volumeMin" | "valueMin" | "volRatioMin";
+
+/** Presets also activate the pill(s) they write to. */
+const PRESET_PILLS: Record<string, FilterKey[]> = {
+  gainers: ["change"],
+  losers: ["change"],
+  payers: ["yield"],
+  lowPe: ["pe"],
+  unusual: ["volRatioMin"],
+  largeCaps: ["cap"],
+};
+
+type FilterDef = {
+  key: FilterKey;
+  t: { ar: string; en: string };
+  group: "price" | "valuation" | "activity" | "range";
+  kind: FilterKind;
+};
+
+const FILTER_DEFS: FilterDef[] = [
+  { key: "price", t: T.filterPrice, group: "price", kind: "bound" },
+  { key: "change", t: T.filterChange, group: "price", kind: "bound" },
+  { key: "perf", t: T.filterPerf, group: "price", kind: "perf" },
+  { key: "cap", t: T.filterCap, group: "valuation", kind: "bound" },
+  { key: "pe", t: T.filterPe, group: "valuation", kind: "bound" },
+  { key: "pb", t: T.filterPb, group: "valuation", kind: "bound" },
+  { key: "yield", t: T.filterYield, group: "valuation", kind: "bound" },
+  { key: "roe", t: T.filterRoe, group: "valuation", kind: "bound" },
+  { key: "de", t: T.filterDe, group: "valuation", kind: "bound" },
+  { key: "eps", t: T.filterEps, group: "valuation", kind: "bound" },
+  { key: "volumeMin", t: T.filterVolume, group: "activity", kind: "min" },
+  { key: "valueMin", t: T.filterValue, group: "activity", kind: "min" },
+  { key: "volRatioMin", t: T.filterVolRatio, group: "activity", kind: "min" },
+  { key: "range52", t: T.filter52, group: "range", kind: "range52" },
+];
+
+const GROUP_LABELS: Record<FilterDef["group"], { ar: string; en: string }> = {
+  price: T.grpPrice,
+  valuation: T.grpValuation,
+  activity: T.grpActivity,
+  range: { ar: "مدى ٥٢ أسبوعاً", en: "52-week range" },
+};
+
+/** Pills shown by default when the screener opens — the quick pro workflow. */
+const DEFAULT_ACTIVE: FilterKey[] = ["price", "change", "perf", "pe", "cap"];
 
 // ── sortable columns ──
 
@@ -259,15 +324,6 @@ function boundChipLabel(label: string, b: Bound): string {
 
 // ── small UI pieces ──
 
-function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1 min-w-0">
-      <p className="text-[11px] font-medium text-muted-foreground leading-tight">{label}</p>
-      {children}
-    </div>
-  );
-}
-
 function BoundInput({ value, onChange, lang }: { value: Bound; onChange: (b: Bound) => void; lang: Lang }) {
   return (
     <div className="flex items-center gap-1">
@@ -308,8 +364,56 @@ function MinInput({ value, onChange, lang }: { value: string; onChange: (v: stri
   );
 }
 
-function GroupTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-semibold text-foreground/80">{children}</p>;
+/** One active filter as a pill: click opens a popover to edit its values,
+ *  the × removes it. Mirrors Investing.com Pro's filter-chip interaction. */
+function FilterPill({
+  label,
+  hasValue,
+  open,
+  onOpenChange,
+  onRemove,
+  removeLabel,
+  editLabel,
+  children,
+}: {
+  label: string;
+  hasValue: boolean;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onRemove: () => void;
+  removeLabel: string;
+  editLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`inline-flex items-center gap-0.5 rounded-full border ps-2.5 ${
+        hasValue ? "bg-secondary font-semibold border-ring" : "bg-secondary/40 border-transparent"
+      }`}
+    >
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            className="max-w-[13rem] truncate px-1.5 py-1 text-[11px] transition-colors hover:text-primary text-start"
+            title={editLabel}
+          >
+            <span className="num">{label}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-60 p-3 space-y-2" align="start">
+          {children}
+        </PopoverContent>
+      </Popover>
+      <button
+        onClick={onRemove}
+        aria-label={removeLabel}
+        title={removeLabel}
+        className="rounded-e-full p-1 text-muted-foreground transition-colors hover:text-down"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
 }
 
 // ── main view ──
@@ -318,9 +422,11 @@ export function ScreenerView() {
   const { lang, navigate } = useApp();
   const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
   const [f, setF] = useState<Filters>(DEFAULT_FILTERS);
-  const [panelOpen, setPanelOpen] = useState(true);
   const [sortKey, setSortKey] = useState<ColKey>("marketCap");
   const [desc, setDesc] = useState(true);
+  // pro filter UX: which filters currently have pills + which pill's popover is open
+  const [active, setActive] = useState<FilterKey[]>(DEFAULT_ACTIVE);
+  const [openPill, setOpenPill] = useState<FilterKey | null>(null);
 
   const rows = data?.rows ?? null;
   const total = data?.total ?? rows?.length ?? 0;
@@ -335,6 +441,24 @@ export function ScreenerView() {
   }, [rows, lang]);
 
   const applyPatch = (patch: Partial<Filters>) => setF((prev) => ({ ...prev, ...patch }));
+
+  /** Add a filter pill (and open its value editor). */
+  const addFilter = (key: FilterKey) => {
+    setActive((a) => (a.includes(key) ? a : [...a, key]));
+    setOpenPill(key);
+  };
+
+  /** Remove a filter pill and clear its stored values. */
+  const removeFilter = (key: FilterKey) => {
+    setActive((a) => a.filter((k) => k !== key));
+    if (openPill === key) setOpenPill(null);
+    const patch: Partial<Filters> = {};
+    if (key === "volumeMin" || key === "valueMin" || key === "volRatioMin") patch[key] = "";
+    else if (key === "range52") patch.range52 = "";
+    else if (key === "perf") patch.perf = EMPTY_BOUND;
+    else patch[key] = EMPTY_BOUND;
+    applyPatch(patch);
+  };
 
   const filtered = useMemo(() => {
     if (!rows) return null;
@@ -384,52 +508,41 @@ export function ScreenerView() {
     return [...sorted, ...without];
   }, [rows, f, sortKey, desc]);
 
-  // active-filter chips
-  const chips: { id: string; label: string; clear: () => void }[] = [];
-  if (f.q.trim()) chips.push({ id: "q", label: `"${f.q.trim()}"`, clear: () => applyPatch({ q: "" }) });
-  if (f.sector) {
-    const s = sectors.find((x) => x.code === f.sector);
-    if (s) chips.push({ id: "sector", label: s.name, clear: () => applyPatch({ sector: "" }) });
-  }
-  const boundDefs: [keyof Filters, string][] = [
-    ["price", tt(T.filterPrice, lang)],
-    ["change", tt(T.filterChange, lang)],
-    ["pe", tt(T.filterPe, lang)],
-    ["pb", tt(T.filterPb, lang)],
-    ["yield", tt(T.filterYield, lang)],
-    ["roe", tt(T.filterRoe, lang)],
-    ["de", tt(T.filterDe, lang)],
-    ["eps", tt(T.filterEps, lang)],
-    ["cap", tt(T.filterCap, lang)],
-  ];
-  boundDefs.forEach(([key, label]) => {
-    const b = f[key] as Bound;
-    if (b.min || b.max) {
-      chips.push({
-        id: `b-${key}`,
-        label: boundChipLabel(label, b),
-        clear: () => applyPatch({ [key]: EMPTY_BOUND } as Partial<Filters>),
-      });
+  // ── pro filter pills: label + has-value per active filter ──
+
+  /** Pill label summarises the active values (name only until values are set). */
+  const pillLabel = (key: FilterKey): { label: string; hasValue: boolean } => {
+    const def = FILTER_DEFS.find((d) => d.key === key)!;
+    const name = tt(def.t, lang);
+    if (def.kind === "perf") {
+      const periodLabel = tt(PERF_OPTIONS.find(([p]) => p === f.perfPeriod)![1], lang);
+      const has = !!(f.perf.min || f.perf.max);
+      return { label: has ? boundChipLabel(`${name} (${periodLabel})`, f.perf) : `${name} (${periodLabel})`, hasValue: has };
     }
-  });
-  if (f.perf.min || f.perf.max) {
-    const periodLabel = tt(PERF_OPTIONS.find(([p]) => p === f.perfPeriod)![1], lang);
-    chips.push({
-      id: "perf",
-      label: boundChipLabel(`${tt(T.filterPerf, lang)} (${periodLabel})`, f.perf),
-      clear: () => applyPatch({ perf: EMPTY_BOUND }),
-    });
-  }
-  if (f.volumeMin) chips.push({ id: "vol", label: `${tt(T.filterVolume, lang)} ≥ ${f.volumeMin}`, clear: () => applyPatch({ volumeMin: "" }) });
-  if (f.valueMin) chips.push({ id: "val", label: `${tt(T.filterValue, lang)} ≥ ${f.valueMin}`, clear: () => applyPatch({ valueMin: "" }) });
-  if (f.volRatioMin) chips.push({ id: "vr", label: `${tt(T.filterVolRatio, lang)} ≥ ${f.volRatioMin}`, clear: () => applyPatch({ volRatioMin: "" }) });
-  if (f.range52) {
-    chips.push({
-      id: "r52",
-      label: f.range52 === "high" ? tt(T.nearHigh, lang) : tt(T.nearLow, lang),
-      clear: () => applyPatch({ range52: "" }),
-    });
-  }
+    if (def.kind === "min") {
+      const v = f[key as MinKey];
+      return { label: v ? `${name} ≥ ${v}` : name, hasValue: !!v };
+    }
+    if (def.kind === "range52") {
+      const has = !!f.range52;
+      return { label: has ? tt(f.range52 === "high" ? T.nearHigh : T.nearLow, lang) : name, hasValue: has };
+    }
+    const b = f[key as BoundKey] as Bound;
+    const has = !!(b.min || b.max);
+    return { label: has ? boundChipLabel(name, b) : name, hasValue: has };
+  };
+
+  /** How many filters actually constrain the results (for clear-all affordance). */
+  const valueCount =
+    (f.q.trim() ? 1 : 0) +
+    (f.sector ? 1 : 0) +
+    FILTER_DEFS.filter((d) => {
+      if (d.kind === "perf") return !!(f.perf.min || f.perf.max);
+      if (d.kind === "min") return !!f[d.key as MinKey];
+      if (d.kind === "range52") return !!f.range52;
+      const b = f[d.key as BoundKey] as Bound;
+      return !!(b.min || b.max);
+    }).length;
 
   const matchCount = filtered?.length ?? 0;
   const headerSort = (c: ColDef) => {
@@ -454,234 +567,201 @@ export function ScreenerView() {
       </div>
       <p className="text-xs text-muted-foreground -mt-2">{tt(T.screenerNote, lang)}</p>
 
-      {/* presets */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground me-1">
-          <Zap className="h-3 w-3" />
-        </span>
-        {PRESETS.map((p) => {
-          const active =
-            ("change" in p.patch &&
-              p.patch.change?.min === f.change.min &&
-              p.patch.change?.max === f.change.max) ||
-            ("yield" in p.patch && p.patch.yield?.min === f.yield.min) ||
-            ("pe" in p.patch && p.patch.pe?.max === f.pe.max) ||
-            ("volRatioMin" in p.patch && p.patch.volRatioMin === f.volRatioMin) ||
-            ("cap" in p.patch && p.patch.cap?.min === f.cap.min);
+      {/* pro search row: text search + sector + presets + clear all */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[13rem]">
+          <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={f.q}
+            onChange={(e) => applyPatch({ q: e.target.value })}
+            placeholder={lang === "ar" ? "ابحث بالرمز أو الاسم — بالعربية أو الإنجليزية…" : "Search by ticker or name — Arabic or English…"}
+            className="ps-9 h-9 text-sm"
+            aria-label={tt(T.searchCompany, lang)}
+          />
+        </div>
+        <select
+          value={f.sector}
+          onChange={(e) => applyPatch({ sector: e.target.value })}
+          className="h-9 rounded-md border bg-card px-2 text-xs text-foreground max-w-[13rem]"
+          aria-label={tt(T.allSectors, lang)}
+        >
+          <option value="">{tt(T.allSectors, lang)}</option>
+          {sectors.map((s) => (
+            <option key={s.code} value={s.code}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs whitespace-nowrap">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              {tt(T.presetLabel, lang)}
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {PRESETS.map((p) => {
+              const isActive =
+                ("change" in p.patch &&
+                  p.patch.change?.min === f.change.min &&
+                  p.patch.change?.max === f.change.max) ||
+                ("yield" in p.patch && p.patch.yield?.min === f.yield.min) ||
+                ("pe" in p.patch && p.patch.pe?.max === f.pe.max) ||
+                ("volRatioMin" in p.patch && p.patch.volRatioMin === f.volRatioMin) ||
+                ("cap" in p.patch && p.patch.cap?.min === f.cap.min);
+              return (
+                <DropdownMenuItem
+                  key={p.key}
+                  className="text-xs"
+                  onClick={() => {
+                    if (isActive) {
+                      setF(DEFAULT_FILTERS);
+                      setActive(DEFAULT_ACTIVE);
+                    } else {
+                      applyPatch(p.patch);
+                      setActive((a) => [...new Set([...a, ...(PRESET_PILLS[p.key] ?? [])])]);
+                      setOpenPill(null);
+                    }
+                  }}
+                >
+                  <span className="flex-1">{tt(p.t, lang)}</span>
+                  {isActive && <span className="num text-[10px] text-muted-foreground">✓</span>}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {(valueCount > 0 || active.length !== DEFAULT_ACTIVE.length) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 gap-1 text-xs text-muted-foreground whitespace-nowrap"
+            onClick={() => {
+              setF(DEFAULT_FILTERS);
+              setActive(DEFAULT_ACTIVE);
+              setOpenPill(null);
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {tt(T.screenerClearAll, lang)}
+          </Button>
+        )}
+      </div>
+
+      {/* pro filter bar: add-filter dropdown + editable filter pills */}
+      <div className="rounded-lg border bg-card p-2.5 flex items-center gap-1.5 flex-wrap">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="h-7 gap-1 rounded-full px-2.5 text-[11px]">
+              <Plus className="h-3 w-3" />
+              {tt(T.addFilter, lang)}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-y-auto thin-scroll">
+            {(["price", "valuation", "activity", "range"] as const).map((group) => (
+              <DropdownMenuGroup key={group}>
+                <DropdownMenuLabel className="text-[10px] text-muted-foreground">
+                  {tt(GROUP_LABELS[group], lang)}
+                </DropdownMenuLabel>
+                {FILTER_DEFS.filter((d) => d.group === group).map((d) => (
+                  <DropdownMenuCheckboxItem
+                    key={d.key}
+                    checked={active.includes(d.key)}
+                    onCheckedChange={(v) => (v ? addFilter(d.key) : removeFilter(d.key))}
+                    className="text-xs"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {tt(d.t, lang)}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                <DropdownMenuSeparator />
+              </DropdownMenuGroup>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {active.length === 0 && valueCount === 0 && (
+          <span className="text-[11px] text-muted-foreground">{tt(T.noActiveFilters, lang)}</span>
+        )}
+
+        {active.map((key) => {
+          const def = FILTER_DEFS.find((d) => d.key === key)!;
+          const { label, hasValue } = pillLabel(key);
           return (
-            <button
-              key={p.key}
-              onClick={() =>
-                active
-                  ? setF(DEFAULT_FILTERS)
-                  : applyPatch(p.patch)
-              }
-              className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                active
-                  ? "bg-secondary font-semibold border-ring"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              }`}
+            <FilterPill
+              key={key}
+              label={label}
+              hasValue={hasValue}
+              open={openPill === key}
+              onOpenChange={(v) => setOpenPill(v ? key : null)}
+              onRemove={() => removeFilter(key)}
+              removeLabel={tt(T.removeFilter, lang)}
+              editLabel={tt(T.editFilterHint, lang)}
             >
-              {tt(p.t, lang)}
-            </button>
+              <p className="text-[11px] font-semibold text-foreground/80">{tt(def.t, lang)}</p>
+              {def.kind === "perf" && (
+                <>
+                  <select
+                    value={f.perfPeriod}
+                    onChange={(e) => applyPatch({ perfPeriod: e.target.value as PerfPeriod })}
+                    className="h-8 w-full rounded-md border bg-card px-2 text-xs"
+                    aria-label={tt(T.filterPerf, lang)}
+                  >
+                    {PERF_OPTIONS.map(([p, l]) => (
+                      <option key={p} value={p}>
+                        {tt(l, lang)}
+                      </option>
+                    ))}
+                  </select>
+                  <BoundInput value={f.perf} onChange={(b) => applyPatch({ perf: b })} lang={lang} />
+                </>
+              )}
+              {def.kind === "min" && (
+                <MinInput
+                  value={f[key as MinKey]}
+                  onChange={(v) => applyPatch({ [key]: v } as Partial<Filters>)}
+                  lang={lang}
+                />
+              )}
+              {def.kind === "range52" && (
+                <div className="flex items-center gap-1">
+                  {(
+                    [
+                      ["", T.any52],
+                      ["high", T.nearHigh],
+                      ["low", T.nearLow],
+                    ] as const
+                  ).map(([v, t]) => (
+                    <button
+                      key={v}
+                      onClick={() => applyPatch({ range52: v })}
+                      className={`h-8 flex-1 rounded-md border px-1.5 text-[11px] leading-tight transition-colors ${
+                        f.range52 === v
+                          ? "bg-secondary font-semibold border-ring"
+                          : "text-muted-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      {tt(t, lang)}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {def.kind === "bound" && (
+                <BoundInput
+                  value={f[key as BoundKey]}
+                  onChange={(b) => applyPatch({ [key]: b } as Partial<Filters>)}
+                  lang={lang}
+                />
+              )}
+            </FilterPill>
           );
         })}
       </div>
 
-      {/* filter panel */}
-      <div className="rounded-lg border bg-card">
-        <button
-          onClick={() => setPanelOpen(!panelOpen)}
-          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-sm"
-          aria-expanded={panelOpen}
-        >
-          <span className="flex items-center gap-2 font-medium">
-            <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-            {tt(T.screenerFilters, lang)}
-            {chips.length > 0 && (
-              <span className="num rounded-full bg-secondary px-1.5 text-[10px] font-semibold">{chips.length}</span>
-            )}
-          </span>
-          <span className="flex items-center gap-2">
-            {chips.length > 0 && (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setF(DEFAULT_FILTERS);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.stopPropagation();
-                    setF(DEFAULT_FILTERS);
-                  }
-                }}
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3 w-3" />
-                {tt(T.screenerClearAll, lang)}
-              </span>
-            )}
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${panelOpen ? "" : "-rotate-90"}`} />
-          </span>
-        </button>
-
-        {panelOpen && (
-          <div className="space-y-4 border-t px-3 py-3">
-            {/* basics */}
-            <section className="space-y-2">
-              <GroupTitle>{tt(T.grpBasic, lang)}</GroupTitle>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                <FilterField label={tt(T.searchCompany, lang)}>
-                  <div className="relative">
-                    <Search className="absolute start-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      value={f.q}
-                      onChange={(e) => applyPatch({ q: e.target.value })}
-                      placeholder={lang === "ar" ? "الرمز أو الاسم…" : "Ticker or name…"}
-                      className="ps-8 h-8 text-xs"
-                    />
-                  </div>
-                </FilterField>
-                <FilterField label={tt(T.allSectors, lang)}>
-                  <select
-                    value={f.sector}
-                    onChange={(e) => applyPatch({ sector: e.target.value })}
-                    className="h-8 w-full rounded-md border bg-card px-2 text-xs text-foreground"
-                    aria-label={tt(T.allSectors, lang)}
-                  >
-                    <option value="">{tt(T.allSectors, lang)}</option>
-                    {sectors.map((s) => (
-                      <option key={s.code} value={s.code}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </FilterField>
-              </div>
-            </section>
-
-            {/* price & performance */}
-            <section className="space-y-2">
-              <GroupTitle>{tt(T.grpPrice, lang)}</GroupTitle>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                <FilterField label={tt(T.filterPrice, lang)}>
-                  <BoundInput value={f.price} onChange={(b) => applyPatch({ price: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterChange, lang)}>
-                  <BoundInput value={f.change} onChange={(b) => applyPatch({ change: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={`${tt(T.filterPerf, lang)} · ${tt(T.grpPrice, lang)}`}>
-                  <div className="flex items-center gap-1">
-                    <select
-                      value={f.perfPeriod}
-                      onChange={(e) => applyPatch({ perfPeriod: e.target.value as PerfPeriod })}
-                      className="h-8 rounded-md border bg-card px-1.5 text-xs shrink-0"
-                      aria-label={tt(T.filterPerf, lang)}
-                    >
-                      {PERF_OPTIONS.map(([p, label]) => (
-                        <option key={p} value={p}>
-                          {tt(label, lang)}
-                        </option>
-                      ))}
-                    </select>
-                    <BoundInput value={f.perf} onChange={(b) => applyPatch({ perf: b })} lang={lang} />
-                  </div>
-                </FilterField>
-              </div>
-            </section>
-
-            {/* valuation & profitability */}
-            <section className="space-y-2">
-              <GroupTitle>{tt(T.grpValuation, lang)}</GroupTitle>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                <FilterField label={tt(T.filterPe, lang)}>
-                  <BoundInput value={f.pe} onChange={(b) => applyPatch({ pe: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterPb, lang)}>
-                  <BoundInput value={f.pb} onChange={(b) => applyPatch({ pb: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterYield, lang)}>
-                  <BoundInput value={f.yield} onChange={(b) => applyPatch({ yield: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterRoe, lang)}>
-                  <BoundInput value={f.roe} onChange={(b) => applyPatch({ roe: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterDe, lang)}>
-                  <BoundInput value={f.de} onChange={(b) => applyPatch({ de: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterEps, lang)}>
-                  <BoundInput value={f.eps} onChange={(b) => applyPatch({ eps: b })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterCap, lang)}>
-                  <BoundInput value={f.cap} onChange={(b) => applyPatch({ cap: b })} lang={lang} />
-                </FilterField>
-              </div>
-            </section>
-
-            {/* activity + 52w */}
-            <section className="space-y-2">
-              <GroupTitle>{tt(T.grpActivity, lang)}</GroupTitle>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                <FilterField label={tt(T.filterVolume, lang)}>
-                  <MinInput value={f.volumeMin} onChange={(v) => applyPatch({ volumeMin: v })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterValue, lang)}>
-                  <MinInput value={f.valueMin} onChange={(v) => applyPatch({ valueMin: v })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filterVolRatio, lang)}>
-                  <MinInput value={f.volRatioMin} onChange={(v) => applyPatch({ volRatioMin: v })} lang={lang} />
-                </FilterField>
-                <FilterField label={tt(T.filter52, lang)}>
-                  <div className="flex items-center gap-1">
-                    {(
-                      [
-                        ["", T.any52],
-                        ["high", T.nearHigh],
-                        ["low", T.nearLow],
-                      ] as const
-                    ).map(([v, label]) => (
-                      <button
-                        key={v}
-                        onClick={() => applyPatch({ range52: v })}
-                        className={`h-8 flex-1 rounded-md border px-1.5 text-[11px] leading-tight transition-colors ${
-                          f.range52 === v
-                            ? "bg-secondary font-semibold border-ring"
-                            : "text-muted-foreground hover:bg-accent/50"
-                        }`}
-                      >
-                        {tt(label, lang)}
-                      </button>
-                    ))}
-                  </div>
-                </FilterField>
-              </div>
-            </section>
-
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {tt(T.screenerExcludeNote, lang)} · {tt(T.screenerSortHint, lang)}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* active chips */}
-      {chips.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {chips.map((c) => (
-            <button
-              key={c.id}
-              onClick={c.clear}
-              className="inline-flex items-center gap-1 rounded-full border bg-secondary/60 px-2 py-0.5 text-[11px] hover:bg-accent transition-colors"
-              title={lang === "ar" ? "اضغط للإزالة" : "Click to remove"}
-            >
-              {c.label}
-              <X className="h-3 w-3 text-muted-foreground" />
-            </button>
-          ))}
-        </div>
-      )}
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        {tt(T.screenerExcludeNote, lang)} · {tt(T.screenerSortHint, lang)}
+      </p>
 
       {/* results */}
       {!filtered ? (

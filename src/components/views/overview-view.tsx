@@ -12,7 +12,7 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle, Coins, Globe2 } from "lucide-react";
 
 type Overview = {
   session: SessionMeta;
@@ -37,9 +37,34 @@ type Overview = {
   news: NewsRow[];
 };
 
+type WorldQuote = {
+  key: string;
+  nameAr: string;
+  nameEn: string;
+  group: "index" | "commodity";
+  price: number | null;
+  changePct: number | null;
+  currency: string;
+  unitAr: string;
+  unitEn: string;
+  whyAr: string;
+  whyEn: string;
+};
+
+type EconomyLite = {
+  fx: { code: string; egpPer: number | null }[];
+  gold: { egpPerGram21: number | null; egpPerGram: number | null };
+  world?: {
+    quotes: WorldQuote[];
+    silver: { egpPerGram: number | null };
+    asOf: string | null;
+  } | null;
+};
+
 export function OverviewView() {
   const { lang, navigate } = useApp();
   const { data, error, loading, refresh } = useLiveData<Overview>("/api/overview");
+  const { data: econ } = useLiveData<EconomyLite>("/api/economy", 600_000);
   const [indexSel, setIndexSel] = useState<string>("EGX30");
 
   if (error && !data) {
@@ -111,6 +136,81 @@ export function OverviewView() {
           </button>
         ))}
       </section>
+
+      {/* WORLD MARKETS & COMMODITIES — international context on the home page */}
+      {econ?.world && econ.world.quotes.some((q) => q.price !== null) && (
+        <section aria-label="world markets" className="rounded-lg border bg-card p-4">
+          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Globe2 className="h-4 w-4 text-primary" />
+              {tt(T.worldHomeTitle, lang)}
+            </h2>
+            <button onClick={() => navigate("exchange")} className="text-xs text-primary hover:underline">
+              {tt(T.seeExchangeFull, lang)}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">{tt(T.worldHomeNote, lang)}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {econ.world.quotes.map((q) => (
+              <div key={q.key} className="rounded-md border bg-secondary/30 p-2.5" title={lang === "ar" ? q.whyAr : q.whyEn}>
+                <div className="flex items-baseline justify-between gap-1.5">
+                  <p className="text-xs font-semibold truncate">{lang === "ar" ? q.nameAr : q.nameEn}</p>
+                  {q.changePct !== null && (
+                    <span className={`num text-[11px] font-semibold shrink-0 ${directionClass(q.changePct)} flex items-center gap-0.5`}>
+                      {q.changePct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                      {fmtPct(q.changePct)}
+                    </span>
+                  )}
+                </div>
+                <p className="num text-lg font-bold tracking-tight mt-0.5">
+                  {q.price !== null ? fmtNum(q.price, q.price < 100 ? 2 : 0) : "—"}
+                  <span className="text-[9px] font-normal text-muted-foreground ms-1">{q.currency}</span>
+                </p>
+                <p className="text-[9px] text-muted-foreground leading-snug mt-1 line-clamp-2">{lang === "ar" ? q.whyAr : q.whyEn}</p>
+              </div>
+            ))}
+            {/* gold 21k — the Egyptian retail standard */}
+            <div className="rounded-md border bg-secondary/40 p-2.5">
+              <div className="flex items-baseline justify-between gap-1.5">
+                <p className="text-xs font-semibold truncate flex items-center gap-1">
+                  <Coins className="h-3 w-3 text-primary" />
+                  {tt(T.goldPerGram21, lang)}
+                </p>
+              </div>
+              <p className="num text-lg font-bold tracking-tight mt-0.5">
+                {econ.gold.egpPerGram21 !== null ? fmtNum(econ.gold.egpPerGram21) : "—"}
+                <span className="text-[9px] font-normal text-muted-foreground ms-1">{lang === "ar" ? "ج.م" : "EGP"}</span>
+              </p>
+              <p className="text-[9px] text-muted-foreground leading-snug mt-1">
+                {lang === "ar" ? "معيار التجزئة المصري (عيار ٢١) من سعر الأونصة العالمي." : "Egypt's retail standard, from the world ounce price."}
+              </p>
+            </div>
+            {/* silver per gram */}
+            {econ.world.silver.egpPerGram != null && (
+              <div className="rounded-md border bg-secondary/30 p-2.5">
+                <p className="text-xs font-semibold truncate">{tt(T.silverPerGram, lang)}</p>
+                <p className="num text-lg font-bold tracking-tight mt-0.5">
+                  {fmtNum(econ.world.silver.egpPerGram)}
+                  <span className="text-[9px] font-normal text-muted-foreground ms-1">{lang === "ar" ? "ج.م" : "EGP"}</span>
+                </p>
+                <p className="text-[9px] text-muted-foreground leading-snug mt-1">{tt(T.worldGoldSilver, lang)}</p>
+              </div>
+            )}
+            {/* USD/EGP */}
+            {econ.fx.find((f) => f.code === "USD")?.egpPer != null && (
+              <div className="rounded-md border bg-secondary/30 p-2.5">
+                <p className="text-xs font-semibold truncate">{tt(T.usdEgp, lang)}</p>
+                <p className="num text-lg font-bold tracking-tight mt-0.5">
+                  {fmtNum(econ.fx.find((f) => f.code === "USD")?.egpPer as number, 3)}
+                </p>
+                <p className="text-[9px] text-muted-foreground leading-snug mt-1">
+                  {lang === "ar" ? "سعر السوق المفتوح (مرجع، ليس رسمياً)." : "Open-market reference rate."}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* index price charts */}
       <section id="index-charts" aria-label="index price charts" className="rounded-lg border bg-card p-4 scroll-mt-24">

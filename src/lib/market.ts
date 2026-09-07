@@ -114,7 +114,7 @@ const STOCK_COLUMNS = [
   "name", "description", "close", "change", "change_abs", "volume",
   "market_cap_basic", "sector", "industry",
   "Perf.W", "Perf.1M", "Perf.3M", "Perf.6M", "Perf.YTD", "Perf.Y", "Perf.3Y", "Perf.5Y",
-  "price_earnings_ttm", "earnings_per_share_basic_ttm", "dividend_yield_recent",
+  "price_earnings_ttm", "earnings_per_share_basic_ttm", "dividends_yield",
   "price_52_week_high", "price_52_week_low", "High.1M", "Low.1M",
   "average_volume_10d_calc", "average_turnover_30d_calc", "float_shares_outstanding",
   "total_revenue_ttm", "net_margin_ttm", "beta_1_year", "update_mode",

@@ -23,7 +23,7 @@ const RANGE_MAP: Record<ChartRange, { yahoo: string; interval: string; maxDays: 
   "5Y": { yahoo: "5y", interval: "1wk", maxDays: 1900 },
 };
 
-export type ChartPoint = { date: string; close: number; volume: number | null };
+export type ChartPoint = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
 
 export type StockChart = {
   symbol: string; // plain ticker, e.g. COMI
@@ -87,7 +87,7 @@ type YahooChart = {
       meta?: { symbol?: string; currency?: string; previousClose?: number };
       timestamp?: number[];
       indicators?: {
-        quote?: { close?: (number | null)[]; volume?: (number | null)[] }[];
+        quote?: { close?: (number | null)[]; volume?: (number | null)[]; high?: (number | null)[]; low?: (number | null)[] }[];
       };
     }[];
     error?: { description?: string };
@@ -111,15 +111,21 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
     if (!r || !r.timestamp?.length) throw new Error("history: no candles");
     const closes = r.indicators?.quote?.[0]?.close ?? [];
     const volumes = r.indicators?.quote?.[0]?.volume ?? [];
+    const highs = r.indicators?.quote?.[0]?.high ?? [];
+    const lows = r.indicators?.quote?.[0]?.low ?? [];
     const points: ChartPoint[] = [];
     for (let i = 0; i < r.timestamp.length; i++) {
       const c = closes[i];
       if (typeof c !== "number" || !Number.isFinite(c)) continue;
       const v = volumes[i];
+      const h = highs[i];
+      const l = lows[i];
       points.push({
         date: toDate(r.timestamp[i]),
         close: c,
         volume: typeof v === "number" && Number.isFinite(v) ? v : null,
+        high: typeof h === "number" && Number.isFinite(h) && h >= c ? h : null,
+        low: typeof l === "number" && Number.isFinite(l) && l <= c ? l : null,
       });
     }
     // keep only the last point per date (guards against duplicate intraday rows)

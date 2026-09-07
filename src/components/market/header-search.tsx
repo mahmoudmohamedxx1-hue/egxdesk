@@ -31,9 +31,15 @@ export function HeaderSearch() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // reset the keyboard cursor whenever the result set changes
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [results]);
 
   // "/" opens the field from anywhere on the page
   useEffect(() => {
@@ -90,12 +96,46 @@ export function HeaderSearch() {
     setOpen(false);
     setQ("");
     setResults([]);
+    setActiveIdx(0);
   }
 
   function go(ticker: string) {
     close();
     navigate("company", { ticker, panel: "overview" });
   }
+
+  /** Investing.com-style keyboard nav: ↑/↓ move, Enter opens, Esc closes. */
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (results.length === 0) return;
+      e.preventDefault();
+      setActiveIdx((i) => {
+        const next = e.key === "ArrowDown" ? i + 1 : i - 1;
+        return (next + results.length) % results.length;
+      });
+      requestAnimationFrame(() => {
+        document.getElementById(`hs-opt-${activeIdxRef.current}`)?.scrollIntoView({ block: "nearest" });
+      });
+      return;
+    }
+    if (e.key === "Enter") {
+      const target = results[activeIdxRef.current] ?? results[0];
+      if (target) {
+        e.preventDefault();
+        go(target.ticker);
+      }
+    }
+  }
+
+  // keeps the latest cursor index accessible inside onKeyDown without
+  // stale-closure re-binding on every keystroke
+  const activeIdxRef = useRef(0);
+  activeIdxRef.current = activeIdx;
 
   const showPanel = open && (q.trim().length > 0 || loading);
 
@@ -115,13 +155,14 @@ export function HeaderSearch() {
               dir="auto"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") close();
-                if (e.key === "Enter" && results[0]) go(results[0].ticker);
-              }}
+              onKeyDown={onKeyDown}
               placeholder={lang === "ar" ? "الرمز أو الاسم…" : "Ticker or name…"}
               className="h-8 pe-7 ps-8 text-xs"
               aria-label={tt(T.searchCompany, lang)}
+              role="combobox"
+              aria-expanded={showPanel}
+              aria-controls="header-search-listbox"
+              aria-activedescendant={results[activeIdx] ? `hs-opt-${activeIdx}` : undefined}
             />
             <Search className="absolute start-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             {q && (
@@ -155,6 +196,7 @@ export function HeaderSearch() {
           dir={lang === "ar" ? "rtl" : "ltr"}
           className="absolute top-full z-50 mt-2 end-0 w-72 sm:w-80 rounded-lg border bg-popover shadow-lg overflow-hidden"
           role="listbox"
+          id="header-search-listbox"
           aria-label={tt(T.searchCompany, lang)}
         >
           <div className="max-h-80 overflow-y-auto thin-scroll divide-y">
@@ -166,13 +208,17 @@ export function HeaderSearch() {
                 {lang === "ar" ? "لا نتائج" : "No results"}
               </p>
             )}
-            {results.map((r) => (
+            {results.map((r, i) => (
               <button
                 key={r.ticker}
+                id={`hs-opt-${i}`}
                 role="option"
-                aria-selected={false}
+                aria-selected={i === activeIdx}
                 onClick={() => go(r.ticker)}
-                className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-start hover:bg-accent/50 transition-colors"
+                onMouseEnter={() => setActiveIdx(i)}
+                className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-start transition-colors ${
+                  i === activeIdx ? "bg-accent/70" : "hover:bg-accent/50"
+                }`}
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
