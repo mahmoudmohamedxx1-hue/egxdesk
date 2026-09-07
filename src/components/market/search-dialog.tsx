@@ -7,9 +7,11 @@ import { fmtNum, fmtPct, directionClass } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+// Aliases come from the server response (nameAr) — the map itself stays server-side.
 type Result = {
   ticker: string;
   name: string;
+  nameAr?: string | null;
   sectorAr: string;
   sectorEn: string;
   close: number;
@@ -66,11 +68,10 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         </DialogHeader>
         <Input
           autoFocus
-          dir="ltr"
-          placeholder={lang === "ar" ? "الرمز أو الاسم…" : "Ticker or name…"}
+          dir="auto"
+          placeholder={lang === "ar" ? "الرمز أو الاسم بالعربية أو الإنجليزية…" : "Ticker or name (EN/AR)…"}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="num"
         />
         <div className="max-h-80 overflow-y-auto thin-scroll divide-y rounded-md border" role="listbox">
           {loading && <p className="px-3 py-6 text-center text-sm text-muted-foreground">…</p>}
@@ -92,7 +93,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                   <span className="num text-sm font-semibold">{r.ticker}</span>
                   <span className="truncate text-xs text-muted-foreground">{lang === "ar" ? r.sectorAr : r.sectorEn}</span>
                 </div>
-                <p className="truncate text-sm">{r.name}</p>
+                <p className="truncate text-sm">{lang === "ar" && r.nameAr ? r.nameAr : r.name}</p>
               </div>
               <div className="text-end shrink-0">
                 <div className="num text-sm font-medium">{fmtNum(r.close)}</div>

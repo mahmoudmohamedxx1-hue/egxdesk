@@ -76,11 +76,17 @@ export function AppShell() {
                 {tt(T.tagline, lang)}
                 <br />
                 <span className="num">
-                  {tt(T.session, lang)} {status.lastSession} ·{" "}
-                  <span className={status.open ? "text-up font-medium" : "text-muted-foreground font-medium"}>
-                    {tt(status.open ? T.marketOpen : T.marketClosed, lang)}
-                  </span>{" "}
-                  · {tt(T.delayed, lang)}
+                  {status ? (
+                    <>
+                      {tt(T.session, lang)} {status.lastSession} ·{" "}
+                      <span className={status.open ? "text-up font-medium" : "text-muted-foreground font-medium"}>
+                        {tt(status.open ? T.marketOpen : T.marketClosed, lang)}
+                      </span>{" "}
+                      · {tt(T.delayed, lang)}
+                    </>
+                  ) : (
+                    <>{tt(T.delayed, lang)}</>
+                  )}
                 </span>
               </span>
             </div>
@@ -116,15 +122,16 @@ export function AppShell() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* live status chip */}
+              {/* live status chip — renders a neutral placeholder until the
+                  client mounts so prerendered HTML always matches hydration */}
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                  status.open ? "text-up bg-up-soft border-up/20" : "text-muted-foreground bg-secondary"
+                  status?.open ? "text-up bg-up-soft border-up/20" : "text-muted-foreground bg-secondary"
                 }`}
                 title={tt(T.delayed, lang)}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${status.open ? "bg-up animate-pulse" : "bg-muted-foreground"}`} aria-hidden />
-                <span className="num">{status.cairoTime}</span>
+                <span className={`h-1.5 w-1.5 rounded-full ${status?.open ? "bg-up animate-pulse" : "bg-muted-foreground"}`} aria-hidden />
+                <span className="num">{status?.cairoTime ?? "--:--"}</span>
                 {tt(T.cairoTime, lang)}
               </span>
             </div>

@@ -31,11 +31,41 @@ type Ctx = {
   toggleWatch: (ticker: string) => void;
   isWatched: (ticker: string) => boolean;
   toast: (msg: string) => void;
-  status: MarketStatus;
+  /** null until mounted — the live status is time-derived and must not
+   *  render during SSR/prerender or hydration text mismatches result
+   *  (React #418) because the prerendered HTML freezes build-time text. */
+  status: MarketStatus | null;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
 const WATCH_KEY = "egx-watchlist";
+
+/** Internal view names understood by the app shell. */
+const KNOWN_VIEWS = new Set([
+  "home", "market", "screener", "sectors", "heat", "activity",
+  "investors", "today", "watchlist", "tools", "exchange", "company",
+]);
+
+/** Public URL aliases -> internal view names. ?view=news and ?view=overview
+ *  are the public-facing spellings; the shell branches on internal names. */
+const VIEW_ALIASES: Record<string, string> = {
+  news: "today",
+  overview: "home",
+};
+
+function normalizeView(v: string | null): string {
+  const raw = (v ?? "home").toLowerCase();
+  const name = VIEW_ALIASES[raw] ?? raw;
+  return KNOWN_VIEWS.has(name) ? name : "home";
+}
+
+function viewFromParams(params: URLSearchParams): View {
+  return {
+    name: normalizeView(params.get("view")),
+    ticker: params.get("ticker") ?? undefined,
+    panel: params.get("panel") ?? undefined,
+  };
+}
 
 export function useApp() {
   const ctx = useContext(AppCtx);
@@ -48,7 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
   const [view, setView] = useState<View>({ name: "home" });
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
-  const [status, setStatus] = useState<MarketStatus>(() => marketStatus());
+  const [status, setStatus] = useState<MarketStatus | null>(null);
 
   // one-time hydration init from browser-only stores (localStorage + URL) —
   // cannot run in render because this component is also server-rendered
@@ -67,10 +97,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
     const params = new URLSearchParams(window.location.search);
-    const v = params.get("view") ?? "home";
-    const ticker = params.get("ticker") ?? undefined;
-    const panel = params.get("panel") ?? undefined;
-    if (v) setView({ name: v, ticker, panel });
+    setView(viewFromParams(params));
+    // live market status only after mount (see Ctx.status note)
+    setStatus(marketStatus());
   }, []);
 
   // keep market status fresh (every minute)
@@ -110,13 +139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // listen to browser back/forward
   useEffect(() => {
     const onPop = () => {
-      const params = new URLSearchParams(window.location.search);
-      const v = params.get("view") ?? "home";
-      setView({
-        name: v,
-        ticker: params.get("ticker") ?? undefined,
-        panel: params.get("panel") ?? undefined,
-      });
+      setView(viewFromParams(new URLSearchParams(window.location.search)));
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

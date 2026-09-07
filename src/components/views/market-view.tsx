@@ -11,6 +11,7 @@ import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
+import { rowMatchesArabic } from "@/lib/ar-search";
 
 const METRICS = [
   { key: "marketCap", ar: "القيمة السوقية", en: "Market cap", t: T.metricMarketCap },
@@ -74,7 +75,8 @@ export function MarketView() {
         (r) =>
           r.ticker.toLowerCase().includes(needle) ||
           r.name.toLowerCase().includes(needle) ||
-          (lang === "ar" ? r.sectorAr : r.sectorEn).includes(q)
+          (lang === "ar" ? r.sectorAr : r.sectorEn).includes(q) ||
+          rowMatchesArabic(r.ticker, q)
       );
     }
     if (sector) out = out.filter((r) => r.sectorCode === sector);

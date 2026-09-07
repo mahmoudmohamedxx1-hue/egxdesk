@@ -11,6 +11,7 @@ import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Search, X, SlidersHorizontal, ChevronDown, Zap } from "lucide-react";
+import { rowMatchesArabic } from "@/lib/ar-search";
 
 /** Investing.com-style stock screener over the live company universe.
  *  All filtering happens client-side on the same /api/companies rows the
@@ -341,7 +342,7 @@ export function ScreenerView() {
     const out = rows.filter((r) => {
       if (needle) {
         const hay = `${r.ticker} ${r.name} ${r.sectorEn} ${r.sectorAr}`.toLowerCase();
-        if (!hay.includes(needle)) return false;
+        if (!hay.includes(needle) && !rowMatchesArabic(r.ticker, f.q.trim())) return false;
       }
       if (f.sector && r.sectorCode !== f.sector) return false;
       if (!passesBound(r.close, f.price)) return false;
