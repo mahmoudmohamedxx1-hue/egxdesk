@@ -228,3 +228,42 @@ Stage Summary:
 - All 4 user asks delivered: (1) Investing.com Pro-style screener filters (add-filter dropdown + editable filter pills + presets dropdown) and Pro-style keyboard-navigable header search; (2) world markets/commodities/gold/FX now on the HOME page; (3) each stock page gained a full technical-analysis tab (rating gauge, 14 rated indicators, pivots, vs-EGX30 chart) plus revenue/NI/EPS financial-history charts in the statements tab; (4) dark mode is the default with a one-click light toggle and a one-time migration for old auto-light visitors.
 - Plus one real data bug fixed: TradingView dividend-yield column swap (dividends_yield) restoring yield data for 93 payers.
 - Key artifacts: src/lib/indicators.ts (NEW), src/components/market/technical-panel.tsx (NEW), updated layout.tsx, app-shell.tsx, overview-view.tsx, company-view.tsx, statements-panel.tsx, screener-view.tsx, header-search.tsx, history.ts, chart route, market.ts (column fix), i18n.ts.
+
+---
+Task ID: 11
+Agent: Super Z (main agent)
+Task: New full E2E deep-test round with agentic-browser as an end user (user: "NOW MAKE E2E DEEP TEST AND ALL KIND OF TEST AS MAKE AGENTIC BROWSER TEST IF YOU ARE A USER IN THE END AND IF THERE IS ANY ISSUE FIX IT").
+
+Work Log:
+- Static layer: tsc 0 errors, eslint src 0 errors.
+- API layer: scripts/e2e/api-test.js 100/100 PASS (all 12 endpoints, cross-endpoint consistency, NaN scans, edge cases).
+- Agentic-browser end-user walkthrough on production build (fresh browser contexts, error-delta audits per view):
+  - Home: dark theme default for fresh visitor (html.dark, no egx-theme-chosen); 9 sections incl. world markets, breadth 60 bars, index cards; EGX70 card click syncs chart tab; SMA20 default-on line + BB toggle = exactly 3 var(--c4) curves; RSI panel (3 ref lines 30/50/70, value 62.5, state chip "محايد") + MACD panel (histogram bars, macd/signal lines) both toggle correctly.
+  - Header search: expands INSIDE header (288px input), "COMI" → result with Arabic name/sector/price; Arabic "طلعت" → TMGH; Enter navigates to ?view=company&ticker=TMGH.
+  - Company (TMGH then COMI): 7 panels; technical tab (gauge + rating "شراء", 22 indicator rows, pivots P 205.04 + R1..S3, SMA200/Williams/CCI present, 2-line vs-EGX30 chart); statements tab (annual+quarterly, fin charts 12 grouped bars + EPS line, YoY +9.3% matches); disclosures tab (6 news-sourced filing links — by design); overview chart 123 volume bars + SMA/BB toggles; watch-star writes localStorage.
+  - Market: 4 tabs, 296 rows, Arabic names; rank-metric select sorts by close desc (1686.15→) and asc (0.04→) with direction toggle; row click → company (ICLE verified).
+  - Screener: 296 initial; price pill popover 10–50 → 107 (deterministic, matches Task 8); add-filter menu (14 checkbox items, 4 groups, active checkmarks, stays open while adding); yield pill ≥5 → 21; pill removal restores; presets dropdown 6 items.
+  - News: 9,283 items + 41 links; 3/3 cold-storage loads consistent.
+  - Insiders: 334/86/195/20 summary cards, treasury filter 21 rows/6 companies, 26 EGX doc links.
+  - Exchange: S&P/Nasdaq/Brent quotes, gold 24/21/18 karats, silver, 8 FX rows.
+  - Tools: coupon calc with SAIB (200,000 EGP @ 2.53, coupon 0.30): 79,051 shares, 23,715 EGP/yr, 11.86% yield, 1,976/mo, 8.4y payback — all math verified.
+  - Watchlist: star 2 stocks → localStorage → view renders ICLE+SAIB with Arabic names; empty state after storage clear.
+  - Theme: dark default → toggle light (egx-theme-chosen=1) → persists across reload → toggle back; old auto-light visitor (theme=light, no chosen flag) migrated to dark.
+  - EN/LTR: lang=en dir=ltr, English headings; Arabic↔English switch via dropdown.
+  - Mobile 390px: 8 views + company page, zero horizontal overflow.
+  - Hydration stress: 16 rapid reloads (home ×10 + company ×6) = 0 page errors; 12-view sweep with error-count deltas = 0 new errors on every view.
+  - VLM visual checks: home dark (clean RTL, no glitches), technical panel (gauge+table), insiders cards, screener Pro layout, English LTR, mobile company (nothing cut off) — all pass.
+
+Issue found and FIXED:
+1. REAL UX BUG — Screener presets stacked onto leftover hidden filter bounds: clicking "الصاعدون" while yield≥5 was active returned 5 (intersection) instead of all gainers. Fixed in screener-view.tsx: preset click now resets all value bounds to defaults first (setF({...DEFAULT_FILTERS, q: prev.q, sector: prev.sector, ...patch})) and sets active pills to defaults+preset pills; text search + sector stay as visible context. Verified: gainers preset → 61 = exact API count (296 companies, 61 with changePct ≥ 0.01); payers preset in production → 87 with only its own yield≥0.1 pill active; dev + rebuilt production both verified.
+
+Test-infrastructure issues identified and resolved (NOT app bugs — documented for future rounds):
+2. Ran `npx next start` on an `output: standalone` build (unsupported): caused a one-time news-view 0-items render + a stale React #418 in the error log. Correct start is `bun .next/standalone/server.js` (as package.json start does). After proper start + fresh browser: 0 errors on all views, news 3/3 cold loads OK, 16 rapid reloads 0 errors.
+3. Restarting `next dev` in the same project dir while the standalone server ran clobbered .next/standalone/.next/static (all assets 404, page stuck on prerendered shell). Fix: `npm run build` (which copies static into standalone) then restart the standalone server. Rule: never run dev and standalone concurrently from the same .next without rebuilding; and `npx next build` alone skips the static-copy step that `npm run build` performs.
+4. agent-browser quirks handled: Radix DropdownMenu needs native Playwright clicks (eval .click() lacks pointerdown); `errors --clear` is unreliable — use fresh browser contexts + error-count deltas; eval'd page errors accumulate across navigations in one context.
+
+Stage Summary:
+- Full-stack test round complete: static, 100-assertion API suite, production standalone boot, 12-view DOM + content audits, deep interactive flows (search/screener/company tabs/technical/statements/watchlist/tools/insiders/exchange), theme/language/mobile sweeps, 16-reload hydration stress, VLM visual verification.
+- 1 real UX bug found & fixed (screener preset filter stacking); 3 test-infra pitfalls root-caused and documented.
+- Final state: 100/100 API tests, tsc/eslint clean, all 12 views render with correct content and 0 page errors in production, screener results deterministic vs API.
+- Key artifacts: fixed src/components/views/screener-view.tsx (preset reset), screenshots scripts/data-test/t11-*.png.

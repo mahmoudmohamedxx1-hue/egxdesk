@@ -619,8 +619,11 @@ export function ScreenerView() {
                       setF(DEFAULT_FILTERS);
                       setActive(DEFAULT_ACTIVE);
                     } else {
-                      applyPatch(p.patch);
-                      setActive((a) => [...new Set([...a, ...(PRESET_PILLS[p.key] ?? [])])]);
+                      // a preset is a curated starting point: reset all hidden
+                      // value bounds first so it never silently intersects with
+                      // leftovers (text search + sector stay as visible context)
+                      setF((prev) => ({ ...DEFAULT_FILTERS, q: prev.q, sector: prev.sector, ...p.patch }));
+                      setActive([...new Set([...DEFAULT_ACTIVE, ...(PRESET_PILLS[p.key] ?? [])])]);
                       setOpenPill(null);
                     }
                   }}
