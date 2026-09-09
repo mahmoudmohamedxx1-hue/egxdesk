@@ -306,3 +306,22 @@ Stage Summary:
 - Zero app-level issues found; one test-harness fix (BASE_URL env).
 - Environment restored: dev server back on :3000 (200 + 100/100); standalone :3102 stopped (avoids documented .next conflict).
 - Key artifacts: scripts/e2e/api-test.js (BASE_URL fix), screenshots scripts/data-test/t12-*.png (11).
+
+---
+Task ID: 13
+Agent: Super Z (main agent)
+Task: Deep competitive research on top-class market-data tools + gap analysis of EGX Desk (user: "make a deep research about similar top class tools and deep analusis to website and tell me what we miss").
+
+Work Log:
+- Codebase inventory: verified live what we HAVE (12 views, 25-capability surface incl. statements depth: 6y annual IS/BS/CF + quarterly IS; NO alerts/portfolio/dividend-history/calendar/PWA/drawing; Arabic-only news; company API has signals+peers+disclosures but no shareholders/subsidiaries).
+- Web research: 15 searches profiling TradingView (alerts, Pine screeners, webhooks, saved layouts, 100k community scripts), Investing.com Pro (167+ filters, alerts, fair value, broker sync), Yahoo (portfolio P&L, calendar), stockanalysis.com (10y statements, dividend history, comparison tool), Simply Wall St (snowflake 5-factor), Koyfin (drag-drop dashboards), Finbox (DCF fair value), Mubasher/Argaam (bilingual, calendars, education), EGX official. Reused Task 9's logged-in esthmr.com scan for the local tier.
+- Benchmark: 25 capabilities x 12 tools, Y/P/N scoring -> weighted coverage: TradingView 17.5, Investing 20.5(?), EGX Desk 15.0/25 (5th overall, 2nd on Egypt-relevant subset behind esthmr 16.5). Charts generated programmatically from the same data structure (chart-table consistency guaranteed).
+- Gap register: 19 gaps, impact x effort 5-point scales, benchmark precedent per gap. P0 (8): alerts, portfolio tracker, dividend history+dates, company comparison, events calendar, screener persistence, CSV export, log-scale/compare. P1 (6): statements depth 10y+quarterly BS/CF, valuation layer (DCF/snowflake-style scores), English news, Egypt treasury/deposit rates, fund pages, PWA+web-push. P2 (5): cross-signal narratives, accounts+sync, community/education, public API, drawing tools.
+- PDF report: pdf skill Report route — cascade palette (cold intent, steel-blue, seed 3), ReportLab body (TocDocTemplate+multiBuild, 8 chapters, 5 tables, 2 matplotlib charts, callouts, FreeSerif), Template-01 HUD cover (HTML/Playwright via html2poster.js --width 794px; fixed a span-overlap false positive and a 34px<40px line-gap before validators passed), pypdf merge normalized to A4 (fixed sub-point cover size mismatch 595.9->595.3pt that initially failed QA).
+- QA final: pdf_qa WARN-only (matrix dash symbols, left-anchored cover margins, callout-strip inner tables — all by design); font.check 0 issues; toc.check 0 errors; pages.clean 0 blank; VLM visual PASS on cover/TOC/matrix pages.
+
+Stage Summary:
+- Deliverable: /home/z/my-project/download/EGX-Desk-Competitive-Research-Gap-Analysis.pdf (12 pages: cover, TOC, 8 chapters; 2 charts, 5 tables, 19-gap register, 3-wave roadmap).
+- Key finding: EGX Desk leads on Egypt-specific data (insider log, flows, breadth, Arabic naming, TTS — 15.0/25 coverage, 5th of 12) but misses the operational layer every top tool treats as table stakes (alerts, portfolio, dividends, calendar, comparison, saved state).
+- Recommended sequence: Wave 1 = 8 quick wins (G1-G8), Wave 1+ = calendar/comparison/PWA (G5,G4,G14), Wave 2 = research depth (G9-G12), Wave 3 = differentiation bets chosen on usage evidence.
+- Research artifacts: scripts/research/comp-*.json + gap-*.json (15 search result sets), gen-report.py, cover.html, merge-final.py, chart-*.png.

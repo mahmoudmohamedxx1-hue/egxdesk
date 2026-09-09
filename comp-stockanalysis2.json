@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://stockanalysis.com/quote/lon/API/dividend",
+    "name": "abrdn Property Income Trust (LON:API) Dividend History, Dates",
+    "snippet": "LON:API has an annual dividend of £0.009 per share, with a yield of 55.38%. The last ex-dividend date was Nov 6, 2025. Dividend Yield. 55.38%. Annual Dividend.",
+    "host_name": "stockanalysis.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stockanalysis.com/changelog",
+    "name": "Changelog - Stock Analysis",
+    "snippet": "Dividend history pages now have an \"Indicators\" dropdown for Stock Analysis Pro users with extra columns: declared date, dividend type (regular cash ...",
+    "host_name": "stockanalysis.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://finnhub.io/docs/api/earnings-calendar",
+    "name": "Earnings Calendar API | Finnhub Stock API",
+    "snippet": "Finnhub - Free stock API for realtime market data, global company fundamentals, economic data, and alternative data.",
+    "host_name": "finnhub.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stockanalysis.com/etf/rate/dividend",
+    "name": "RATE Dividend History, Dates & Yield - Stock Analysis",
+    "snippet": "Get the latest dividend data for RATE (Global X Interest Rate Hedge ETF), including dividend history, yield, key dates, growth and other metrics.",
+    "host_name": "stockanalysis.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.wallstreetsurvivor.com/stockanalysis-review",
+    "name": "StockAnalysis.com Review: Best Stock Research Tool?",
+    "snippet": "Apr 19, 2026 · A data-focused platform offering financial statements, valuation ratios, dividend history, insider activity, analyst ratings, price targets, IPO ...",
+    "host_name": "www.wallstreetsurvivor.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://eodhd.com/financial-apis/calendar-upcoming-earnings-ipos-and-splits",
+    "name": "Calendar API: Upcoming Dividends, Earnings, Trends, IPOs and Splits",
+    "snippet": "Earnings calendar API with reported and upcoming EPS against estimates, analyst revisions, IPOs, splits and dividend dates — history from 2013.",
+    "host_name": "eodhd.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]
