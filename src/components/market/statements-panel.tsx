@@ -17,7 +17,8 @@ import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtValue } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, FileSpreadsheet } from "lucide-react";
+import { RefreshCw, FileSpreadsheet, Download } from "lucide-react";
+import { downloadCsv, fileStamp } from "@/lib/export";
 
 type StmtLine = {
   label: string;
@@ -38,7 +39,7 @@ export type StatementsData = {
   source: string;
   sourceUrl: string;
   annual: { income: StmtTable | null; balance: StmtTable | null; cashflow: StmtTable | null };
-  quarterly: { income: StmtTable | null };
+  quarterly: { income: StmtTable | null; balance: StmtTable | null; cashflow: StmtTable | null };
   note: { ar: string; en: string };
 };
 
@@ -102,15 +103,13 @@ export function StatementsPanel({ ticker }: { ticker: string }) {
 
   const table =
     mode === "quarterly"
-      ? data.quarterly.income
-      : stmt === "income"
-        ? data.annual.income
-        : stmt === "balance"
-          ? data.annual.balance
-          : data.annual.cashflow;
+      ? data.quarterly[stmt]
+      : data.annual[stmt];
 
   const cmp = data.annual.income; // FY-vs-FY comparison from the income table
   const showFinCharts = mode === "annual" && stmt === "income" && !!data.annual.income;
+  const stmtTables = mode === "quarterly" ? data.quarterly : data.annual;
+  const anyQuarterly = !!(data.quarterly.income || data.quarterly.balance || data.quarterly.cashflow);
 
   return (
     <div className="space-y-4">
@@ -125,7 +124,7 @@ export function StatementsPanel({ ticker }: { ticker: string }) {
               role="tab"
               aria-selected={mode === m}
               onClick={() => setMode(m)}
-              disabled={m === "quarterly" && !data.quarterly.income}
+              disabled={m === "quarterly" && !anyQuarterly}
               className={`px-3 py-1.5 transition-colors disabled:opacity-40 ${
                 mode === m ? "bg-secondary font-semibold" : "text-muted-foreground hover:bg-accent/50"
               }`}
@@ -134,28 +133,27 @@ export function StatementsPanel({ ticker }: { ticker: string }) {
             </button>
           ))}
         </div>
-        {mode === "annual" && (
-          <div className="flex items-center rounded-lg border overflow-hidden text-xs" role="tablist">
-            {([
-              ["income", T.stmtIncome],
-              ["balance", T.stmtBalance],
-              ["cashflow", T.stmtCashflow],
-            ] as const).map(([k, t]) => (
-              <button
-                key={k}
-                role="tab"
-                aria-selected={stmt === k}
-                onClick={() => setStmt(k)}
-                disabled={!data.annual[k]}
-                className={`px-3 py-1.5 transition-colors disabled:opacity-40 ${
-                  stmt === k ? "bg-secondary font-semibold" : "text-muted-foreground hover:bg-accent/50"
-                }`}
-              >
-                {tt(t, lang)}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* sub-tabs apply to both modes (quarterly BS/CF where published) */}
+        <div className="flex items-center rounded-lg border overflow-hidden text-xs" role="tablist">
+          {([
+            ["income", T.stmtIncome],
+            ["balance", T.stmtBalance],
+            ["cashflow", T.stmtCashflow],
+          ] as const).map(([k, t]) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={stmt === k}
+              onClick={() => setStmt(k)}
+              disabled={!stmtTables[k]}
+              className={`px-3 py-1.5 transition-colors disabled:opacity-40 ${
+                stmt === k ? "bg-secondary font-semibold" : "text-muted-foreground hover:bg-accent/50"
+              }`}
+            >
+              {tt(t, lang)}
+            </button>
+          ))}
+        </div>
         <a
           href={data.sourceUrl}
           target="_blank"
@@ -171,21 +169,40 @@ export function StatementsPanel({ ticker }: { ticker: string }) {
         <section className="rounded-lg border bg-card overflow-hidden">
           <div className="border-b px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
             <h2 className="font-bold">
-              {tt(
-                mode === "quarterly"
-                  ? T.stmtQuarterly
-                  : stmt === "income"
-                    ? T.stmtIncome
-                    : stmt === "balance"
-                      ? T.stmtBalance
-                      : T.stmtCashflow,
-                lang
-              )}{" "}
+              {mode === "quarterly"
+                ? `${tt(T.stmtQuarterly, lang)} · ${tt(
+                    stmt === "income" ? T.stmtIncome : stmt === "balance" ? T.stmtBalance : T.stmtCashflow,
+                    lang
+                  )}`
+                : tt(
+                    stmt === "income" ? T.stmtIncome : stmt === "balance" ? T.stmtBalance : T.stmtCashflow,
+                    lang
+                  )}{" "}
               <span className="text-xs font-normal text-muted-foreground">· {tt(T.inMnEgp, lang)}</span>
             </h2>
-            <span className="num text-[11px] text-muted-foreground">
-              {tt(T.stmtPeriodEnding, lang)}: {table.periodEndings.find((e) => e) ?? "—"}
-            </span>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="num text-[11px] text-muted-foreground">
+                {tt(T.stmtPeriodEnding, lang)}: {table.periodEndings.find((e) => e) ?? "—"}
+              </span>
+              {/* G7 — CSV export of the visible statement */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 text-[11px] text-muted-foreground"
+                title={tt(T.csvExportHint, lang)}
+                onClick={() => {
+                  const headers = ["line_item", ...table.periods.map((p) => `${p}_egp_mn`)];
+                  const body = table.lines.map((l) => [
+                    l.label,
+                    ...l.values.map((v) => v),
+                  ]);
+                  downloadCsv(`egx-${data.ticker}-statements-${mode}-${stmt}-${fileStamp()}`, headers, body);
+                }}
+              >
+                <Download className="h-3 w-3" />
+                CSV
+              </Button>
+            </div>
           </div>
           <div className="overflow-x-auto thin-scroll">
             <table className="w-full text-sm">

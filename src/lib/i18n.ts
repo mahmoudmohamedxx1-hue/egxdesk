@@ -526,6 +526,233 @@ export const T = {
   noActiveFilters: { ar: "لا فلاتر مفعّلة — كل الشركات معروضة", en: "No active filters — all companies shown" },
   presetLabel: { ar: "قوائم جاهزة", en: "Presets" },
 
+  // ── G7: CSV export ──
+  csvExportHint: { ar: "تنزيل النتائج الحالية كملف CSV", en: "Download the current results as CSV" },
+  csvExportDone: { ar: "نُزِّل ملف CSV", en: "CSV file downloaded" },
+
+  // ── G1: price alerts ──
+  alertsTitle: { ar: "التنبيهات", en: "Alerts" },
+  alertsBell: { ar: "التنبيهات السعرية", en: "Price alerts" },
+  alertsEmpty: { ar: "لا تنبيهات بعد", en: "No alerts yet" },
+  alertsEmptyHint: {
+    ar: "أنشئ تنبيهاً من صفحة أي شركة — \"نبّهني عندما يلمس السعر مستوى معيناً\".",
+    en: "Create one from any company page — \"ping me when the price touches a level\".",
+  },
+  alertAdd: { ar: "تنبيه جديد", en: "New alert" },
+  alertCondAbove: { ar: "السعر يعبر أعلى من", en: "Price crosses above" },
+  alertCondBelow: { ar: "السعر يعبر أدنى من", en: "Price crosses below" },
+  alertCondRise: { ar: "التغير اليومي يصعد بنسبة %", en: "Day change rises by %" },
+  alertCondFall: { ar: "التغير اليومي يهبط بنسبة %", en: "Day change falls by %" },
+  alertValueLabel: { ar: "القيمة", en: "Value" },
+  alertSave: { ar: "حفظ التنبيه", en: "Save alert" },
+  alertSavedToast: { ar: "حُفظ التنبيه — سيُفحص مع كل تحديث للأسعار", en: "Alert saved — checked on every quote refresh" },
+  alertRemove: { ar: "حذف التنبيه", en: "Delete alert" },
+  alertTriggered: { ar: "تحقّق", en: "Triggered" },
+  alertTriggeredToast: {
+    ar: "تنبيه: {t} — تحقّق الشرط عند {v}",
+    en: "Alert: {t} — condition met at {v}",
+  },
+  alertsNote: {
+    ar: "تُحفظ التنبيهات على جهازك وتُفحص محلياً كل دقيقة مع تحديث الأسعار (مؤجلة ~١٥ دقيقة). الإشعارات تعمل أثناء فتح الموقع.",
+    en: "Alerts are stored on your device and evaluated locally every minute as quotes refresh (delayed ~15 min). Notifications fire while the site is open.",
+  },
+  alertCurrentPrice: { ar: "آخر سعر", en: "Last price" },
+  alertsActiveCount: { ar: "تنبيهات فعّالة", en: "active alerts" },
+  notifyAsk: { ar: "تفعيل إشعارات المتصفح", en: "Enable browser notifications" },
+  notifyGranted: { ar: "الإشعارات مفعّلة", en: "Notifications enabled" },
+  notifyBlocked: {
+    ar: "الإشعارات محجوبة من المتصفح — التنبيهات ستظهر داخل الموقع فقط",
+    en: "Notifications blocked by the browser — alerts will appear in-app only",
+  },
+
+  // ── G2: portfolio ──
+  portfolioTitle: { ar: "محفظتي", en: "Portfolio" },
+  portfolioNote: {
+    ar: "أدخل ما تملكه من أسهم وتكلفتها — تُحفظ على جهازك فقط، ويعاد حساب الربح/الخسارة مع كل تحديث أسعار. لا يغادر أي رقم جهازك.",
+    en: "Enter what you hold and what you paid — stored on your device only, P&L recomputed on every quote refresh. No number leaves your device.",
+  },
+  portfolioAdd: { ar: "إضافة حيازة", en: "Add position" },
+  portfolioTicker: { ar: "الشركة", en: "Company" },
+  portfolioShares: { ar: "عدد الأسهم", en: "Shares" },
+  portfolioCost: { ar: "متوسط التكلفة (ج.م/سهم)", en: "Avg cost (EGP/share)" },
+  portfolioSave: { ar: "حفظ الحيازة", en: "Save position" },
+  portfolioRemove: { ar: "حذف الحيازة", en: "Remove position" },
+  portfolioEmpty: { ar: "لا حيازات بعد", en: "No positions yet" },
+  portfolioEmptyHint: {
+    ar: "أضف أول حيازة لتتبع الربح والخسارة لحظياً — البيانات لا تغادر جهازك.",
+    en: "Add your first position to track P&L live — data never leaves your device.",
+  },
+  portfolioTotalValue: { ar: "القيمة الحالية", en: "Current value" },
+  portfolioDayPl: { ar: "ربح/خسارة اليوم", en: "Day P&L" },
+  portfolioTotalPl: { ar: "ربح/خسارة إجمالية", en: "Total P&L" },
+  portfolioWeight: { ar: "الوزن", en: "Weight" },
+  portfolioMarketValue: { ar: "القيمة السوقية", en: "Market value" },
+  portfolioCostValue: { ar: "التكلفة", en: "Cost basis" },
+  portfolioPlPct: { ar: "٪ التغير", en: "P&L %" },
+  portfolioSharesSum: { ar: "إجمالي الأسهم", en: "Total shares" },
+  portfolioPositions: { ar: "حيازات", en: "positions" },
+  portfolioCostHint: {
+    ar: "التكلفة = متوسط ما دفعته للسهم الواحد. ربح/الخسارة = (السعر الحالي − التكلفة) × عدد الأسهم.",
+    en: "Cost = what you paid per share on average. P&L = (current price − cost) × shares.",
+  },
+  invalidShares: { ar: "أدخل عدداً صحيحاً أكبر من صفر", en: "Enter a whole number above zero" },
+  invalidCost: { ar: "أدخل تكلفة أكبر من صفر", en: "Enter a cost above zero" },
+
+  // ── G3: dividends ──
+  panelDividends: { ar: "التوزيعات", en: "Dividends" },
+  divHistoryTitle: { ar: "سجل التوزيعات النقدية", en: "Cash dividend history" },
+  divHistoryNote: {
+    ar: "كل توزيعة أُعلنت للشركة بتواريخها — الاستحقاق، التوزيع، والقيمة. المصدر: stockanalysis.com (بيانات الإفصاحات المنشورة).",
+    en: "Every cash dividend announced with its dates — ex-date, payment, and amount. Source: stockanalysis.com (published disclosure data).",
+  },
+  divNoHistory: { ar: "لا توزيعات مسجلة لهذه الشركة (حتى تاريخه).", en: "No dividends on record for this company (to date)." },
+  divColExDate: { ar: "تاريخ الاستحقاق", en: "Ex-date" },
+  divColRecord: { ar: "تاريخ التسجيل", en: "Record date" },
+  divColPay: { ar: "تاريخ الصرف", en: "Pay date" },
+  divColAmount: { ar: "القيمة (ج.م/سهم)", en: "Amount (EGP/share)" },
+  divStatTotal: { ar: "إجمالي ٥ سنوات", en: "5-year total" },
+  divStatCount: { ar: "عدد التوزيعات", en: "Payments" },
+  divStatAvgYield: { ar: "متوسط العائد على السعر الحالي", en: "Avg yield at current price" },
+  divNextExpected: { ar: "أقرب توزيعة قادمة", en: "Next upcoming payment" },
+  divAnnualBars: { ar: "إجمالي التوزيعات لكل سنة (ج.م)", en: "Total dividends per year (EGP)" },
+  divGrowth: { ar: "نمو التوزيعات سنةً عن سنة", en: "Dividend growth year over year" },
+  divPerYearNote: {
+    ar: "المبالغ لكل سهم. متوسط العائد = متوسط التوزيعة السنوية ÷ آخر سعر إغلاق.",
+    en: "Amounts are per share. Avg yield = average annual dividend ÷ last close.",
+  },
+
+  // ── G5: events calendar ──
+  calendarTitle: { ar: "التقويم", en: "Calendar" },
+  calendarNote: {
+    ar: "ما هو مُعلن من مواعيد: نتائج أعمال متوقعة (TradingView)، توزيعات بصلاحياتها (stockanalysis.com)، وجمعيات عمومية ونتائج منشورة من أرشيف الأخبار. لا تنبؤ — المُعلَن فقط.",
+    en: "Announced dates only: expected earnings (TradingView), dividend record/pay dates (stockanalysis.com), and assemblies + published results from the news archive. No forecasts — announcements only.",
+  },
+  calendarUpcoming: { ar: "الأحداث القادمة", en: "Upcoming events" },
+  calendarNone: { ar: "لا أحداث مُعلنة في هذه الفترة.", en: "No announced events in this window." },
+  evEarnings: { ar: "نتائج أعمال", en: "Earnings" },
+  evDividend: { ar: "توزيعات", en: "Dividend" },
+  evAssembly: { ar: "جمعية عمومية", en: "Assembly" },
+  evResults: { ar: "نتائج", en: "Results" },
+  evUnknown: { ar: "حدث", en: "Event" },
+  calendarToday: { ar: "اليوم", en: "Today" },
+  calendarWeekdaySun: { ar: "أحد", en: "Sun" },
+  calendarWeekdayMon: { ar: "اثنين", en: "Mon" },
+  calendarWeekdayTue: { ar: "ثلاثاء", en: "Tue" },
+  calendarWeekdayWed: { ar: "أربعاء", en: "Wed" },
+  calendarWeekdayThu: { ar: "خميس", en: "Thu" },
+  calendarWeekdayFri: { ar: "جمعة", en: "Fri" },
+  calendarWeekdaySat: { ar: "سبت", en: "Sat" },
+  calendarMonthNames: {
+    ar: "يناير فبراير مارس أبريل مايو يونيو يوليو أغسطس سبتمبر أكتوبر نوفمبر ديسمبر",
+    en: "January February March April May June July August September October November December",
+  },
+  calendarNoData: { ar: "تعذر تحميل التقويم", en: "Could not load the calendar" },
+
+  // ── G4: comparison ──
+  compareTitle: { ar: "قارن الشركات", en: "Compare companies" },
+  compareNote: {
+    ar: "اختر حتى ٤ شركات لتقف جنباً إلى جنب: السعر، القيمة، التقييم، الربحية، التوزيعات — مع أداء سنة موحّد الأساس.",
+    en: "Pick up to 4 companies side by side: price, size, valuation, profitability, dividends — plus a one-year rebased performance race.",
+  },
+  compareAddPlaceholder: { ar: "أضف شركة…", en: "Add a company…" },
+  compareRemove: { ar: "إزالة من المقارنة", en: "Remove from comparison" },
+  compareMax: { ar: "الحد الأقصى ٤ شركات", en: "Maximum of 4 companies" },
+  compareNeedTwo: { ar: "أضف شركتين على الأقل لبدء المقارنة", en: "Add at least two companies to compare" },
+  comparePerfTitle: { ar: "سباق الأداء — سنة (أساس ١٠٠)", en: "Performance race — 1 year (base 100)" },
+  compareGroupPrice: { ar: "السعر والحركة", en: "Price & movement" },
+  compareGroupValuation: { ar: "التقييم", en: "Valuation" },
+  compareGroupProfit: { ar: "الربحية والجودة", en: "Profitability & quality" },
+  compareGroupDiv: { ar: "التوزيعات", en: "Dividends" },
+
+  // ── G8: chart modes ──
+  logScaleLabel: { ar: "مقياس لوغاريتمي", en: "Log scale" },
+  compareChartLabel: { ar: "مقارنة على الرسم", en: "Compare on chart" },
+  compareChartNote: {
+    ar: "أضف مؤشراً أو سهماً آخر — يُرسم الخطان منمّطين إلى ١٠٠ لبداية الفترة حتى يظهر الأداء النسبي.",
+    en: "Add an index or another stock — both lines are rebased to 100 at the window start so relative performance shows.",
+  },
+  compareAddIndex: { ar: "أضف للمقارنة…", en: "Add comparison…" },
+
+  // ── G12: Egypt rates ──
+  ratesTitle: { ar: "أسعار الفائدة في مصر", en: "Egypt interest rates" },
+  ratesNote: {
+    ar: "سعر الفائدة هو البديل المباشر للسهم: هذه العوائد \"الخالية من المخاطرة\" تقريباً التي تنافس السهم على جنيهك. المصدر: Trading Economics (بيانات البنك المركزي) — تحديث عند تغير الأرقام.",
+    en: "Interest rates are the stock's direct competitor: these near-\"risk-free\" yields fight for your pound. Source: Trading Economics (central-bank data) — updated as figures change.",
+  },
+  ratePolicy: { ar: "سعر العمليات الرئيسي", en: "Main policy rate" },
+  rateDeposit: { ar: "إيداع ليلة واحدة (نطاق الفائدة)", en: "Overnight deposit (rate corridor)" },
+  rateLending: { ar: "إقراض ليلة واحدة", en: "Overnight lending" },
+  rateInterbank: { ar: "السوق بين البنوك", en: "Interbank" },
+  rateDiscount: { ar: "سعر الخصم", en: "Discount rate" },
+  ratesAsOf: { ar: "آخر قراءة", en: "Last reading" },
+
+  // ── G11: English news ──
+  newsEnTitle: { ar: "الأخبار بالإنجليزية", en: "News in English" },
+  newsEnNote: {
+    ar: "أخبار السوق المصري من مصادر إنجليزية عالمية (تجميع Google News) — للقراءة أثناء واجهة الإنجليزية.",
+    en: "Egyptian-market coverage from English sources worldwide (Google News aggregation) — for reading in the English interface.",
+  },
+  newsFeedToggle: { ar: "المصدر", en: "Source" },
+  newsFeedArabic: { ar: "الأرشيف العربي", en: "Arabic archive" },
+  newsFeedEnglish: { ar: "مصادر إنجليزية", en: "English sources" },
+  newsEnOpen: { ar: "افتح الخبر", en: "Open article" },
+
+  // ── G13: funds & vehicles ──
+  fundsTitle: { ar: "الصناديق وأدوات الاستثمار في مصر", en: "Funds & investment vehicles in Egypt" },
+  fundsNote: {
+    ar: "ليس كل استثمار سهم عادي — هذه الأدوات المتاحة للمصريين وكيف تقرأها في هذا الموقع.",
+    en: "Not every investment is a common stock — the vehicles available to Egyptians and how to read them here.",
+  },
+  vehicleListedFunds: { ar: "صناديق مغلقة و REITs مدرجة", en: "Listed closed-end funds & REITs" },
+  vehicleListedFundsNote: {
+    ar: "تتداول في البورصة كسهم عادي (برمزها) — أسعارها هنا حية، وعلاوتها/خصمها على صافي الأصول هو المقياس المهم.",
+    en: "Trade on the exchange like any stock (by ticker) — live prices here; their premium/discount to NAV is the metric that matters.",
+  },
+  vehicleBankCerts: { ar: "شهادات البنوك", en: "Bank certificates" },
+  vehicleBankCertsNote: {
+    ar: "أداة الادخار الأشهر — عائد شهري أو تراكمي بسعر ثابت غالباً. قارن عائدها بعائد السهم قبل الشراء (أداة المقارنة أدناه).",
+    en: "Egypt's favorite savings tool — monthly or cumulative yield, usually fixed. Compare its rate to a stock's yield before buying (tool below).",
+  },
+  vehicleMutualFunds: { ar: "صناديق الاستثمار (غير مدرجة)", en: "Mutual funds (not listed)" },
+  vehicleMutualFundsNote: {
+    ar: "تُشترى من مدير الصندوق مباشرة بسعر صافي أصول يومي — ليست على البورصة، لذا لا تظهر أسعارها هنا.",
+    en: "Bought directly from the fund manager at a daily NAV price — not exchange-traded, so their prices do not appear here.",
+  },
+
+  // ── G14: PWA ──
+  installApp: { ar: "ثبّت التطبيق", en: "Install app" },
+  installHint: {
+    ar: "ثبّت EGX ديسك كتطبيق على جهازك — يعمل كنافذة مستقلة ويفتح أسرع.",
+    en: "Install EGX Desk as an app on your device — runs in its own window and opens faster.",
+  },
+  installed: { ar: "مثبّت", en: "Installed" },
+
+  // ── G15: market narrative ──
+  narrativeTitle: { ar: "ما الذي يحرك السوق اليوم؟", en: "What is moving the market today?" },
+  narrativeNote: {
+    ar: "سطر واحد يجمع الحركة والاتساع وتدفقات المستثمرين في جملة مفهومة — يُبنى من نفس الأرقام المعروضة أعلى الصفحة.",
+    en: "One line joining the move, breadth and investor flows into a plain sentence — built from the same numbers shown on this page.",
+  },
+
+  // ── G18: API docs ──
+  apiDocsTitle: { ar: "واجهة البيانات العامة", en: "Public data API" },
+  apiDocsNote: {
+    ar: "كل نقاط النهاية للقراءة فقط، بلا مفاتيح، وتعيد JSON حياً — نفس ما يستهلكه الموقع نفسه. استخدام عادل فقط؛ والأسعار مؤجلة ~١٥ دقيقة من مصادرها الأصلية.",
+    en: "All endpoints are read-only, key-less, and return live JSON — the same ones this site itself consumes. Fair use only; quotes are ~15-min delayed from their upstream sources.",
+  },
+  apiEndpoint: { ar: "النقطة", en: "Endpoint" },
+  apiReturns: { ar: "ماذا تعيد", en: "Returns" },
+  apiTryIt: { ar: "جرّبها", en: "Try it" },
+
+  // ── G19: chart drawing ──
+  drawTrendline: { ar: "خط اتجاه", en: "Trendline" },
+  drawModeHint: {
+    ar: "وضع الخط: اضغط نقطتين على الرسم لرسم خط — يُحفظ لكل سهم ونطاق.",
+    en: "Line mode: click two points on the chart to draw — stored per stock and range.",
+  },
+  clearDrawings: { ar: "مسح الخطوط", en: "Clear lines" },
+  drawingsSavedNote: { ar: "خطوطك تُحفظ على جهازك لهذا السهم.", en: "Your lines are stored on your device for this stock." },
+
   // footer
   footerNote: {
     ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والقوائم المالية من stockanalysis.com، والصرف والذهب والأسواق العالمية من er-api و gold-api و Yahoo، والأخبار من جريدة البورصة وأموال الغد، والأسماء العربية الرسمية وإفصاحات الداخليين وتاريخ المؤشرات الموسّع من مستندات منشورة لـ esthmr.com — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",

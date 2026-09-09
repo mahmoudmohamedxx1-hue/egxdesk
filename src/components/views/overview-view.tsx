@@ -12,7 +12,8 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle, Coins, Globe2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle, Coins, Globe2, Sparkles } from "lucide-react";
+import { marketNarrative } from "@/lib/narrative";
 
 type Overview = {
   session: SessionMeta;
@@ -115,6 +116,49 @@ export function OverviewView() {
           <MoveRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform rtl:rotate-180" />
         </button>
       </div>
+
+      {/* G15 — one plain-language sentence joining the move, breadth, flows and sectors */}
+      {(() => {
+        const egx30 = data.indices.find((ix) => ix.code === "EGX30") ?? data.indices[0];
+        if (!egx30) return null;
+        const n = marketNarrative(
+          {
+            indexName: lang === "ar" ? (egx30.nameAr ?? egx30.name) : egx30.name,
+            indexChangePct: egx30.changePct,
+            up: data.breadth.up,
+            down: data.breadth.down,
+            total: data.breadth.total,
+            flows: data.flowsSummary
+              ? {
+                  egyNet: data.flowsSummary.egyNet,
+                  arabNet: data.flowsSummary.arabNet,
+                  forNet: data.flowsSummary.forNet,
+                }
+              : null,
+            bestSector: data.sectorsSnapshot.best[0]
+              ? lang === "ar" ? data.sectorsSnapshot.best[0].nameAr : data.sectorsSnapshot.best[0].nameEn
+              : null,
+            worstSector: data.sectorsSnapshot.worst[0]
+              ? lang === "ar" ? data.sectorsSnapshot.worst[0].nameAr : data.sectorsSnapshot.worst[0].nameEn
+              : null,
+            topMover: data.movers[0]
+              ? { ticker: data.movers[0].ticker, changePct: data.movers[0].changePct }
+              : null,
+          },
+          lang
+        );
+        if (!n) return null;
+        return (
+          <section aria-label="market narrative" className="rounded-lg border bg-primary/5 p-4">
+            <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5 mb-1.5">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              {tt(T.narrativeTitle, lang)}
+            </p>
+            <p className="text-sm leading-relaxed">{n}</p>
+            <p className="text-[10px] text-muted-foreground mt-1.5">{tt(T.narrativeNote, lang)}</p>
+          </section>
+        );
+      })()}
 
       {/* indices */}
       <section aria-label="indices" className="grid gap-3 sm:grid-cols-3">

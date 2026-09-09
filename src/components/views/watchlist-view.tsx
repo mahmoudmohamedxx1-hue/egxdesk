@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
@@ -9,14 +10,48 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
+import { PortfolioView } from "./portfolio-view";
 
 type Row = CompanyRow;
 
+/** "My stuff" hub: watchlist (what I watch) + portfolio (what I own, G2). */
 export function WatchlistView() {
-  const { watch, lang, navigate } = useApp();
+  const { lang } = useApp();
+  const [tab, setTab] = useState<"watch" | "portfolio">("watch");
+
+  return (
+    <div className="space-y-4">
+      {/* tabs */}
+      <div className="flex items-center gap-1 border-b" role="tablist">
+        {(
+          [
+            ["watch", T.watchlist],
+            ["portfolio", T.portfolioTitle],
+          ] as const
+        ).map(([key, t]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`whitespace-nowrap px-3 py-2 text-sm -mb-px border-b-2 transition-colors ${
+              tab === key ? "border-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tt(t, lang)}
+          </button>
+        ))}
+      </div>
+      {tab === "portfolio" ? <PortfolioView /> : <WatchlistTable lang={lang} />}
+    </div>
+  );
+}
+
+function WatchlistTable({ lang }: { lang: "ar" | "en" }) {
+  const { watch, navigate } = useApp();
   const { data } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
 
-  const rows = data
+  const watchRows = data
     ? watch.tickers.map((t) => data.rows.find((r) => r.ticker === t)).filter((r): r is Row => !!r)
     : null;
 
@@ -30,9 +65,9 @@ export function WatchlistView() {
       </div>
       <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.watchNote, lang)}</p>
 
-      {!watch.ready || !rows ? (
+      {!watch.ready || !watchRows ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12" />)}</div>
-      ) : rows.length === 0 ? (
+      ) : watchRows.length === 0 ? (
         <Empty title={tt(T.emptyWatch, lang)} hint={tt(T.emptyWatchHint, lang)} action />
       ) : (
         <div className="rounded-lg border bg-card overflow-hidden">
@@ -51,7 +86,7 @@ export function WatchlistView() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {rows.map((r) => (
+                {watchRows.map((r) => (
                   <tr key={r.ticker} className="hover:bg-accent/30 cursor-pointer transition-colors"
                     onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}>
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>

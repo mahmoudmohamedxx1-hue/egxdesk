@@ -2,20 +2,33 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
+import { useLiveData } from "../market/use-live-data";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { Input } from "@/components/ui/input";
-import { Calculator, TrendingUp, Scale, BookOpen } from "lucide-react";
+import { Calculator, TrendingUp, Scale, BookOpen, Landmark, PiggyBank } from "lucide-react";
 
-type Row = { ticker: string; name: string; nameAr?: string; close: number; divYield: number | null };
+type Row = { ticker: string; name: string; nameAr?: string; close: number; divYield: number | null; changePct?: number | null };
+
+type RatesLite = {
+  rows: { key: "policy" | "lending" | "interbank"; value: number; reference: string }[];
+  source: string;
+};
+
+/** Listed closed-end funds & REITs we carry live quotes for (G13). */
+const LISTED_FUNDS = ["EGREF"];
 
 export function ToolsView() {
-  const { lang } = useApp();
+  const { lang, navigate } = useApp();
   const [companies, setCompanies] = useState<Row[]>([]);
   const [amount, setAmount] = useState<number>(100000);
   const [price, setPrice] = useState<number>(0);
   const [coupon, setCoupon] = useState<number>(0);
   const [query, setQuery] = useState("");
+
+  // G12 — live policy rate anchors the bank row of the comparison
+  const { data: rates } = useLiveData<RatesLite>("/api/rates", 300_000);
+  const policyRate = rates?.rows.find((r) => r.key === "policy")?.value ?? null;
 
   useEffect(() => {
     fetch("/api/companies")
@@ -23,6 +36,11 @@ export function ToolsView() {
       .then((d) => setCompanies(d.rows ?? []))
       .catch(() => setCompanies([]));
   }, []);
+
+  const listedFunds = useMemo(
+    () => companies.filter((c) => LISTED_FUNDS.includes(c.ticker)),
+    [companies]
+  );
 
   const matches = useMemo(() => {
     if (!query.trim()) return [];
@@ -46,10 +64,17 @@ export function ToolsView() {
   const monthly = income / 12;
   const paybackYears = income > 0 && invested > 0 ? invested / income : null;
 
-  // comparison calculator state (hypothetical, compounded)
+  // comparison calculator state (hypothetical, compounded) — the bank row
+  // follows the LIVE policy rate: render-phase sync whenever a new reading
+  // arrives from /api/rates (official React "adjust state during render")
   const [rateStocks, setRateStocks] = useState(28);
   const [rateBank, setRateBank] = useState(23.5);
   const [rateGold, setRateGold] = useState(25);
+  const [appliedPolicy, setAppliedPolicy] = useState<number | null>(null);
+  if (policyRate != null && appliedPolicy !== policyRate) {
+    setAppliedPolicy(policyRate);
+    setRateBank(+policyRate.toFixed(1));
+  }
   const comp = (ratePct: number, years: number) => amount * Math.pow(1 + ratePct / 100, years);
 
   return (
@@ -182,12 +207,19 @@ export function ToolsView() {
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {([
-              [tt(T.compStocks, lang), rateStocks, setRateStocks],
-              [tt(T.compBank, lang), rateBank, setRateBank],
-              [tt(T.compGold, lang), rateGold, setRateGold],
-            ] as const).map(([label, val, set]) => (
+              [tt(T.compStocks, lang), rateStocks, setRateStocks, null],
+              [tt(T.compBank, lang), rateBank, setRateBank, policyRate],
+              [tt(T.compGold, lang), rateGold, setRateGold, null],
+            ] as const).map(([label, val, set, live]) => (
               <div key={label} className="rounded-lg border p-3 space-y-1.5">
-                <p className="text-xs font-medium">{label} · {tt(T.customRate, lang)}</p>
+                <p className="text-xs font-medium flex items-center gap-1.5 flex-wrap">
+                  {label} · {tt(T.customRate, lang)}
+                  {live != null && (
+                    <span className="num text-[10px] text-primary font-semibold" title={rates?.source}>
+                      {lang === "ar" ? "حقيقي من المركزي" : "live from CBE data"}: {fmtNum(live, 2)}%
+                    </span>
+                  )}
+                </p>
                 <Input
                   type="number"
                   step={0.5}
@@ -235,6 +267,52 @@ export function ToolsView() {
             </table>
           </div>
           <p className="text-[11px] text-muted-foreground">{tt(T.comparisonNote, lang)}</p>
+        </div>
+      </section>
+
+      {/* G13 — funds & investment vehicles in Egypt */}
+      <section className="rounded-lg border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <PiggyBank className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <h2 className="font-bold">{tt(T.fundsTitle, lang)}</h2>
+        </div>
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.fundsNote, lang)}</p>
+
+          {/* listed funds with live quotes (the exchange-traded ones) */}
+          <div className="rounded-lg border p-3">
+            <p className="text-xs font-semibold mb-1">{tt(T.vehicleListedFunds, lang)}</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed mb-2">{tt(T.vehicleListedFundsNote, lang)}</p>
+            {listedFunds.length > 0 ? (
+              <div className="divide-y">
+                {listedFunds.map((f) => (
+                  <button
+                    key={f.ticker}
+                    onClick={() => navigate("company", { ticker: f.ticker, panel: "overview" })}
+                    className="w-full flex items-center justify-between gap-2 py-2 hover:text-primary text-start"
+                  >
+                    <span className="min-w-0 truncate text-sm">
+                      <span className="num font-bold">{f.ticker}</span> · {dn(f, lang)}
+                    </span>
+                    <span className="num shrink-0 text-sm font-semibold">{fmtNum(f.close)} EGP</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="num text-[11px] text-muted-foreground">…</p>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-semibold mb-1">{tt(T.vehicleBankCerts, lang)}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.vehicleBankCertsNote, lang)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-semibold mb-1">{tt(T.vehicleMutualFunds, lang)}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.vehicleMutualFundsNote, lang)}</p>
+            </div>
+          </div>
         </div>
       </section>
 

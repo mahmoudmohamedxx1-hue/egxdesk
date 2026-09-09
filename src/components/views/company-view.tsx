@@ -12,6 +12,9 @@ import { PerfChart, RangeBar } from "../market/perf-chart";
 import { PriceChart } from "../market/price-chart";
 import { StatementsPanel } from "../market/statements-panel";
 import { TechnicalPanel } from "../market/technical-panel";
+import { DividendsPanel } from "../market/dividends-panel";
+import { SetAlertButton } from "../market/alerts-panel";
+import { ValuationPanel } from "../market/valuation-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw, Zap, CalendarClock, FileSpreadsheet } from "lucide-react";
@@ -123,6 +126,8 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
     { key: "overview", t: T.panelOverview },
     { key: "technical", t: T.panelTechnical },
     { key: "statements", t: T.panelStatements },
+    { key: "dividends", t: T.panelDividends },
+    { key: "valuation", t: { ar: "التقييم", en: "Valuation" } },
     { key: "fundamentals", t: T.panelFundamentals },
     { key: "disclosures", t: T.panelDisclosures },
     { key: "activity", t: T.panelActivity },
@@ -160,6 +165,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           <Calculator className="h-3.5 w-3.5" />
           {lang === "ar" ? "احسب عائد الكوبون" : "Compute coupon return"}
         </button>
+        <SetAlertButton ticker={c.ticker} close={c.close} />
       </div>
 
       {/* identity + quote */}
@@ -269,6 +275,16 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
       {/* STATEMENTS */}
       {activePanel === "statements" && (
         <StatementsPanel key={c.ticker} ticker={c.ticker} />
+      )}
+
+      {/* DIVIDENDS (G3) */}
+      {activePanel === "dividends" && (
+        <DividendsPanel key={c.ticker} ticker={c.ticker} close={c.close} />
+      )}
+
+      {/* VALUATION (G10) */}
+      {activePanel === "valuation" && (
+        <ValuationPanel key={c.ticker} company={c} sectorAgg={data.sectorAgg} />
       )}
 
       {/* DISCLOSURES (press-derived) */}

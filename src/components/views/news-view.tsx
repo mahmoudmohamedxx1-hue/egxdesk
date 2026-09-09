@@ -19,6 +19,19 @@ type NewsPage = {
   items: NewsRow[];
 };
 
+type NewsEnItem = {
+  title: string;
+  link: string;
+  publishedAt: string;
+  source: string;
+};
+
+type NewsEnData = {
+  items: NewsEnItem[];
+  total: number;
+  fetchedAt: string;
+};
+
 const PAGE_SIZE = 40;
 
 export function NewsView() {
@@ -31,6 +44,41 @@ export function NewsView() {
   const [error, setError] = useState(false);
   const pageRef = useRef(1);
   const mounted = useRef(true);
+
+  // G11 — feed switch: the deep Arabic archive or the live English feed.
+  // Defaults to the interface language after mount (SSR renders "ar" so
+  // prerendered HTML always matches hydration).
+  const [feed, setFeed] = useState<"ar" | "en">("ar");
+  useEffect(() => {
+    setFeed(lang === "en" ? "en" : "ar");
+  }, [lang]);
+  const [enFeed, setEnFeed] = useState<NewsEnData | null>(null);
+  const [enError, setEnError] = useState(false);
+
+  // English feed loader (10-min refresh while mounted on that tab)
+  useEffect(() => {
+    if (feed !== "en") return;
+    let alive = true;
+    const loadEn = async () => {
+      try {
+        const res = await fetch("/api/news-en", { cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const json = (await res.json()) as NewsEnData;
+        if (alive) {
+          setEnFeed(json);
+          setEnError(false);
+        }
+      } catch {
+        if (alive) setEnError(true);
+      }
+    };
+    loadEn();
+    const t = setInterval(loadEn, 600_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [feed]);
 
   const load = useCallback(async (page: number, append: boolean) => {
     try {
@@ -112,9 +160,65 @@ export function NewsView() {
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.newsTitle, lang)}</h1>
         <p className="num text-xs text-muted-foreground">
-          <span className="font-semibold">{fmtInt(total)}</span> {tt(T.headlinesShown, lang)}
+          {feed === "en"
+            ? `${fmtInt(enFeed?.total ?? 0)} ${tt(T.newsEnTitle, lang)}`
+            : (<><span className="font-semibold">{fmtInt(total)}</span> {tt(T.headlinesShown, lang)}</>)}
         </p>
       </div>
+
+      {/* G11 — feed source toggle */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[10px] font-medium text-muted-foreground me-1">{tt(T.newsFeedToggle, lang)}:</span>
+        {([
+          ["ar", T.newsFeedArabic],
+          ["en", T.newsFeedEnglish],
+        ] as const).map(([k, t]) => (
+          <button
+            key={k}
+            onClick={() => setFeed(k)}
+            aria-pressed={feed === k}
+            className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+              feed === k ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
+            }`}
+          >
+            {tt(t, lang)}
+          </button>
+        ))}
+      </div>
+
+      {feed === "en" ? (
+        /* ── English feed (G11) ── */
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">{tt(T.newsEnNote, lang)}</p>
+          {enError && !enFeed && (
+            <p className="py-10 text-center text-sm text-muted-foreground">{tt(T.errorLoad, lang)}</p>
+          )}
+          {!enFeed && !enError && (
+            <div className="space-y-3">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20" />)}</div>
+          )}
+          {enFeed?.items.map((n, i) => (
+            <article key={`${n.link}-${i}`} className="rounded-lg border bg-card p-4">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
+                <span className="num text-[11px] text-muted-foreground">
+                  {fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}
+                </span>
+              </div>
+              <h2 className="text-base font-semibold leading-snug" dir="ltr">{n.title}</h2>
+              <a
+                href={n.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                {tt(T.newsEnOpen, lang)}
+              </a>
+            </article>
+          ))}
+        </div>
+      ) : (
+      <>
 
       {/* archive coverage line */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -215,6 +319,8 @@ export function NewsView() {
             </div>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   );

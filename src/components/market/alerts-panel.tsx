@@ -1,0 +1,265 @@
+"use client";
+
+/** Alerts UI (G1): the header bell + alert manager popover, and the reusable
+ *  create form (also mounted on company pages pre-filled with the ticker).
+ *  Alerts live on the device; the app-context engine evaluates them against
+ *  the 60-second delayed-quote refresh and fires toasts + browser
+ *  notifications. */
+
+import { useEffect, useMemo, useState } from "react";
+import { useApp } from "./app-context";
+import { useLiveData } from "./use-live-data";
+import type { CompanyRow } from "./types";
+import { T, tt, dn } from "@/lib/i18n";
+import { fmtNum } from "@/lib/format";
+import { alertText, requestNotifyPermission, type AlertCond, type PriceAlert } from "@/lib/alerts";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Bell, BellPlus, X, Check, Trash2 } from "lucide-react";
+
+const CONDS: { key: AlertCond; t: { ar: string; en: string } }[] = [
+  { key: "above", t: T.alertCondAbove },
+  { key: "below", t: T.alertCondBelow },
+  { key: "risePct", t: T.alertCondRise },
+  { key: "fallPct", t: T.alertCondFall },
+];
+
+/** Suggest tickers from the live table as the user types. */
+function useTickerSuggestions(q: string): CompanyRow[] {
+  const { data } = useLiveData<{ rows: CompanyRow[] }>("/api/companies", 5 * 60_000);
+  return useMemo(() => {
+    if (!data || q.trim().length < 1) return [];
+    const needle = q.trim().toLowerCase();
+    const ar = /[\u0600-\u06FF]/.test(needle);
+    const out = data.rows.filter((r) => {
+      if (r.ticker.toLowerCase().startsWith(needle)) return true;
+      if (!ar && r.name.toLowerCase().includes(needle)) return true;
+      if (ar && (r.nameAr ?? "").includes(q.trim())) return true;
+      return false;
+    });
+    return out.slice(0, 7);
+  }, [data, q]);
+}
+
+/** Create-alert form. `fixedTicker` (company page) locks the symbol. */
+export function AlertCreateForm({
+  fixedTicker,
+  close,
+  onSaved,
+}: {
+  fixedTicker?: string;
+  close?: number | null;
+  onSaved?: () => void;
+}) {
+  const { lang, addAlert, toast } = useApp();
+  const [ticker, setTicker] = useState(fixedTicker ?? "");
+  const [cond, setCond] = useState<AlertCond>("above");
+  const [value, setValue] = useState("");
+  const suggestions = useTickerSuggestions(fixedTicker ? "" : ticker);
+
+  // render-phase sync (official React pattern): when the parent swaps the
+  // locked ticker, reset the form without an effect
+  const [prevFixed, setPrevFixed] = useState(fixedTicker);
+  if (prevFixed !== fixedTicker) {
+    setPrevFixed(fixedTicker);
+    setTicker(fixedTicker ?? "");
+  }
+
+  const save = async () => {
+    const v = Number(value);
+    const t = (fixedTicker ?? ticker).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!t || !Number.isFinite(v)) return;
+    addAlert(t, cond, v);
+    // ask for browser notifications on first alert (grants persist)
+    const perm = await requestNotifyPermission();
+    if (perm === "denied") toast(tt(T.notifyBlocked, lang));
+    setValue("");
+    onSaved?.();
+  };
+
+  return (
+    <div className="space-y-2">
+      {!fixedTicker && (
+        <div className="relative">
+          <input
+            dir="ltr"
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value.toUpperCase())}
+            placeholder={tt(T.colTicker, lang)}
+            aria-label={tt(T.portfolioTicker, lang)}
+            className="h-8 w-full rounded-md border bg-card px-2 text-xs num"
+          />
+          {suggestions.length > 0 && (
+            <ul className="absolute z-20 mt-1 w-full rounded-md border bg-card shadow-md overflow-hidden" role="listbox">
+              {suggestions.map((r) => (
+                <li key={r.ticker}>
+                  <button
+                    className="w-full text-start px-2 py-1.5 text-[11px] hover:bg-accent/50 flex items-baseline justify-between gap-2"
+                    onClick={() => {
+                      setTicker(r.ticker);
+                      setValue((v) => v || (r.close != null ? String(r.close) : v));
+                    }}
+                  >
+                    <span className="num font-bold">{r.ticker}</span>
+                    <span className="text-muted-foreground truncate">{dn(r, lang)}</span>
+                    <span className="num text-muted-foreground shrink-0">{fmtNum(r.close)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center gap-1.5">
+        <select
+          value={cond}
+          onChange={(e) => setCond(e.target.value as AlertCond)}
+          className="h-8 flex-1 rounded-md border bg-card px-1.5 text-xs"
+          aria-label={tt(T.alertCondAbove, lang)}
+        >
+          {CONDS.map((c) => (
+            <option key={c.key} value={c.key}>
+              {tt(c.t, lang)}
+            </option>
+          ))}
+        </select>
+        <input
+          dir="ltr"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={cond === "above" || cond === "below" ? (close != null ? String(close) : "0.00") : "5"}
+          aria-label={tt(T.alertValueLabel, lang)}
+          className="h-8 w-24 rounded-md border bg-card px-2 text-xs num"
+        />
+        <Button size="sm" className="h-8 px-2.5 text-[11px] gap-1 shrink-0" onClick={save}>
+          <BellPlus className="h-3 w-3" />
+          {tt(T.alertSave, lang)}
+        </Button>
+      </div>
+
+      {fixedTicker && close != null && (
+        <p className="num text-[10px] text-muted-foreground">
+          {tt(T.alertCurrentPrice, lang)}: {fmtNum(close)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AlertRow({ a }: { a: PriceAlert }) {
+  const { lang, removeAlert, navigate } = useApp();
+  return (
+    <div className="flex items-center gap-2 py-2 border-b last:border-b-0">
+      <button
+        className="num font-bold text-xs hover:text-primary"
+        onClick={() => navigate("company", { ticker: a.ticker, panel: "overview" })}
+        title={a.ticker}
+      >
+        {a.ticker}
+      </button>
+      <p className="text-[11px] text-muted-foreground flex-1 min-w-0 truncate">{alertText(a, lang)}</p>
+      {a.triggeredAt ? (
+        <span className="inline-flex items-center gap-1 text-[10px] text-up font-semibold shrink-0">
+          <Check className="h-3 w-3" />
+          {tt(T.alertTriggered, lang)}
+          {a.triggeredValue != null && (
+            <span className="num">{a.cond === "above" || a.cond === "below" ? fmtNum(a.triggeredValue) : `${fmtNum(a.triggeredValue, 2)}%`}</span>
+          )}
+        </span>
+      ) : null}
+      <button
+        onClick={() => removeAlert(a.id)}
+        aria-label={tt(T.alertRemove, lang)}
+        title={tt(T.alertRemove, lang)}
+        className="text-muted-foreground hover:text-down shrink-0"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+/** Header bell + full alert manager popover. */
+export function AlertsBell() {
+  const { lang, alerts } = useApp();
+  const [open, setOpen] = useState(false);
+
+  const activeCount = alerts.list.filter((a) => !a.triggeredAt).length;
+  const triggeredCount = alerts.list.length - activeCount;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={tt(T.alertsBell, lang)}
+          title={tt(T.alertsBell, lang)}
+          className="relative"
+        >
+          <Bell className="h-4 w-4" />
+          {alerts.ready && activeCount > 0 && (
+            <span className="num absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold px-1">
+              {activeCount}
+            </span>
+          )}
+          {alerts.ready && activeCount === 0 && triggeredCount > 0 && (
+            <span className="absolute -top-0.5 -end-0.5 h-2 w-2 rounded-full bg-up" aria-hidden />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-3 space-y-2">
+        <p className="text-xs font-semibold flex items-center gap-1.5">
+          <Bell className="h-3.5 w-3.5 text-primary" />
+          {tt(T.alertsTitle, lang)}
+          <span className="num text-[10px] text-muted-foreground font-normal">
+            {activeCount} {tt(T.alertsActiveCount, lang)}
+          </span>
+        </p>
+
+        {!alerts.ready ? null : alerts.list.length === 0 ? (
+          <div className="py-3 text-center">
+            <p className="text-xs font-medium">{tt(T.alertsEmpty, lang)}</p>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{tt(T.alertsEmptyHint, lang)}</p>
+          </div>
+        ) : (
+          <div className="max-h-52 overflow-auto thin-scroll -mx-1 px-1">
+            {alerts.list.map((a) => (
+              <AlertRow key={a.id} a={a} />
+            ))}
+          </div>
+        )}
+
+        <div className="border-t pt-2">
+          <p className="text-[10px] font-semibold text-foreground/70 mb-1.5">{tt(T.alertAdd, lang)}</p>
+          <AlertCreateForm onSaved={() => setOpen(false)} />
+        </div>
+
+        <p className="text-[10px] text-muted-foreground leading-relaxed border-t pt-2">{tt(T.alertsNote, lang)}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Company-page entry: "set alert" button with a pre-filled form popover. */
+export function SetAlertButton({ ticker, close }: { ticker: string; close: number | null }) {
+  const { lang } = useApp();
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors">
+          <BellPlus className="h-3.5 w-3.5" />
+          {lang === "ar" ? "تنبيه سعري" : "Set alert"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-3 space-y-2">
+        <p className="text-[10px] font-semibold text-foreground/70">{tt(T.alertAdd, lang)}</p>
+        <AlertCreateForm fixedTicker={ticker} close={close} onSaved={() => setOpen(false)} />
+        <p className="text-[10px] text-muted-foreground leading-relaxed">{tt(T.alertsNote, lang)}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}

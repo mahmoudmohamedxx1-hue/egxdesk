@@ -6,13 +6,30 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { Lang } from "@/lib/i18n";
 import { marketStatus, type MarketStatus } from "@/lib/market-status";
+import {
+  loadAlerts,
+  saveAlerts,
+  conditionHolds,
+  observedValue,
+  alertText,
+  notify,
+  type AlertCond,
+  type PriceAlert,
+} from "@/lib/alerts";
+import type { CompanyRow } from "./types";
 
 type WatchState = {
   tickers: string[];
+  ready: boolean;
+};
+
+type AlertsState = {
+  list: PriceAlert[];
   ready: boolean;
 };
 
@@ -35,6 +52,11 @@ type Ctx = {
    *  render during SSR/prerender or hydration text mismatches result
    *  (React #418) because the prerendered HTML freezes build-time text. */
   status: MarketStatus | null;
+  /** G1 price alerts — stored on-device, evaluated here against the
+   *  60-second quote refresh, each firing exactly once. */
+  alerts: AlertsState;
+  addAlert: (ticker: string, cond: AlertCond, value: number) => void;
+  removeAlert: (id: string) => void;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -44,6 +66,7 @@ const WATCH_KEY = "egx-watchlist";
 const KNOWN_VIEWS = new Set([
   "home", "market", "screener", "sectors", "heat", "activity",
   "investors", "today", "watchlist", "tools", "exchange", "company",
+  "calendar", "compare", "api",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview
@@ -79,6 +102,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<View>({ name: "home" });
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
   const [status, setStatus] = useState<MarketStatus | null>(null);
+  const [alerts, setAlertsState] = useState<AlertsState>({ list: [], ready: false });
+  const alertsRef = useRef<AlertsState>({ list: [], ready: false });
+  const langRef = useRef<Lang>("ar");
 
   // one-time hydration init from browser-only stores (localStorage + URL) —
   // cannot run in render because this component is also server-rendered
@@ -95,6 +121,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         setWatch((w) => ({ ...w, ready: true }));
       }
+      // G1 — restore alerts from the device
+      const restoredAlerts = loadAlerts();
+      alertsRef.current = { list: restoredAlerts, ready: true };
+      setAlertsState({ list: restoredAlerts, ready: true });
     } catch {}
     const params = new URLSearchParams(window.location.search);
     setView(viewFromParams(params));
@@ -108,10 +138,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, []);
 
-  // sync dir/lang on the document
+  // sync dir/lang on the document (and a ref the alert engine can read)
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    langRef.current = lang;
   }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
@@ -177,6 +208,98 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [watch.tickers]
   );
 
+  // ── G1 price alerts: CRUD + evaluation engine ──
+
+  const applyAlerts = useCallback((next: PriceAlert[]) => {
+    saveAlerts(next);
+    alertsRef.current = { list: next, ready: true };
+    setAlertsState({ list: next, ready: true });
+  }, []);
+
+  const addAlert = useCallback(
+    (ticker: string, cond: AlertCond, value: number) => {
+      const t = ticker.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!t || !Number.isFinite(value)) return;
+      const a: PriceAlert = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        ticker: t,
+        cond,
+        value,
+        createdAt: new Date().toISOString(),
+        triggeredAt: null,
+        triggeredValue: null,
+      };
+      applyAlerts([...alertsRef.current.list, a]);
+      toast(alertText(a, langRef.current));
+    },
+    [applyAlerts, toast]
+  );
+
+  const removeAlert = useCallback(
+    (id: string) => {
+      applyAlerts(alertsRef.current.list.filter((a) => a.id !== id));
+    },
+    [applyAlerts]
+  );
+
+  /** Evaluation engine: polls the quote table once a minute WHILE untriggered
+   *  alerts exist (no polling when the feature is unused) and flips each
+   *  alert to triggered exactly once, firing an in-app toast + browser
+   *  notification. Quotes are ~15-min delayed — honest by design. */
+  useEffect(() => {
+    const tick = async () => {
+      const current = alertsRef.current;
+      if (!current.ready) return;
+      const pending = current.list.filter((a) => !a.triggeredAt);
+      if (pending.length === 0) return; // nothing to watch — skip the fetch
+      try {
+        const res = await fetch("/api/companies", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json()) as { rows?: CompanyRow[] };
+        const rows = json.rows ?? [];
+        const byTicker = new Map(rows.map((r) => [r.ticker, r] as const));
+        const fired: PriceAlert[] = [];
+        const next = current.list.map((a) => {
+          if (a.triggeredAt) return a;
+          const row = byTicker.get(a.ticker);
+          if (!row || !conditionHolds(a, row)) return a;
+          fired.push(a);
+          return {
+            ...a,
+            triggeredAt: new Date().toISOString(),
+            triggeredValue: observedValue(a, row),
+          };
+        });
+        if (fired.length) {
+          applyAlerts(next);
+          const lang = langRef.current;
+          for (const a of fired) {
+            const seen = a.triggeredValue ?? a.value;
+            const valText =
+              a.cond === "above" || a.cond === "below"
+                ? String(seen)
+                : `${Number.isFinite(seen) ? (seen as number).toFixed(2) : ""}%`;
+            toast(
+              lang === "ar"
+                ? `تنبيه: ${a.ticker} — تحقّق الشرط عند ${valText}`
+                : `Alert: ${a.ticker} — condition met at ${valText}`
+            );
+            notify(`EGX Desk — ${a.ticker}`, alertText(a, lang));
+          }
+        }
+      } catch {
+        // network hiccup — the next tick retries; alerts never fire on errors
+      }
+    };
+    const t = setInterval(tick, 60_000);
+    // evaluate once shortly after mount / after adding an alert
+    const warm = setTimeout(tick, 2_500);
+    return () => {
+      clearInterval(t);
+      clearTimeout(warm);
+    };
+  }, [applyAlerts, toast, alerts.ready, alerts.list.length]);
+
   const value = useMemo<Ctx>(
     () => ({
       watch,
@@ -188,8 +311,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isWatched,
       toast,
       status,
+      alerts,
+      addAlert,
+      removeAlert,
     }),
-    [watch, lang, setLang, view, navigate, toggleWatch, isWatched, toast, status]
+    [watch, lang, setLang, view, navigate, toggleWatch, isWatched, toast, status, alerts, addAlert, removeAlert]
   );
 
   return (

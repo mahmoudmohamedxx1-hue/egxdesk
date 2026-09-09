@@ -325,3 +325,48 @@ Stage Summary:
 - Key finding: EGX Desk leads on Egypt-specific data (insider log, flows, breadth, Arabic naming, TTS — 15.0/25 coverage, 5th of 12) but misses the operational layer every top tool treats as table stakes (alerts, portfolio, dividends, calendar, comparison, saved state).
 - Recommended sequence: Wave 1 = 8 quick wins (G1-G8), Wave 1+ = calendar/comparison/PWA (G5,G4,G14), Wave 2 = research depth (G9-G12), Wave 3 = differentiation bets chosen on usage evidence.
 - Research artifacts: scripts/research/comp-*.json + gap-*.json (15 search result sets), gen-report.py, cover.html, merge-final.py, chart-*.png.
+
+---
+Task ID: 14
+Agent: Super Z (main agent)
+Task: Implement ALL roadmap improvements from the competitive research (user: "make all the improvements") — 17 of the 19 registered gaps (G16 accounts and G17 community deliberately excluded per the user's earlier auth-removal decision and scope).
+
+Work Log:
+- Data layers (all live-verified before UI):
+  - src/lib/dividends.ts + /api/dividends/[ticker]: per-company cash dividend history (ex/record/pay dates + per-share EGP) from stockanalysis.com public dividend pages (6h TTL, in-flight dedup); fetchUpcomingDividends() aggregates upcoming dates with concurrency 8.
+  - src/lib/events.ts + /api/calendar + src/data/calendar-seed.json: events calendar = 397 estimated results dates + corporate actions from esthmr's published calendar (EGX-disclosure sourced, harvested 2026-09-07, trimmed to >= Sep 2026) + live stockanalysis dividend dates (supersede stale seed rows) + news-mined assemblies (future-date extraction from Arabic text incl. Arabic-Indic digits) + TV nextEarnings (all stale → 0 usable). 424 events live.
+  - src/lib/rates.ts + /api/rates: Egypt interest rates parsed from Trading Economics SSR pages (policy 19.00%, overnight lending 20.00%, interbank 19.47% + next CBE decision 2026-09-24). Fixed a parse index bug (unit at cells[3] not cells[4]).
+  - src/lib/news-en.ts + /api/news-en: English EGX coverage from Google News RSS (60 items, source-attributed); enforced newest-first sort after feed order proved imperfect.
+  - statements.ts: quarterly balance-sheet + cash-flow added (48/31 lines for COMI vs 3 income lines — same compact-bank format as annual, by design).
+- Client features:
+  - G6 screener persistence (egx-screener: filters + pills + sort; restore-on-mount with shape validation).
+  - G7 CSV export (src/lib/export.ts, UTF-8 BOM for Arabic Excel): screener, dividends, portfolio, compare, statements, valuation.
+  - G1 alerts: src/lib/alerts.ts (device-stored, 4 conditions) + app-context engine (60s poll ONLY while untriggered alerts exist; each fires exactly once; toast + Notification API) + AlertsBell header popover + SetAlertButton on company pages.
+  - G2 portfolio: watchlist view gained a tab; positions (shares × avg cost) → live day/total P&L + weights + CSV (device-stored).
+  - G5 calendar view: month grid (Egypt week starts Saturday) + day dots by type + clickable day agenda + estimated flags + load-more.
+  - G4 compare view: up to 4 companies, 1Y rebased performance race + 21-row metrics table across 4 groups; selection persisted.
+  - G8 chart modes: log-scale toggle + EGX30/70/100 rebased compare overlay (compare mode hides absolute-price overlays); FIXED recharts Fragment-children bug (overlay lines invisible until split into direct children).
+  - G19 trendlines: click-two-points drawing (snaps to sessions), persisted per symbol, clear button; price mode only.
+  - G10 valuation panel: editable DCF (defaults 10/22/5 — Egypt-anchored discount; recomputes live: 22%→203 EGP, 30%→143 EGP for COMI) + 5-factor SVG snowflake (value/future/past/health/dividends, transparent 0-5 formulas vs sector medians) + CSV.
+  - G12 rates UI: exchange view section (3 rate cards + next decision + plain-Arabic meanings); tools comparison calculator bank row auto-anchors to the LIVE policy rate (render-phase sync).
+  - G11 English news: news view source toggle (Arabic archive / English feed), auto-selects by UI language after mount (SSR-safe).
+  - G13 funds section in tools: listed funds/REITs with live quotes (EGREF 29.07 EGP), bank certificates, mutual funds — honestly scoped (only 1 listed fund in universe).
+  - G14 PWA: manifest + service worker (app-shell cache; /api NEVER cached) + generated icons (scripts/gen-pwa-icons.py) + InstallButton — FIXED 390px header overflow by moving install from header to footer.
+  - G15 market narrative: home "ما الذي يحرك السوق اليوم؟" — deterministic sentence from indices + breadth + flows + sector extremes (src/lib/narrative.ts). FIXED flow-unit bug (flowsSummary is EGP mn, not EGP raw → 0m display).
+  - G18 API docs view (?view=api + footer link): 16 endpoints with params/returns/try-it.
+  - i18n: ~120 new AR/EN keys. Footer source list unchanged (existing sources cover the new layers; esthmr calendar covered by the existing esthmr attribution).
+- Testing (fresh round):
+  - tsc 0 errors; eslint 0 errors (fixed 7 react-hooks/set-state-in-effect hits with the codebase's SSR-safe-restore idioms: try/catch + disable comments + render-phase sync).
+  - scripts/e2e/new-endpoints-test.js (36 assertions): dividends shape/order/unknown-ticker, calendar counts/sorting/flags/links, rates sanity, news-en shape/order, quarterly BS/CF, PWA assets — 36/36 on dev AND production.
+  - api-test.js: 100/100 on dev AND production :3102.
+  - Production build clean; standalone booted (remember: PORT=3102 env required); all 15 views 200.
+  - Agentic E2E on production: narrative renders real numbers; calendar day-click filters agenda (17 Sep shows eFinance assemblies); compare COMI+TMGH (2 lines, +47.39%/+87.24%, 21 metric rows, persistence across navigation); alerts full lifecycle (create → engine triggers in 2.5s at live price 139.2 → badge + triggered state → delete); portfolio math exact (1000×(139.20−100) = +39,200/+39.20%); dividends tab (5 payments, 4.08 EGP 5y total, 0.73% yield, 5 bars); valuation (DCF 203.05 EGP @22%, snowflake 15.9/25); quarterly BS 51 rows + CF 34 rows; chart compare + log + trendline (draw 2 points → stored → rendered → cleared); screener preset → 87 matches → persisted and restored after navigation; English feed 60 items; exchange rates 3 cards + next decision; tools EGREF + live bank rate 19; API docs 16 rows.
+  - Mobile 390px: FIXED the header overflow (install button) — all views now 390 vs 390.
+  - Hydration stress: 19 rapid navigations, fresh context → 0 page errors, 0 console errors.
+  - Language AR→EN works (ltr + English headings); theme dark default intact.
+  - VLM: calendar grid clean, portfolio clean, compare overlay clean.
+
+Stage Summary:
+- 17 of 19 gaps closed (G1-G15, G18, G19; G16/G17 excluded by design): the operational layer (alerts, portfolio, dividends, calendar, comparison, persistence, exports) + research depth (quarterly BS/CF, valuation) + delivery (PWA) + context (rates, English news, narrative, funds, API docs) all live and verified.
+- Environment restored: dev on :3000 (200 + 100/100 + 36/36); standalone stopped.
+- Key artifacts: src/lib/{dividends,events,rates,news-en,alerts,portfolio,export,narrative}.ts (NEW), src/data/calendar-seed.json (NEW), src/components/market/{dividends-panel,valuation-panel,alerts-panel,pwa-register}.tsx (NEW), src/components/views/{calendar-view,compare-view,portfolio-view,api-docs-view}.tsx (NEW), updated price-chart (G8+G19), statements (quarterly), screener (G6+G7), watchlist (portfolio tab), company (3 new tabs + alert button), exchange (rates), tools (funds + live rate), news (EN feed), overview (narrative), app-context (alerts engine), app-shell (bell + PWA + new views + footer links), 5 new API routes, scripts/e2e/new-endpoints-test.js, screenshots scripts/data-test/t14-*.png.

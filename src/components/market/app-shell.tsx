@@ -3,6 +3,8 @@
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
 import { HeaderSearch } from "./header-search";
+import { AlertsBell } from "./alerts-panel";
+import { PwaRegister, InstallButton } from "./pwa-register";
 import { OverviewView } from "@/components/views/overview-view";
 import { MarketView } from "@/components/views/market-view";
 import { ScreenerView } from "@/components/views/screener-view";
@@ -15,6 +17,9 @@ import { WatchlistView } from "@/components/views/watchlist-view";
 import { ToolsView } from "@/components/views/tools-view";
 import { CompanyView } from "@/components/views/company-view";
 import { ExchangeView } from "@/components/views/exchange-view";
+import { CalendarView } from "@/components/views/calendar-view";
+import { CompareView } from "@/components/views/compare-view";
+import { ApiDocsView } from "@/components/views/api-docs-view";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,6 +47,8 @@ function sectionTabs(currentView: string) {
   const all = [
     { view: "market", t: T.market },
     { view: "screener", t: { ar: "الفرز", en: "Screener" } },
+    { view: "calendar", t: { ar: "التقويم", en: "Calendar" } },
+    { view: "compare", t: { ar: "المقارنة", en: "Compare" } },
     { view: "investors", t: T.investors },
     { view: "activity", t: T.activity },
     { view: "heat", t: T.map },
@@ -72,6 +79,8 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* G14 — service-worker registration (app shell cache; API never cached) */}
+      <PwaRegister />
       {/* header */}
       <header className="border-b bg-card sticky top-0 z-40">
         <div className="mx-auto max-w-6xl px-4">
@@ -106,6 +115,9 @@ export function AppShell() {
             <div className="flex items-center gap-1.5">
               {/* inline header search — expands inside the header, never a modal */}
               <HeaderSearch />
+
+              {/* G1 price alerts — device-stored, evaluated on quote refresh */}
+              <AlertsBell />
 
               {/* direct light/dark toggle — dark is the default; theme state is
                   undefined until mount, so we fall back to "dark" pre-mount to
@@ -231,15 +243,27 @@ export function AppShell() {
           {view.name === "tools" && <ToolsView />}
           {view.name === "company" && <CompanyView ticker={view.ticker ?? "COMI"} panel={view.panel ?? "overview"} />}
           {view.name === "exchange" && <ExchangeView />}
+          {view.name === "calendar" && <CalendarView />}
+          {view.name === "compare" && <CompareView />}
+          {view.name === "api" && <ApiDocsView />}
         </div>
       </main>
 
       {/* footer */}
       <footer className="mt-auto border-t bg-card">
         <div className="mx-auto max-w-6xl px-4 py-5 text-xs text-muted-foreground leading-relaxed">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-primary text-primary-foreground text-[10px] font-bold num">X</span>
             <span className="font-semibold text-foreground">{tt(T.brand, lang)}</span>
+            <button
+              onClick={() => navigate("api")}
+              className="ms-auto text-[11px] hover:text-primary hover:underline"
+            >
+              {tt(T.apiDocsTitle, lang)}
+            </button>
+            {/* G14 — install the app (footer placement keeps the 390px header
+                cluster within bounds; appears only when the browser offers it) */}
+            <InstallButton />
           </div>
           {tt(T.footerNote, lang)}
         </div>

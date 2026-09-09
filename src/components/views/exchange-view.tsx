@@ -7,7 +7,7 @@ import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, directionClass } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownRight, RefreshCw, Coins, Globe2, LineChart, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, RefreshCw, Coins, Globe2, LineChart, TrendingUp, Landmark } from "lucide-react";
 
 type FxRate = {
   code: string;
@@ -50,6 +50,21 @@ type EconomyData = {
   worldNote?: { ar: string; en: string };
 };
 
+type RatesData = {
+  rows: {
+    key: "policy" | "lending" | "interbank";
+    value: number;
+    previous: number | null;
+    reference: string;
+    meaningAr: string;
+    meaningEn: string;
+  }[];
+  nextDecision: string | null;
+  source: string;
+  sourceUrl: string;
+  fetchedAt: string;
+};
+
 type OverviewLite = {
   session: SessionMeta;
   indices: IndexRow[];
@@ -60,6 +75,7 @@ export function ExchangeView() {
   const { lang, navigate } = useApp();
   const { data, error, refresh } = useLiveData<EconomyData>("/api/economy", 600_000);
   const { data: mkt } = useLiveData<OverviewLite>("/api/overview", 60_000);
+  const { data: rates } = useLiveData<RatesData>("/api/rates", 300_000);
 
   if (error && !data) {
     return (
@@ -115,6 +131,58 @@ export function ExchangeView() {
             <p className="num text-2xl font-bold tracking-tight">EGP {fmtValue(mkt.totals.valueTraded)}</p>
             <p className="num text-[11px] text-muted-foreground">{mkt.session.lastSession} · {tt(T.delayed, lang)}</p>
           </div>
+        </section>
+      )}
+
+      {/* G12 — Egypt interest rates: the stock's direct competitor */}
+      {rates && rates.rows.length > 0 && (
+        <section aria-label="interest rates" className="rounded-lg border bg-card p-4">
+          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-primary" />
+              {tt(T.ratesTitle, lang)}
+            </h2>
+            {rates.nextDecision && (
+              <span className="num text-[11px] text-muted-foreground">
+                {lang === "ar" ? "قرار السياسة القادم" : "Next policy decision"}: {rates.nextDecision}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">{tt(T.ratesNote, lang)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {rates.rows.map((r) => {
+              const label =
+                r.key === "policy" ? tt(T.ratePolicy, lang)
+                : r.key === "lending" ? tt(T.rateLending, lang)
+                : tt(T.rateInterbank, lang);
+              const changed = r.previous != null && Math.abs(r.value - r.previous) > 0.001;
+              return (
+                <div key={r.key} className="rounded-md border bg-secondary/30 p-3">
+                  <p className="text-sm font-semibold">{label}</p>
+                  <p className="num text-2xl font-bold tracking-tight mt-0.5">{fmtNum(r.value, 2)}%</p>
+                  <p className="num text-[10px] text-muted-foreground">
+                    {tt(T.ratesAsOf, lang)}: {r.reference || "—"}
+                    {changed && (
+                      <span className={`ms-1.5 font-semibold ${directionClass(r.value - (r.previous ?? 0))}`}>
+                        {fmtNum(r.value - (r.previous ?? 0), 2)}pp
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-snug mt-1.5">
+                    {lang === "ar" ? r.meaningAr : r.meaningEn}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <a
+            href={rates.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-[10px] text-muted-foreground hover:text-primary hover:underline"
+          >
+            {rates.source}
+          </a>
         </section>
       )}
 

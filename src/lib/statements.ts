@@ -34,7 +34,7 @@ export type StatementsData = {
   source: string;
   sourceUrl: string;
   annual: { income: StmtTable | null; balance: StmtTable | null; cashflow: StmtTable | null };
-  quarterly: { income: StmtTable | null };
+  quarterly: { income: StmtTable | null; balance: StmtTable | null; cashflow: StmtTable | null };
   hasData: boolean;
   fetchedAt: string;
 };
@@ -295,17 +295,21 @@ export async function fetchStatements(tickerRaw: string): Promise<StatementsData
   const t = tickerRaw.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!t) throw new Error("statements: empty ticker");
   return cached(`stmt:${t}`, TTL, async () => {
-    const [incHtml, bsHtml, cfHtml, qIncHtml] = await Promise.all([
+    const [incHtml, bsHtml, cfHtml, qIncHtml, qBsHtml, qCfHtml] = await Promise.all([
       fetchPage(`/${t}/financials/`),
       fetchPage(`/${t}/financials/balance-sheet/`),
       fetchPage(`/${t}/financials/cash-flow-statement/`),
       fetchPage(`/${t}/financials/?p=quarterly`),
+      fetchPage(`/${t}/financials/balance-sheet/?p=quarterly`),
+      fetchPage(`/${t}/financials/cash-flow-statement/?p=quarterly`),
     ]);
 
     const income = incHtml ? parseStmtTable(incHtml, "income") : null;
     const balance = bsHtml ? parseStmtTable(bsHtml, "balance") : null;
     const cashflow = cfHtml ? parseStmtTable(cfHtml, "cashflow") : null;
     const qIncome = qIncHtml ? parseStmtTable(qIncHtml, "income") : null;
+    const qBalance = qBsHtml ? parseStmtTable(qBsHtml, "balance") : null;
+    const qCashflow = qCfHtml ? parseStmtTable(qCfHtml, "cashflow") : null;
 
     const hasData = !!(income || balance || cashflow);
     return {
@@ -315,7 +319,11 @@ export async function fetchStatements(tickerRaw: string): Promise<StatementsData
       source: "stockanalysis.com — company financials (EGX)",
       sourceUrl: `${BASE}/${t}/financials/`,
       annual: { income, balance, cashflow },
-      quarterly: { income: qIncome && qIncome !== income ? qIncome : null },
+      quarterly: {
+        income: qIncome && qIncome !== income ? qIncome : null,
+        balance: qBalance && qBalance !== balance ? qBalance : null,
+        cashflow: qCashflow && qCashflow !== cashflow ? qCashflow : null,
+      },
       hasData,
       fetchedAt: new Date().toISOString(),
     } satisfies StatementsData;

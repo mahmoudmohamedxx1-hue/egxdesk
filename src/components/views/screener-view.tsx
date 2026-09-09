@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
@@ -22,8 +22,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, X, Plus, ChevronDown, Zap, Trash2 } from "lucide-react";
+import { Search, X, Plus, ChevronDown, Zap, Trash2, Download } from "lucide-react";
 import { rowMatchesArabic } from "@/lib/ar-search";
+import { downloadCsv, fileStamp } from "@/lib/export";
 
 /** Investing.com-style stock screener over the live company universe.
  *  All filtering happens client-side on the same /api/companies rows the
@@ -155,6 +156,9 @@ const GROUP_LABELS: Record<FilterDef["group"], { ar: string; en: string }> = {
 
 /** Pills shown by default when the screener opens — the quick pro workflow. */
 const DEFAULT_ACTIVE: FilterKey[] = ["price", "change", "perf", "pe", "cap"];
+
+/** localStorage key for the persisted screener session (G6). */
+const SCREENER_KEY = "egx-screener";
 
 // ── sortable columns ──
 
@@ -428,6 +432,47 @@ export function ScreenerView() {
   const [active, setActive] = useState<FilterKey[]>(DEFAULT_ACTIVE);
   const [openPill, setOpenPill] = useState<FilterKey | null>(null);
 
+  // G6 — restore the last screener session (filters, active pills, sort) after
+  // mount; SSR renders defaults so prerendered HTML always matches hydration.
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SCREENER_KEY);
+      if (raw) {
+        const s = JSON.parse(raw) as {
+          f?: Partial<Filters>; active?: unknown; sortKey?: unknown; desc?: unknown;
+        };
+        if (s && typeof s === "object") {
+          // SSR-safe localStorage restore — mount effect by necessity
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          if (s.f && typeof s.f === "object") setF({ ...DEFAULT_FILTERS, ...s.f });
+          if (Array.isArray(s.active)) {
+            const valid = s.active.filter(
+              (k): k is FilterKey =>
+                typeof k === "string" && FILTER_DEFS.some((d) => d.key === k)
+            );
+            setActive(valid.length ? valid : DEFAULT_ACTIVE);
+          }
+          if (typeof s.sortKey === "string" && COLUMNS.some((c) => c.key === s.sortKey)) {
+            setSortKey(s.sortKey as ColKey);
+          }
+          if (typeof s.desc === "boolean") setDesc(s.desc);
+        }
+      }
+      setRestored(true);
+    } catch {
+      setRestored(true);
+    }
+  }, []);
+
+  // persist on every change once restored (a corrupt/old shape is never re-saved)
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      localStorage.setItem(SCREENER_KEY, JSON.stringify({ f, active, sortKey, desc }));
+    } catch {}
+  }, [restored, f, active, sortKey, desc]);
+
   const rows = data?.rows ?? null;
   const total = data?.total ?? rows?.length ?? 0;
 
@@ -648,6 +693,34 @@ export function ScreenerView() {
           >
             <Trash2 className="h-3.5 w-3.5" />
             {tt(T.screenerClearAll, lang)}
+          </Button>
+        )}
+        {/* G7 — export the current result set to CSV (client-side) */}
+        {filtered && filtered.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 gap-1 text-xs text-muted-foreground whitespace-nowrap"
+            title={tt(T.csvExportHint, lang)}
+            onClick={() => {
+              const headers = [
+                "ticker", "name", "name_ar", "sector_en", "sector_ar",
+                "close", "change_pct", "market_cap_egp_mn", "pe", "pb",
+                "div_yield_pct", "roe_pct", "perf_ytd_pct", "volume", "value_traded_egp_mn",
+              ];
+              const body = filtered.map((r) => [
+                r.ticker, r.name, r.nameAr ?? "", r.sectorEn, r.sectorAr,
+                r.close, r.changePct,
+                r.marketCap != null ? +(r.marketCap / 1e6).toFixed(3) : null,
+                r.pe, r.pb,
+                r.divYield, r.roe, r.perfYTD, r.volume,
+                r.valueTraded != null ? +(r.valueTraded / 1e6).toFixed(3) : null,
+              ]);
+              downloadCsv(`egx-screener-${fileStamp()}`, headers, body);
+            }}
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
           </Button>
         )}
       </div>
