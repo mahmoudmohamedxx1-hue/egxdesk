@@ -267,3 +267,42 @@ Stage Summary:
 - 1 real UX bug found & fixed (screener preset filter stacking); 3 test-infra pitfalls root-caused and documented.
 - Final state: 100/100 API tests, tsc/eslint clean, all 12 views render with correct content and 0 page errors in production, screener results deterministic vs API.
 - Key artifacts: fixed src/components/views/screener-view.tsx (preset reset), screenshots scripts/data-test/t11-*.png.
+
+---
+Task ID: 12
+Agent: Super Z (main agent)
+Task: Fresh full E2E deep-test round (user re-request: "NOW MAKE E2E DEEP TEST AND ALL KIND OF TEST AS MAKE AGENTIC BROWSER TEST IF YOU ARE A USER IN THE END AND IF THERE IS ANY ISSUE FIX IT").
+
+Work Log:
+- Static layer: tsc 0 errors; eslint src 0 errors.
+- API layer: 100/100 PASS against dev (:3000) AND production (:3102). Test-infra improvement: api-test.js BASE now overridable via BASE_URL env (was hard-coded :3000, which produced false FAILs when dev was stopped for the production build).
+- Production: npm run build clean; standalone booted on :3102; all views 200.
+- Agentic-browser end-user walkthrough (fresh contexts, native clicks for Radix):
+  - Home (fresh visitor): dark default (no egx-theme-chosen), 9 sections incl. world markets + breadth; EGX70 card click syncs chart tab; SMA20 toggle → 2 curves, +Bollinger → 5; RSI panel 60.8 "محايد" with 30/50/70 refs; MACD 570.720/710.578.
+  - Header search: expands INSIDE header (288px input); "COMI" → البنك التجارى الدولى · بنوك · 138.55; Enter → company view; "/" shortcut focuses; Arabic "طلعت" → TMGH مجموعة طلعت مصطفى.
+  - Company COMI: 7 panels; technical tab: rating شراء, 22 indicator rows, pivot table R3 145.49 → P 141.50 → S3 138.02 each with signal; statements: 12 grouped bars FY2021→TTM, TTM revenue 139.17bn; fundamentals P/E 6.7 EPS 21.16; watch-star → localStorage ["COMI"].
+  - Market: 4 tabs, 296 rows Arabic names; row click → ICLE company; rank tab: 11 metrics, close sort desc 1686.15 → asc 0.05 with US$ flags; direction toggle works. Note: market sub-tabs are local state (URL tab= param ignored) — by design, graceful default, not a bug.
+  - Screener (Task-11 preset-reset regression): yield pill ≥5 → 21 (matches API exactly); gainers preset while yield active → 66 = exact live API count (61→66 is live market movement, verified via /api/companies); pill removal → 296.
+  - News: 41 source links; cold-storage load-older → 80; cards with source/category/timestamp/headline/TTS.
+  - Insiders: paging math EXACT vs API (all 25+309=334; buys 25+49=74; treasury 20 rows); 26 EGX doc links; filter chips work (buys/sells/treasury).
+  - Exchange: gold 21/24/18 قيراطاً 6,236/7,126/5,345 EGP + ounce 4,353$ + silver 107.62 EGP/g; world quotes.
+  - Tools: SAIB autocomplete → price 2.53; 200,000 @ coupon 0.30 → 79,051 shares · 23,715 EGP/yr · 11.86% · 1,976/mo · 8.4y — hand-verified exact.
+  - Watchlist: renders stored COMI; 2 stocks persist across reload; empty state message correct.
+  - Theme: dark → light (egx-theme-chosen=1) → persists reload → back to dark; old auto-light visitor migrates to dark.
+  - Language: AR→EN (dir=ltr, English headings/names/headers: ICLE International Co. for Leasing SAE) → back to AR.
+  - Mobile 390px: home/market/screener/investors/exchange/news/tools/company — zero horizontal overflow.
+  - Hydration stress: fresh context, 16 rapid navigations (8 home reloads + 8 company/screener alternations) + 12-view sweep = 0 page errors, 0 console errors, all views render real content.
+  - Heatmap: DOM-tile rendering (not SVG), 242 changing tiles with Arabic names; sectors: 21 sectors weighted performance.
+  - Edge cases: invalid ticker API → 404; invalid ticker page → graceful "تعذر تحميل البيانات الآن" + retry, no crash.
+  - VLM visual verification: 6 screenshots (home dark, technical panel, insiders, light, English LTR, mobile company) — all PASS, no visual defects.
+- Test-harness quirks encountered (documented, NOT app bugs): stale agent-browser refs after re-navigation (re-snapshot before typing); investors row-count must scope per-table (6+15+25=46 across 3 tables); probe strings must match actual labels (قيراطاً not عيار; أسهم الخزينة not الخزانة); Radix Popover/DropdownMenu need native Playwright clicks.
+
+Issue found and FIXED:
+1. Test-infra: api-test.js hard-coded BASE http://localhost:3000 → false FAILs when running against production with dev stopped. Fixed: BASE = process.env.BASE_URL || "http://localhost:3000". Verified 100/100 on both dev and production targets.
+- No application bugs found this round — all views, interactions, math, and data flows verified correct.
+
+Stage Summary:
+- Full-stack deep test round complete: static + 100-assertion API suite (dev AND production) + production boot + 12-view DOM/content audits + deep interactive flows + theme/language/mobile sweeps + 16-nav hydration stress + VLM visual checks.
+- Zero app-level issues found; one test-harness fix (BASE_URL env).
+- Environment restored: dev server back on :3000 (200 + 100/100); standalone :3102 stopped (avoids documented .next conflict).
+- Key artifacts: scripts/e2e/api-test.js (BASE_URL fix), screenshots scripts/data-test/t12-*.png (11).

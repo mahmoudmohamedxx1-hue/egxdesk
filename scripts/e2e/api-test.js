@@ -4,7 +4,9 @@
  * Tests all endpoints: valid inputs, invalid inputs, edge cases,
  * latency, caching, data integrity (NaN/null leak scan, cross-endpoint consistency).
  */
-const BASE = "http://localhost:3000";
+// Target is configurable so the suite can run against the dev server (3000)
+// or a production standalone build (e.g. BASE_URL=http://localhost:3102).
+const BASE = process.env.BASE_URL || "http://localhost:3000";
 const results = [];
 let failures = 0;
 
