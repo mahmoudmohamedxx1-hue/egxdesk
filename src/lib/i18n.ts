@@ -531,18 +531,21 @@ export const T = {
   csvExportDone: { ar: "نُزِّل ملف CSV", en: "CSV file downloaded" },
 
   // ── G1: price alerts ──
-  alertsTitle: { ar: "التنبيهات", en: "Alerts" },
-  alertsBell: { ar: "التنبيهات السعرية", en: "Price alerts" },
+  alertsTitle: { ar: "التنبيهات والتذكيرات", en: "Alerts & reminders" },
+  alertsBell: { ar: "التنبيهات والتذكيرات", en: "Alerts & reminders" },
   alertsEmpty: { ar: "لا تنبيهات بعد", en: "No alerts yet" },
   alertsEmptyHint: {
-    ar: "أنشئ تنبيهاً من صفحة أي شركة — \"نبّهني عندما يلمس السعر مستوى معيناً\".",
-    en: "Create one from any company page — \"ping me when the price touches a level\".",
+    ar: "أنشئ تنبيهاً أو تذكيراً من هنا مباشرة — اكتب رمز السهم (مع اقتراحات حية) واختر الشرط أو التاريخ.",
+    en: "Create an alert or reminder right here — type a ticker (with live suggestions) and pick a condition or a date.",
   },
-  alertAdd: { ar: "تنبيه جديد", en: "New alert" },
+  alertAdd: { ar: "تنبيه أو تذكير جديد", en: "New alert or reminder" },
   alertCondAbove: { ar: "السعر يعبر أعلى من", en: "Price crosses above" },
   alertCondBelow: { ar: "السعر يعبر أدنى من", en: "Price crosses below" },
   alertCondRise: { ar: "التغير اليومي يصعد بنسبة %", en: "Day change rises by %" },
   alertCondFall: { ar: "التغير اليومي يهبط بنسبة %", en: "Day change falls by %" },
+  alertCondOnDate: { ar: "تذكير في تاريخ", en: "Reminder on date" },
+  reminderDateLabel: { ar: "التاريخ", en: "Date" },
+  reminderSave: { ar: "حفظ التذكير", en: "Save reminder" },
   alertValueLabel: { ar: "القيمة", en: "Value" },
   alertSave: { ar: "حفظ التنبيه", en: "Save alert" },
   alertSavedToast: { ar: "حُفظ التنبيه — سيُفحص مع كل تحديث للأسعار", en: "Alert saved — checked on every quote refresh" },
@@ -553,8 +556,8 @@ export const T = {
     en: "Alert: {t} — condition met at {v}",
   },
   alertsNote: {
-    ar: "تُحفظ التنبيهات على جهازك وتُفحص محلياً كل دقيقة مع تحديث الأسعار (مؤجلة ~١٥ دقيقة). الإشعارات تعمل أثناء فتح الموقع.",
-    en: "Alerts are stored on your device and evaluated locally every minute as quotes refresh (delayed ~15 min). Notifications fire while the site is open.",
+    ar: "تُحفظ التنبيهات على جهازك: الشرط السعرية تُفحص كل دقيقة مع تحديث الأسعار (مؤجلة ~١٥ دقيقة)، وتذكيرات التاريخ تُطلق في يومها. الإشعارات تعمل أثناء فتح الموقع.",
+    en: "Alerts are stored on your device: price conditions are checked every minute as quotes refresh (delayed ~15 min), and date reminders fire on their day. Notifications work while the site is open.",
   },
   alertCurrentPrice: { ar: "آخر سعر", en: "Last price" },
   alertsActiveCount: { ar: "تنبيهات فعّالة", en: "active alerts" },
@@ -597,6 +600,16 @@ export const T = {
   },
   invalidShares: { ar: "أدخل عدداً صحيحاً أكبر من صفر", en: "Enter a whole number above zero" },
   invalidCost: { ar: "أدخل تكلفة أكبر من صفر", en: "Enter a cost above zero" },
+
+  // ── G10: valuation teaser (company overview) ──
+  valTeaserOpen: { ar: "افتح لوحة التقييم", en: "Open valuation panel" },
+  valTeaserFairValue: { ar: "القيمة العادلة (DCF بالافتراضات)", en: "Fair value (DCF at defaults)" },
+  valTeaserVsPrice: { ar: "مقارنة بالسعر الحالي", en: "vs current price" },
+  valTeaserScore: { ar: "درجة الأداء الخماسية", en: "Five-factor score" },
+  valTeaserNote: {
+    ar: "بافتراضات افتراضية (نمو ١٠٪، خصم ٢٢٪، نمو نهائي ٥٪) — عدّلها بنفسك في اللوحة الكاملة.",
+    en: "Default assumptions (10% growth, 22% discount, 5% terminal) — edit them yourself in the full panel.",
+  },
 
   // ── G3: dividends ──
   panelDividends: { ar: "التوزيعات", en: "Dividends" },
@@ -725,7 +738,7 @@ export const T = {
     ar: "ثبّت EGX ديسك كتطبيق على جهازك — يعمل كنافذة مستقلة ويفتح أسرع.",
     en: "Install EGX Desk as an app on your device — runs in its own window and opens faster.",
   },
-  installed: { ar: "مثبّت", en: "Installed" },
+  installed: { ar: "التطبيق مثبّت", en: "App installed" },
 
   // ── G15: market narrative ──
   narrativeTitle: { ar: "ما الذي يحرك السوق اليوم؟", en: "What is moving the market today?" },

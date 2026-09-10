@@ -18,6 +18,7 @@ import {
   observedValue,
   alertText,
   notify,
+  dateArrived,
   type AlertCond,
   type PriceAlert,
 } from "@/lib/alerts";
@@ -55,7 +56,7 @@ type Ctx = {
   /** G1 price alerts — stored on-device, evaluated here against the
    *  60-second quote refresh, each firing exactly once. */
   alerts: AlertsState;
-  addAlert: (ticker: string, cond: AlertCond, value: number) => void;
+  addAlert: (ticker: string, cond: AlertCond, value: number, date?: string) => void;
   removeAlert: (id: string) => void;
 };
 
@@ -217,14 +218,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addAlert = useCallback(
-    (ticker: string, cond: AlertCond, value: number) => {
+    (ticker: string, cond: AlertCond, value: number, date?: string) => {
       const t = ticker.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      if (!t || !Number.isFinite(value)) return;
+      const isReminder = cond === "onDate";
+      if (!t || (!isReminder && !Number.isFinite(value)) || (isReminder && !date)) return;
       const a: PriceAlert = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         ticker: t,
         cond,
-        value,
+        value: isReminder ? 0 : value,
+        ...(isReminder ? { date } : {}),
         createdAt: new Date().toISOString(),
         triggeredAt: null,
         triggeredValue: null,
@@ -242,16 +245,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [applyAlerts]
   );
 
-  /** Evaluation engine: polls the quote table once a minute WHILE untriggered
-   *  alerts exist (no polling when the feature is unused) and flips each
-   *  alert to triggered exactly once, firing an in-app toast + browser
-   *  notification. Quotes are ~15-min delayed — honest by design. */
+  /** Evaluation engine: once a minute while untriggered alerts exist.
+   *  Date reminders are checked against the local calendar day (no network);
+   *  price conditions poll /api/companies and flip each alert to triggered
+   *  exactly once, firing an in-app toast + browser notification. Quotes are
+   *  ~15-min delayed — honest by design. */
   useEffect(() => {
     const tick = async () => {
       const current = alertsRef.current;
       if (!current.ready) return;
       const pending = current.list.filter((a) => !a.triggeredAt);
-      if (pending.length === 0) return; // nothing to watch — skip the fetch
+      if (pending.length === 0) return; // nothing to watch — skip entirely
+
+      // 1) date reminders — no quotes needed, fire when the day arrives
+      const dueNow = pending.filter(dateArrived);
+      let next = current.list;
+      if (dueNow.length) {
+        next = next.map((a) =>
+          dueNow.includes(a)
+            ? { ...a, triggeredAt: new Date().toISOString(), triggeredValue: null }
+            : a
+        );
+        applyAlerts(next);
+        const l = langRef.current;
+        for (const a of dueNow) {
+          toast(
+            l === "ar" ? `تذكير اليوم: ${a.ticker}` : `Reminder today: ${a.ticker}`
+          );
+          notify(`EGX Desk — ${a.ticker}`, alertText(a, l));
+        }
+      }
+
+      // 2) price conditions — fetch quotes only when at least one is pending
+      const pricePending = next.filter((a) => !a.triggeredAt && a.cond !== "onDate");
+      if (pricePending.length === 0) return;
       try {
         const res = await fetch("/api/companies", { cache: "no-store" });
         if (!res.ok) return;
@@ -259,8 +286,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const rows = json.rows ?? [];
         const byTicker = new Map(rows.map((r) => [r.ticker, r] as const));
         const fired: PriceAlert[] = [];
-        const next = current.list.map((a) => {
-          if (a.triggeredAt) return a;
+        const after = next.map((a) => {
+          if (a.triggeredAt || a.cond === "onDate") return a;
           const row = byTicker.get(a.ticker);
           if (!row || !conditionHolds(a, row)) return a;
           fired.push(a);
@@ -271,7 +298,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
         });
         if (fired.length) {
-          applyAlerts(next);
+          applyAlerts(after);
           const lang = langRef.current;
           for (const a of fired) {
             const seen = a.triggeredValue ?? a.value;

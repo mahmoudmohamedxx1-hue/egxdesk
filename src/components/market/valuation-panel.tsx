@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Calculator, Snowflake, RotateCcw, Download } from "lucide-react";
 import { downloadCsv } from "@/lib/export";
 
-type CompanyFund = {
+export type CompanyFund = {
   ticker: string;
   close: number | null;
   marketCap: number | null;
@@ -37,7 +37,7 @@ type CompanyFund = {
   netMarginTTM?: number | null;
 };
 
-type SectorAgg = {
+export type SectorAgg = {
   pe: number | null;
   pb: number | null;
   roe: number | null;
@@ -50,8 +50,10 @@ function clamp(v: number, lo = 0, hi = 5): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-/** Score one factor 0-5 from live fundamentals (transparent formulas). */
-function snowflakeScores(c: CompanyFund, sector: SectorAgg) {
+/** Score one factor 0-5 from live fundamentals (transparent formulas).
+ *  Exported so the company overview can show a valuation teaser built
+ *  from the exact same math as the full panel. */
+export function snowflakeScores(c: CompanyFund, sector: SectorAgg) {
   // Value: P/E and P/B vs the sector median (cheaper = higher)
   const peRatio = c.pe && sector.pe && c.pe > 0 && sector.pe > 0 ? c.pe / sector.pe : null;
   const pbRatio = c.pb && sector.pb && c.pb > 0 && sector.pb > 0 ? c.pb / sector.pb : null;
@@ -139,7 +141,9 @@ function SnowflakeChart({ scores, lang }: { scores: Record<string, number | null
 
 // ── DCF calculator ──
 
-function dcfPerShare(
+/** 10-year two-stage DCF per share. Exported for the overview teaser
+ *  (defaults) — the full panel lets the user edit the assumptions. */
+export function dcfPerShare(
   fcf0: number,
   growth: number, // percent per year, years 1-10
   discount: number, // percent

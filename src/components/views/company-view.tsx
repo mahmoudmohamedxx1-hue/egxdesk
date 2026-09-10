@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, NewsRow, SessionMeta } from "../market/types";
@@ -14,7 +14,8 @@ import { StatementsPanel } from "../market/statements-panel";
 import { TechnicalPanel } from "../market/technical-panel";
 import { DividendsPanel } from "../market/dividends-panel";
 import { SetAlertButton } from "../market/alerts-panel";
-import { ValuationPanel } from "../market/valuation-panel";
+import { ValuationPanel, snowflakeScores, dcfPerShare, type CompanyFund, type SectorAgg } from "../market/valuation-panel";
+import { Snowflake } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw, Zap, CalendarClock, FileSpreadsheet } from "lucide-react";
@@ -124,10 +125,10 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
 
   const panels = [
     { key: "overview", t: T.panelOverview },
+    { key: "valuation", t: { ar: "التقييم", en: "Valuation" } },
     { key: "technical", t: T.panelTechnical },
     { key: "statements", t: T.panelStatements },
     { key: "dividends", t: T.panelDividends },
-    { key: "valuation", t: { ar: "التقييم", en: "Valuation" } },
     { key: "fundamentals", t: T.panelFundamentals },
     { key: "disclosures", t: T.panelDisclosures },
     { key: "activity", t: T.panelActivity },
@@ -240,6 +241,9 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             </div>
             <PriceChart key={c.ticker} symbol={c.ticker} defaultRange="6M" />
           </section>
+
+          {/* valuation teaser — surfaces the G10 panel from the overview */}
+          <ValuationTeaser company={c} sectorAgg={data.sectorAgg} onOpen={() => setActivePanel("valuation")} />
 
           {data.signals && <SignalsCard signals={data.signals} lang={lang} />}
 
@@ -567,5 +571,114 @@ function Stat({ label, value, sub, cls }: { label: string; value: string; sub?: 
       <p className={`num text-sm font-semibold ${cls ?? ""}`}>{value}</p>
       {sub && <p className="num text-[10px] text-muted-foreground leading-tight">{sub}</p>}
     </div>
+  );
+}
+
+/** Compact valuation summary on the company overview — built from the exact
+ *  same math as the full G10 panel (snowflakeScores + default-assumption
+ *  DCF), so the feature is discoverable without hunting for its tab. */
+function ValuationTeaser({
+  company,
+  sectorAgg,
+  onOpen,
+}: {
+  company: CompanyFund;
+  sectorAgg: SectorAgg;
+  onOpen: () => void;
+}) {
+  const { lang } = useApp();
+
+  const scores = useMemo(() => snowflakeScores(company, sectorAgg), [company, sectorAgg]);
+  const total = useMemo(() => {
+    const vals = Object.values(scores).filter((x): x is number => x !== null);
+    return vals.length ? vals.reduce((s, x) => s + x, 0) : null;
+  }, [scores]);
+
+  const shares =
+    company.marketCap && company.close && company.close > 0 ? company.marketCap / company.close : null;
+  const fcf0 =
+    company.netIncomeTTM != null
+      ? company.netIncomeTTM
+      : company.revenueTTM != null && company.netMarginTTM != null
+        ? company.revenueTTM * company.netMarginTTM
+        : null;
+  const dcf = fcf0 != null && shares != null ? dcfPerShare(fcf0, 10, 22, 5, company.netDebt ?? 0, shares) : null;
+  const upside = dcf && company.close ? (dcf.perShare / company.close - 1) * 100 : null;
+
+  const factors = [
+    { key: "value", ar: "القيمة", en: "Value" },
+    { key: "future", ar: "المستقبل", en: "Future" },
+    { key: "past", ar: "الأداء", en: "Past" },
+    { key: "health", ar: "الملاءة", en: "Health" },
+    { key: "div", ar: "التوزيعات", en: "Dividends" },
+  ];
+
+  return (
+    <section className="rounded-lg border bg-card p-4" aria-label="valuation summary">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 className="font-bold flex items-center gap-2">
+          <Snowflake className="h-4 w-4 text-primary" />
+          {lang === "ar" ? "التقييم" : "Valuation"}
+        </h2>
+        <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={onOpen}>
+          {tt(T.valTeaserOpen, lang)}
+        </Button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* DCF at defaults */}
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-muted-foreground">{tt(T.valTeaserFairValue, lang)}</p>
+          {dcf ? (
+            <>
+              <p className="num text-2xl font-bold tracking-tight">
+                {fmtNum(dcf.perShare)} <span className="text-xs font-normal text-muted-foreground">EGP</span>
+              </p>
+              {upside != null && (
+                <p className={`num text-xs font-semibold ${directionClass(upside)}`}>
+                  {upside >= 0 ? "+" : ""}
+                  {fmtPct(upside)} {tt(T.valTeaserVsPrice, lang)}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {lang === "ar" ? "لا تكفي بيانات هذا السهم لبناء النموذج." : "Not enough data to model this stock."}
+            </p>
+          )}
+          <p className="text-[10px] text-muted-foreground leading-relaxed">{tt(T.valTeaserNote, lang)}</p>
+        </div>
+
+        {/* five-factor score */}
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-muted-foreground flex items-baseline justify-between">
+            {tt(T.valTeaserScore, lang)}
+            {total != null && (
+              <span className="num text-sm font-bold">
+                {fmtNum(total, 1)}
+                <span className="text-[10px] font-normal text-muted-foreground"> / 25</span>
+              </span>
+            )}
+          </p>
+          <div className="space-y-1">
+            {factors.map((f) => {
+              const s = scores[f.key];
+              return (
+                <div key={f.key} className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-14 shrink-0">{lang === "ar" ? f.ar : f.en}</span>
+                  <span className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden" aria-hidden>
+                    <span
+                      className="block h-full rounded-full bg-primary"
+                      style={{ width: s == null ? 0 : `${(s / 5) * 100}%` }}
+                    />
+                  </span>
+                  <span className="num text-[10px] w-6 text-end text-muted-foreground">{s == null ? "—" : fmtNum(s, 1)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

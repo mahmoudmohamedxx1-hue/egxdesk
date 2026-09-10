@@ -33,31 +33,30 @@ import { Languages, Moon, Sun, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
-const PRIMARY_NAV = [
-  { key: "overview", view: "home", t: T.overview },
-  { key: "explore", view: "market", t: T.explore },
-  { key: "news", view: "today", t: T.news },
-  { key: "investors", view: "investors", t: T.investors },
-  { key: "watch", view: "watchlist", t: T.watchlist },
-  { key: "tools", view: "tools", t: T.tools },
+/** ONE navigation row — every view of the app in a single header line
+ *  (the old two-layer primary-nav + section-tabs duplicated "Market" and
+ *  "Investors" and pushed the analytical views into a second row users
+ *  had to notice; now there is exactly one header and one nav). */
+const NAV = [
+  { view: "home", t: T.overview },
+  { view: "market", t: T.market },
+  { view: "screener", t: { ar: "الفرز", en: "Screener" } },
+  { view: "heat", t: T.map },
+  { view: "sectors", t: T.sectors },
+  { view: "investors", t: { ar: "المستثمرون", en: "Investors" } },
+  { view: "activity", t: T.activity },
+  { view: "calendar", t: { ar: "التقويم", en: "Calendar" } },
+  { view: "compare", t: { ar: "المقارنة", en: "Compare" } },
+  { view: "today", t: T.news },
+  { view: "watchlist", t: T.watchlist },
+  { view: "tools", t: T.tools },
 ];
 
-/** Section tabs shown under the header, changing per context. */
-function sectionTabs(currentView: string) {
-  const all = [
-    { view: "market", t: T.market },
-    { view: "screener", t: { ar: "الفرز", en: "Screener" } },
-    { view: "calendar", t: { ar: "التقويم", en: "Calendar" } },
-    { view: "compare", t: { ar: "المقارنة", en: "Compare" } },
-    { view: "investors", t: T.investors },
-    { view: "activity", t: T.activity },
-    { view: "heat", t: T.map },
-    { view: "sectors", t: T.sectors },
-  ];
-  if (currentView === "company") {
-    return [{ view: "market", t: T.market }, { view: "company", t: { ar: "شركة", en: "Company" } }];
-  }
-  return all;
+/** Which nav item is highlighted for a given view (families stay grouped). */
+function navActive(navView: string, current: string): boolean {
+  if (navView === "home") return current === "home" || current === "exchange";
+  if (navView === "market") return current === "market" || current === "screener" || current === "company";
+  return navView === current;
 }
 
 export function AppShell() {
@@ -176,19 +175,15 @@ export function AppShell() {
             </div>
           </div>
 
-          {/* primary nav */}
-          <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} className="flex items-center gap-1 overflow-x-auto thin-scroll pb-px">
-            {PRIMARY_NAV.map((item) => {
-              const active =
-                (item.view === "home" && (view.name === "home" || view.name === "exchange")) ||
-                (item.view === "market" &&
-                  (view.name === "market" || view.name === "company" || view.name === "screener")) ||
-                view.name === item.view;
+          {/* the one and only nav row */}
+          <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} className="flex items-center gap-0.5 overflow-x-auto thin-scroll pb-px -mx-1 px-1">
+            {NAV.map((item) => {
+              const active = navActive(item.view, view.name);
               return (
                 <button
-                  key={item.key}
+                  key={item.view}
                   onClick={() => navigate(item.view)}
-                  className={`relative whitespace-nowrap px-3 py-2 text-sm transition-colors hover:text-foreground ${
+                  className={`relative whitespace-nowrap px-2.5 py-2 text-[13px] transition-colors hover:text-foreground ${
                     active ? "font-semibold text-foreground" : "text-muted-foreground"
                   }`}
                   aria-current={active ? "page" : undefined}
@@ -201,26 +196,6 @@ export function AppShell() {
           </nav>
         </div>
       </header>
-
-      {/* section tabs */}
-      <nav aria-label={lang === "ar" ? "أقسام الصفحة" : "Page sections"} className="border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 flex items-center gap-1 overflow-x-auto thin-scroll">
-          {sectionTabs(view.name).map((tab) => {
-            const active = view.name === tab.view;
-            return (
-              <button
-                key={tab.view}
-                onClick={() => (tab.view === "company" ? navigate("company", { ticker: view.ticker, panel: view.panel }) : navigate(tab.view))}
-                className={`whitespace-nowrap px-3 py-1.5 text-xs rounded-t-sm transition-colors ${
-                  active ? "bg-secondary font-semibold" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tt(tab.t, lang)}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
 
       {/* main */}
       <main id="main-content" className="flex-1">

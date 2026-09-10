@@ -1,27 +1,30 @@
 "use client";
 
-/** Alerts UI (G1): the header bell + alert manager popover, and the reusable
- *  create form (also mounted on company pages pre-filled with the ticker).
- *  Alerts live on the device; the app-context engine evaluates them against
- *  the 60-second delayed-quote refresh and fires toasts + browser
- *  notifications. */
+/** Alerts & reminders UI (G1): the header bell + manager popover, and the
+ *  reusable create form (also mounted on company pages pre-filled with the
+ *  ticker). Alerts live on the device; the app-context engine evaluates
+ *  price conditions against the 60-second delayed-quote refresh and date
+ *  reminders against the local calendar day, firing toasts + browser
+ *  notifications. The create form sits at the TOP of the bell popover so a
+ *  reminder is always one bell-click away — no navigation needed. */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "./app-context";
 import { useLiveData } from "./use-live-data";
 import type { CompanyRow } from "./types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum } from "@/lib/format";
-import { alertText, requestNotifyPermission, type AlertCond, type PriceAlert } from "@/lib/alerts";
+import { alertText, requestNotifyPermission, todayStr, type AlertCond, type PriceAlert } from "@/lib/alerts";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, BellPlus, X, Check, Trash2 } from "lucide-react";
+import { Bell, BellPlus, CalendarClock, Check, Trash2 } from "lucide-react";
 
 const CONDS: { key: AlertCond; t: { ar: string; en: string } }[] = [
   { key: "above", t: T.alertCondAbove },
   { key: "below", t: T.alertCondBelow },
   { key: "risePct", t: T.alertCondRise },
   { key: "fallPct", t: T.alertCondFall },
+  { key: "onDate", t: T.alertCondOnDate },
 ];
 
 /** Suggest tickers from the live table as the user types. */
@@ -41,7 +44,7 @@ function useTickerSuggestions(q: string): CompanyRow[] {
   }, [data, q]);
 }
 
-/** Create-alert form. `fixedTicker` (company page) locks the symbol. */
+/** Create-alert/reminder form. `fixedTicker` (company page) locks the symbol. */
 export function AlertCreateForm({
   fixedTicker,
   close,
@@ -55,6 +58,7 @@ export function AlertCreateForm({
   const [ticker, setTicker] = useState(fixedTicker ?? "");
   const [cond, setCond] = useState<AlertCond>("above");
   const [value, setValue] = useState("");
+  const [date, setDate] = useState("");
   const suggestions = useTickerSuggestions(fixedTicker ? "" : ticker);
 
   // render-phase sync (official React pattern): when the parent swaps the
@@ -66,14 +70,21 @@ export function AlertCreateForm({
   }
 
   const save = async () => {
-    const v = Number(value);
     const t = (fixedTicker ?? ticker).toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (!t || !Number.isFinite(v)) return;
-    addAlert(t, cond, v);
+    if (!t) return;
+    if (cond === "onDate") {
+      if (!date) return;
+      addAlert(t, "onDate", 0, date);
+    } else {
+      const v = Number(value);
+      if (!Number.isFinite(v)) return;
+      addAlert(t, cond, v);
+    }
     // ask for browser notifications on first alert (grants persist)
     const perm = await requestNotifyPermission();
     if (perm === "denied") toast(tt(T.notifyBlocked, lang));
     setValue("");
+    setDate("");
     onSaved?.();
   };
 
@@ -124,22 +135,35 @@ export function AlertCreateForm({
             </option>
           ))}
         </select>
-        <input
-          dir="ltr"
-          inputMode="decimal"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={cond === "above" || cond === "below" ? (close != null ? String(close) : "0.00") : "5"}
-          aria-label={tt(T.alertValueLabel, lang)}
-          className="h-8 w-24 rounded-md border bg-card px-2 text-xs num"
-        />
+        {cond === "onDate" ? (
+          <input
+            dir="ltr"
+            type="date"
+            min={todayStr()}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-label={tt(T.reminderDateLabel, lang)}
+            title={tt(T.reminderDateLabel, lang)}
+            className="h-8 w-32 rounded-md border bg-card px-2 text-xs num"
+          />
+        ) : (
+          <input
+            dir="ltr"
+            inputMode="decimal"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={cond === "above" || cond === "below" ? (close != null ? String(close) : "0.00") : "5"}
+            aria-label={tt(T.alertValueLabel, lang)}
+            className="h-8 w-24 rounded-md border bg-card px-2 text-xs num"
+          />
+        )}
         <Button size="sm" className="h-8 px-2.5 text-[11px] gap-1 shrink-0" onClick={save}>
-          <BellPlus className="h-3 w-3" />
-          {tt(T.alertSave, lang)}
+          {cond === "onDate" ? <CalendarClock className="h-3 w-3" /> : <BellPlus className="h-3 w-3" />}
+          {tt(cond === "onDate" ? T.reminderSave : T.alertSave, lang)}
         </Button>
       </div>
 
-      {fixedTicker && close != null && (
+      {fixedTicker && close != null && cond !== "onDate" && (
         <p className="num text-[10px] text-muted-foreground">
           {tt(T.alertCurrentPrice, lang)}: {fmtNum(close)}
         </p>
@@ -159,12 +183,15 @@ function AlertRow({ a }: { a: PriceAlert }) {
       >
         {a.ticker}
       </button>
-      <p className="text-[11px] text-muted-foreground flex-1 min-w-0 truncate">{alertText(a, lang)}</p>
+      <p className="text-[11px] text-muted-foreground flex-1 min-w-0 truncate">
+        {a.cond === "onDate" && <CalendarClock className="h-3 w-3 inline me-1 -mt-0.5 text-primary" aria-hidden />}
+        {alertText(a, lang)}
+      </p>
       {a.triggeredAt ? (
         <span className="inline-flex items-center gap-1 text-[10px] text-up font-semibold shrink-0">
           <Check className="h-3 w-3" />
           {tt(T.alertTriggered, lang)}
-          {a.triggeredValue != null && (
+          {a.cond !== "onDate" && a.triggeredValue != null && (
             <span className="num">{a.cond === "above" || a.cond === "below" ? fmtNum(a.triggeredValue) : `${fmtNum(a.triggeredValue, 2)}%`}</span>
           )}
         </span>
@@ -181,7 +208,9 @@ function AlertRow({ a }: { a: PriceAlert }) {
   );
 }
 
-/** Header bell + full alert manager popover. */
+/** Header bell + full alert manager popover. The create form is the FIRST
+ *  thing in the popover — creating a reminder is one bell-click away from
+ *  anywhere in the app, with a live ticker type-ahead. */
 export function AlertsBell() {
   const { lang, alerts } = useApp();
   const [open, setOpen] = useState(false);
@@ -219,11 +248,19 @@ export function AlertsBell() {
           </span>
         </p>
 
+        {/* create form FIRST — a reminder is one bell-click away */}
+        <div className="rounded-md border bg-secondary/40 p-2">
+          <p className="text-[10px] font-semibold text-foreground/70 mb-1.5 flex items-center gap-1">
+            <BellPlus className="h-3 w-3 text-primary" />
+            {tt(T.alertAdd, lang)}
+          </p>
+          <AlertCreateForm onSaved={() => setOpen(false)} />
+        </div>
+
         {!alerts.ready ? null : alerts.list.length === 0 ? (
-          <div className="py-3 text-center">
-            <p className="text-xs font-medium">{tt(T.alertsEmpty, lang)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{tt(T.alertsEmptyHint, lang)}</p>
-          </div>
+          <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+            {tt(T.alertsEmptyHint, lang)}
+          </p>
         ) : (
           <div className="max-h-52 overflow-auto thin-scroll -mx-1 px-1">
             {alerts.list.map((a) => (
@@ -232,18 +269,13 @@ export function AlertsBell() {
           </div>
         )}
 
-        <div className="border-t pt-2">
-          <p className="text-[10px] font-semibold text-foreground/70 mb-1.5">{tt(T.alertAdd, lang)}</p>
-          <AlertCreateForm onSaved={() => setOpen(false)} />
-        </div>
-
         <p className="text-[10px] text-muted-foreground leading-relaxed border-t pt-2">{tt(T.alertsNote, lang)}</p>
       </PopoverContent>
     </Popover>
   );
 }
 
-/** Company-page entry: "set alert" button with a pre-filled form popover. */
+/** Company-page entry: "set alert / reminder" button with a pre-filled form popover. */
 export function SetAlertButton({ ticker, close }: { ticker: string; close: number | null }) {
   const { lang } = useApp();
   const [open, setOpen] = useState(false);
@@ -252,7 +284,7 @@ export function SetAlertButton({ ticker, close }: { ticker: string; close: numbe
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors">
           <BellPlus className="h-3.5 w-3.5" />
-          {lang === "ar" ? "تنبيه سعري" : "Set alert"}
+          {lang === "ar" ? "تنبيه أو تذكير" : "Alert or reminder"}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-3 space-y-2">
