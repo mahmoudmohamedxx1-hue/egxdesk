@@ -8,16 +8,17 @@
  *  notifications. The create form sits at the TOP of the bell popover so a
  *  reminder is always one bell-click away — no navigation needed. */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "./app-context";
 import { useLiveData } from "./use-live-data";
 import type { CompanyRow } from "./types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum } from "@/lib/format";
 import { alertText, requestNotifyPermission, todayStr, type AlertCond, type PriceAlert } from "@/lib/alerts";
+import { enablePush, disablePush, sendTestPush, isPushEnabled } from "@/lib/push-client";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, BellPlus, CalendarClock, Check, Trash2 } from "lucide-react";
+import { Bell, BellPlus, BellRing, CalendarClock, Check, Smartphone, Trash2 } from "lucide-react";
 
 const CONDS: { key: AlertCond; t: { ar: string; en: string } }[] = [
   { key: "above", t: T.alertCondAbove },
@@ -208,6 +209,83 @@ function AlertRow({ a }: { a: PriceAlert }) {
   );
 }
 
+/** Phone-notifications section (web push): the server checks the device's
+ *  mirrored alert list every 5 minutes and pushes real system notifications
+ *  — even when the app is closed (installed PWA, iOS 16.4+). One tap to
+ *  enable, one tap to prove it works, one tap to turn off. */
+function PushPhoneSection() {
+  const { lang, toast } = useApp();
+  const [on, setOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // display-only mount read (localStorage is browser-only)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOn(isPushEnabled());
+  }, []);
+
+  const doEnable = async () => {
+    setBusy(true);
+    const res = await enablePush(lang);
+    setBusy(false);
+    if (res.ok) {
+      setOn(true);
+      toast(tt(T.pushOnToast, lang));
+    } else if (res.reason === "notInstalled") {
+      toast(tt(T.pushIosToast, lang));
+    } else if (res.reason === "denied") {
+      toast(tt(T.pushDeniedToast, lang));
+    } else if (res.reason === "unsupported") {
+      toast(tt(T.pushUnsupportedToast, lang));
+    } else {
+      toast(tt(T.pushServerToast, lang));
+    }
+  };
+
+  const doTest = async () => {
+    setBusy(true);
+    const ok = await sendTestPush(lang);
+    setBusy(false);
+    toast(tt(ok ? T.pushTestSent : T.pushTestFailed, lang));
+  };
+
+  const doDisable = async () => {
+    setBusy(true);
+    await disablePush();
+    setBusy(false);
+    setOn(false);
+    toast(tt(T.pushOffToast, lang));
+  };
+
+  return (
+    <div className="rounded-md border bg-secondary/30 p-2 space-y-1.5">
+      <p className="text-[10px] font-semibold text-foreground/70 flex items-center gap-1">
+        <Smartphone className="h-3 w-3 text-primary" />
+        {tt(T.pushPhoneTitle, lang)}
+        {on && <Check className="h-3 w-3 text-up ms-auto" aria-hidden />}
+      </p>
+      {on ? (
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] text-up font-medium flex-1 leading-snug">{tt(T.pushPhoneEnabled, lang)}</span>
+          <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] gap-1" disabled={busy} onClick={doTest}>
+            <BellRing className="h-3 w-3" />
+            {tt(T.pushPhoneTest, lang)}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] text-muted-foreground" disabled={busy} onClick={doDisable}>
+            {tt(T.pushPhoneDisable, lang)}
+          </Button>
+        </div>
+      ) : (
+        <Button size="sm" className="h-7 w-full px-2 text-[11px] gap-1" disabled={busy} onClick={doEnable}>
+          <Smartphone className="h-3 w-3" />
+          {tt(T.pushPhoneEnable, lang)}
+        </Button>
+      )}
+      <p className="text-[10px] text-muted-foreground leading-relaxed">{tt(T.pushPhoneNote, lang)}</p>
+    </div>
+  );
+}
+
 /** Header bell + full alert manager popover. The create form is the FIRST
  *  thing in the popover — creating a reminder is one bell-click away from
  *  anywhere in the app, with a live ticker type-ahead. */
@@ -268,6 +346,9 @@ export function AlertsBell() {
             ))}
           </div>
         )}
+
+        {/* phone notifications — server push even with the app closed */}
+        <PushPhoneSection />
 
         <p className="text-[10px] text-muted-foreground leading-relaxed border-t pt-2">{tt(T.alertsNote, lang)}</p>
       </PopoverContent>

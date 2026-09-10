@@ -1,0 +1,261 @@
+/** Cross-market technical SIGNALS scanner — the "best signals across the
+ *  stocks" engine behind the Signals tab and the AI agent's `technicals`
+ *  tool. For every traded EGX stock it computes the SAME 13-indicator rating
+ *  the company Technical Panel shows (6 moving averages + 8 oscillators over
+ *  one year of Yahoo daily candles), then ranks the whole market by the
+ *  aggregate score (-1 … +1). Quotes/perf/valuation fields come from the
+ *  TradingView universe snapshot.
+ *
+ *  Cost: ~1 chart fetch per stock (shared cache with /api/chart). The scan
+ *  result is cached for an hour and pre-warmed at server boot (see
+ *  lib/push-loop.ts) so users never wait for the full sweep. */
+
+import { fetchUniverse, companyRow, type Stock } from "@/lib/market";
+import { fetchStockChart, type StockChart } from "@/lib/history";
+import {
+  smaSeries,
+  emaFull,
+  rsiSeries,
+  macdSeries,
+  stochasticSeries,
+  cciSeries,
+  momentumSeries,
+  williamsRSeries,
+  bullBearSeries,
+  aggregateSignals,
+  type Signal,
+} from "@/lib/indicators";
+
+export type Rating = "strongBuy" | "buy" | "neutral" | "sell" | "strongSell";
+
+export type SignalRow = {
+  ticker: string;
+  name: string;
+  nameAr: string;
+  sectorEn: string;
+  sectorAr: string;
+  // quote block (merged fresh by the route from the universe snapshot)
+  close: number;
+  changePct: number;
+  volume: number;
+  valueTraded: number;
+  marketCap: number | null;
+  pe: number | null;
+  divYield: number | null;
+  // technical rating block
+  rating: Rating;
+  score: number;
+  buy: number;
+  neutral: number;
+  sell: number;
+  count: number;
+  rsi: number | null;
+  macdHist: number | null;
+  macdSig: Signal;
+  sma50: number | null;
+  sma200: number | null;
+  sma50Sig: Signal;
+  sma200Sig: Signal;
+  pos52: number | null; // 0–100 position inside the 52-week range
+  volRatio: number | null; // session volume / 10-day average
+  perf1M: number | null;
+  perf6M: number | null;
+  perfYTD: number | null;
+  perfY: number | null;
+  nextEarnings: string | null; // ISO date
+  lastDate: string; // last candle date
+};
+
+export type SignalsScan = {
+  asOf: string; // ISO scan time
+  scanned: number;
+  failed: number;
+  rows: SignalRow[]; // sorted by score desc
+};
+
+// ── scan-level cache (in-flight dedup + 60-minute result TTL) ──
+
+type Entry = { data: unknown; at: number };
+const cache = new Map<string, Entry>();
+const inflight = new Map<string, Promise<unknown>>();
+
+async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.data as T;
+  const flying = inflight.get(key);
+  if (flying) return flying as Promise<T>;
+  const p = (async () => {
+    const data = await loader();
+    cache.set(key, { data, at: Date.now() });
+    return data;
+  })();
+  inflight.set(key, p);
+  try {
+    return await p;
+  } finally {
+    inflight.delete(key);
+  }
+}
+
+// ── single-stock rating (mirror of the Technical Panel computation) ──
+
+function lastOf(series: (number | null)[]): number | null {
+  for (let i = series.length - 1; i >= 0; i--) {
+    const v = series[i];
+    if (v !== null && v !== undefined && Number.isFinite(v)) return v;
+  }
+  return null;
+}
+
+export function computeSignalRow(stock: Stock, chart: StockChart): SignalRow | null {
+  const pts = chart.points;
+  if (pts.length < 60) return null; // not enough history for a meaningful rating
+  const closes = pts.map((p) => p.close);
+  const highs = pts.map((p) => p.high ?? null);
+  const lows = pts.map((p) => p.low ?? null);
+  const price = closes[closes.length - 1];
+
+  const sma20 = lastOf(smaSeries(closes, 20));
+  const sma50 = lastOf(smaSeries(closes, 50));
+  const sma200 = lastOf(smaSeries(closes, 200));
+  const ema20 = lastOf(emaFull(closes, 20));
+  const ema50 = lastOf(emaFull(closes, 50));
+  const ema100 = lastOf(emaFull(closes, 100));
+  const rsi = lastOf(rsiSeries(closes, 14));
+  const stoch = stochasticSeries(highs, lows, closes, 14, 3, 3);
+  const stochK = lastOf(stoch.k);
+  const stochD = lastOf(stoch.d);
+  const macd = macdSeries(closes);
+  const macdHist = lastOf(macd.hist);
+  const cci = lastOf(cciSeries(highs, lows, closes, 20));
+  const mom = lastOf(momentumSeries(closes, 10));
+  const wr = lastOf(williamsRSeries(highs, lows, closes, 14));
+  const bbp = lastOf(bullBearSeries(closes, 13));
+
+  const maSignal = (v: number | null): Signal =>
+    v === null ? "neutral" : price > v ? "buy" : price < v ? "sell" : "neutral";
+
+  const rows: { value: number | null; signal: Signal }[] = [
+    { value: sma20, signal: maSignal(sma20) },
+    { value: sma50, signal: maSignal(sma50) },
+    { value: sma200, signal: maSignal(sma200) },
+    { value: ema20, signal: maSignal(ema20) },
+    { value: ema50, signal: maSignal(ema50) },
+    { value: ema100, signal: maSignal(ema100) },
+    { value: rsi, signal: rsi === null ? "neutral" : rsi < 30 ? "buy" : rsi > 70 ? "sell" : "neutral" },
+    { value: stochK, signal: stochK === null ? "neutral" : stochK < 20 ? "buy" : stochK > 80 ? "sell" : "neutral" },
+    { value: stochD, signal: stochD === null ? "neutral" : stochD < 20 ? "buy" : stochD > 80 ? "sell" : "neutral" },
+    { value: macdHist, signal: macdHist === null ? "neutral" : macdHist > 0 ? "buy" : "sell" },
+    { value: cci, signal: cci === null ? "neutral" : cci < -100 ? "buy" : cci > 100 ? "sell" : "neutral" },
+    { value: mom, signal: mom === null ? "neutral" : mom > 0 ? "buy" : mom < 0 ? "sell" : "neutral" },
+    { value: wr, signal: wr === null ? "neutral" : wr < -80 ? "buy" : wr > -20 ? "sell" : "neutral" },
+    { value: bbp, signal: bbp === null ? "neutral" : bbp > 0 ? "buy" : "sell" },
+  ];
+
+  const active = rows.filter((r) => r.value !== null);
+  const summary = aggregateSignals(active.map((r) => r.signal));
+
+  const pos52 =
+    stock.high52 !== null && stock.low52 !== null && stock.high52 > stock.low52 && price > 0
+      ? ((price - stock.low52) / (stock.high52 - stock.low52)) * 100
+      : null;
+
+  const row = companyRow(stock);
+  const nextEarnings =
+    stock.nextEarnings && stock.nextEarnings > 1.7e9
+      ? new Date(stock.nextEarnings * 1000).toISOString().slice(0, 10)
+      : null;
+
+  return {
+    ticker: row.ticker,
+    name: row.name,
+    nameAr: row.nameAr,
+    sectorEn: row.sectorEn,
+    sectorAr: row.sectorAr,
+    close: stock.close,
+    changePct: stock.changePct,
+    volume: stock.volume,
+    valueTraded: stock.valueTraded,
+    marketCap: stock.marketCap,
+    pe: stock.pe,
+    divYield: stock.divYield,
+    rating: summary.rating,
+    score: Number(summary.score.toFixed(3)),
+    buy: summary.buy,
+    neutral: summary.neutral,
+    sell: summary.sell,
+    count: active.length,
+    rsi: rsi !== null ? Number(rsi.toFixed(1)) : null,
+    macdHist: macdHist !== null ? Number(macdHist.toFixed(3)) : null,
+    macdSig: macdHist === null ? "neutral" : macdHist > 0 ? "buy" : "sell",
+    sma50: sma50 !== null ? Number(sma50.toFixed(2)) : null,
+    sma200: sma200 !== null ? Number(sma200.toFixed(2)) : null,
+    sma50Sig: maSignal(sma50),
+    sma200Sig: maSignal(sma200),
+    pos52: pos52 !== null ? Number(pos52.toFixed(0)) : null,
+    volRatio: row.volumeRatio !== null ? Number(row.volumeRatio.toFixed(2)) : null,
+    perf1M: stock.perf1M,
+    perf6M: stock.perf6M,
+    perfYTD: stock.perfYTD,
+    perfY: stock.perfY,
+    nextEarnings,
+    lastDate: pts[pts.length - 1].date,
+  };
+}
+
+// ── the full-market scan ──
+
+const SCAN_TTL = 60 * 60_000; // indicators are daily-candle based — hourly is honest
+const CONCURRENCY = 6;
+const STAGGER_MS = 120;
+
+async function runScan(): Promise<SignalsScan> {
+  const universe = await fetchUniverse();
+  // only stocks with a live price (suspended/zero-price rows have no signals)
+  const candidates = universe.filter((s) => s.close > 0 && s.ticker);
+  const rows: SignalRow[] = [];
+  let failed = 0;
+
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < candidates.length) {
+      const stock = candidates[cursor++];
+      try {
+        const chart = await fetchStockChart(stock.ticker, "1Y");
+        const row = computeSignalRow(stock, chart);
+        if (row) rows.push(row);
+        else failed++;
+      } catch {
+        failed++; // a broken upstream for one stock never breaks the scan
+      }
+      await new Promise((r) => setTimeout(r, STAGGER_MS));
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+  rows.sort((a, b) => b.score - a.score);
+  return {
+    asOf: new Date().toISOString(),
+    scanned: rows.length,
+    failed,
+    rows,
+  };
+}
+
+export function scanSignals(): Promise<SignalsScan> {
+  return cached("signals-scan", SCAN_TTL, runScan);
+}
+
+/** Single-stock rating for the AI agent's `technicals` tool. */
+export async function signalForTicker(tickerRaw: string): Promise<SignalRow | null> {
+  const t = tickerRaw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const universe = await fetchUniverse();
+  const stock = universe.find((s) => s.ticker === t);
+  if (!stock) return null;
+  try {
+    const chart = await fetchStockChart(t, "1Y");
+    return computeSignalRow(stock, chart);
+  } catch {
+    return null;
+  }
+}

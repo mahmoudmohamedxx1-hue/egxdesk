@@ -20,6 +20,9 @@ import { ExchangeView } from "@/components/views/exchange-view";
 import { CalendarView } from "@/components/views/calendar-view";
 import { CompareView } from "@/components/views/compare-view";
 import { ApiDocsView } from "@/components/views/api-docs-view";
+import { SignalsView } from "@/components/views/signals-view";
+import { AgentView } from "@/components/views/agent-view";
+import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -41,6 +44,7 @@ const NAV = [
   { view: "home", t: T.overview },
   { view: "market", t: T.market },
   { view: "screener", t: { ar: "الفرز", en: "Screener" } },
+  { view: "signals", t: T.signalsNav },
   { view: "heat", t: T.map },
   { view: "sectors", t: T.sectors },
   { view: "investors", t: { ar: "المستثمرون", en: "Investors" } },
@@ -48,6 +52,7 @@ const NAV = [
   { view: "calendar", t: { ar: "التقويم", en: "Calendar" } },
   { view: "compare", t: { ar: "المقارنة", en: "Compare" } },
   { view: "today", t: T.news },
+  { view: "agent", t: T.agentNav },
   { view: "watchlist", t: T.watchlist },
   { view: "tools", t: T.tools },
 ];
@@ -220,6 +225,8 @@ export function AppShell() {
           {view.name === "exchange" && <ExchangeView />}
           {view.name === "calendar" && <CalendarView />}
           {view.name === "compare" && <CompareView />}
+          {view.name === "signals" && <SignalsView />}
+          {view.name === "agent" && <AgentView />}
           {view.name === "api" && <ApiDocsView />}
         </div>
       </main>
@@ -239,6 +246,10 @@ export function AppShell() {
             {/* G14 — install the app (footer placement keeps the 390px header
                 cluster within bounds; appears only when the browser offers it) */}
             <InstallButton />
+            {/* visible version so installed-PWA users can tell old from new */}
+            <span className="num text-[10px] text-muted-foreground" title={`${tt(T.versionLabel, lang)} — ${BUILD_DATE}`}>
+              v{APP_VERSION}
+            </span>
           </div>
           {tt(T.footerNote, lang)}
         </div>

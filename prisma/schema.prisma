@@ -268,3 +268,24 @@ model BreadthDay {
   source     String   @default("esthmr")
   capturedAt DateTime @default(now())
 }
+
+// ── Web-push devices (G1 mobile: iOS/Android installed-PWA notifications) ──
+
+/** One installed app instance that opted into phone notifications.
+ *  `alertsJson` mirrors the device's localStorage alert list (synced on every
+ *  change); `notifiedJson` holds alert ids the SERVER already pushed, so each
+ *  alert notifies exactly once even when the app is closed. */
+model PushDevice {
+  id             String    @id @default(cuid())
+  deviceId       String    @unique // client-generated uuid (egx-device-id)
+  endpoint       String    @unique // push-service subscription endpoint URL
+  p256dh         String // subscription key
+  auth           String // subscription key
+  alertsJson     String    @default("[]")
+  notifiedJson   String    @default("[]")
+  lang           String    @default("ar")
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
+  lastNotifiedAt DateTime?
+}

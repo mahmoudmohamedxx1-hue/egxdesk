@@ -23,6 +23,7 @@ import {
   type PriceAlert,
 } from "@/lib/alerts";
 import type { CompanyRow } from "./types";
+import { syncPushAlerts } from "@/lib/push-client";
 
 type WatchState = {
   tickers: string[];
@@ -67,7 +68,7 @@ const WATCH_KEY = "egx-watchlist";
 const KNOWN_VIEWS = new Set([
   "home", "market", "screener", "sectors", "heat", "activity",
   "investors", "today", "watchlist", "tools", "exchange", "company",
-  "calendar", "compare", "api",
+  "calendar", "compare", "api", "signals", "agent",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview
@@ -215,6 +216,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveAlerts(next);
     alertsRef.current = { list: next, ready: true };
     setAlertsState({ list: next, ready: true });
+    // mirror the list to the server when phone notifications are enabled —
+    // the server-side loop then evaluates these alerts every 5 minutes and
+    // pushes system notifications even while the app is closed (G1 mobile)
+    void syncPushAlerts(next, langRef.current).catch(() => {});
   }, []);
 
   const addAlert = useCallback(

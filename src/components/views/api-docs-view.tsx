@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Braces, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 
 type Endpoint = {
-  method: "GET";
+  method: "GET" | "POST";
   path: string;
   params?: string[];
   returnsAr: string;
@@ -137,6 +137,28 @@ const ENDPOINTS: Endpoint[] = [
     returnsEn: "Egypt interest rates: policy, overnight lending, interbank + next decision date.",
     source: "Trading Economics",
   },
+  {
+    method: "GET",
+    path: "/api/signals",
+    returnsAr: "مسح الإشارات عبر كل السوق: ترتيب كل سهم بدرجة ١٣ مؤشراً فنياً (تصنيف من شراء قوي إلى بيع قوي) + RSI و MACD والمتوسطات وموقع السهم من مدى ٥٢ أسبوعاً.",
+    returnsEn: "The cross-market signals scan: every stock ranked by a 13-indicator technical score (strong-buy → strong-sell) + RSI, MACD, moving averages and 52-week position.",
+    source: "Yahoo Finance candles · TradingView universe",
+  },
+  {
+    method: "POST",
+    path: "/api/agent",
+    params: ["messages — [{role, content}] آخرها رسالة مستخدم", "lang — \"ar\" | \"en\""],
+    returnsAr: "الوكيل الذكي: خطوات استدعاء الأدوات + الإجابة النهائية بصيغة Markdown، مبنية على بيانات حية عبر ١٣ أداة (أسعار، فرز، فني، قوائم، توزيعات، أخبار…).",
+    returnsEn: "The AI agent: tool-call steps + the final markdown answer, built from live data via 13 tools (quotes, screening, technicals, statements, dividends, news…).",
+    source: "z-ai-web-dev-sdk over our own data layer",
+  },
+  {
+    method: "GET",
+    path: "/api/push/key",
+    returnsAr: "مفتاح VAPID العام للاشتراك في إشعارات الهاتف (Web Push) — خادم الإشعارات يستخدم المفتاح الخاص.",
+    returnsEn: "The public VAPID key for subscribing to phone notifications (web push) — the server keeps the private half.",
+    source: "generated per deployment (scripts/gen-vapid.js)",
+  },
 ];
 
 export function ApiDocsView() {
@@ -183,22 +205,24 @@ export function ApiDocsView() {
                   <p className="text-[10px] text-muted-foreground">
                     {lang === "ar" ? "المصدر" : "Source"}: {e.source}
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1.5 text-[11px]"
-                    onClick={() => {
-                      let tryUrl = e.path;
-                      if (e.path.includes("{ticker}")) tryUrl = tryUrl.replace("{ticker}", "COMI");
-                      if (e.path.startsWith("/api/search")) tryUrl = "/api/search?q=COMI";
-                      if (e.path.startsWith("/api/news?")) tryUrl = "/api/news?page=1&limit=5";
-                      if (e.path.startsWith("/api/chart")) tryUrl = "/api/chart?symbol=COMI&range=6M";
-                      window.open(tryUrl, "_blank", "noopener");
-                    }}
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    {tt(T.apiTryIt, lang)}
-                  </Button>
+                  {e.method === "GET" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 text-[11px]"
+                      onClick={() => {
+                        let tryUrl = e.path;
+                        if (e.path.includes("{ticker}")) tryUrl = tryUrl.replace("{ticker}", "COMI");
+                        if (e.path.startsWith("/api/search")) tryUrl = "/api/search?q=COMI";
+                        if (e.path.startsWith("/api/news?")) tryUrl = "/api/news?page=1&limit=5";
+                        if (e.path.startsWith("/api/chart")) tryUrl = "/api/chart?symbol=COMI&range=6M";
+                        window.open(tryUrl, "_blank", "noopener");
+                      }}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {tt(T.apiTryIt, lang)}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

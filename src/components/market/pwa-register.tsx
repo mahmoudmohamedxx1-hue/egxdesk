@@ -36,15 +36,67 @@ function detectPlatform(): Platform {
   }
 }
 
-/** Mount anywhere inside the provider: registers /sw.js once. */
+/** Mount anywhere inside the provider: registers /sw.js once, then keeps
+ *  watching for new versions (periodic registration.update() + updatefound)
+ *  so an installed app that has been suspended on a phone still notices a
+ *  release, applies it via SKIP_WAITING and reloads once (guarded). */
 export function PwaRegister() {
+  const { toast, lang } = useApp();
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
+    if (!("serviceWorker" in navigator)) return;
+    let reloaded = false;
+    let reg: ServiceWorkerRegistration | null = null;
+
+    const onControllerChange = () => {
+      // a new SW took control — reload ONCE to run the new shell
+      if (reloaded) return;
+      reloaded = true;
+      try {
+        window.location.reload();
+      } catch {}
+    };
+
+    const watch = (registration: ServiceWorkerRegistration) => {
+      reg = registration;
+      registration.addEventListener("updatefound", () => {
+        const sw = registration.installing;
+        if (!sw) return;
+        sw.addEventListener("statechange", () => {
+          if (sw.state === "installed" && navigator.serviceWorker.controller) {
+            toast(
+              lang === "ar"
+                ? "يتوفر إصدار جديد من التطبيق — جارٍ التحديث…"
+                : "A new app version is available — updating…"
+            );
+            sw.postMessage("SKIP_WAITING");
+          }
+        });
+      });
+    };
+
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(watch)
+      .catch(() => {
         // SW registration is best-effort; the site works fully without it
       });
-    }
-  }, []);
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+
+    // periodic update checks keep suspended installed apps fresh
+    const check = () => {
+      try {
+        reg?.update().catch(() => {});
+      } catch {}
+    };
+    const first = setTimeout(check, 30_000);
+    const t = setInterval(check, 30 * 60_000);
+
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+    };
+  }, [toast, lang]);
   return null;
 }
 
