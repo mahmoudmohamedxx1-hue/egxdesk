@@ -289,3 +289,20 @@ model PushDevice {
   lastSeenAt     DateTime  @default(now())
   lastNotifiedAt DateTime?
 }
+
+// ── AI agent chat history (server-side, per device) ──
+
+/** One saved agent conversation. `messagesJson` holds the full chat (user +
+ *  assistant messages with tool-step metadata) so the device can resume any
+ *  past conversation; rows are keyed by the client uuid (egx-device-id), the
+ *  same identity PushDevice uses. Saved automatically after every exchange. */
+model AgentChat {
+  id           String   @id // client-generated uuid (stable across saves)
+  deviceId     String
+  title        String   @default("") // first user message, truncated
+  messagesJson String   @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  @@index([deviceId, updatedAt])
+}

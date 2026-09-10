@@ -28,7 +28,7 @@ export const runtime = "nodejs";
 
 // ── rate limiting (in-memory, per IP — a personal tool, not a public API) ──
 
-const RATE_LIMIT = 30; // requests per hour
+const RATE_LIMIT = 60; // requests per hour (long uncapped answers + web search)
 const rateMap = new Map<string, number[]>();
 
 function rateLimited(ip: string): boolean {
@@ -520,7 +520,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: "compare",
-    desc: "Side-by-side key metrics for 2-4 stocks. arg: { tickers: [\"COMI\",\"HDBK\"] }.",
+    desc: "Side-by-side key metrics for 2-4 stocks in ONE call — pass ALL tickers together, never one per call. arg: { tickers: [\"COMI\",\"HDBK\"] }.",
     run: async (args) => {
       const raw = Array.isArray(args.tickers) ? args.tickers : [];
       const tickers = raw.map(cleanTicker).filter(Boolean).slice(0, 4);
@@ -531,6 +531,39 @@ const TOOLS: Tool[] = [
         .filter((s): s is Stock => s !== undefined);
       if (found.length < 2) return { error: "not enough known tickers" };
       return found.map(compactQuote);
+    },
+  },
+  {
+    name: "web_search",
+    desc: "Search the LIVE WEB for current events and context beyond our EGX data layer — Egypt macro/economy news, IMF & ratings, CBE decisions, global markets, oil/gold, company announcements. arg: { query, num?<=8 (default 5), recency_days?<=90 }.",
+    run: async (args) => {
+      const query = typeof args.query === "string" ? args.query.trim().slice(0, 300) : "";
+      if (!query) return { error: "query required" };
+      const num = clampLimit(args.num, 8, 5);
+      const recencyRaw = Number(args.recency_days);
+      const recency = Number.isFinite(recencyRaw) && recencyRaw > 0 ? Math.min(Math.floor(recencyRaw), 90) : undefined;
+      try {
+        const zai = await getZai();
+        const results = await zai.functions.invoke("web_search", {
+          query,
+          num,
+          ...(recency ? { recency_days: recency } : {}),
+        });
+        type SearchItem = { url?: unknown; name?: unknown; snippet?: unknown; host_name?: unknown; date?: unknown };
+        const items = (Array.isArray(results) ? (results as SearchItem[]) : [])
+          .slice(0, num)
+          .map((r) => ({
+            title: typeof r?.name === "string" ? r.name.slice(0, 200) : "",
+            source: typeof r?.host_name === "string" ? r.host_name : "",
+            url: typeof r?.url === "string" ? r.url.slice(0, 400) : "",
+            snippet: typeof r?.snippet === "string" ? r.snippet.slice(0, 500) : "",
+            date: typeof r?.date === "string" ? r.date : "",
+          }));
+        if (items.length === 0) return { error: "no results — try a different query" };
+        return { query, count: items.length, items };
+      } catch {
+        return { error: "web search unavailable" };
+      }
     },
   },
 ];
@@ -551,18 +584,20 @@ REPLY PROTOCOL — your every reply MUST be exactly ONE JSON object and nothing 
 
 RULES:
 - Answer language: ${lang === "ar" ? "Arabic (clear Egyptian-friendly MSA)" : "English"}. If the user writes in the other language, switch to theirs.
-- NEVER invent or estimate market numbers. Every figure in your final answer must come from tool results. If data is missing, say so plainly.
+- NEVER invent or estimate market numbers. Every EGX figure in your final answer must come from our data tools; every web fact must come from web_search results. If data is missing, say so plainly.
 - EGX tickers look like COMI, HDBK, TMGH, ABUK, ETEL, SWDY, EFIH. If unsure of a ticker, use screen/top_movers or state the ambiguity.
-- Call tools to fetch facts BEFORE answering market questions; 2-4 calls is usually enough; hard cap 6.
-- Final answers are YOUR analysis in a natural analyst voice: start with a one-line direct answer, then the reasoning. Match length to the question — a quick quote needs 2-3 lines; a comparison, market read or strategy question deserves 150-450 words with concrete numbers and tickers. Vary the structure; never end every answer with the same closing formula. Mention the ~15-min delay only when you interpret live market moves.
-- General finance and investing-concept questions (what P/E means, how a rights issue works, what drives the EGP) may be answered directly from your own knowledge — just keep concept explanations clearly separate from live EGX data, and never attach made-up numbers to specific tickers.
-- Identity questions ("are you a real AI?", "what model are you?"): answer plainly and honestly — you are a real LLM (GLM, by Z.ai) with live EGX data tools. Mention that you reason and can be verified by asking anything.
-- For questions outside finance or about personal financial advice, politely decline and redirect to what you can do.`;
+- Call tools to fetch facts BEFORE answering market questions; 2-5 calls is typical; hard cap 8.
+- ANSWER LENGTH — NO CAP: answer as fully as the question deserves. A quick quote can be 2-3 lines, but comparisons, market reads, strategy, macro and research questions deserve COMPLETE, well-structured essays (commonly 400-1500+ words): a direct answer first, then structured sections with headers or bullets, tables when comparing, concrete numbers, tickers and dates. Never cut an answer short to stay brief — finish every argument you start.
+- WEB SEARCH: for anything beyond our live EGX data layer (Egypt macro news, IMF/World Bank/ratings agencies, CBE decisions, global markets, oil/gold/FX, company announcements, general knowledge you are unsure about), call web_search — ideally BEFORE answering, and combine it with our EGX tools for market questions. ALWAYS attribute web facts to their source by name (e.g. "وفق رويترز" / "per Reuters") and include the article date when relevant. Never present web-sourced numbers as EGX live quotes — EGX prices/valuations come ONLY from our data tools.
+- Final answers are YOUR analysis in a natural analyst voice: vary the structure, never end every answer with the same closing formula. Mention the ~15-min delay only when you interpret live market moves.
+- General finance and investing-concept questions (what P/E means, how a rights issue works, what drives the EGP) may be answered directly from your own knowledge or web_search — just keep concept explanations clearly separate from live EGX data.
+- Identity questions ("are you a real AI?", "what model are you?"): answer plainly and honestly — you are a real LLM (GLM, by Z.ai) with live EGX data tools AND live web search. Mention that you reason and can be verified by asking anything.
+- For questions entirely outside finance or about personal financial advice, politely decline and redirect to what you can do.`;
 }
 
 // ── the agent loop ──
 
-const MAX_TOOL_CALLS = 7;
+const MAX_TOOL_CALLS = 10;
 
 export async function POST(req: Request) {
   const ip =
@@ -590,9 +625,9 @@ export async function POST(req: Request) {
         ((m as ChatMsg).role === "user" || (m as ChatMsg).role === "assistant") &&
         typeof (m as ChatMsg).content === "string" &&
         (m as ChatMsg).content.length > 0 &&
-        (m as ChatMsg).content.length <= 4000
+        (m as ChatMsg).content.length <= 8000
     )
-    .slice(-12);
+    .slice(-24);
   if (history.length === 0 || history[history.length - 1].role !== "user") {
     return NextResponse.json({ error: "messages required (last must be user)" }, { status: 400 });
   }
@@ -669,10 +704,37 @@ export async function POST(req: Request) {
     const ok = !(result && typeof result === "object" && "error" in (result as Record<string, unknown>));
     steps.push({ tool: toolName, args, ok });
 
-    msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 6000) });
+    msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
   }
 
-  // loop exhausted without a final answer — honest fallback, never invented
+  // loop exhausted without a final answer — NEVER waste the collected data:
+  // force one synthesis round from the tool results already in context
+  if (steps.length > 0) {
+    msgs.push({
+      role: "user",
+      content:
+        'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
+    });
+    try {
+      const completion = await zai.chat.completions.create({
+        messages: msgs,
+        thinking: { type: "enabled" },
+      });
+      const raw = completion.choices[0]?.message?.content ?? "";
+      if (debug) debugRaw.push(raw.slice(0, 800));
+      const parsed = extractJson(raw);
+      if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
+        return NextResponse.json(
+          { answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) },
+          { headers: { "Cache-Control": "no-store" } }
+        );
+      }
+    } catch {
+      // fall through to the honest fallback below
+    }
+  }
+
+  // no tools ever ran / synthesis also failed — honest fallback, never invented
   const fallback =
     lang === "ar"
       ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
