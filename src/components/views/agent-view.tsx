@@ -35,6 +35,7 @@ const CHAT_ID_KEY = "egx-agent-chat-id";
 const MAX_STORED = 80;
 
 type HistoryRow = { id: string; title: string; updatedAt: string; count: number };
+type UsageSummary = { today: { questions: number; llmCalls: number }; limits?: { agentQuestionsPerHourPerUser?: number } };
 
 function newChatId(): string {
   try {
@@ -132,6 +133,7 @@ export function AgentView() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyList, setHistoryList] = useState<HistoryRow[]>([]);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const chatIdRef = useRef<string>("");
   const lastQueryRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -198,6 +200,7 @@ export function AgentView() {
         body: JSON.stringify({
           messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
           lang,
+          deviceId: getDeviceId(), // usage metering + per-user hourly limit
         }),
       });
       const json = (await res.json()) as { answer?: string; steps?: AgentStep[]; error?: string };
@@ -253,6 +256,11 @@ export function AgentView() {
       setHistoryList(json.chats ?? []);
     } catch {}
     setHistoryLoading(false);
+    // usage metering strip (best-effort, never blocks the panel)
+    try {
+      const res = await fetch("/api/usage");
+      if (res.ok) setUsage((await res.json()) as UsageSummary);
+    } catch {}
   };
 
   const loadChat = async (id: string) => {
@@ -379,6 +387,12 @@ export function AgentView() {
                 </li>
               ))}
             </ul>
+          )}
+          {usage && (
+            <p className="num border-t border-border/60 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+              {tt(T.agentUsageToday, lang)}: {usage.today.questions} {tt(T.agentUsageQUnit, lang)} ·{" "}
+              {usage.today.llmCalls} {tt(T.agentUsageAiCalls, lang)} · {tt(T.agentUsageLimit, lang)}
+            </p>
           )}
         </section>
       )}

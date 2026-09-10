@@ -42,7 +42,15 @@ async function json(path, opts) {
   });
   ok(badSub.status === 400, "subscribe rejects invalid device");
   const run = await json("/api/push/run", { method: "POST" });
-  ok(run.status === 200 && typeof run.body?.devices === "number", "forced evaluation runs", `devices=${run.body?.devices}`);
+  // Task 19: /api/push/run is now rate-limited (6/h per IP). A 429 caused by
+  // an earlier suite burning the budget on the SAME server is CORRECT
+  // behavior, not a failure — accept either a real evaluation or the guard.
+  ok(
+    (run.status === 200 && typeof run.body?.devices === "number") ||
+      (run.status === 429 && typeof run.body?.error === "string"),
+    "forced evaluation runs (or correctly rate-limited)",
+    `status=${run.status} devices=${run.body?.devices}`
+  );
 
   console.log("── /api/agent ──");
   const noMsgs = await json("/api/agent", {

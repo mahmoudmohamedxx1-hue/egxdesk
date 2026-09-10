@@ -306,3 +306,22 @@ model AgentChat {
 
   @@index([deviceId, updatedAt])
 }
+
+/// One row per /api/agent request (Task 19 usage metering + the persisted
+/// per-user hourly rate limit). route is kept for future non-agent meters.
+model UsageEvent {
+  id          String   @id @default(uuid())
+  ip          String
+  deviceId    String?
+  route       String   @default("agent")
+  llmCalls    Int      @default(0)
+  toolCalls   Int      @default(0)
+  webSearches Int      @default(0)
+  ok          Boolean  @default(true)
+  ms          Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([ip, createdAt])
+  @@index([deviceId, createdAt])
+}

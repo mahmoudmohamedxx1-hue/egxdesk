@@ -859,6 +859,10 @@ export const T = {
     en: "The agent answers from delayed data (~15 min) and can be wrong — not investment advice. Verify numbers on the stock page before any decision.",
   },
   agentEmptyChat: { ar: "لا رسائل بعد — ابدأ بسؤال أو باقتراح فوق", en: "No messages yet — start with a question or a suggestion above" },
+  agentUsageToday: { ar: "استخدام اليوم", en: "Usage today" },
+  agentUsageQUnit: { ar: "سؤال", en: "questions" },
+  agentUsageAiCalls: { ar: "نداء ذكاء اصطناعي", en: "AI calls" },
+  agentUsageLimit: { ar: "الحد 60 سؤال/ساعة لكل مستخدم", en: "limit 60 questions/hour per user" },
 
   // ── app version (update visibility for installed PWAs) ──
   versionLabel: { ar: "الإصدار", en: "Version" },

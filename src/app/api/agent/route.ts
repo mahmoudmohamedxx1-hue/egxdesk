@@ -11,14 +11,16 @@ import { fetchNewsEn } from "@/lib/news-en";
 import { fetchFlows } from "@/lib/flows";
 import { marketNarrative } from "@/lib/narrative";
 import insidersRaw from "@/data/insiders.json";
+import { db } from "@/lib/db";
 
 /** POST /api/agent — the in-app EGX analyst agent (inspired by the tool-loop
  *  pattern of open-source agent frameworks like shubhamsaboo/awesome-llm-apps
  *  and the agent-skills repos): an LLM with STRICT-JSON tool calling over our
  *  own live data layer — quotes, screening, technicals, statements, dividends,
  *  news, calendar, rates, insider filings, flows. The loop runs server-side
- *  (z-ai-web-dev-sdk never reaches the client), max ~7 tool calls per
- *  question, then the model writes the final markdown answer.
+ *  (z-ai-web-dev-sdk never reaches the client), max ~10 tool calls per
+ *  question, then the model writes the final markdown answer. Gateway 429s
+ *  are retried with backoff; every request is metered in UsageEvent.
  *
  *  Honesty by design: tools return only real (delayed ~15-min) data; the
  *  system prompt forbids invented numbers; the response carries a fixed
@@ -26,12 +28,18 @@ import insidersRaw from "@/data/insiders.json";
 
 export const runtime = "nodejs";
 
-// ── rate limiting (in-memory, per IP — a personal tool, not a public API) ──
+// ── rate limiting + usage metering (per IP or device, persisted in SQLite) ──
+// 60 agent questions/hour protects a personal tool from floods; since Task 19
+// the counter lives in the UsageEvent table, so it survives restarts (the old
+// in-memory map reset on every deploy). The upstream LLM gateway ALSO
+// throttles bursts (~9-10 calls / ~90-120s window → 429) — those are retried
+// with backoff below, and every request is metered for /api/usage.
 
-const RATE_LIMIT = 60; // requests per hour (long uncapped answers + web search)
+const RATE_LIMIT = 60; // agent requests per hour, per IP or deviceId
+
 const rateMap = new Map<string, number[]>();
 
-function rateLimited(ip: string): boolean {
+function rateLimitedMemory(ip: string): boolean {
   const now = Date.now();
   const window = 60 * 60_000;
   const arr = (rateMap.get(ip) ?? []).filter((t) => now - t < window);
@@ -46,6 +54,54 @@ function rateLimited(ip: string): boolean {
     for (const [k, v] of rateMap) if (v.every((t) => now - t >= window)) rateMap.delete(k);
   }
   return false;
+}
+
+async function overLimit(ip: string, deviceId: string | null): Promise<boolean> {
+  try {
+    const since = new Date(Date.now() - 60 * 60_000);
+    const count = await db.usageEvent.count({
+      where: { createdAt: { gte: since }, OR: [{ ip }, ...(deviceId ? [{ deviceId }] : [])] },
+    });
+    return count >= RATE_LIMIT;
+  } catch {
+    return rateLimitedMemory(ip); // SQLite unreachable → in-memory fallback
+  }
+}
+
+// ── platform 429 handling: a mid-loop throttle must not kill a question ──
+
+const RETRY_BACKOFF_MS = [12_000, 25_000];
+const RETRY_BUDGET_MS = 70_000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function isThrottleError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("429") || /too many requests/i.test(msg);
+}
+
+async function createChat(
+  zai: Zai,
+  opts: { messages: { role: "user" | "assistant"; content: string }[]; thinking: "enabled" | "disabled" },
+  retry: { budgetLeft: number }
+): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const completion = await zai.chat.completions.create({
+        messages: opts.messages,
+        thinking: { type: opts.thinking },
+      });
+      return completion.choices[0]?.message?.content ?? "";
+    } catch (err) {
+      const wait = RETRY_BACKOFF_MS[attempt];
+      if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait) {
+        retry.budgetLeft -= wait;
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 // ── types ──
@@ -452,9 +508,7 @@ const TOOLS: Tool[] = [
           const stocks = await fetchUniverse();
           const s = stocks.find((x) => x.ticker === t);
           if (s) {
-            const needle = `${s.name} ${t}`.toLowerCase();
             items = items.filter((n) => n.title.toLowerCase().includes(t.toLowerCase()) || n.title.toLowerCase().includes(s.name.toLowerCase()));
-            void needle;
           }
         }
         return { feed: "en", count: items.length, items: items.slice(0, limit).map((n) => ({ title: n.title, source: n.source, publishedAt: n.publishedAt, link: n.link })) };
@@ -544,11 +598,20 @@ const TOOLS: Tool[] = [
       const recency = Number.isFinite(recencyRaw) && recencyRaw > 0 ? Math.min(Math.floor(recencyRaw), 90) : undefined;
       try {
         const zai = await getZai();
-        const results = await zai.functions.invoke("web_search", {
-          query,
-          num,
-          ...(recency ? { recency_days: recency } : {}),
-        });
+        const invoke = () =>
+          zai.functions.invoke("web_search", {
+            query,
+            num,
+            ...(recency ? { recency_days: recency } : {}),
+          });
+        let results: unknown;
+        try {
+          results = await invoke();
+        } catch (err) {
+          if (!isThrottleError(err)) throw err;
+          await sleep(8_000); // one patient retry on gateway 429s
+          results = await invoke();
+        }
         type SearchItem = { url?: unknown; name?: unknown; snippet?: unknown; host_name?: unknown; date?: unknown };
         const items = (Array.isArray(results) ? (results as SearchItem[]) : [])
           .slice(0, num)
@@ -586,7 +649,7 @@ RULES:
 - Answer language: ${lang === "ar" ? "Arabic (clear Egyptian-friendly MSA)" : "English"}. If the user writes in the other language, switch to theirs.
 - NEVER invent or estimate market numbers. Every EGX figure in your final answer must come from our data tools; every web fact must come from web_search results. If data is missing, say so plainly.
 - EGX tickers look like COMI, HDBK, TMGH, ABUK, ETEL, SWDY, EFIH. If unsure of a ticker, use screen/top_movers or state the ambiguity.
-- Call tools to fetch facts BEFORE answering market questions; 2-5 calls is typical; hard cap 8.
+- Call tools to fetch facts BEFORE answering market questions; 2-5 calls is typical; hard cap 10.
 - ANSWER LENGTH — NO CAP: answer as fully as the question deserves. A quick quote can be 2-3 lines, but comparisons, market reads, strategy, macro and research questions deserve COMPLETE, well-structured essays (commonly 400-1500+ words): a direct answer first, then structured sections with headers or bullets, tables when comparing, concrete numbers, tickers and dates. Never cut an answer short to stay brief — finish every argument you start.
 - WEB SEARCH: for anything beyond our live EGX data layer (Egypt macro news, IMF/World Bank/ratings agencies, CBE decisions, global markets, oil/gold/FX, company announcements, general knowledge you are unsure about), call web_search — ideally BEFORE answering, and combine it with our EGX tools for market questions. ALWAYS attribute web facts to their source by name (e.g. "وفق رويترز" / "per Reuters") and include the article date when relevant. Never present web-sourced numbers as EGX live quotes — EGX prices/valuations come ONLY from our data tools.
 - Final answers are YOUR analysis in a natural analyst voice: vary the structure, never end every answer with the same closing formula. Mention the ~15-min delay only when you interpret live market moves.
@@ -604,17 +667,22 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "local";
-  if (rateLimited(ip)) {
-    return NextResponse.json({ error: "rate limited — try again later" }, { status: 429 });
-  }
 
-  // validate the conversation the client sends (last 12 turns, last is user)
-  let body: { messages?: unknown; lang?: unknown; debug?: unknown };
+  let body: { messages?: unknown; lang?: unknown; debug?: unknown; deviceId?: unknown };
   try {
-    body = (await req.json()) as { messages?: unknown; lang?: unknown };
+    body = (await req.json()) as { messages?: unknown; lang?: unknown; deviceId?: unknown };
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
+  const deviceId =
+    typeof body.deviceId === "string" && body.deviceId.length >= 8 ? body.deviceId.slice(0, 64) : null;
+
+  // persisted hourly limit (per IP or device) — UsageEvent survives restarts
+  if (await overLimit(ip, deviceId)) {
+    return NextResponse.json({ error: "rate limited — try again later" }, { status: 429 });
+  }
+
+  // validate the conversation the client sends (last 24 turns, last is user)
   const lang = body.lang === "en" ? "en" : "ar";
   const rawMsgs = Array.isArray(body.messages) ? body.messages : [];
   const history: ChatMsg[] = rawMsgs
@@ -642,6 +710,28 @@ export async function POST(req: Request) {
   const debugRaw: string[] = [];
   const debug = body.debug === true;
 
+  // usage metering — one UsageEvent row per request, written by finish()
+  const t0 = Date.now();
+  const usage = { llmCalls: 0, webSearches: 0 };
+  const retry = { budgetLeft: RETRY_BUDGET_MS };
+  const finish = (payload: Record<string, unknown>, status = 200) => {
+    void db.usageEvent
+      .create({
+        data: {
+          ip,
+          deviceId,
+          route: "agent",
+          llmCalls: usage.llmCalls,
+          toolCalls: steps.length,
+          webSearches: usage.webSearches,
+          ok: status === 200,
+          ms: Date.now() - t0,
+        },
+      })
+      .catch(() => {}); // metering must never break a reply
+    return NextResponse.json(payload, { status, headers: { "Cache-Control": "no-store" } });
+  };
+
   for (let round = 0; round < MAX_TOOL_CALLS + 3; round++) {
     if (steps.length >= MAX_TOOL_CALLS) break;
     let raw = "";
@@ -652,15 +742,22 @@ export async function POST(req: Request) {
       // with chain-of-thought ON so the final answer is genuine reasoning,
       // not a shallow template.
       const deep = round > 0;
-      const completion = await zai.chat.completions.create({
-        messages: msgs,
-        thinking: { type: deep ? "enabled" : "disabled" },
-      });
-      raw = completion.choices[0]?.message?.content ?? "";
+      raw = await createChat(zai, { messages: msgs, thinking: deep ? "enabled" : "disabled" }, retry);
+      usage.llmCalls++;
     } catch (err) {
-      return NextResponse.json(
-        { error: "model unavailable", detail: err instanceof Error ? err.message : "unknown" },
-        { status: 502 }
+      // gateway 429s retry with backoff inside createChat; if throttling
+      // persists, answer honestly instead of a bare "model unavailable"
+      const throttled = isThrottleError(err);
+      return finish(
+        {
+          error: throttled
+            ? lang === "ar"
+              ? "خدمة الذكاء الاصطناعي مشغولة مؤقتًا (ضغط على المزود) — جرّب بعد دقيقة"
+              : "The AI service is briefly busy (provider throttling) — please retry in a minute"
+            : "model unavailable",
+          detail: err instanceof Error ? err.message : "unknown",
+        },
+        throttled ? 503 : 502
       );
     }
     if (debug) debugRaw.push(raw.slice(0, 800));
@@ -678,10 +775,7 @@ export async function POST(req: Request) {
     }
 
     if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-      return NextResponse.json(
-        { answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) },
-        { headers: { "Cache-Control": "no-store" } }
-      );
+      return finish({ answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
     }
 
     const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
@@ -703,6 +797,7 @@ export async function POST(req: Request) {
     }
     const ok = !(result && typeof result === "object" && "error" in (result as Record<string, unknown>));
     steps.push({ tool: toolName, args, ok });
+    if (toolName === "web_search" && ok) usage.webSearches++;
 
     msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
   }
@@ -716,18 +811,12 @@ export async function POST(req: Request) {
         'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
     });
     try {
-      const completion = await zai.chat.completions.create({
-        messages: msgs,
-        thinking: { type: "enabled" },
-      });
-      const raw = completion.choices[0]?.message?.content ?? "";
+      const raw = await createChat(zai, { messages: msgs, thinking: "enabled" }, retry);
+      usage.llmCalls++;
       if (debug) debugRaw.push(raw.slice(0, 800));
       const parsed = extractJson(raw);
       if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-        return NextResponse.json(
-          { answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) },
-          { headers: { "Cache-Control": "no-store" } }
-        );
+        return finish({ answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
       }
     } catch {
       // fall through to the honest fallback below
@@ -739,8 +828,5 @@ export async function POST(req: Request) {
     lang === "ar"
       ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
       : "I ran out of tool budget without a complete answer. Try rephrasing (e.g. \"market overview\" or \"quote for COMI\").";
-  return NextResponse.json(
-    { answer: fallback, steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return finish({ answer: fallback, steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
 }
