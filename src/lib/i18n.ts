@@ -825,8 +825,12 @@ export const T = {
   agentNav: { ar: "مساعد AI", en: "AI Agent" },
   agentTitle: { ar: "مساعد EGX ديسك الذكي", en: "EGX Desk AI Agent" },
   agentNote: {
-    ar: "وكيل ذكاء اصطناعي يعمل داخل التطبيق وله أدوات على بياناتنا الحية: الأسعار والفرز والتحليل الفني والقوائم والتوزيعات والأخبار والتقويم والفائدة والصفقات الداخلية. اسأله بالعربية أو الإنجليزية.",
-    en: "An AI agent that runs inside the app with tools over our live data: quotes, screening, technicals, statements, dividends, news, calendar, rates and insider deals. Ask it in Arabic or English.",
+    ar: "مساعد يعمل بنموذج لغوي ضخم حقيقي (GLM) داخل التطبيق، وله أدوات على بياناتنا الحية: الأسعار والفرز والتحليل الفني والقوائم والتوزيعات والأخبار والتقويم والفائدة والصفقات الداخلية. اسأله بالعربية أو الإنجليزية — إنه نموذج يفكر ويتأمل في البيانات، وليس ردودًا جاهزة.",
+    en: "A real AI agent running inside the app on the GLM large language model, with tools over our live data: quotes, screening, technicals, statements, dividends, news, calendar, rates and insider deals. Ask in Arabic or English — it genuinely reasons over the data, it is not canned replies.",
+  },
+  agentModelBadge: {
+    ar: "مدعوم بنموذج GLM — ذكاء اصطناعي حقيقي من الخادم",
+    en: "Powered by the GLM LLM — real AI, server-side",
   },
   agentPlaceholder: { ar: "اسأل عن أي شيء في البورصة المصرية…", en: "Ask anything about the Egyptian exchange…" },
   agentSend: { ar: "إرسال", en: "Send" },

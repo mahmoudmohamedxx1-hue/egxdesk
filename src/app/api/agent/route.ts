@@ -124,20 +124,19 @@ function repairControlChars(s: string): string {
   return out;
 }
 
-function extractJson(raw: string): Record<string, unknown> | null {
-  if (!raw) return null;
-  let s = raw.trim();
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) s = fence[1].trim();
-
-  // 1) balanced-brace scan → parse → repaired parse
-  const start = s.indexOf("{");
-  if (start !== -1) {
+/** Extract every balanced top-level {...} span in order (used by extractJson
+ *  so reasoning prose around the reply object is ignored). */
+function* topLevelJsonObjects(s: string): Generator<string> {
+  let i = 0;
+  while (i < s.length) {
+    const start = s.indexOf("{", i);
+    if (start === -1) return;
     let depth = 0;
     let inStr = false;
     let esc = false;
-    for (let i = start; i < s.length; i++) {
-      const c = s[i];
+    let closed = false;
+    for (let j = start; j < s.length; j++) {
+      const c = s[j];
       if (esc) {
         esc = false;
         continue;
@@ -155,12 +154,37 @@ function extractJson(raw: string): Record<string, unknown> | null {
       else if (c === "}") {
         depth--;
         if (depth === 0) {
-          const span = s.slice(start, i + 1);
-          return tryParse(span) ?? tryParse(repairControlChars(span));
+          yield s.slice(start, j + 1);
+          i = j + 1;
+          closed = true;
+          break;
         }
       }
     }
+    if (!closed) return; // truncated from here on — stop
   }
+}
+
+function extractJson(raw: string): Record<string, unknown> | null {
+  if (!raw) return null;
+  let s = raw.trim();
+  // thinking-enabled models sometimes inline chain-of-thought — strip it first
+  s = s.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) s = fence[1].trim();
+
+  // 1) scan every balanced object; the FIRST one that follows the reply
+  //    protocol (has "tool" or "final") wins — prose or examples before it
+  //    are ignored. A parsed non-protocol object is kept as a last resort so
+  //    the caller can issue a format correction (original behavior).
+  let firstParsed: Record<string, unknown> | null = null;
+  for (const span of topLevelJsonObjects(s)) {
+    const p = tryParse(span) ?? tryParse(repairControlChars(span));
+    if (!p) continue;
+    if (firstParsed === null) firstParsed = p;
+    if ("tool" in p || "final" in p) return p;
+  }
+  if (firstParsed) return firstParsed;
 
   // 2) truncated reply (no closing brace): recover {"final": "… from the tail
   const mFinal = s.match(/"final"\s*:\s*"([\s\S]*)/);
@@ -516,7 +540,7 @@ const TOOL_LIST = TOOLS.map((t) => `- ${t.name}: ${t.desc}`).join("\n");
 // ── system prompt ──
 
 function systemPrompt(lang: "ar" | "en"): string {
-  return `You are EGX Desk Agent — a bilingual (Arabic-first) Egyptian Exchange (EGX) market analyst embedded inside the EGX Desk web app. You answer user questions about the Egyptian stock market using REAL delayed (~15 min) data via tools.
+  return `You are EGX Desk Agent — a REAL large language model (GLM, by Z.ai) running server-side inside the EGX Desk web app, acting as a bilingual (Arabic-first) Egyptian Exchange (EGX) market analyst. You are not a script or a keyword bot: you reason over evidence and write your own analysis. Every market number you state comes from tools that return real delayed (~15 min) data.
 
 TOOLS (call at most one per reply, as strict JSON):
 ${TOOL_LIST}
@@ -527,11 +551,13 @@ REPLY PROTOCOL — your every reply MUST be exactly ONE JSON object and nothing 
 
 RULES:
 - Answer language: ${lang === "ar" ? "Arabic (clear Egyptian-friendly MSA)" : "English"}. If the user writes in the other language, switch to theirs.
-- NEVER invent or estimate numbers. Every figure in your final answer must come from tool results. If data is missing, say so plainly.
+- NEVER invent or estimate market numbers. Every figure in your final answer must come from tool results. If data is missing, say so plainly.
 - EGX tickers look like COMI, HDBK, TMGH, ABUK, ETEL, SWDY, EFIH. If unsure of a ticker, use screen/top_movers or state the ambiguity.
 - Call tools to fetch facts BEFORE answering market questions; 2-4 calls is usually enough; hard cap 6.
-- Final answers: concise markdown (under ~180 words), concrete numbers with tickers, short bullets, and end with a one-line reminder that data is delayed and this is not investment advice when you interpret market moves.
-- For questions outside the Egyptian market or about personal financial advice, politely decline and redirect to what you can do.`;
+- Final answers are YOUR analysis in a natural analyst voice: start with a one-line direct answer, then the reasoning. Match length to the question — a quick quote needs 2-3 lines; a comparison, market read or strategy question deserves 150-450 words with concrete numbers and tickers. Vary the structure; never end every answer with the same closing formula. Mention the ~15-min delay only when you interpret live market moves.
+- General finance and investing-concept questions (what P/E means, how a rights issue works, what drives the EGP) may be answered directly from your own knowledge — just keep concept explanations clearly separate from live EGX data, and never attach made-up numbers to specific tickers.
+- Identity questions ("are you a real AI?", "what model are you?"): answer plainly and honestly — you are a real LLM (GLM, by Z.ai) with live EGX data tools. Mention that you reason and can be verified by asking anything.
+- For questions outside finance or about personal financial advice, politely decline and redirect to what you can do.`;
 }
 
 // ── the agent loop ──
@@ -585,9 +611,15 @@ export async function POST(req: Request) {
     if (steps.length >= MAX_TOOL_CALLS) break;
     let raw = "";
     try {
+      // reasoning depth: round 0 (fast JSON tool-picking or a quick
+      // conversational reply) runs with thinking off; every later round —
+      // i.e. once real tool data is on the table, the synthesis moment — runs
+      // with chain-of-thought ON so the final answer is genuine reasoning,
+      // not a shallow template.
+      const deep = round > 0;
       const completion = await zai.chat.completions.create({
         messages: msgs,
-        thinking: { type: "disabled" },
+        thinking: { type: deep ? "enabled" : "disabled" },
       });
       raw = completion.choices[0]?.message?.content ?? "";
     } catch (err) {
@@ -612,7 +644,7 @@ export async function POST(req: Request) {
 
     if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
       return NextResponse.json(
-        { answer: parsed.final.trim(), steps, disclaimer: true, ...(debug ? { debugRaw } : {}) },
+        { answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
@@ -646,7 +678,7 @@ export async function POST(req: Request) {
       ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
       : "I ran out of tool budget without a complete answer. Try rephrasing (e.g. \"market overview\" or \"quote for COMI\").";
   return NextResponse.json(
-    { answer: fallback, steps, disclaimer: true, ...(debug ? { debugRaw } : {}) },
+    { answer: fallback, steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

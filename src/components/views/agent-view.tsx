@@ -13,7 +13,7 @@ import { T, tt } from "@/lib/i18n";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Eraser, Send, Sparkles, Wrench, User as UserIcon } from "lucide-react";
+import { Bot, Cpu, Eraser, Send, Sparkles, Wrench, User as UserIcon } from "lucide-react";
 
 type AgentStep = {
   tool: string;
@@ -225,6 +225,12 @@ export function AgentView() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">{tt(T.agentNote, lang)}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <Cpu className="h-3 w-3" aria-hidden />
+            {tt(T.agentModelBadge, lang)}
+          </span>
+        </div>
       </section>
 
       {/* chat */}
