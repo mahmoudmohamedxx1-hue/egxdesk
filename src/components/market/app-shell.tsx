@@ -5,6 +5,7 @@ import { T, tt } from "@/lib/i18n";
 import { HeaderSearch } from "./header-search";
 import { AlertsBell } from "./alerts-panel";
 import { PwaRegister, InstallButton } from "./pwa-register";
+import { ShareButton } from "./share-button";
 import { OverviewView } from "@/components/views/overview-view";
 import { MarketView } from "@/components/views/market-view";
 import { ScreenerView } from "@/components/views/screener-view";
@@ -117,6 +118,9 @@ export function AppShell() {
             </div>
 
             <div className="flex items-center gap-1.5">
+              {/* 21-c — share this exact page-state via its unique URL */}
+              <ShareButton />
+
               {/* inline header search — expands inside the header, never a modal */}
               <HeaderSearch />
 

@@ -449,6 +449,17 @@ const g = globalThis as unknown as { __egxAiSignalsInflight?: Promise<AiSetPaylo
 function parseRow(row: { data: string; createdAt: Date; model: string; strategyRev: string; llmMs: number }) {
   try {
     const payload = JSON.parse(row.data) as AiSetPayload;
+    // serve-time guard (T21 hardening): a set persisted by an older build can
+    // carry a stale PAST earningsRisk (upstream nextEarnings epochs sometimes
+    // point into the past) — the charter only ever means future dates, so
+    // null anything that isn't strictly ahead of now, at every read path.
+    const now = Date.now();
+    for (const p of payload.picks ?? []) {
+      if (p.earningsRisk) {
+        const d = Date.parse(`${p.earningsRisk}T00:00:00Z`);
+        if (!Number.isFinite(d) || d <= now) p.earningsRisk = null;
+      }
+    }
     return { ...payload, model: row.model, strategyRev: row.strategyRev, llmMs: row.llmMs };
   } catch {
     return null;

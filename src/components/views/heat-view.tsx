@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
@@ -22,6 +23,17 @@ export function HeatView() {
   const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
   const [scope, setScope] = useState<"all" | "top30">("all");
   const [sectorFocus, setSectorFocus] = useState<string>("");
+
+  // 21-c — shareable state: ?view=heat&scope=top30
+  useEffect(() => {
+    if (bootParam("scope") === "top30") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setScope("top30");
+    }
+  }, []);
+  useEffect(() => {
+    patchUrlParams({ scope: scope === "all" ? null : scope });
+  }, [scope]);
 
   const rows = data?.rows ?? null;
 

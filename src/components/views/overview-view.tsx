@@ -12,6 +12,7 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle, Coins, Globe2, Sparkles } from "lucide-react";
 import { marketNarrative } from "@/lib/narrative";
 
@@ -95,6 +96,8 @@ export function OverviewView() {
           <RefreshCw className="h-3.5 w-3.5" />
           <span className="text-xs ms-1">{tt(T.updated, lang)}</span>
         </Button>
+        {/* 21-b — indices + breadth + sectors as a branded Excel report */}
+        <ExportXlsxButton report="overview" />
       </div>
       <h1 className="text-2xl font-bold tracking-tight">{tt(T.marketGlance, lang)}</h1>
       <p className="text-xs text-muted-foreground -mt-4">{tt(T.liveNote, lang)}</p>

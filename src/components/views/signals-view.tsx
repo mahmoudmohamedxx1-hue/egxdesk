@@ -6,15 +6,17 @@
  *  strongest bullish/bearish call-outs, rating filters, search and CSV.
  *  Arabic-first, honest labeling, one tap into the stock's technical panel. */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/market/app-context";
 import { useLiveData } from "@/components/market/use-live-data";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct, directionClass } from "@/lib/format";
 import { downloadCsv, fileStamp } from "@/lib/export";
+import { ExportMenu } from "@/components/market/export-xlsx-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, Download, TrendingDown, TrendingUp, Search } from "lucide-react";
+import { BrainCircuit, TrendingDown, TrendingUp, Search } from "lucide-react";
 import type { Rating, SignalRow, SignalsScan } from "@/lib/signals-scan";
 import { AiSignalsPanel } from "@/components/views/ai-signals-panel";
 
@@ -132,6 +134,26 @@ export function SignalsView() {
   const [filter, setFilter] = useState<Rating | "all">("all");
   const [q, setQ] = useState("");
 
+  // 21-c — shareable state: ?view=signals&mode=ai&dir=bear&rating=buy
+  useEffect(() => {
+    const m = bootParam("mode");
+    if (m === "tech" || m === "ai") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMode(m);
+    }
+    const d = bootParam("dir");
+    if (d === "bull" || d === "bear") setDir(d);
+    const r = bootParam("rating");
+    if (r && (RATING_ORDER as string[]).includes(r)) setFilter(r as Rating);
+  }, []);
+  useEffect(() => {
+    patchUrlParams({
+      mode: mode === "tech" ? null : mode,
+      dir: dir === "bull" ? null : dir,
+      rating: filter === "all" ? null : filter,
+    });
+  }, [mode, dir, filter]);
+
   const stats = useMemo(() => {
     if (!data?.rows) return null;
     const counts: Record<Rating, number> = { strongBuy: 0, buy: 0, neutral: 0, sell: 0, strongSell: 0 };
@@ -217,10 +239,7 @@ export function SignalsView() {
               </span>
             )}
             {mode === "tech" && (
-              <Button size="sm" variant="outline" className="h-7 px-2 text-[11px] gap-1" onClick={exportCsv} title={tt(T.csvExportHint, lang)}>
-                <Download className="h-3 w-3" />
-                CSV
-              </Button>
+              <ExportMenu report="signals" onCsv={exportCsv} title={tt(T.csvExportHint, lang)} />
             )}
           </div>
         </div>

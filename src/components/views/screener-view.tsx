@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
@@ -22,9 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, X, Plus, ChevronDown, Zap, Trash2, Download } from "lucide-react";
+import { Search, X, Plus, ChevronDown, Zap, Trash2 } from "lucide-react";
 import { rowMatchesArabic } from "@/lib/ar-search";
 import { downloadCsv, fileStamp } from "@/lib/export";
+import { ExportMenu } from "../market/export-xlsx-button";
 
 /** Investing.com-style stock screener over the live company universe.
  *  All filtering happens client-side on the same /api/companies rows the
@@ -159,6 +161,81 @@ const DEFAULT_ACTIVE: FilterKey[] = ["price", "change", "perf", "pe", "cap"];
 
 /** localStorage key for the persisted screener session (G6). */
 const SCREENER_KEY = "egx-screener";
+
+// ── 21-c: shareable screener state (?view=screener&sector=…&pe=~10&sort=pe&dir=asc…) ──
+
+const BOUND_URL_KEYS = ["price", "change", "cap", "pe", "pb", "yield", "roe", "de", "eps"] as const;
+type BoundUrlKey = (typeof BOUND_URL_KEYS)[number];
+
+function boundOf(f: Filters, k: BoundUrlKey): Bound {
+  return f[k as keyof Filters] as Bound;
+}
+
+/** Serialize the CURRENT screener state into semantic URL params (a param is
+ *  emitted ONLY when it differs from its default, so shared links stay short). */
+function screenerUrlPatch(f: Filters, active: FilterKey[], sortKey: ColKey, desc: boolean): Record<string, string | null> {
+  const patch: Record<string, string | null> = {};
+  if (f.q) patch.q = f.q;
+  if (f.sector) patch.sector = f.sector;
+  for (const k of BOUND_URL_KEYS) {
+    const b = boundOf(f, k);
+    if (b.min || b.max) patch[k] = `${b.min}~${b.max}`;
+  }
+  if (f.perfPeriod !== DEFAULT_FILTERS.perfPeriod) patch.perfPeriod = f.perfPeriod;
+  if (f.perf.min || f.perf.max) patch.perf = `${f.perf.min}~${f.perf.max}`;
+  if (f.volumeMin) patch.volumeMin = f.volumeMin;
+  if (f.valueMin) patch.valueMin = f.valueMin;
+  if (f.volRatioMin) patch.volRatioMin = f.volRatioMin;
+  if (f.range52) patch.range52 = f.range52;
+  if (active.join(",") !== DEFAULT_ACTIVE.join(",")) patch.active = active.join(",") || "-";
+  if (sortKey !== "marketCap") patch.sort = sortKey;
+  if (!desc) patch.dir = "asc";
+  return patch;
+}
+
+/** Parse the sharer's screener params back into state (null = no params
+ *  present — keep the local/session default). */
+function screenerFromUrl(): { f: Filters; active: FilterKey[]; sortKey: ColKey; desc: boolean } | null {
+  const q = bootParam("q");
+  const sector = bootParam("sector");
+  const anyBound = BOUND_URL_KEYS.some((k) => bootParam(k));
+  const has =
+    q || sector || anyBound ||
+    bootParam("perf") || bootParam("perfPeriod") || bootParam("volumeMin") ||
+    bootParam("valueMin") || bootParam("volRatioMin") || bootParam("range52") ||
+    bootParam("active") || bootParam("sort") || bootParam("dir");
+  if (!has) return null;
+  const f: Filters = { ...DEFAULT_FILTERS, q: q ?? "", sector: sector ?? "" };
+  for (const k of BOUND_URL_KEYS) {
+    const raw = bootParam(k);
+    if (!raw) continue;
+    const [min, max] = raw.split("~");
+    (f[k as keyof Filters] as Bound) = { min: min ?? "", max: max ?? "" };
+  }
+  const perfRaw = bootParam("perf");
+  if (perfRaw) {
+    const [min, max] = perfRaw.split("~");
+    f.perf = { min: min ?? "", max: max ?? "" };
+  }
+  const pp = bootParam("perfPeriod");
+  if (pp && PERF_OPTIONS.some(([k]) => k === pp)) f.perfPeriod = pp as PerfPeriod;
+  for (const k of ["volumeMin", "valueMin", "volRatioMin"] as const) {
+    const v = bootParam(k);
+    if (v) f[k] = v;
+  }
+  const r52 = bootParam("range52");
+  if (r52 === "high" || r52 === "low") f.range52 = r52;
+  const act = bootParam("active");
+  const active = act
+    ? act === "-"
+      ? []
+      : act.split(",").filter((k): k is FilterKey => FILTER_DEFS.some((d) => d.key === k))
+    : DEFAULT_ACTIVE;
+  const sortRaw = bootParam("sort");
+  const sortKey = sortRaw && COLUMNS.some((c) => c.key === sortRaw) ? (sortRaw as ColKey) : "marketCap";
+  const desc = bootParam("dir") !== "asc";
+  return { f, active, sortKey, desc };
+}
 
 // ── sortable columns ──
 
@@ -434,6 +511,7 @@ export function ScreenerView() {
 
   // G6 — restore the last screener session (filters, active pills, sort) after
   // mount; SSR renders defaults so prerendered HTML always matches hydration.
+  // 21-c — a shared link's URL params override the saved session.
   const [restored, setRestored] = useState(false);
   useEffect(() => {
     try {
@@ -459,10 +537,16 @@ export function ScreenerView() {
           if (typeof s.desc === "boolean") setDesc(s.desc);
         }
       }
-      setRestored(true);
-    } catch {
-      setRestored(true);
+    } catch {}
+    // the sharer's URL wins over the saved session
+    const fromUrl = screenerFromUrl();
+    if (fromUrl) {
+      setF(fromUrl.f);
+      setActive(fromUrl.active);
+      setSortKey(fromUrl.sortKey);
+      setDesc(fromUrl.desc);
     }
+    setRestored(true);
   }, []);
 
   // persist on every change once restored (a corrupt/old shape is never re-saved)
@@ -471,6 +555,13 @@ export function ScreenerView() {
     try {
       localStorage.setItem(SCREENER_KEY, JSON.stringify({ f, active, sortKey, desc }));
     } catch {}
+  }, [restored, f, active, sortKey, desc]);
+
+  // 21-c — mirror the live screener state into the URL (replaceState: the
+  // header Share button always copies the exact filtered view)
+  useEffect(() => {
+    if (!restored) return;
+    patchUrlParams(screenerUrlPatch(f, active, sortKey, desc));
   }, [restored, f, active, sortKey, desc]);
 
   const rows = data?.rows ?? null;
@@ -695,14 +786,47 @@ export function ScreenerView() {
             {tt(T.screenerClearAll, lang)}
           </Button>
         )}
-        {/* G7 — export the current result set to CSV (client-side) */}
+        {/* G7 + 21-b — export the current result set: pro Excel report (server,
+            branded) or plain CSV (client-side) */}
         {filtered && filtered.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 gap-1 text-xs text-muted-foreground whitespace-nowrap"
-            title={tt(T.csvExportHint, lang)}
-            onClick={() => {
+          <ExportMenu
+            report="screener"
+            payload={() => ({
+              columns: [
+                lang === "ar" ? "الرمز" : "ticker",
+                lang === "ar" ? "الاسم" : "name",
+                lang === "ar" ? "القطاع" : "sector",
+                lang === "ar" ? "الإغلاق (جنيه)" : "close (EGP)",
+                lang === "ar" ? "التغير %" : "change %",
+                lang === "ar" ? "القيمة السوقية (مليون جنيه)" : "market cap (EGP mn)",
+                "P/E", "P/B",
+                lang === "ar" ? "عائد التوزيع %" : "div yield %",
+                lang === "ar" ? "صافي الربح %" : "ROE %",
+                lang === "ar" ? "منذ بداية العام %" : "YTD %",
+                lang === "ar" ? "الحجم" : "volume",
+                lang === "ar" ? "قيمة التداول (مليون جنيه)" : "value traded (EGP mn)",
+              ],
+              rows: filtered.map((r) => [
+                r.ticker,
+                lang === "ar" ? r.nameAr : r.name,
+                lang === "ar" ? r.sectorAr : r.sectorEn,
+                r.close,
+                r.changePct,
+                r.marketCap != null ? +(r.marketCap / 1e6).toFixed(3) : null,
+                r.pe, r.pb,
+                r.divYield, r.roe, r.perfYTD, r.volume,
+                r.valueTraded != null ? +(r.valueTraded / 1e6).toFixed(3) : null,
+              ]),
+              filtersText:
+                [
+                  f.q.trim() ? `q: ${f.q.trim()}` : "",
+                  f.sector ? `${lang === "ar" ? "قطاع" : "sector"}: ${f.sector}` : "",
+                  ...active.filter((k) => pillLabel(k).hasValue).map((k) => pillLabel(k).label),
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || (lang === "ar" ? "بلا فلاتر" : "no filters"),
+            })}
+            onCsv={() => {
               const headers = [
                 "ticker", "name", "name_ar", "sector_en", "sector_ar",
                 "close", "change_pct", "market_cap_egp_mn", "pe", "pb",
@@ -718,10 +842,8 @@ export function ScreenerView() {
               ]);
               downloadCsv(`egx-screener-${fileStamp()}`, headers, body);
             }}
-          >
-            <Download className="h-3.5 w-3.5" />
-            CSV
-          </Button>
+            title={tt(T.csvExportHint, lang)}
+          />
         )}
       </div>
 

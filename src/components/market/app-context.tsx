@@ -92,6 +92,17 @@ function viewFromParams(params: URLSearchParams): View {
   };
 }
 
+/** Build the shareable query string for a view (always carries the lang so a
+ *  shared link opens in the language the sharer was reading). */
+function viewParams(name: string, extra: { ticker?: string; panel?: string } | undefined, lang: Lang): string {
+  const params = new URLSearchParams();
+  params.set("view", name);
+  if (extra?.ticker) params.set("ticker", extra.ticker);
+  if (extra?.panel) params.set("panel", extra.panel);
+  params.set("lang", lang);
+  return params.toString();
+}
+
 export function useApp() {
   const ctx = useContext(AppCtx);
   if (!ctx) throw new Error("useApp outside provider");
@@ -111,10 +122,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // one-time hydration init from browser-only stores (localStorage + URL) —
   // cannot run in render because this component is also server-rendered
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     try {
       const stored = localStorage.getItem("egx-lang") as Lang | null;
+      // a shared link carries ?lang= — the URL wins over the stored choice so
+      // the recipient opens the page in the sharer's language
+      const urlLang = params.get("lang");
+      const boot: Lang = urlLang === "ar" || urlLang === "en" ? urlLang : stored === "ar" || stored === "en" ? stored : "ar";
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (stored === "ar" || stored === "en") setLangState(stored);
+      if (boot !== "ar") setLangState(boot);
       const raw = localStorage.getItem(WATCH_KEY);
       if (raw) {
         const arr = JSON.parse(raw);
@@ -128,8 +144,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       alertsRef.current = { list: restoredAlerts, ready: true };
       setAlertsState({ list: restoredAlerts, ready: true });
     } catch {}
-    const params = new URLSearchParams(window.location.search);
     setView(viewFromParams(params));
+    // if the link had no lang param, stamp it once so every shared URL from
+    // here on opens in the visitor's chosen language
+    if (!params.get("lang")) {
+      try {
+        params.set("lang", langRef.current);
+        window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+      } catch {}
+    }
     // live market status only after mount (see Ctx.status note)
     setStatus(marketStatus());
   }, []);
@@ -149,30 +172,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
+    langRef.current = l;
     try {
       localStorage.setItem("egx-lang", l);
     } catch {}
+    // keep the shareable URL in the chosen language (merge, never navigate)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("lang", l);
+      try {
+        window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+      } catch {}
+    }
   }, []);
 
   const navigate = useCallback(
     (name: string, extra?: { ticker?: string; panel?: string }) => {
       const next: View = { name, ...(extra ?? {}) };
       setView(next);
-      const params = new URLSearchParams();
-      params.set("view", name);
-      if (extra?.ticker) params.set("ticker", extra.ticker);
-      if (extra?.panel) params.set("panel", extra.panel);
-      const url = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState(null, "", url);
+      // PUSH (not replace): back/forward move between pages — this is the
+      // routing entry; in-page state changes later replaceState onto it
+      const qs = viewParams(name, extra, langRef.current);
+      try {
+        window.history.pushState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+      } catch {}
       document.getElementById("main-content")?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
     []
   );
 
-  // listen to browser back/forward
+  // listen to browser back/forward — the target entry carries its own view
+  // AND its own lang (each pushed entry froze the sharer's language choice)
   useEffect(() => {
     const onPop = () => {
-      setView(viewFromParams(new URLSearchParams(window.location.search)));
+      const params = new URLSearchParams(window.location.search);
+      setView(viewFromParams(params));
+      const l = params.get("lang");
+      if ((l === "ar" || l === "en") && l !== langRef.current) {
+        setLangState(l);
+        langRef.current = l;
+        try {
+          localStorage.setItem("egx-lang", l);
+        } catch {}
+      }
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

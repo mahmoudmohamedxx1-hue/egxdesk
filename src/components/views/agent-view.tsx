@@ -5,15 +5,24 @@
  *  side only) pulls REAL market data through our own data layer and writes
  *  the final markdown answer. The UI shows every tool call the agent made
  *  (the open-source agent-repo pattern: visible steps, then the answer),
- *  persists the chat on the device, and always renders the disclaimer. */
+ *  renders the answer as a rich analyst report (GFM tables, sections —
+ *  Task 21-a), streams it live, lets the reader stop or copy it, persists
+ *  the chat on the device AND server-side, and always renders the
+ *  disclaimer. */
 
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/market/app-context";
 import { T, tt } from "@/lib/i18n";
-import ReactMarkdown from "react-markdown";
+import { AgentMarkdown } from "@/components/market/agent-markdown";
+import { ClaudeInput } from "@/components/market/claude-input";
+import { bootParam } from "@/lib/url-state";
+import { copyText } from "@/lib/url-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Cpu, Eraser, History, Send, Sparkles, Trash2, Wrench, User as UserIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Bot, Check, Copy, Cpu, Eraser, History, Sparkles, Trash2, Wrench, User as UserIcon,
+} from "lucide-react";
 import { getDeviceId } from "@/lib/push-client";
 
 type AgentStep = {
@@ -75,7 +84,7 @@ function StepChips({ steps, lang }: { steps: AgentStep[]; lang: "ar" | "en" }) {
       {steps.map((s, i) => (
         <span
           key={i}
-          className={`num inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-medium ${
+          className={`num inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
             s.ok ? "bg-secondary text-muted-foreground" : "bg-down-soft text-down"
           }`}
           title={`${s.tool} ${JSON.stringify(s.args).slice(0, 120)}`}
@@ -88,10 +97,32 @@ function StepChips({ steps, lang }: { steps: AgentStep[]; lang: "ar" | "en" }) {
   );
 }
 
+function CopyAnswer({ text, lang }: { text: string; lang: "ar" | "en" }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        void copyText(text).then((ok) => {
+          if (ok) {
+            setDone(true);
+            setTimeout(() => setDone(false), 1600);
+          }
+        });
+      }}
+      aria-label={tt(T.agentCopy, lang)}
+      title={tt(T.agentCopy, lang)}
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+    >
+      {done ? <Check className="h-3 w-3 text-up" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+      {done ? tt(T.agentCopied, lang) : tt(T.agentCopy, lang)}
+    </button>
+  );
+}
+
 function Bubble({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
   const isUser = m.role === "user";
   return (
-    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
+    <div className={`group flex gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
       <span
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
           isUser ? "bg-secondary text-muted-foreground" : "bg-primary text-primary-foreground"
@@ -101,7 +132,7 @@ function Bubble({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
         {isUser ? <UserIcon className="h-3.5 w-3.5" /> : <Bot className="h-4 w-4" />}
       </span>
       <div
-        className={`max-w-[85%] rounded-lg border px-3.5 py-2.5 ${
+        className={`max-w-[88%] rounded-xl border px-3.5 py-2.5 ${
           isUser
             ? "bg-secondary/50"
             : m.error
@@ -115,12 +146,52 @@ function Bubble({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
         ) : m.error ? (
           <p className="text-sm leading-relaxed">{m.content}</p>
         ) : (
-          <div className="agent-md text-sm leading-relaxed [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_strong]:font-semibold [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_code]:bg-secondary [&_code]:px-1 [&_code]:rounded [&_a]:text-primary [&_a]:underline">
-            <ReactMarkdown>{m.content}</ReactMarkdown>
+          <div className="relative">
+            <AgentMarkdown text={m.content} />
+            <div className="mt-1.5 flex justify-end opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60">
+              <CopyAnswer text={m.content} lang={lang} />
+            </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/** The composer's context chips: agent tools + model badge. */
+function ComposerToolbar({ lang }: { lang: "ar" | "en" }) {
+  return (
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={tt(T.agentAttachTitle, lang)}
+            title={tt(T.agentAttachTitle, lang)}
+            className="inline-flex h-7 items-center gap-1.5 rounded-full border bg-secondary/50 px-2.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Wrench className="h-3 w-3" aria-hidden />
+            <span className="hidden sm:inline">{tt(T.agentToolsInfo, lang)}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-3 space-y-1.5">
+          <p className="text-[11px] font-semibold">{tt(T.agentToolsInfo, lang)}</p>
+          <p className="text-[10px] leading-relaxed text-muted-foreground">{tt(T.agentToolsHint, lang)}</p>
+          <ul className="max-h-52 overflow-y-auto thin-scroll pt-1">
+            {Object.entries(TOOL_LABELS).map(([key, label]) => (
+              <li key={key} className="flex items-center gap-1.5 py-0.5 text-[11px]">
+                <Check className="h-3 w-3 text-up shrink-0" aria-hidden />
+                {tt(label, lang)}
+              </li>
+            ))}
+          </ul>
+        </PopoverContent>
+      </Popover>
+      <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 text-[11px] font-medium text-primary">
+        <Cpu className="h-3 w-3" aria-hidden />
+        GLM
+      </span>
+    </>
   );
 }
 
@@ -141,8 +212,11 @@ export function AgentView() {
   const chatIdRef = useRef<string>("");
   const lastQueryRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // restore the chat from the device (SSR-safe mount read)
+  // restore the chat from the device (SSR-safe mount read); a shared
+  // ?q=… link prefills the composer (never auto-sends — it would burn the
+  // recipient's AI quota without their consent)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CHAT_KEY);
@@ -163,6 +237,8 @@ export function AgentView() {
       }
       chatIdRef.current = id;
     } catch {}
+    const q = bootParam("q");
+    if (q) setInput(q.slice(0, 2000));
     setReady(true);
   }, []);
 
@@ -200,10 +276,14 @@ export function AgentView() {
     setLiveSteps([]);
     setLiveNote(null);
     setStreamText("");
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let streamSoFar = "";
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: ac.signal,
         body: JSON.stringify({
           messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
           lang,
@@ -239,7 +319,8 @@ export function AgentView() {
         } else if (evt.type === "status") {
           setLiveNote(typeof evt.note === "string" ? evt.note : null);
         } else if (evt.type === "delta" && typeof evt.text === "string") {
-          setStreamText((s) => s + evt.text);
+          streamSoFar += evt.text;
+          setStreamText(streamSoFar);
         } else if (evt.type === "done" && typeof evt.answer === "string") {
           gotTerminal = true;
           const finalSteps = Array.isArray(evt.steps) ? (evt.steps as AgentStep[]) : stepsAcc;
@@ -278,14 +359,28 @@ export function AgentView() {
         }
       }
       if (!gotTerminal) throw new Error("stream ended without a terminal event");
-    } catch {
-      persist([...history, { role: "assistant", content: tt(T.agentError, lang), error: true, ts: Date.now() }]);
+    } catch (err) {
+      // user pressed stop — keep whatever streamed as the (partial) answer
+      if (err instanceof DOMException && err.name === "AbortError") {
+        if (streamSoFar.trim()) {
+          persist([...history, { role: "assistant", content: streamSoFar, ts: Date.now() }]);
+        } else {
+          persist([...history, { role: "assistant", content: tt(T.agentStopped, lang), error: true, ts: Date.now() }]);
+        }
+      } else {
+        persist([...history, { role: "assistant", content: tt(T.agentError, lang), error: true, ts: Date.now() }]);
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
       setLiveSteps([]);
       setLiveNote(null);
       setStreamText("");
     }
+  };
+
+  const stop = () => {
+    abortRef.current?.abort();
   };
 
   const retry = () => {
@@ -401,12 +496,6 @@ export function AgentView() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">{tt(T.agentNote, lang)}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-            <Cpu className="h-3 w-3" aria-hidden />
-            {tt(T.agentModelBadge, lang)}
-          </span>
-        </div>
       </section>
 
       {/* server-side chat history */}
@@ -464,7 +553,7 @@ export function AgentView() {
         <div className="flex-1 space-y-4">
           {!ready ? (
             <Skeleton className="h-24 w-full" />
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !busy ? (
             <div className="py-8 text-center space-y-4">
               <p className="text-sm text-muted-foreground">{tt(T.agentEmptyChat, lang)}</p>
               <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto">
@@ -473,7 +562,7 @@ export function AgentView() {
                     key={i}
                     onClick={() => void ask(tt(s, lang))}
                     disabled={busy}
-                    className="rounded-full border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                    className="rounded-full border px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-primary/40 transition-colors"
                   >
                     {tt(s, lang)}
                   </button>
@@ -489,14 +578,11 @@ export function AgentView() {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden>
                 <Bot className="h-4 w-4" />
               </span>
-              <div className="max-w-[85%] rounded-lg border bg-card px-3.5 py-2.5 space-y-2">
+              <div className="max-w-[88%] rounded-xl border bg-card px-3.5 py-2.5 space-y-2">
                 {liveSteps.length > 0 && <StepChips steps={liveSteps} lang={lang} />}
                 {liveNote && <p className="text-[10px] text-muted-foreground">{liveNote}</p>}
                 {streamText ? (
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                    {streamText}
-                    <span className="inline-block w-1.5 h-4 bg-primary animate-pulse align-middle ms-0.5" aria-hidden />
-                  </div>
+                  <AgentMarkdown text={streamText} streaming />
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className="flex gap-1" aria-hidden>
@@ -525,28 +611,20 @@ export function AgentView() {
           </div>
         )}
 
-        {/* input */}
-        <form
-          className="mt-4 flex items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void ask(input);
-          }}
-        >
-          <input
+        {/* Claude-style composer (21-a) */}
+        <div className="mt-4">
+          <ClaudeInput
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={setInput}
+            onSubmit={() => void ask(input)}
+            onStop={stop}
+            busy={busy}
             placeholder={tt(T.agentPlaceholder, lang)}
-            disabled={busy}
-            maxLength={4000}
-            aria-label={tt(T.agentPlaceholder, lang)}
-            className="h-10 min-w-0 flex-1 rounded-md border bg-card px-3 text-sm"
+            ariaLabel={tt(T.agentPlaceholder, lang)}
+            hint={tt(T.agentSendHint, lang)}
+            toolbar={<ComposerToolbar lang={lang} />}
           />
-          <Button type="submit" size="sm" className="h-10 px-3 gap-1.5" disabled={busy || !input.trim()}>
-            <Send className="h-3.5 w-3.5" />
-            {tt(T.agentSend, lang)}
-          </Button>
-        </form>
+        </div>
 
         <p className="mt-3 text-[10px] text-muted-foreground leading-relaxed">{tt(T.agentDisclaimer, lang)}</p>
       </section>

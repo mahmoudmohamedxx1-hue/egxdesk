@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useApp } from "../market/app-context";
 import { T, tt } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Braces, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { Braces, ExternalLink, ChevronDown, ChevronRight, Link2 } from "lucide-react";
 
 type Endpoint = {
   method: "GET" | "POST";
@@ -166,6 +166,40 @@ const ENDPOINTS: Endpoint[] = [
     returnsEn: "The public VAPID key for subscribing to phone notifications (web push) — the server keeps the private half.",
     source: "generated per deployment (scripts/gen-vapid.js)",
   },
+  {
+    method: "POST",
+    path: "/api/export",
+    params: [
+      "report — market|overview|signals|ai-signals|company|compare|screener|watchlist|portfolio",
+      "lang — ar|en",
+      "payload — {ticker} للشركة، {tickers[]} للمقارنة، {columns[], rows[]} لجداول الجهاز",
+    ],
+    returnsAr: "تقرير Excel احترافي (‎.xlsx) بعلامة التطبيق: رأس مصمم، ترويسات مثبّتة، تنسيقات أرقام، تصفية تلقائية، صفحات من اليمين لليسار للعربية — من نفس طبقة البيانات الحية.",
+    returnsEn: "A professional branded Excel (.xlsx) report: designed header, frozen headers, number formats, autofilter, right-to-left sheets for Arabic — from the same live data layer.",
+    source: "exceljs · our live data layer",
+  },
+];
+
+/** 21-c — every page's shareable URL pattern (the routes registry). */
+const ROUTES: { pageAr: string; pageEn: string; pattern: string; stateAr: string; stateEn: string }[] = [
+  { pageAr: "الرئيسية / نظرة عامة", pageEn: "Home / Overview", pattern: "/?view=home", stateAr: "—", stateEn: "—" },
+  { pageAr: "السوق", pageEn: "Market", pattern: "/?view=market", stateAr: "tab=prices|rank|unusual|metrics · sector=كود القطاع", stateEn: "tab=prices|rank|unusual|metrics · sector=sector code" },
+  { pageAr: "شركة", pageEn: "Company", pattern: "/?view=company&ticker=COMI", stateAr: "ticker=الرمز · panel=technical|statements|dividends|fundamentals|disclosures|activity|news", stateEn: "ticker · panel=technical|statements|dividends|fundamentals|disclosures|activity|news" },
+  { pageAr: "الفرز", pageEn: "Screener", pattern: "/?view=screener", stateAr: "sector= · price=من~إلى · pe= · cap= · volumeMin= · valueMin= · volRatioMin= · range52=high|low · perf=من~إلى · perfPeriod= · sort= · dir=asc", stateEn: "sector= · price=min~max · pe= · cap= · volumeMin= · valueMin= · volRatioMin= · range52=high|low · perf=min~max · perfPeriod= · sort= · dir=asc" },
+  { pageAr: "الإشارات", pageEn: "Signals", pattern: "/?view=signals", stateAr: "mode=tech|ai · dir=bull|bear · rating=strongBuy|buy|neutral|sell|strongSell", stateEn: "mode=tech|ai · dir=bull|bear · rating=strongBuy|buy|neutral|sell|strongSell" },
+  { pageAr: "الخريطة الحرارية", pageEn: "Heatmap", pattern: "/?view=heat", stateAr: "scope=all|top30", stateEn: "scope=all|top30" },
+  { pageAr: "القطاعات", pageEn: "Sectors", pattern: "/?view=sectors", stateAr: "—", stateEn: "—" },
+  { pageAr: "المستثمرون", pageEn: "Investors", pattern: "/?view=investors", stateAr: "—", stateEn: "—" },
+  { pageAr: "النشاط", pageEn: "Activity", pattern: "/?view=activity", stateAr: "—", stateEn: "—" },
+  { pageAr: "التقويم", pageEn: "Calendar", pattern: "/?view=calendar", stateAr: "—", stateEn: "—" },
+  { pageAr: "المقارنة", pageEn: "Compare", pattern: "/?view=compare&tickers=COMI,HDBK", stateAr: "tickers=قائمة الرموز مفصولة بفواصل (حتى ٤)", stateEn: "tickers=comma-separated list (up to 4)" },
+  { pageAr: "الأخبار", pageEn: "News", pattern: "/?view=news", stateAr: "feed=ar|en", stateEn: "feed=ar|en" },
+  { pageAr: "مساعد AI", pageEn: "AI Agent", pattern: "/?view=agent", stateAr: "q=سؤال مُعبّأ مسبقًا في المحرر (لا يُرسل تلقائيًا)", stateEn: "q=prefills the composer (never auto-sends)" },
+  { pageAr: "متابعتي / المحفظة", pageEn: "Watchlist / Portfolio", pattern: "/?view=watchlist", stateAr: "tab=watch|portfolio", stateEn: "tab=watch|portfolio" },
+  { pageAr: "الأدوات", pageEn: "Tools", pattern: "/?view=tools", stateAr: "—", stateEn: "—" },
+  { pageAr: "البورصة", pageEn: "Exchange", pattern: "/?view=exchange", stateAr: "—", stateEn: "—" },
+  { pageAr: "واجهة API", pageEn: "API docs", pattern: "/?view=api", stateAr: "—", stateEn: "—" },
+  { pageAr: "كل الروابط", pageEn: "All routes", pattern: "/?view=…&lang=ar|en", stateAr: "lang=ar|en على كل صفحة — يفتح الرابط بلغة المشارك", stateEn: "lang=ar|en on every page — opens in the sharer's language" },
 ];
 
 export function ApiDocsView() {
@@ -236,6 +270,36 @@ export function ApiDocsView() {
           );
         })}
       </div>
+
+      {/* 21-c — the shareable-routes registry */}
+      <section className="rounded-lg border bg-card p-4 space-y-3">
+        <h2 className="text-lg font-bold flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-primary" aria-hidden />
+          {tt(T.routesTitle, lang)}
+        </h2>
+        <p className="text-xs text-muted-foreground max-w-3xl leading-relaxed">{tt(T.routesNote, lang)}</p>
+        <div className="overflow-x-auto thin-scroll rounded-lg border">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead className="border-b bg-secondary/60">
+              <tr className="text-[11px] text-muted-foreground">
+                <th className="text-start font-medium px-3 py-2">{tt(T.routesColPage, lang)}</th>
+                <th className="text-start font-medium px-3 py-2">{tt(T.routesColUrl, lang)}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {ROUTES.map((r) => (
+                <tr key={r.pattern} className="hover:bg-accent/20">
+                  <td className="px-3 py-2 font-medium whitespace-nowrap">{lang === "ar" ? r.pageAr : r.pageEn}</td>
+                  <td className="px-3 py-2">
+                    <code className="num text-[11px] text-primary" dir="ltr">{r.pattern}</code>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{lang === "ar" ? r.stateAr : r.stateEn}</p>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <p className="text-[11px] text-muted-foreground max-w-3xl leading-relaxed">
         {tt(T.footerNote, lang)}

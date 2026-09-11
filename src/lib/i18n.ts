@@ -917,6 +917,46 @@ export const T = {
   agentUsageAiCalls: { ar: "نداء ذكاء اصطناعي", en: "AI calls" },
   agentUsageLimit: { ar: "الحد 60 سؤال/ساعة لكل مستخدم", en: "limit 60 questions/hour per user" },
 
+  // ── shareable links (Task 21) ──
+  sharePage: { ar: "مشاركة", en: "Share" },
+  shareCopied: {
+    ar: "نُسخ رابط الصفحة — من يفتحه يراها بنفس الحالة واللغة",
+    en: "Page link copied — whoever opens it sees this exact state and language",
+  },
+  shareFailed: { ar: "تعذر نسخ الرابط — انسخه من شريط العنوان", en: "Could not copy the link — copy it from the address bar" },
+  shareTitle: { ar: "EGX ديسك — شارك هذه الصفحة", en: "EGX Desk — share this page" },
+
+  // ── XLSX/CSV export (Task 21) ──
+  exportMenu: { ar: "تصدير", en: "Export" },
+  exportXlsx: { ar: "تقرير Excel احترافي (.xlsx)", en: "Pro Excel report (.xlsx)" },
+  exportCsv: { ar: "بيانات CSV (.csv)", en: "CSV data (.csv)" },
+  exportXlsxShort: { ar: "Excel", en: "Excel" },
+  exportWorking: { ar: "جاري تجهيز التقرير…", en: "Building the report…" },
+  exportDone: { ar: "نُزِّل تقرير Excel", en: "Excel report downloaded" },
+  exportFailed: { ar: "تعذر توليد التقرير الآن — أعد المحاولة", en: "Could not generate the report right now — try again" },
+
+  // ── agent chat input (Claude-style, Task 21) ──
+  agentToolsInfo: { ar: "أدوات الوكيل", en: "Agent tools" },
+  agentToolsHint: {
+    ar: "١٤ أداة بيانات حية + بحث ويب — يستدعيها تلقائيًا حسب السؤال",
+    en: "14 live-data tools + web search — invoked automatically per question",
+  },
+  agentSendHint: { ar: "Enter للإرسال · Shift+Enter لسطر جديد", en: "Enter to send · Shift+Enter for a new line" },
+  agentStop: { ar: "إيقاف", en: "Stop" },
+  agentStopped: { ar: "أُوقِف الرد", en: "Reply stopped" },
+  agentCopy: { ar: "نسخ الإجابة", en: "Copy answer" },
+  agentCopied: { ar: "نُسخت الإجابة", en: "Answer copied" },
+  agentAttachTitle: { ar: "أدوات ومصادر البيانات", en: "Data tools & sources" },
+
+  // ── shareable routes table (API docs) ──
+  routesTitle: { ar: "روابط قابلة للمشاركة لكل صفحة", en: "A shareable URL for every page" },
+  routesNote: {
+    ar: "كل صفحة في التطبيق لها رابط فريد يحمل حالتها (التبويب والفلاتر والأسهم المختارة واللغة) — انسخه من زر المشاركة أعلى الصفحة أو من شريط العنوان مباشرة، ومن يفتحه يرى نفس العرض.",
+    en: "Every page has a unique URL that carries its state (tab, filters, selected tickers, language) — copy it with the share button in the header or straight from the address bar, and whoever opens it sees the same view.",
+  },
+  routesColPage: { ar: "الصفحة", en: "Page" },
+  routesColUrl: { ar: "الرابط (مع أمثلة الحالة)", en: "URL (with state examples)" },
+
   // ── app version (update visibility for installed PWAs) ──
   versionLabel: { ar: "الإصدار", en: "Version" },
 

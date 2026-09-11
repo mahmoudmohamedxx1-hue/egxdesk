@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import type { NewsRow, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtDateAr, fmtTimeAr, fmtInt } from "@/lib/format";
@@ -49,9 +50,23 @@ export function NewsView() {
   // Defaults to the interface language after mount (SSR renders "ar" so
   // prerendered HTML always matches hydration).
   const [feed, setFeed] = useState<"ar" | "en">("ar");
+  // 21-c — a shared ?feed= param overrides the language default once on boot;
+  // the [lang] effect must then skip its FIRST run or it would clobber it
+  const feedBooted = useRef(false);
   useEffect(() => {
+    const f = bootParam("feed");
+    if (f === "ar" || f === "en") setFeed(f);
+    else setFeed(lang === "en" ? "en" : "ar");
+    feedBooted.current = true;
+  }, []);
+  useEffect(() => {
+    if (!feedBooted.current) return;
     setFeed(lang === "en" ? "en" : "ar");
   }, [lang]);
+  useEffect(() => {
+    if (!feedBooted.current) return;
+    patchUrlParams({ feed: feed === (lang === "en" ? "en" : "ar") ? null : feed });
+  }, [feed]);
   const [enFeed, setEnFeed] = useState<NewsEnData | null>(null);
   const [enError, setEnError] = useState(false);
 

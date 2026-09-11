@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
+import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,6 +56,21 @@ export function MarketView() {
   const [sortKey, setSortKey] = useState<SortKey>("marketCap");
   const [desc, setDesc] = useState(true);
   const [compareKey, setCompareKey] = useState<SortKey | "">("");
+
+  // 21-c — shareable state: ?view=market&tab=…&sector=… (restores on boot;
+  // kept in the URL live so the header Share button copies the exact table)
+  useEffect(() => {
+    const t = bootParam("tab");
+    if (t === "prices" || t === "rank" || t === "unusual" || t === "metrics") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTab(t);
+    }
+    const s = bootParam("sector");
+    if (s) setSector(s);
+  }, []);
+  useEffect(() => {
+    patchUrlParams({ tab: tab === "prices" ? null : tab, sector: sector || null });
+  }, [tab, sector]);
 
   const rows = data?.rows ?? null;
 
@@ -182,6 +199,8 @@ export function MarketView() {
         >
           <Filter className="h-3 w-3" /> {tt(T.fullScreener, lang)}
         </button>
+        {/* 21-b — the whole live market table as a branded Excel report */}
+        {filtered && filtered.length > 0 && <ExportXlsxButton report="market" />}
         <span className="flex-1" />
         {tab === "rank" && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">

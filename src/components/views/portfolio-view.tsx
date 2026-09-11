@@ -16,9 +16,10 @@ import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Briefcase, Download, Trash2 } from "lucide-react";
+import { Briefcase, Trash2 } from "lucide-react";
 import { loadPositions, savePositions, type Position } from "@/lib/portfolio";
 import { downloadCsv, fileStamp } from "@/lib/export";
+import { ExportMenu } from "../market/export-xlsx-button";
 
 type Row = CompanyRow;
 
@@ -229,16 +230,41 @@ export function PortfolioView() {
           )}
 
           <div className="rounded-lg border bg-card overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-card/50">
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-card/50 gap-2 flex-wrap">
               <p className="text-xs text-muted-foreground num">
                 {positions.length} {tt(T.portfolioPositions, lang)}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1 text-[11px] text-muted-foreground"
-                title={tt(T.csvExportHint, lang)}
-                onClick={() => {
+              <ExportMenu
+                report="portfolio"
+                payload={() => ({
+                  columns: [
+                    lang === "ar" ? "الرمز" : "ticker",
+                    lang === "ar" ? "الاسم" : "name",
+                    lang === "ar" ? "الأسهم" : "shares",
+                    lang === "ar" ? "التكلفة (جنيه)" : "avg cost (EGP)",
+                    lang === "ar" ? "الإغلاق (جنيه)" : "close (EGP)",
+                    lang === "ar" ? "القيمة السوقية (جنيه)" : "market value (EGP)",
+                    lang === "ar" ? "ربح اليوم (جنيه)" : "day P/L (EGP)",
+                    lang === "ar" ? "إجمالي الربح (جنيه)" : "total P/L (EGP)",
+                    lang === "ar" ? "إجمالي الربح %" : "total P/L %",
+                    lang === "ar" ? "الوزن %" : "weight %",
+                  ],
+                  rows: joined.rows
+                    .filter((x) => x.r && x.r.close != null)
+                    .map(({ p, r }) => {
+                      const mv = p.shares * (r?.close ?? 0);
+                      const pl = (r ? (r.close ?? 0) - p.cost : 0) * p.shares;
+                      return [
+                        p.ticker, r?.name ?? "", p.shares, p.cost, r?.close ?? null,
+                        +mv.toFixed(2),
+                        +(r?.changeAbs != null ? r.changeAbs * p.shares : 0).toFixed(2),
+                        +pl.toFixed(2),
+                        p.cost > 0 ? +((pl / (p.cost * p.shares)) * 100).toFixed(2) : null,
+                        agg.value > 0 ? +((mv / agg.value) * 100).toFixed(2) : null,
+                      ];
+                    }),
+                })}
+                onCsv={() => {
                   const headers = [
                     "ticker", "name", "shares", "avg_cost_egp", "last_close", "market_value_egp",
                     "day_pl_egp", "total_pl_egp", "total_pl_pct", "weight_pct",
@@ -259,10 +285,8 @@ export function PortfolioView() {
                     });
                   downloadCsv(`egx-portfolio-${fileStamp()}`, headers, body);
                 }}
-              >
-                <Download className="h-3 w-3" />
-                CSV
-              </Button>
+                title={tt(T.csvExportHint, lang)}
+              />
             </div>
             <div className="overflow-x-auto thin-scroll">
               <table className="w-full text-sm min-w-[720px]">

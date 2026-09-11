@@ -6,7 +6,7 @@
  *  Selection persists in localStorage (same pattern as the screener).
  *  Data: /api/companies rows + /api/chart 1Y candles per selection. */
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
@@ -15,8 +15,10 @@ import { fmtNum, fmtValue, fmtPct, fmtInt, directionClass } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Scale, X, Download } from "lucide-react";
+import { Scale, X } from "lucide-react";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { downloadCsv, fileStamp } from "@/lib/export";
+import { ExportMenu } from "../market/export-xlsx-button";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, Legend,
@@ -51,16 +53,22 @@ export function CompareView() {
           setSelected(arr.filter((x): x is string => typeof x === "string").slice(0, MAX));
         }
       }
-      setRestored(true);
-    } catch {
-      setRestored(true);
+    } catch {}
+    // 21-c — a shared link's ?tickers=COMI,HDBK wins over the saved selection
+    const t = bootParam("tickers");
+    if (t) {
+      const arr = t.split(",").map((x) => x.trim().toUpperCase()).filter(Boolean).slice(0, MAX);
+      if (arr.length) setSelected(arr);
     }
+    setRestored(true);
   }, []);
   useEffect(() => {
     if (!restored) return;
     try {
       localStorage.setItem(COMPARE_KEY, JSON.stringify(selected));
     } catch {}
+    // keep the URL current so the header Share copies the exact comparison
+    patchUrlParams({ tickers: selected.length ? selected.join(",") : null });
   }, [restored, selected]);
 
   const suggestions = useMemo(() => {
@@ -248,14 +256,12 @@ export function CompareView() {
 
           {/* metrics table */}
           <div className="rounded-lg border bg-card overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-card/50">
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-card/50 gap-2 flex-wrap">
               <p className="text-xs text-muted-foreground">{tt(T.compareNote, lang)}</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1 text-[11px] text-muted-foreground"
-                title={tt(T.csvExportHint, lang)}
-                onClick={() => {
+              <ExportMenu
+                report="compare"
+                payload={{ tickers: selected }}
+                onCsv={() => {
                   const headers = ["metric", ...selectedRows.map((r) => r.ticker)];
                   const metrics = metricDefs(lang).flatMap((g) => g.rows);
                   const body = metrics.map((m) => [m.label, ...selectedRows.map((r) => {
@@ -264,10 +270,8 @@ export function CompareView() {
                   })]);
                   downloadCsv(`egx-compare-${fileStamp()}`, headers, body);
                 }}
-              >
-                <Download className="h-3 w-3" />
-                CSV
-              </Button>
+                title={tt(T.csvExportHint, lang)}
+              />
             </div>
             <div className="overflow-x-auto thin-scroll">
               <table className="w-full text-sm min-w-[560px]">
@@ -290,8 +294,8 @@ export function CompareView() {
                 </thead>
                 <tbody className="divide-y">
                   {metricDefs(lang).map((group) => (
-                    <>
-                      <tr key={group.label} className="bg-secondary/40">
+                    <Fragment key={group.label}>
+                      <tr className="bg-secondary/40">
                         <td colSpan={selectedRows.length + 1} className="px-3 py-1.5 text-[11px] font-semibold text-foreground/70">
                           {group.label}
                         </td>
@@ -313,7 +317,7 @@ export function CompareView() {
                           })}
                         </tr>
                       ))}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

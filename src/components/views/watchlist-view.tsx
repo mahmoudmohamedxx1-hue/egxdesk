@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
+import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
+import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
 import { PortfolioView } from "./portfolio-view";
@@ -18,6 +20,17 @@ type Row = CompanyRow;
 export function WatchlistView() {
   const { lang } = useApp();
   const [tab, setTab] = useState<"watch" | "portfolio">("watch");
+
+  // 21-c — shareable state: ?view=watchlist&tab=portfolio
+  useEffect(() => {
+    if (bootParam("tab") === "portfolio") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTab("portfolio");
+    }
+  }, []);
+  useEffect(() => {
+    patchUrlParams({ tab: tab === "watch" ? null : tab });
+  }, [tab]);
 
   return (
     <div className="space-y-4">
@@ -59,9 +72,36 @@ function WatchlistTable({ lang }: { lang: "ar" | "en" }) {
     <div className="space-y-4">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.watchTitle, lang)}</h1>
-        <p className="num text-xs text-muted-foreground">
-          <span className="font-semibold">{watch.tickers.length}</span> · {data?.session.lastSession} · {tt(T.delayed, lang)}
-        </p>
+        <div className="flex items-center gap-2">
+          {watchRows && watchRows.length > 0 && (
+            <ExportXlsxButton
+              report="watchlist"
+              payload={() => ({
+                columns: [
+                  lang === "ar" ? "الرمز" : "ticker",
+                  lang === "ar" ? "الاسم" : "name",
+                  lang === "ar" ? "القطاع" : "sector",
+                  lang === "ar" ? "الإغلاق (جنيه)" : "close (EGP)",
+                  lang === "ar" ? "التغير %" : "change %",
+                  lang === "ar" ? "قيمة التداول (جنيه)" : "value traded (EGP)",
+                  "P/E",
+                ],
+                rows: watchRows.map((r) => [
+                  r.ticker,
+                  dn(r, lang),
+                  lang === "ar" ? r.sectorAr : r.sectorEn,
+                  r.close,
+                  r.changePct,
+                  r.valueTraded,
+                  r.pe,
+                ]),
+              })}
+            />
+          )}
+          <p className="num text-xs text-muted-foreground">
+            <span className="font-semibold">{watch.tickers.length}</span> · {data?.session.lastSession} · {tt(T.delayed, lang)}
+          </p>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.watchNote, lang)}</p>
 

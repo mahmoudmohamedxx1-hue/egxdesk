@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { patchUrlParams } from "@/lib/url-state";
+import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, NewsRow, SessionMeta } from "../market/types";
@@ -71,6 +73,13 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
     setPrevPanel(panel);
     setActivePanel(panel);
   }
+
+  // 21-c — selecting a panel also updates ?panel=… in the URL so the company
+  // page is shareable exactly as seen (replaceState: tabs never spam history)
+  const selectPanel = (key: string) => {
+    setActivePanel(key);
+    patchUrlParams({ panel: key === "overview" ? null : key });
+  };
 
   if (error && !data) {
     return (
@@ -167,6 +176,8 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           {lang === "ar" ? "احسب عائد الكوبون" : "Compute coupon return"}
         </button>
         <SetAlertButton ticker={c.ticker} close={c.close} />
+        {/* 21-b — the full company file (snapshot + technicals + dividends) as a branded Excel report */}
+        <ExportXlsxButton report="company" payload={{ ticker: c.ticker }} />
       </div>
 
       {/* identity + quote */}
@@ -215,7 +226,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             key={p.key}
             role="tab"
             aria-selected={activePanel === p.key}
-            onClick={() => setActivePanel(p.key)}
+            onClick={() => selectPanel(p.key)}
             className={`whitespace-nowrap px-3 py-2 text-sm -mb-px border-b-2 transition-colors ${
               activePanel === p.key ? "border-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
@@ -243,7 +254,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           </section>
 
           {/* valuation teaser — surfaces the G10 panel from the overview */}
-          <ValuationTeaser company={c} sectorAgg={data.sectorAgg} onOpen={() => setActivePanel("valuation")} />
+          <ValuationTeaser company={c} sectorAgg={data.sectorAgg} onOpen={() => selectPanel("valuation")} />
 
           {data.signals && <SignalsCard signals={data.signals} lang={lang} />}
 

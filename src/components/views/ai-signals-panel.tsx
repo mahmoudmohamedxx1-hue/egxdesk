@@ -13,6 +13,7 @@ import { T, tt } from "@/lib/i18n";
 import { fmtNum } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { ExportXlsxButton } from "@/components/market/export-xlsx-button";
 import { BrainCircuit, ChevronDown, ChevronUp, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import type { AiSignalsResponse, AiPick } from "@/lib/ai-signals";
 
@@ -176,11 +177,15 @@ export function AiSignalsPanel() {
             <BrainCircuit className="h-4.5 w-4.5 text-primary" aria-hidden />
             {tt(T.aiSignalsTitle, lang)}
           </h2>
-          {asOfLabel && (
-            <span className="num text-[11px] text-muted-foreground">
-              {tt(T.aiSignalsAsOf, lang)} {asOfLabel}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {/* 21-b — picks + bias + backtest evidence as a branded Excel report */}
+            <ExportXlsxButton report="ai-signals" />
+            {asOfLabel && (
+              <span className="num text-[11px] text-muted-foreground">
+                {tt(T.aiSignalsAsOf, lang)} {asOfLabel}
+              </span>
+            )}
+          </div>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">{tt(T.aiSignalsNote, lang)}</p>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
