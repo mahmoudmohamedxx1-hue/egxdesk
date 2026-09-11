@@ -32,7 +32,7 @@ async function main() {
   console.log("[health]");
   const health = await fetch(`${BASE_URL}/api/health`).then((r) => r.json() as Promise<Record<string, unknown>>);
   check("health responds ok", health.ok === true);
-  check("health version is 2.10", health.version === "2.10", `got ${health.version}`);
+  check("health reports the current app version", typeof health.version === "string" && /^\d+\.\d+$/.test(health.version) && Number(health.version) >= 2.11, `got ${health.version}`);
   check("health db up", health.db === "up", `got ${health.db}`);
 
   // ── 2. /api/usage shape ──
@@ -96,7 +96,33 @@ async function main() {
       deviceId: "t19-live-device-0001",
     }),
   });
-  const jsonLive = (await resLive.json()) as { answer?: string; steps?: unknown[]; model?: string };
+  // Task 20: the agent streams SSE now — parse events for the done payload
+  const ctLive = resLive.headers.get("content-type") ?? "";
+  let jsonLive: { answer?: string; steps?: unknown[]; model?: string } = {};
+  if (ctLive.includes("text/event-stream")) {
+    const reader = resLive.body!.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buf.indexOf("\n\n")) !== -1) {
+        const rawEvt = buf.slice(0, sep);
+        buf = buf.slice(sep + 2);
+        for (const line of rawEvt.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          try {
+            const evt = JSON.parse(line.slice(5).trim()) as Record<string, unknown>;
+            if (evt.type === "done") jsonLive = evt as typeof jsonLive;
+          } catch {}
+        }
+      }
+    }
+  } else {
+    jsonLive = (await resLive.json()) as typeof jsonLive;
+  }
   check("live agent answers 200", resLive.status === 200, `got ${resLive.status}`);
   check("answer is non-empty markdown", typeof jsonLive.answer === "string" && jsonLive.answer.length > 40);
   check("steps array present", Array.isArray(jsonLive.steps));
@@ -112,9 +138,15 @@ async function main() {
 
   // ── 5. push/run guard (6/h per IP, then 429) ──
   console.log("[push/run guard]");
+  // dedicated test IP so earlier suites (t16's single forced evaluation) can
+  // never pre-burn this budget — the assertion stays deterministic
+  const PUSH_IP = "198.51.100.77";
   const codes: number[] = [];
   for (let i = 0; i < 7; i++) {
-    const r = await fetch(`${BASE_URL}/api/push/run`, { method: "POST" });
+    const r = await fetch(`${BASE_URL}/api/push/run`, {
+      method: "POST",
+      headers: { "x-forwarded-for": PUSH_IP },
+    });
     codes.push(r.status);
   }
   check("first 6 push/run calls allowed", codes.slice(0, 6).every((c) => c !== 429), codes.join(","));

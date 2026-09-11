@@ -14,8 +14,9 @@ import { fmtNum, fmtPct, directionClass } from "@/lib/format";
 import { downloadCsv, fileStamp } from "@/lib/export";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Download, TrendingDown, TrendingUp, Search } from "lucide-react";
+import { BrainCircuit, Download, TrendingDown, TrendingUp, Search } from "lucide-react";
 import type { Rating, SignalRow, SignalsScan } from "@/lib/signals-scan";
+import { AiSignalsPanel } from "@/components/views/ai-signals-panel";
 
 type SignalsResponse = SignalsScan & {
   source?: string;
@@ -126,6 +127,7 @@ function HighlightCard({
 export function SignalsView() {
   const { lang, navigate, toast } = useApp();
   const { data, error, loading } = useLiveData<SignalsResponse>("/api/signals", 5 * 60_000);
+  const [mode, setMode] = useState<"tech" | "ai">("tech");
   const [dir, setDir] = useState<"bull" | "bear">("bull");
   const [filter, setFilter] = useState<Rating | "all">("all");
   const [q, setQ] = useState("");
@@ -177,7 +179,7 @@ export function SignalsView() {
     toast(tt(T.signalsCsvDone, lang));
   };
 
-  if (loading && !data) {
+  if (loading && !data && mode === "tech") {
     return (
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">{tt(T.signalsWarming, lang)}</p>
@@ -187,7 +189,7 @@ export function SignalsView() {
     );
   }
 
-  if (error && !data) {
+  if (error && !data && mode === "tech") {
     return (
       <section className="rounded-lg border bg-card p-6 text-center space-y-3">
         <p className="text-sm font-medium">{tt(T.signalsError, lang)}</p>
@@ -200,12 +202,12 @@ export function SignalsView() {
 
   return (
     <div className="space-y-5">
-      {/* header */}
+      {/* header + mode switch (technical scan | AI signals) */}
       <section className="rounded-lg border bg-card p-4">
-        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-          <h1 className="text-lg font-bold">{tt(T.signalsTabTitle, lang)}</h1>
+        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+          <h1 className="text-lg font-bold">{tt(mode === "ai" ? T.aiSignalsTitle : T.signalsTabTitle, lang)}</h1>
           <div className="flex items-center gap-2">
-            {data && (
+            {mode === "tech" && data && (
               <span className="num text-[11px] text-muted-foreground">
                 {data.scanned} {tt(T.signalsScanCount, lang)} · {tt(T.signalsScanAsOf, lang)}{" "}
                 {new Date(data.asOf).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", {
@@ -214,15 +216,47 @@ export function SignalsView() {
                 })}
               </span>
             )}
-            <Button size="sm" variant="outline" className="h-7 px-2 text-[11px] gap-1" onClick={exportCsv} title={tt(T.csvExportHint, lang)}>
-              <Download className="h-3 w-3" />
-              CSV
-            </Button>
+            {mode === "tech" && (
+              <Button size="sm" variant="outline" className="h-7 px-2 text-[11px] gap-1" onClick={exportCsv} title={tt(T.csvExportHint, lang)}>
+                <Download className="h-3 w-3" />
+                CSV
+              </Button>
+            )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">{tt(T.signalsTabNote, lang)}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
+          {tt(mode === "ai" ? T.aiSignalsNote : T.signalsTabNote, lang)}
+        </p>
+        <div className="mt-3 flex rounded-md border overflow-hidden w-fit" role="tablist">
+          <button
+            role="tab"
+            aria-selected={mode === "tech"}
+            onClick={() => setMode("tech")}
+            className={`px-3 py-1.5 text-[11px] font-medium transition-colors flex items-center gap-1.5 ${
+              mode === "tech" ? "bg-primary text-primary-foreground" : "hover:bg-accent/50"
+            }`}
+          >
+            <TrendingUp className="h-3 w-3" aria-hidden />
+            {tt(T.aiSignalsModeTech, lang)}
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === "ai"}
+            onClick={() => setMode("ai")}
+            className={`px-3 py-1.5 text-[11px] font-medium transition-colors flex items-center gap-1.5 ${
+              mode === "ai" ? "bg-primary text-primary-foreground" : "hover:bg-accent/50"
+            }`}
+          >
+            <BrainCircuit className="h-3 w-3" aria-hidden />
+            {tt(T.aiSignalsModeAi, lang)}
+          </button>
+        </div>
       </section>
 
+      {mode === "ai" && <AiSignalsPanel />}
+
+      {mode === "tech" && (
+        <>
       {stats && data && (
         <>
           {/* market bias + rating distribution */}
@@ -441,6 +475,8 @@ export function SignalsView() {
           </table>
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 }

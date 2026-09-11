@@ -66,15 +66,43 @@ async function json(path, opts) {
   });
   ok(lastNotUser.status === 400, "agent requires last message = user");
 
-  // one real agent round-trip (tools + final answer) — generous timeout
+  // one real agent round-trip (tools + final answer) — generous timeout.
+  // Task 20: the agent now streams SSE (step/delta/done events) — parse the
+  // stream and reconstruct the {answer, steps} shape the old JSON test used.
   const t0 = Date.now();
-  const agent = await json("/api/agent", {
+  const agentRes = await fetch(BASE + "/api/agent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: [{ role: "user", content: "What is the current price of COMI?" }], lang: "en" }),
   });
+  const agent = { status: agentRes.status, body: null, sse: false };
+  if ((agentRes.headers.get("content-type") || "").includes("text/event-stream")) {
+    agent.sse = true;
+    const reader = agentRes.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    const events = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let sep;
+      while ((sep = buf.indexOf("\n\n")) !== -1) {
+        const rawEvt = buf.slice(0, sep);
+        buf = buf.slice(sep + 2);
+        for (const line of rawEvt.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          try { events.push(JSON.parse(line.slice(5).trim())); } catch {}
+        }
+      }
+    }
+    const doneEvt = events.find((e) => e.type === "done");
+    agent.body = doneEvt ?? null;
+  } else {
+    try { agent.body = await agentRes.json(); } catch {}
+  }
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
-  ok(agent.status === 200, "agent answers a real question", `${dt}s`);
+  ok(agent.status === 200, "agent answers a real question", `${dt}s${agent.sse ? " (SSE)" : ""}`);
   ok(typeof agent.body?.answer === "string" && agent.body.answer.length > 40, "answer is substantive", `${agent.body?.answer?.length ?? 0} chars`);
   ok(Array.isArray(agent.body?.steps) && agent.body.steps.every((s) => s.tool), "tool steps reported", (agent.body?.steps ?? []).map((s) => s.tool).join(","));
   ok(/COMI/i.test(agent.body?.answer ?? ""), "answer contains the ticker asked about");

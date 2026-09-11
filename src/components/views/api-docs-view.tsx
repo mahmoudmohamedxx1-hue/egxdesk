@@ -148,9 +148,16 @@ const ENDPOINTS: Endpoint[] = [
     method: "POST",
     path: "/api/agent",
     params: ["messages — [{role, content}] آخرها رسالة مستخدم", "lang — \"ar\" | \"en\""],
-    returnsAr: "الوكيل الذكي: خطوات استدعاء الأدوات + الإجابة النهائية بصيغة Markdown، مبنية على بيانات حية عبر ١٣ أداة (أسعار، فرز، فني، قوائم، توزيعات، أخبار…).",
-    returnsEn: "The AI agent: tool-call steps + the final markdown answer, built from live data via 13 tools (quotes, screening, technicals, statements, dividends, news…).",
+    returnsAr: "الوكيل الذكي: خطوات استدعاء الأدوات + الإجابة النهائية بصيغة Markdown، مبنية على بيانات حية عبر ١٤ أداة (أسعار، فرز، فني، قوائم، توزيعات، أخبار، إشارات AI…).",
+    returnsEn: "The AI agent: tool-call steps + the final markdown answer, built from live data via 14 tools (quotes, screening, technicals, statements, dividends, news, AI signals…).",
     source: "z-ai-web-dev-sdk over our own data layer",
+  },
+  {
+    method: "GET",
+    path: "/api/ai-signals",
+    returnsAr: "إشارات الذكاء الاصطناعي المشتركة: مجموعة إشارات واحدة تُحسب كل ٤٥ دقيقة لكل المستخدمين (قراءة السوق + أفكار بمستويات دخول/وقف/هدف مع الأدلة) + نتائج الاختبار التاريخي للاستراتيجية. مجاني بلا حد قراءة.",
+    returnsEn: "The shared AI signals: one signal set computed per 45-minute cycle for every user (market read + trade ideas with entry/stop/target and evidence) plus the strategy's walk-forward backtest results. Free, unlimited reads.",
+    source: "z-ai-web-dev-sdk (1 shared call/cycle) · our strategy engine + signals scan",
   },
   {
     method: "GET",

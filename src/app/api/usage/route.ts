@@ -26,15 +26,17 @@ export async function GET() {
     const [todayRows, rows7] = await Promise.all([
       db.usageEvent.findMany({
         where: { createdAt: { gte: dayStart } },
-        select: { llmCalls: true, toolCalls: true, webSearches: true, ok: true, ms: true },
+        select: { route: true, llmCalls: true, toolCalls: true, webSearches: true, ok: true, ms: true },
       }),
       db.usageEvent.findMany({
         where: { createdAt: { gte: d7 } },
-        select: { createdAt: true, llmCalls: true, toolCalls: true, webSearches: true },
+        select: { createdAt: true, route: true, llmCalls: true, toolCalls: true, webSearches: true },
       }),
     ]);
 
-    // per-day buckets for the last 7 days (local dates)
+    // per-day buckets for the last 7 days (local dates). "questions" counts
+    // only user-facing agent questions — route "ai-signals" rows are shared
+    // compute (one LLM call serving every user), metered separately.
     const byDay = new Map<
       string,
       { date: string; questions: number; llmCalls: number; toolCalls: number; webSearches: number }
@@ -42,7 +44,7 @@ export async function GET() {
     for (const r of rows7) {
       const key = dayKey(r.createdAt);
       const b = byDay.get(key) ?? { date: key, questions: 0, llmCalls: 0, toolCalls: 0, webSearches: 0 };
-      b.questions += 1;
+      if (r.route === "agent") b.questions += 1;
       b.llmCalls += r.llmCalls;
       b.toolCalls += r.toolCalls;
       b.webSearches += r.webSearches;
@@ -51,7 +53,8 @@ export async function GET() {
     const last7d = [...byDay.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
 
     const today = {
-      questions: todayRows.length,
+      questions: todayRows.filter((r) => r.route === "agent").length,
+      aiSignalRefreshes: todayRows.filter((r) => r.route === "ai-signals").length,
       llmCalls: todayRows.reduce((s, r) => s + r.llmCalls, 0),
       toolCalls: todayRows.reduce((s, r) => s + r.toolCalls, 0),
       webSearches: todayRows.reduce((s, r) => s + r.webSearches, 0),

@@ -1,0 +1,187 @@
+{
+  "asOf": "2026-09-11T02:22:04.771Z",
+  "strategyRev": "egx-trend-v1",
+  "method": "walk-forward, no lookahead: every 10 sessions rank the universe with the live scoring function over candles up to that date only; longs = top 5 with score >= 0.5; hold 10 sessions; costs 0.35% round trip; benchmark = equal-weight universe",
+  "params": {
+    "warmupSessions": 200,
+    "holdSessions": 10,
+    "topN": 5,
+    "scoreMin": 0.5,
+    "costPctRoundTrip": 0.35
+  },
+  "universe": {
+    "size": 35,
+    "selection": "today's 40 most-traded EGX names with 3y daily history"
+  },
+  "stats": {
+    "windows": 53,
+    "noPickWindows": 1,
+    "trades": 246,
+    "suspectExcluded": 2,
+    "hitRate": 0.581,
+    "avgNetPct": 3,
+    "avgWinPct": 8.67,
+    "avgLossPct": -4.87,
+    "profitFactor": 2.47,
+    "avgExcessPct": 1.03,
+    "beatBenchRate": 0.423,
+    "strategyCumPct": 340.4,
+    "benchCumPct": 175.3,
+    "maxDrawdownPct": -8,
+    "bestPct": 44.6,
+    "worstPct": -25,
+    "medianNetPct": 1.01
+  },
+  "windows": [
+    {
+      "date": "2026-03-12",
+      "picks": [
+        "EFIC",
+        "CCAP",
+        "AMOC",
+        "OIH",
+        "SWDY"
+      ],
+      "netPct": 0.05,
+      "benchPct": -2.73
+    },
+    {
+      "date": "2026-03-30",
+      "picks": [
+        "CCAP",
+        "GTWL",
+        "EMFD",
+        "POUL",
+        "SVCE"
+      ],
+      "netPct": 2.16,
+      "benchPct": 5.8
+    },
+    {
+      "date": "2026-04-15",
+      "picks": [
+        "COMI",
+        "EMFD",
+        "ZMID",
+        "PHDC",
+        "ISMA"
+      ],
+      "netPct": 14.76,
+      "benchPct": 7.43
+    },
+    {
+      "date": "2026-04-29",
+      "picks": [
+        "EGCH",
+        "ZMID",
+        "EPCO",
+        "NIPH",
+        "COMI"
+      ],
+      "netPct": 9.6,
+      "benchPct": 6.16
+    },
+    {
+      "date": "2026-05-13",
+      "picks": [
+        "ETEL",
+        "AMOC",
+        "ORHD",
+        "EPCO",
+        "ARAB"
+      ],
+      "netPct": 0.09,
+      "benchPct": -1.88
+    },
+    {
+      "date": "2026-05-27",
+      "picks": [
+        "CCAP",
+        "SVCE",
+        "EGCH",
+        "ETEL",
+        "SWDY"
+      ],
+      "netPct": -3.18,
+      "benchPct": 1.17
+    },
+    {
+      "date": "2026-06-10",
+      "picks": [
+        "EMFD",
+        "ZMID",
+        "ORHD",
+        "LUTS",
+        "PHDC"
+      ],
+      "netPct": 6.58,
+      "benchPct": 2.09
+    },
+    {
+      "date": "2026-06-24",
+      "picks": [
+        "SVCE",
+        "GIHD",
+        "LUTS",
+        "NIPH",
+        "ETEL"
+      ],
+      "netPct": 0.38,
+      "benchPct": 3.62
+    },
+    {
+      "date": "2026-07-08",
+      "picks": [
+        "CCAP",
+        "ARAB",
+        "HELI",
+        "SVCE",
+        "GIHD"
+      ],
+      "netPct": 12.26,
+      "benchPct": 8.07
+    },
+    {
+      "date": "2026-07-22",
+      "picks": [
+        "CCAP",
+        "COMI",
+        "AMOC",
+        "ETEL",
+        "EPCO"
+      ],
+      "netPct": 2.15,
+      "benchPct": 4.03
+    },
+    {
+      "date": "2026-08-05",
+      "picks": [
+        "EMFD",
+        "EGCH",
+        "PHDC",
+        "COMI",
+        "LUTS"
+      ],
+      "netPct": -2.32,
+      "benchPct": 12.29
+    },
+    {
+      "date": "2026-08-19",
+      "picks": [
+        "MPCO",
+        "SWDY",
+        "ATQA",
+        "MFPC",
+        "SVCE"
+      ],
+      "netPct": 10.85,
+      "benchPct": 2.96
+    }
+  ],
+  "notes": [
+    "Past performance is NOT a guarantee — the backtest validates the RULES on history, it cannot validate the LLM's future judgment.",
+    "Trades with |gross return| > 45% inside a 10-session hold (2 found) are excluded as likely rights-issue/split print artifacts.",
+    "Universe is today's most-traded names — mild survivorship/selection bias is possible.",
+    "Quotes are ~15-min delayed daily candles; fills at next available close, no intraday stops modeled (EGX circuit breakers make stop fills uncertain)."
+  ]
+}

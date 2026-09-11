@@ -59,6 +59,7 @@ const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
   insiders: { ar: "تعاملات الداخليين", en: "Insider deals" },
   compare: { ar: "مقارنة", en: "Compare" },
   web_search: { ar: "بحث الويب", en: "Web search" },
+  ai_signals: { ar: "إشارات AI", en: "AI signals" },
 };
 
 const SUGGESTIONS = [T.agentSuggest1, T.agentSuggest2, T.agentSuggest3, T.agentSuggest4, T.agentSuggest5, T.agentSuggest6];
@@ -130,6 +131,9 @@ export function AgentView() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
+  const [liveNote, setLiveNote] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyList, setHistoryList] = useState<HistoryRow[]>([]);
@@ -179,10 +183,10 @@ export function AgentView() {
     return () => clearInterval(t);
   }, [busy]);
 
-  // keep the newest message in view
+  // keep the newest message in view (also while the answer streams in)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy]);
+  }, [messages, busy, liveSteps, streamText]);
 
   const ask = async (text: string) => {
     const q = text.trim();
@@ -193,6 +197,9 @@ export function AgentView() {
     persist(history);
     setInput("");
     setBusy(true);
+    setLiveSteps([]);
+    setLiveNote(null);
+    setStreamText("");
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
@@ -203,8 +210,10 @@ export function AgentView() {
           deviceId: getDeviceId(), // usage metering + per-user hourly limit
         }),
       });
-      const json = (await res.json()) as { answer?: string; steps?: AgentStep[]; error?: string };
-      if (!res.ok || !json.answer) {
+      const ct = res.headers.get("content-type") ?? "";
+      // plain-JSON error path (429 rate limit / 400 validation / gateway html)
+      if (!res.ok || !ct.includes("text/event-stream")) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
         persist([
           ...history,
           {
@@ -214,15 +223,68 @@ export function AgentView() {
             ts: Date.now(),
           },
         ]);
-      } else {
-        const next: AgentMsg[] = [...history, { role: "assistant", content: json.answer, steps: json.steps ?? [], ts: Date.now() }];
-        persist(next);
-        saveChat(next); // server-side history (fire-and-forget)
+        return;
       }
+      // SSE stream: tool steps arrive as they run, the answer previews live
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("no stream body");
+      const dec = new TextDecoder();
+      let buf = "";
+      let gotTerminal = false;
+      const stepsAcc: AgentStep[] = [];
+      const handleEvent = (evt: Record<string, unknown>) => {
+        if (evt.type === "step") {
+          stepsAcc.push({ tool: String(evt.tool ?? ""), args: (evt.args as Record<string, unknown>) ?? {}, ok: evt.ok !== false });
+          setLiveSteps([...stepsAcc]);
+        } else if (evt.type === "status") {
+          setLiveNote(typeof evt.note === "string" ? evt.note : null);
+        } else if (evt.type === "delta" && typeof evt.text === "string") {
+          setStreamText((s) => s + evt.text);
+        } else if (evt.type === "done" && typeof evt.answer === "string") {
+          gotTerminal = true;
+          const finalSteps = Array.isArray(evt.steps) ? (evt.steps as AgentStep[]) : stepsAcc;
+          const next: AgentMsg[] = [...history, { role: "assistant", content: evt.answer, steps: finalSteps, ts: Date.now() }];
+          persist(next);
+          saveChat(next); // server-side history (fire-and-forget)
+        } else if (evt.type === "error") {
+          gotTerminal = true;
+          persist([
+            ...history,
+            {
+              role: "assistant",
+              content: evt.message ? `${tt(T.agentError, lang)} (${evt.message})` : tt(T.agentError, lang),
+              error: true,
+              ts: Date.now(),
+            },
+          ]);
+        }
+      };
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let sep: number;
+        while ((sep = buf.indexOf("\n\n")) !== -1) {
+          const rawEvt = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          for (const line of rawEvt.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            try {
+              handleEvent(JSON.parse(line.slice(5).trim()) as Record<string, unknown>);
+            } catch {
+              /* partial line — the next chunk completes it */
+            }
+          }
+        }
+      }
+      if (!gotTerminal) throw new Error("stream ended without a terminal event");
     } catch {
       persist([...history, { role: "assistant", content: tt(T.agentError, lang), error: true, ts: Date.now() }]);
     } finally {
       setBusy(false);
+      setLiveSteps([]);
+      setLiveNote(null);
+      setStreamText("");
     }
   };
 
@@ -427,16 +489,27 @@ export function AgentView() {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden>
                 <Bot className="h-4 w-4" />
               </span>
-              <div className="rounded-lg border bg-card px-3.5 py-2.5 flex items-center gap-2">
-                <span className="flex gap-1" aria-hidden>
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {tt(T.agentThinking, lang)}
-                  {elapsed > 2 && <span className="num"> — {elapsed}s</span>}
-                </span>
+              <div className="max-w-[85%] rounded-lg border bg-card px-3.5 py-2.5 space-y-2">
+                {liveSteps.length > 0 && <StepChips steps={liveSteps} lang={lang} />}
+                {liveNote && <p className="text-[10px] text-muted-foreground">{liveNote}</p>}
+                {streamText ? (
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                    {streamText}
+                    <span className="inline-block w-1.5 h-4 bg-primary animate-pulse align-middle ms-0.5" aria-hidden />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="flex gap-1" aria-hidden>
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {tt(T.agentThinking, lang)}
+                      {elapsed > 2 && <span className="num"> — {elapsed}s</span>}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -17,10 +17,11 @@ import { db } from "@/lib/db";
  *  pattern of open-source agent frameworks like shubhamsaboo/awesome-llm-apps
  *  and the agent-skills repos): an LLM with STRICT-JSON tool calling over our
  *  own live data layer — quotes, screening, technicals, statements, dividends,
- *  news, calendar, rates, insider filings, flows. The loop runs server-side
- *  (z-ai-web-dev-sdk never reaches the client), max ~10 tool calls per
- *  question, then the model writes the final markdown answer. Gateway 429s
- *  are retried with backoff; every request is metered in UsageEvent.
+ *  news, calendar, rates, insider filings, flows, the AI signals set. The loop
+ *  runs server-side (z-ai-web-dev-sdk never reaches the client), max ~10 tool
+ *  calls per question, then the model writes the final markdown answer.
+ *  Gateway 429s are retried with backoff; every request is metered in
+ *  UsageEvent.
  *
  *  Honesty by design: tools return only real (delayed ~15-min) data; the
  *  system prompt forbids invented numbers; the response carries a fixed
@@ -80,28 +81,140 @@ function isThrottleError(err: unknown): boolean {
   return msg.includes("429") || /too many requests/i.test(msg);
 }
 
-async function createChat(
+// ── streaming chat (Task 20: the answer streams live over SSE) ──
+
+type DeltaFn = (text: string) => void;
+
+/** Consume the gateway's SSE chat stream (data: lines with
+ *  choices[0].delta.content chunks), accumulating the full text. */
+async function consumeSse(body: ReadableStream<Uint8Array>, onDelta?: DeltaFn): Promise<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let out = "";
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) !== -1) {
+      const line = buf.slice(0, nl).replace(/\r$/, "");
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try {
+        const j = JSON.parse(payload) as {
+          choices?: { delta?: { content?: unknown }; message?: { content?: unknown } }[];
+        };
+        const piece = j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.message?.content;
+        if (typeof piece === "string" && piece.length > 0) {
+          out += piece;
+          onDelta?.(piece);
+        }
+      } catch {
+        /* partial line / keepalive — the next chunk completes it */
+      }
+    }
+  }
+  return out;
+}
+
+/** One LLM round with streaming + the same 429 backoff as before. Falls back
+ *  gracefully if the gateway ignores stream:true (returns a plain object). */
+async function createChatStream(
   zai: Zai,
   opts: { messages: { role: "user" | "assistant"; content: string }[]; thinking: "enabled" | "disabled" },
-  retry: { budgetLeft: number }
+  retry: { budgetLeft: number },
+  onDelta?: DeltaFn,
+  onStatus?: (note: string) => void
 ): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
-      const completion = await zai.chat.completions.create({
+      const res = await zai.chat.completions.create({
         messages: opts.messages,
         thinking: { type: opts.thinking },
+        stream: true,
       });
-      return completion.choices[0]?.message?.content ?? "";
+      // the SDK hands back the raw SSE body when the gateway streams
+      if (res && typeof (res as { getReader?: unknown }).getReader === "function") {
+        return await consumeSse(res as ReadableStream<Uint8Array>, onDelta);
+      }
+      // non-streaming shape — still surface the text for the live preview
+      const c = res as { choices?: { message?: { content?: string } }[] };
+      const text = c.choices?.[0]?.message?.content ?? "";
+      if (text) onDelta?.(text);
+      return text;
     } catch (err) {
       const wait = RETRY_BACKOFF_MS[attempt];
       if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait) {
         retry.budgetLeft -= wait;
+        onStatus?.(attempt === 0 ? "provider busy — retrying" : "provider busy — retrying again");
         await sleep(wait);
         continue;
       }
       throw err;
     }
   }
+}
+
+/** Decode the escaped JSON string body of raw (stops at the closing quote or
+ *  an incomplete escape at the buffer tail). */
+function decodeJsonStringPrefix(raw: string): string {
+  let out = "";
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (c === "\\") {
+      const n = raw[i + 1];
+      if (n === undefined) return out; // incomplete escape — wait for more
+      if (n === "n") { out += "\n"; i++; continue; }
+      if (n === "t") { out += "\t"; i++; continue; }
+      if (n === "r") { out += "\r"; i++; continue; }
+      if (n === "b") { out += "\b"; i++; continue; }
+      if (n === "f") { out += "\f"; i++; continue; }
+      if (n === '"') { out += '"'; i++; continue; }
+      if (n === "\\") { out += "\\"; i++; continue; }
+      if (n === "/") { out += "/"; i++; continue; }
+      if (n === "u") {
+        const hex = raw.slice(i + 2, i + 6);
+        if (hex.length < 4 || !/^[0-9a-fA-F]{4}$/.test(hex)) return out;
+        out += String.fromCharCode(parseInt(hex, 16));
+        i += 5;
+        continue;
+      }
+      out += n;
+      i++;
+      continue;
+    }
+    if (c === '"') return out; // closing quote — the final string ends here
+    out += c;
+  }
+  return out;
+}
+
+/** Live-preview extractor: watches the raw stream text and, once the
+ *  `{"final": "` opening quote appears, streams the decoded answer body out
+ *  as delta events. Tool-call rounds never contain `"final":`, so they never
+ *  preview; thinking prose is skipped too. The authoritative answer is still
+ *  the parsed `done` event — the preview is cosmetic and transient. */
+function makeFinalPreviewer(onDelta: (s: string) => void) {
+  let acc = "";
+  let locked: number | null = null;
+  let sent = 0;
+  return (chunk: string) => {
+    acc += chunk;
+    if (acc.length > 300_000) return; // pathological stream — stop tracking
+    if (locked === null) {
+      const m = acc.match(/"\s*final\s*"\s*:\s*"/);
+      if (!m || m.index === undefined) return;
+      locked = m.index + m[0].length;
+    }
+    const decoded = decodeJsonStringPrefix(acc.slice(locked));
+    if (decoded.length > sent) {
+      onDelta(decoded.slice(sent));
+      sent = decoded.length;
+    }
+  };
 }
 
 // ── types ──
@@ -629,6 +742,34 @@ const TOOLS: Tool[] = [
       }
     },
   },
+  {
+    name: "ai_signals",
+    desc: "The AI Signals section's current shared signal set (back-tested trend strategy + GLM synthesis, refreshed ~every 45 minutes): the strategy's market read plus trade ideas with entry/stop/target and evidence. No args — read-only, may be slightly older than live quotes.",
+    run: async () => {
+      const { getLatestAiSignals } = await import("@/lib/ai-signals");
+      const set = await getLatestAiSignals();
+      if (!set) return { status: "warming — no AI signal set generated yet, try again later" };
+      return {
+        generatedAt: set.generatedAt,
+        marketBias: set.marketBias,
+        picks: set.picks.map((p) => ({
+          ticker: p.ticker,
+          nameAr: p.nameAr,
+          stance: p.stance,
+          conviction: p.conviction,
+          charterScore: p.charterScore,
+          close: p.close,
+          entry: p.entry,
+          stop: p.stop,
+          target: p.target,
+          horizonSessions: p.horizonSessions,
+          riskLevel: p.riskLevel,
+          evidence: p.evidence.slice(0, 5),
+        })),
+        notesAr: set.notesAr,
+      };
+    },
+  },
 ];
 
 const TOOL_LIST = TOOLS.map((t) => `- ${t.name}: ${t.desc}`).join("\n");
@@ -658,7 +799,7 @@ RULES:
 - For questions entirely outside finance or about personal financial advice, politely decline and redirect to what you can do.`;
 }
 
-// ── the agent loop ──
+// ── the agent loop (Task 20: streamed over SSE) ──
 
 const MAX_TOOL_CALLS = 10;
 
@@ -710,11 +851,11 @@ export async function POST(req: Request) {
   const debugRaw: string[] = [];
   const debug = body.debug === true;
 
-  // usage metering — one UsageEvent row per request, written by finish()
+  // usage metering — one UsageEvent row per request, written on completion
   const t0 = Date.now();
   const usage = { llmCalls: 0, webSearches: 0 };
   const retry = { budgetLeft: RETRY_BUDGET_MS };
-  const finish = (payload: Record<string, unknown>, status = 200) => {
+  const meter = (ok: boolean) => {
     void db.usageEvent
       .create({
         data: {
@@ -724,109 +865,165 @@ export async function POST(req: Request) {
           llmCalls: usage.llmCalls,
           toolCalls: steps.length,
           webSearches: usage.webSearches,
-          ok: status === 200,
+          ok,
           ms: Date.now() - t0,
         },
       })
       .catch(() => {}); // metering must never break a reply
-    return NextResponse.json(payload, { status, headers: { "Cache-Control": "no-store" } });
   };
 
-  for (let round = 0; round < MAX_TOOL_CALLS + 3; round++) {
-    if (steps.length >= MAX_TOOL_CALLS) break;
-    let raw = "";
-    try {
-      // reasoning depth: round 0 (fast JSON tool-picking or a quick
-      // conversational reply) runs with thinking off; every later round —
-      // i.e. once real tool data is on the table, the synthesis moment — runs
-      // with chain-of-thought ON so the final answer is genuine reasoning,
-      // not a shallow template.
-      const deep = round > 0;
-      raw = await createChat(zai, { messages: msgs, thinking: deep ? "enabled" : "disabled" }, retry);
-      usage.llmCalls++;
-    } catch (err) {
-      // gateway 429s retry with backoff inside createChat; if throttling
-      // persists, answer honestly instead of a bare "model unavailable"
-      const throttled = isThrottleError(err);
-      return finish(
-        {
-          error: throttled
-            ? lang === "ar"
-              ? "خدمة الذكاء الاصطناعي مشغولة مؤقتًا (ضغط على المزود) — جرّب بعد دقيقة"
-              : "The AI service is briefly busy (provider throttling) — please retry in a minute"
-            : "model unavailable",
-          detail: err instanceof Error ? err.message : "unknown",
-        },
-        throttled ? 503 : 502
-      );
-    }
-    if (debug) debugRaw.push(raw.slice(0, 800));
+  // ── SSE response: step / status / delta / done / error events ──
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let closed = false;
+      const send = (obj: Record<string, unknown>) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+        } catch {
+          closed = true; // client disconnected — keep the loop honest
+        }
+      };
+      const done = (answer: string) => {
+        send({ type: "done", answer, steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
+        meter(true);
+        closed = true;
+        try {
+          controller.close();
+        } catch {}
+      };
+      const fail = (message: string, status: number, detail?: string) => {
+        send({ type: "error", message, status, ...(detail ? { detail } : {}) });
+        meter(false);
+        closed = true;
+        try {
+          controller.close();
+        } catch {}
+      };
 
-    const parsed = extractJson(raw);
-    if (!parsed || (!("tool" in parsed) && !("final" in parsed))) {
-      corrections++;
-      if (corrections > 2) break;
-      msgs.push({
-        role: "user",
-        content:
-          'Format error. Reply with exactly ONE JSON object, no fences: {"tool": "<name>", "args": {...}} to call a tool, or {"final": "<markdown answer>"} to answer.',
-      });
-      continue;
-    }
+      try {
+        for (let round = 0; round < MAX_TOOL_CALLS + 3; round++) {
+          if (steps.length >= MAX_TOOL_CALLS) break;
+          let raw = "";
+          try {
+            // reasoning depth: round 0 (fast JSON tool-picking or a quick
+            // conversational reply) runs with thinking off; every later round —
+            // i.e. once real tool data is on the table, the synthesis moment —
+            // runs with chain-of-thought ON so the final answer is genuine
+            // reasoning, not a shallow template.
+            const deep = round > 0;
+            const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
+            raw = await createChatStream(
+              zai,
+              { messages: msgs, thinking: deep ? "enabled" : "disabled" },
+              retry,
+              preview,
+              (note) => send({ type: "status", note })
+            );
+            usage.llmCalls++;
+          } catch (err) {
+            // gateway 429s retry with backoff inside createChatStream; if
+            // throttling persists, answer honestly instead of a bare error
+            const throttled = isThrottleError(err);
+            return void fail(
+              throttled
+                ? lang === "ar"
+                  ? "خدمة الذكاء الاصطناعي مشغولة مؤقتًا (ضغط على المزود) — جرّب بعد دقيقة"
+                  : "The AI service is briefly busy (provider throttling) — please retry in a minute"
+                : "model unavailable",
+              throttled ? 503 : 502,
+              err instanceof Error ? err.message : "unknown"
+            );
+          }
+          if (debug) debugRaw.push(raw.slice(0, 800));
 
-    if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-      return finish({ answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
-    }
+          const parsed = extractJson(raw);
+          if (!parsed || (!("tool" in parsed) && !("final" in parsed))) {
+            corrections++;
+            if (corrections > 2) break;
+            msgs.push({
+              role: "user",
+              content:
+                'Format error. Reply with exactly ONE JSON object, no fences: {"tool": "<name>", "args": {...}} to call a tool, or {"final": "<markdown answer>"} to answer.',
+            });
+            continue;
+          }
 
-    const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
-    const tool = TOOLS.find((t) => t.name === toolName);
-    if (!tool) {
-      msgs.push({
-        role: "user",
-        content: `Unknown tool "${toolName}". Available tools: ${TOOLS.map((t) => t.name).join(", ")}.`,
-      });
-      continue;
-    }
+          if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
+            return void done(parsed.final.trim());
+          }
 
-    const args = (parsed.args && typeof parsed.args === "object" ? parsed.args : {}) as Record<string, unknown>;
-    let result: unknown;
-    try {
-      result = await tool.run(args);
-    } catch (err) {
-      result = { error: err instanceof Error ? err.message : "tool failed" };
-    }
-    const ok = !(result && typeof result === "object" && "error" in (result as Record<string, unknown>));
-    steps.push({ tool: toolName, args, ok });
-    if (toolName === "web_search" && ok) usage.webSearches++;
+          const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
+          const tool = TOOLS.find((t) => t.name === toolName);
+          if (!tool) {
+            msgs.push({
+              role: "user",
+              content: `Unknown tool "${toolName}". Available tools: ${TOOLS.map((t) => t.name).join(", ")}.`,
+            });
+            continue;
+          }
 
-    msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
-  }
+          const args = (parsed.args && typeof parsed.args === "object" ? parsed.args : {}) as Record<string, unknown>;
+          let result: unknown;
+          try {
+            result = await tool.run(args);
+          } catch (err) {
+            result = { error: err instanceof Error ? err.message : "tool failed" };
+          }
+          const ok = !(result && typeof result === "object" && "error" in (result as Record<string, unknown>));
+          steps.push({ tool: toolName, args, ok });
+          send({ type: "step", tool: toolName, args, ok });
+          if (toolName === "web_search" && ok) usage.webSearches++;
 
-  // loop exhausted without a final answer — NEVER waste the collected data:
-  // force one synthesis round from the tool results already in context
-  if (steps.length > 0) {
-    msgs.push({
-      role: "user",
-      content:
-        'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
-    });
-    try {
-      const raw = await createChat(zai, { messages: msgs, thinking: "enabled" }, retry);
-      usage.llmCalls++;
-      if (debug) debugRaw.push(raw.slice(0, 800));
-      const parsed = extractJson(raw);
-      if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-        return finish({ answer: parsed.final.trim(), steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
+          msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
+        }
+
+        // loop exhausted without a final answer — NEVER waste the collected
+        // data: force one synthesis round from the tool results in context
+        if (steps.length > 0) {
+          msgs.push({
+            role: "user",
+            content:
+              'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
+          });
+          try {
+            const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
+            const raw = await createChatStream(
+              zai,
+              { messages: msgs, thinking: "enabled" },
+              retry,
+              preview,
+              (note) => send({ type: "status", note })
+            );
+            usage.llmCalls++;
+            if (debug) debugRaw.push(raw.slice(0, 800));
+            const parsed = extractJson(raw);
+            if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
+              return void done(parsed.final.trim());
+            }
+          } catch {
+            // fall through to the honest fallback below
+          }
+        }
+
+        // no tools ever ran / synthesis also failed — honest fallback, never invented
+        const fallback =
+          lang === "ar"
+            ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
+            : "I ran out of tool budget without a complete answer. Try rephrasing (e.g. \"market overview\" or \"quote for COMI\").";
+        return void done(fallback);
+      } catch (err) {
+        return void fail("agent loop error", 500, err instanceof Error ? err.message : "unknown");
       }
-    } catch {
-      // fall through to the honest fallback below
-    }
-  }
+    },
+  });
 
-  // no tools ever ran / synthesis also failed — honest fallback, never invented
-  const fallback =
-    lang === "ar"
-      ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
-      : "I ran out of tool budget without a complete answer. Try rephrasing (e.g. \"market overview\" or \"quote for COMI\").";
-  return finish({ answer: fallback, steps, model: "GLM", disclaimer: true, ...(debug ? { debugRaw } : {}) });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
