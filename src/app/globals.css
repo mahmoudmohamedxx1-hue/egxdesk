@@ -283,3 +283,108 @@ html {
 #agent-history-sidebar {
   padding-top: env(safe-area-inset-top);
 }
+
+/* ── T28 — the AI assistant popup (21st.dev-inspired ai-input) ── */
+
+/* the animated gradient ring around the composer: a warm terracotta→amber
+ * shimmer (no blue/indigo — the desk palette is warm) that only breathes
+ * while the input is focused or busy */
+.ai-input-ring {
+  background: linear-gradient(
+    115deg,
+    var(--chat-accent) 0%,
+    oklch(0.82 0.13 75) 28%,
+    oklch(0.88 0.1 85) 50%,
+    var(--chat-accent) 72%,
+    oklch(0.82 0.13 75) 100%
+  );
+  background-size: 260% 260%;
+  animation: ai-flow 4.5s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.ai-input-ring.is-on {
+  opacity: 1;
+}
+@keyframes ai-flow {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* the gradient send orb */
+.ai-send {
+  background: linear-gradient(135deg, oklch(0.62 0.13 42), oklch(0.72 0.12 55));
+  color: oklch(0.98 0.005 95);
+  transition: transform 0.15s ease, filter 0.2s ease, opacity 0.2s ease;
+}
+.ai-send:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+.ai-send:not(:disabled):active {
+  transform: scale(0.92);
+}
+.ai-send:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* the floating launcher orb: layered pulse rings */
+.ai-orb {
+  background: linear-gradient(135deg, oklch(0.62 0.13 42), oklch(0.74 0.12 58));
+  color: oklch(0.98 0.005 95);
+  box-shadow:
+    0 6px 20px oklch(0.62 0.13 42 / 38%),
+    0 2px 6px oklch(0.3 0.02 60 / 25%);
+}
+.ai-orb::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--chat-accent);
+  opacity: 0;
+  animation: ai-pulse 3.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes ai-pulse {
+  0% { transform: scale(0.95); opacity: 0.55; }
+  70% { transform: scale(1.28); opacity: 0; }
+  100% { transform: scale(1.28); opacity: 0; }
+}
+
+/* mic listening state */
+.ai-mic-live {
+  animation: ai-mic 1.4s ease-in-out infinite;
+}
+@keyframes ai-mic {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.62 0.14 30 / 45%); }
+  50% { box-shadow: 0 0 0 6px oklch(0.62 0.14 30 / 0%); }
+}
+
+/* tiny "suggestion" chips in the welcome card */
+.ai-chip {
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.ai-chip:hover {
+  transform: translateY(-1px);
+}
+
+/* the model menu's download progress track */
+.ai-prog-track {
+  background: color-mix(in oklch, var(--chat-accent-soft) 70%, transparent);
+  border-radius: 9999px;
+  height: 4px;
+  overflow: hidden;
+}
+.ai-prog-bar {
+  background: var(--chat-accent);
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* tool-run chips inside messages */
+.ai-tool-chip {
+  font-variant-numeric: tabular-nums;
+}

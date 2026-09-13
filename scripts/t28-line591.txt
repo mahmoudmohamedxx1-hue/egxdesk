@@ -1,0 +1,1 @@
+  let s = out.replace(/</think>[\s\S]*?<\/think>/g, "").trim();

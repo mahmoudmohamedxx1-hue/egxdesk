@@ -1,0 +1,613 @@
+     1→"use client";
+     2→
+     3→/** T28 — the AI assistant's EXECUTION layer: these tools let the assistant
+     4→ *  (any model — instant router, cloud GLM, or an on-device WebLLM model)
+     5→ *  actually OPERATE the EGX Desk website: navigate every view, open company
+     6→ *  pages, manage the watchlist, create multi-condition alerts, place paper
+     7→ *  trades, flip language/theme, and pull live market data for answers.
+     8→ *
+     9→ *  Every tool returns a bilingual markdown `text` (instant mode shows it
+    10→ *  as-is) plus raw `data` JSON (fed to the model's answer stage). All market
+    11→ *  numbers stay honest: the same delayed ~15-min APIs every view uses. */
+    12→
+    13→import type { Lang } from "@/lib/i18n";
+    14→import type { AlertCondition, PriceAlert } from "@/lib/alerts";
+    15→import { loadBook, saveBook, buy, sell, emptyBook, tradeErrText, type PaperBook } from "@/lib/paper";
+    16→
+    17→export type ToolCtx = {
+    18→  lang: Lang;
+    19→  view: { name: string; ticker?: string; panel?: string };
+    20→  navigate: (v: string, extra?: { ticker?: string; panel?: string }) => void;
+    21→  toggleWatch: (ticker: string) => void;
+    22→  watchTickers: string[];
+    23→  addAlert: (ticker: string, conditions: AlertCondition[], date?: string) => void;
+    24→  alerts: PriceAlert[];
+    25→  removeAlert: (id: string) => void;
+    26→  setLang: (l: Lang) => void;
+    27→  setTheme: (t: "dark" | "light") => void;
+    28→};
+    29→
+    30→export type ToolResult = {
+    31→  ok: boolean;
+    32→  /** localized markdown — instant mode renders it directly */
+    33→  text: string;
+    34→  /** raw JSON for the model's answer stage */
+    35→  data?: unknown;
+    36→};
+    37→
+    38→// ── shared data caches (60s TTL, module-level so the popup survives close) ──
+    39→
+    40→type CompanyRowLite = {
+    41→  ticker: string; name: string; nameAr?: string; close: number; changePct: number;
+    42→  changeAbs: number; volume: number; valueTraded: number; marketCap: number | null;
+    43→  sectorEn: string; sectorAr: string;
+    44→};
+    45→
+    46→let companiesAt = 0;
+    47→let companiesRows: CompanyRowLite[] = [];
+    48→
+    49→async function companies(): Promise<CompanyRowLite[]> {
+    50→  if (Date.now() - companiesAt < 60_000 && companiesRows.length) return companiesRows;
+    51→  const res = await fetch("/api/companies", { cache: "no-store" });
+    52→  if (!res.ok) throw new Error("companies unavailable");
+    53→  const json = (await res.json()) as { rows?: CompanyRowLite[] };
+    54→  companiesRows = (json.rows ?? []).map((r) => ({ ...r, ticker: String(r.ticker).toUpperCase() }));
+    55→  companiesAt = Date.now();
+    56→  return companiesRows;
+    57→}
+    58→
+    59→export async function findTicker(q: string): Promise<CompanyRowLite | null> {
+    60→  const raw = q.trim().toUpperCase();
+    61→  if (!raw) return null;
+    62→  const rows = await companies();
+    63→  const exact = rows.find((r) => r.ticker === raw);
+    64→  if (exact) return exact;
+    65→  // fuzzy: name match via the search endpoint (handles Arabic names too)
+    66→  try {
+    67→    const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`, { cache: "no-store" });
+    68→    if (!res.ok) return null;
+    69→    const json = (await res.json()) as { results?: { ticker: string }[] };
+    70→    const top = json.results?.[0]?.ticker?.toUpperCase();
+    71→    if (!top) return null;
+    72→    return rows.find((r) => r.ticker === top) ?? null;
+    73→  } catch {
+    74→    return null;
+    75→  }
+    76→}
+    77→
+    78→// ── tool schemas (shown to models AND in the UI "what can I do" menu) ──
+    79→
+    80→export type ToolDef = {
+    81→  name: string;
+    82→  desc: { ar: string; en: string };
+    83→  example: string;
+    84→};
+    85→
+    86→export const TOOL_DEFS: ToolDef[] = [
+    87→  { name: "open_view", desc: { ar: "فتح أي صفحة في الموقع", en: "Open any page of the app" }, example: "open the screener" },
+    88→  { name: "open_ticker", desc: { ar: "فتح صفحة سهم (رسم/فني/أخبار)", en: "Open a stock page (chart/technicals/news)" }, example: "show me COMI chart" },
+    89→  { name: "quote", desc: { ar: "سعر سهم الآن", en: "Live quote for a stock" }, example: "what's the price of HRHO?" },
+    90→  { name: "search", desc: { ar: "البحث عن شركة بالاسم", en: "Search companies by name" }, example: "find Eastern Tobacco" },
+    91→  { name: "movers", desc: { ar: "الأكثر صعودًا وهبوطًا", en: "Top gainers & losers" }, example: "show me today's movers" },
+    92→  { name: "market_overview", desc: { ar: "ملخص السوق والمؤشرات", en: "Market summary & indices" }, example: "how's the market today?" },
+    93→  { name: "technicals", desc: { ar: "مؤشرات فنية (RSI/MACD/متوسطات)", en: "Technical snapshot (RSI/MACD/MAs)" }, example: "technical analysis of TMGH" },
+    94→  { name: "news", desc: { ar: "آخر الأخبار مع المشاعر", en: "Latest news with sentiment" }, example: "any news about the market?" },
+    95→  { name: "gcc", desc: { ar: "أسواق الخليج (السعودية/دبي/أبوظبي)", en: "Gulf markets (Saudi/Dubai/AbuDhabi)" }, example: "how's Tadawul doing?" },
+    96→  { name: "watch_add", desc: { ar: "إضافة سهم للمتابعة", en: "Add a stock to the watchlist" }, example: "watch COMI" },
+    97→  { name: "watch_remove", desc: { ar: "إزالة سهم من المتابعة", en: "Remove a stock from the watchlist" }, example: "unwatch COMI" },
+    98→  { name: "watch_list", desc: { ar: "عرض قائمة المتابعة", en: "Show the watchlist" }, example: "my watchlist" },
+    99→  { name: "alert_create", desc: { ar: "إنشاء تنبيه متعدد الشروط", en: "Create a multi-condition alert" }, example: "alert COMI above 90 and RSI below 70" },
+   100→  { name: "alert_list", desc: { ar: "عرض التنبيهات", en: "List alerts" }, example: "my alerts" },
+   101→  { name: "alert_delete", desc: { ar: "حذف تنبيه", en: "Delete an alert" }, example: "delete alert for COMI" },
+   102→  { name: "paper_buy", desc: { ar: "شراء تجريبي بسعر السوق", en: "Paper-buy at the live price" }, example: "buy 100 COMI" },
+   103→  { name: "paper_sell", desc: { ar: "بيع تجريبي بسعر السوق", en: "Paper-sell at the live price" }, example: "sell 50 COMI" },
+   104→  { name: "paper_portfolio", desc: { ar: "محفظة التجريبي والأرباح", en: "Paper portfolio & P&L" }, example: "my paper positions" },
+   105→  { name: "set_language", desc: { ar: "تغيير لغة الموقع", en: "Switch the site language" }, example: "switch to English" },
+   106→  { name: "set_theme", desc: { ar: "الوضع الليلي/النهاري", en: "Dark/light mode" }, example: "dark mode" },
+   107→];
+   108→
+   109→export const KNOWN_VIEW_NAMES = [
+   110→  "home", "market", "screener", "sectors", "heat", "activity", "investors",
+   111→  "calendar", "funds", "compare", "gcc", "lab", "reports", "watchlist",
+   112→  "paper", "tools", "today", "signals", "api",
+   113→] as const;
+   114→
+   115→/** Compact tool spec block for the model's system prompt (kept terse for
+   116→ *  0.5B-class local models). */
+   117→export function toolsPromptSpec(): string {
+   118→  return [
+   119→    'open_view: {"view":"home|market|screener|sectors|heat|activity|investors|calendar|funds|compare|gcc|lab|reports|watchlist|paper|tools|news|signals"}',
+   120→    'open_ticker: {"ticker":"COMI","panel":"overview|chart|technicals|news|financials|insiders"} — open a stock page',
+   121→    "quote: {ticker} — live delayed price",
+   122→    "search: {q} — find tickers by English/Arabic name",
+   123→    "movers: {} — top gainers & losers",
+   124→    "market_overview: {} — EGX indices & breadth",
+   125→    "technicals: {ticker} — RSI/MACD/MA20/MA50/volume ratio",
+   126→    "news: {q?} — latest news headlines with sentiment",
+   127→    "gcc: {} — Tadawul/DFM/ADX index snapshot",
+   128→    "watch_add: {ticker} · watch_remove: {ticker} · watch_list: {}",
+   129→    'alert_create: {"ticker":"COMI","conditions":[{"kind":"priceAbove|priceBelow|chgAbove|chgBelow|rsiAbove|rsiBelow|macdAbove|macdBelow|maCrossUp|maCrossDown|volRatioAbove","value":90}]}',
+   130→    "alert_list: {} · alert_delete: {id}",
+   131→    "paper_buy: {ticker, qty} · paper_sell: {ticker, qty} — simulated EGP trades at live price",
+   132→    "paper_portfolio: {} — positions + P&L",
+   133→    'set_language: {"lang":"ar|en"} · set_theme: {"theme":"dark|light"}',
+   134→  ].join("\n");
+   135→}
+   136→
+   137→// ── formatting helpers ──
+   138→
+   139→const nf = (n: number, d = 2) =>
+   140→  Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }) : "—";
+   141→
+   142→const pct = (n: number) => `${n >= 0 ? "+" : ""}${nf(n, 2)}%`;
+   143→
+   144→function fmtM(v: number | null): string {
+   145→  if (v == null || !Number.isFinite(v)) return "—";
+   146→  if (v >= 1e9) return `${nf(v / 1e9, 2)}B`;
+   147→  if (v >= 1e6) return `${nf(v / 1e6, 2)}M`;
+   148→  if (v >= 1e3) return `${nf(v / 1e3, 1)}K`;
+   149→  return nf(v, 0);
+   150→}
+   151→
+   152→function rowLine(r: CompanyRowLite, lang: Lang): string {
+   153→  const name = lang === "ar" ? (r.nameAr ?? r.name) : r.name;
+   154→  return `**${r.ticker}** — ${name}: ${nf(r.close)} EGP (${pct(r.changePct)}) · vol ${fmtM(r.volume)}`;
+   155→}
+   156→
+   157→// ── the executor ──
+   158→
+   159→async function chartSnapshot(ticker: string): Promise<{ rsi: number | null; macd: number | null; macdSignal: number | null; maShort: number | null; maLong: number | null; volRatio: number | null } | null> {
+   160→  try {
+   161→    const res = await fetch(`/api/chart?symbol=${encodeURIComponent(ticker)}&range=6M`, { cache: "no-store" });
+   162→    if (!res.ok) return null;
+   163→    const j = (await res.json()) as { points?: { close: number; volume: number | null }[]; error?: string };
+   164→    if (j.error || !Array.isArray(j.points) || j.points.length < 2) return null;
+   165→    const { indicatorSnapshot } = await import("@/lib/alerts");
+   166→    return indicatorSnapshot(j.points);
+   167→  } catch {
+   168→    return null;
+   169→  }
+   170→}
+   171→
+   172→async function bookWithPrices(): Promise<{ book: PaperBook; prices: Map<string, CompanyRowLite> }> {
+   173→  const [book, rows] = await Promise.all([loadBook(), companies()]);
+   174→  const prices = new Map(rows.map((r) => [r.ticker, r] as const));
+   175→  return { book: book ?? emptyBook(), prices };
+   176→}
+   177→
+   178→export async function runTool(name: string, args: Record<string, unknown>, ctx: ToolCtx): Promise<ToolResult> {
+   179→  const lang = ctx.lang;
+   180→  const AR = lang === "ar";
+   181→  const t = (ar: string, en: string) => (AR ? ar : en);
+   182→  const A = (s: unknown) => (typeof s === "string" ? s : "");
+   183→
+   184→  try {
+   185→    switch (name) {
+   186→      case "open_view": {
+   187→        const raw = A(args.view).toLowerCase();
+   188→        const view = (KNOWN_VIEW_NAMES as readonly string[]).includes(raw) ? raw : "home";
+   189→        ctx.navigate(view);
+   190→        return { ok: true, text: t(`تم فتح الصفحة ✓`, `Opened the page ✓`), data: { view } };
+   191→      }
+   192→      case "open_ticker": {
+   193→        let q = A(args.ticker);
+   194→        if (!q && A(args.name)) q = A(args.name);
+   195→        if (!q) return { ok: false, text: t("حدد رمز سهم", "Specify a ticker") };
+   196→        const row = await findTicker(q);
+   197→        if (!row) return { ok: false, text: t(`لم أجد «${q}» — جرّب البحث بالاسم`, `Couldn't find "${q}" — try searching by name`) };
+   198→        const panelRaw = A(args.panel).toLowerCase();
+   199→        const panel = ["overview", "chart", "technicals", "news", "financials", "insiders", "tools", "dividends", "signals", "reports"].includes(panelRaw) ? panelRaw : "overview";
+   200→        ctx.navigate("company", { ticker: row.ticker, panel });
+   201→        return { ok: true, text: t(`فتحت **${row.ticker}** (${AR ? row.nameAr ?? row.name : row.name}) — ${nf(row.close)} EGP (${pct(row.changePct)})`, `Opened **${row.ticker}** (${row.name}) — ${nf(row.close)} EGP (${pct(row.changePct)})`), data: { ticker: row.ticker, close: row.close, changePct: row.changePct, panel } };
+   202→      }
+   203→      case "quote": {
+   204→        const row = await findTicker(A(args.ticker) || A(args.name));
+   205→        if (!row) return { ok: false, text: t(`لم أجد السهم`, `Couldn't find that stock`) };
+   206→        return {
+   207→          ok: true,
+   208→          text: t(
+   209→            `**${row.ticker}** — ${row.nameAr ?? row.name}\n${nf(row.close)} EGP (${pct(row.changePct)} · ${nf(row.changeAbs)} EGP)\nالحجم ${fmtM(row.volume)} سهم · القيمة ${fmtM(row.valueTraded)} EGP\n_أسعار مؤجلة ~١٥ دقيقة_`,
+   210→            `**${row.ticker}** — ${row.name}\n${nf(row.close)} EGP (${pct(row.changePct)} · ${nf(row.changeAbs)} EGP)\nVolume ${fmtM(row.volume)} shares · value ${fmtM(row.valueTraded)} EGP\n_Quotes delayed ~15 min_`,
+   211→          ),
+   212→          data: { ticker: row.ticker, close: row.close, changePct: row.changePct, changeAbs: row.changeAbs, volume: row.volume, valueTraded: row.valueTraded },
+   213→        };
+   214→      }
+   215→      case "search": {
+   216→        const q = A(args.q) || A(args.query);
+   217→        if (!q) return { ok: false, text: t("ماذا تبحث؟", "Search for what?") };
+   218→        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { cache: "no-store" });
+   219→        if (!res.ok) return { ok: false, text: t("البحث غير متاح الآن", "Search unavailable right now") };
+   220→        const json = (await res.json()) as { results?: CompanyRowLite[] };
+   221→        const hits = (json.results ?? []).slice(0, 8);
+   222→        if (!hits.length) return { ok: false, text: t(`لا نتائج لـ «${q}»`, `No results for "${q}"`), data: { q, hits: [] } };
+   223→        return {
+   224→          ok: true,
+   225→          text: hits.map((r) => rowLine(r, lang)).join("\n"),
+   226→          data: { q, hits: hits.map((r) => ({ ticker: r.ticker, name: r.name, close: r.close, changePct: r.changePct })) },
+   227→        };
+   228→      }
+   229→      case "movers": {
+   230→        const rows = await companies();
+   231→        const up = [...rows].filter((r) => r.changePct > 0).sort((a, b) => b.changePct - a.changePct).slice(0, 6);
+   232→        const dn = [...rows].filter((r) => r.changePct < 0).sort((a, b) => a.changePct - b.changePct).slice(0, 6);
+   233→        const text = [
+   234→          AR ? `**الأكثر ارتفاعًا**` : `**Top gainers**`,
+   235→          ...up.map((r) => rowLine(r, lang)),
+   236→          "",
+   237→          AR ? `**الأكثر انخفاضًا**` : `**Top losers**`,
+   238→          ...dn.map((r) => rowLine(r, lang)),
+   239→        ].join("\n");
+   240→        return { ok: true, text, data: { gainers: up.slice(0, 5), losers: dn.slice(0, 5) } };
+   241→      }
+   242→      case "market_overview": {
+   243→        const res = await fetch("/api/overview", { cache: "no-store" });
+   244→        if (!res.ok) return { ok: false, text: t("ملخص السوق غير متاح الآن", "Market summary unavailable") };
+   245→        const j = (await res.json()) as {
+   246→          indices?: { name?: string; nameAr?: string; value?: number; changePct?: number | null }[];
+   247→          breadth?: { up?: number; down?: number; flat?: number; total?: number };
+   248→        };
+   249→        const idx = (j.indices ?? []).slice(0, 4).map((i) => `• ${(AR ? i.nameAr ?? i.name : i.name) ?? "—"}: ${nf(i.value ?? 0)} (${i.changePct != null ? pct(i.changePct) : "—"})`);
+   250→        const b = j.breadth ?? {};
+   251→        const text = [
+   252→          AR ? "**البورصة المصرية الآن**" : "**EGX right now**",
+   253→          ...idx,
+   254→          "",
+   255→          AR ? `صاعد ${b.up ?? 0} · هابط ${b.down ?? 0} · ثابت ${b.flat ?? 0} (من ${b.total ?? 0})` : `Up ${b.up ?? 0} · down ${b.down ?? 0} · flat ${b.flat ?? 0} (of ${b.total ?? 0})`,
+   256→          "_تأخر ~١٥ دقيقة_",
+   257→        ].join("\n");
+   258→        return { ok: true, text, data: { indices: j.indices, breadth: b } };
+   259→      }
+   260→      case "technicals": {
+   261→        const q = A(args.ticker) || A(args.name);
+   262→        const row = q ? await findTicker(q) : null;
+   263→        if (!row) return { ok: false, text: t("لم أجد السهم", "Couldn't find that stock") };
+   264→        const snap = await chartSnapshot(row.ticker);
+   265→        if (!snap) return { ok: false, text: t("لا توجد بيانات كافية لهذا السهم", "Not enough data for this stock") };
+   266→        const verdict = (() => {
+   267→          const bits: string[] = [];
+   268→          if (snap.rsi != null) bits.push(snap.rsi > 70 ? (AR ? "تشبع شرائي" : "overbought") : snap.rsi < 30 ? (AR ? "تشبع بيعي" : "oversold") : (AR ? "محايد" : "neutral"));
+   269→          if (snap.macd != null && snap.macdSignal != null) bits.push(snap.macd > snap.macdSignal ? (AR ? "MACD إيجابي" : "MACD bullish") : (AR ? "MACD سلبي" : "MACD bearish"));
+   270→          if (snap.maShort != null && snap.maLong != null) bits.push(snap.maShort > snap.maLong ? (AR ? "اتجاه صاعد" : "uptrend") : (AR ? "اتجاه هابط" : "downtrend"));
+   271→          return bits.join(" · ");
+   272→        })();
+   273→        const text = [
+   274→          `**${row.ticker}** ${AR ? "— اللقطة الفنية" : "— technical snapshot"}`,
+   275→          `RSI(14): ${snap.rsi != null ? nf(snap.rsi, 1) : "—"}`,
+   276→          `MACD: ${snap.macd != null ? nf(snap.macd, 3) : "—"} (${AR ? "إشارة" : "signal"} ${snap.macdSignal != null ? nf(snap.macdSignal, 3) : "—"})`,
+   277→          `MA20 ${snap.maShort != null ? nf(snap.maShort) : "—"} · MA50 ${snap.maLong != null ? nf(snap.maLong) : "—"}`,
+   278→          `Vol × ${snap.volRatio != null ? nf(snap.volRatio, 1) : "—"}`,
+   279→          "",
+   280→          `_${verdict}_`,
+   281→        ].join("\n");
+   282→        return { ok: true, text, data: { ticker: row.ticker, ...snap } };
+   283→      }
+   284→      case "news": {
+   285→        const q = A(args.q) || A(args.query);
+   286→        const url = q
+   287→          ? `/api/news-en?q=${encodeURIComponent(q)}`
+   288→          : "/api/news-en";
+   289→        const res = await fetch(url, { cache: "no-store" });
+   290→        if (!res.ok) return { ok: false, text: t("الأخبار غير متاحة الآن", "News unavailable right now") };
+   291→        const j = (await res.json()) as { items?: { title?: string; link?: string; publishedAt?: string; source?: string; sentiment?: { label?: string } }[] };
+   292→        const items = (j.items ?? []).slice(0, 6);
+   293→        if (!items.length) return { ok: false, text: t("لا أخبار الآن", "No news right now") };
+   294→        const text = items
+   295→          .map((it) => `• ${it.title ?? "—"}${it.sentiment?.label ? ` _(${it.sentiment.label})_` : ""}`)
+   296→          .join("\n");
+   297→        return { ok: true, text, data: { items: items.map((i) => ({ title: i.title, source: i.source, sentiment: i.sentiment?.label ?? null })) } };
+   298→      }
+   299→      case "gcc": {
+   300→        const res = await fetch("/api/gcc", { cache: "no-store" });
+   301→        if (!res.ok) return { ok: false, text: t("بيانات الخليج غير متاحة الآن", "GCC data unavailable right now") };
+   302→        const j = (await res.json()) as { indices?: { nameAr?: string; nameEn?: string; close?: number; changePct?: number | null }[] };
+   303→        const lines = (j.indices ?? []).map((i) => `• ${(AR ? i.nameAr : i.nameEn) ?? "—"}: ${nf(i.close ?? 0)} (${i.changePct != null ? pct(i.changePct) : "—"})`);
+   304→        return { ok: true, text: [AR ? "**أسواق الخليج**" : "**Gulf markets**", ...lines].join("\n"), data: { indices: j.indices } };
+   305→      }
+   306→      case "watch_add":
+   307→      case "watch_remove": {
+   308→        const row = await findTicker(A(args.ticker) || A(args.name));
+   309→        if (!row) return { ok: false, text: t("لم أجد السهم", "Couldn't find that stock") };
+   310→        ctx.toggleWatch(row.ticker);
+   311→        return {
+   312→          ok: true,
+   313→          text: name === "watch_add"
+   314→            ? t(`أضفت **${row.ticker}** إلى المتابعة ✓`, `Added **${row.ticker}** to the watchlist ✓`)
+   315→            : t(`أزلت **${row.ticker}** من المتابعة ✓`, `Removed **${row.ticker}** from the watchlist ✓`),
+   316→          data: { ticker: row.ticker, watched: name === "watch_add" },
+   317→        };
+   318→      }
+   319→      case "watch_list": {
+   320→        const rows = await companies();
+   321→        const mine = rows.filter((r) => ctx.watchTickers.includes(r.ticker));
+   322→        if (!mine.length) return { ok: true, text: t("قائمة المتابعة فارغة", "The watchlist is empty") };
+   323→        return { ok: true, text: [AR ? "**متابعتي**" : "**Watchlist**", ...mine.map((r) => rowLine(r, lang))].join("\n"), data: { tickers: mine.map((r) => ({ ticker: r.ticker, close: r.close, changePct: r.changePct })) } };
+   324→      }
+   325→      case "alert_create": {
+   326→        const row = await findTicker(A(args.ticker) || A(args.name));
+   327→        if (!row) return { ok: false, text: t("لم أجد السهم", "Couldn't find that stock") };
+   328→        const condsRaw = Array.isArray(args.conditions) ? (args.conditions as { kind?: string; value?: number }[]) : [];
+   329→        const VALID = new Set(["priceAbove", "priceBelow", "chgAbove", "chgBelow", "rsiAbove", "rsiBelow", "macdAbove", "macdBelow", "maCrossUp", "maCrossDown", "volRatioAbove", "onDate"]);
+   330→        const conds: AlertCondition[] = condsRaw
+   331→          .filter((c) => c && typeof c.kind === "string" && VALID.has(c.kind) && Number.isFinite(Number(c.value)))
+   332→          .slice(0, 4)
+   333→          .map((c) => ({ kind: c.kind as AlertCondition["kind"], value: Number(c.value) }));
+   334→        if (!conds.length) {
+   335→          return { ok: false, text: t("حدد شرطًا واحدًا على الأقل، مثال: alert COMI above 90", "Specify at least one condition, e.g. alert COMI above 90") };
+   336→        }
+   337→        ctx.addAlert(row.ticker, conds);
+   338→        const { kindLabel } = await import("@/lib/alerts");
+   339→        const condText = conds.map((c) => `${kindLabel(c.kind, lang)} ${c.value}`).join(` ${AR ? "و" : "AND" }`);
+   340→        return { ok: true, text: t(`أنشأت تنبيه **${row.ticker}**: ${condText} ✓`, `Created alert for **${row.ticker}**: ${condText} ✓`), data: { ticker: row.ticker, conditions: conds } };
+   341→      }
+   342→      case "alert_list": {
+   343→        if (!ctx.alerts.length) return { ok: true, text: t("لا تنبيهات حالية", "No alerts yet") };
+   344→        const { alertText } = await import("@/lib/alerts");
+   345→        return { ok: true, text: [AR ? "**التنبيهات**" : "**Alerts**", ...ctx.alerts.map((a) => `• ${alertText(a, lang)}${a.triggeredAt ? (AR ? " — تحقق ✓" : " — triggered ✓") : ""}`)].join("\n"), data: { alerts: ctx.alerts.map((a) => ({ id: a.id, ticker: a.ticker, conditions: a.conditions, triggered: !!a.triggeredAt })) } };
+   346→      }
+   347→      case "alert_delete": {
+   348→        const id = A(args.id);
+   349→        const target = id
+   350→          ? ctx.alerts.find((a) => a.id === id)
+   351→          : ctx.alerts.find((a) => a.ticker === String(args.ticker ?? "").toUpperCase());
+   352→        if (!target) return { ok: false, text: t("لم أجد التنبيه", "Couldn't find that alert") };
+   353→        ctx.removeAlert(target.id);
+   354→        return { ok: true, text: t(`حذفت تنبيه **${target.ticker}** ✓`, `Deleted the **${target.ticker}** alert ✓`), data: { id: target.id } };
+   355→      }
+   356→      case "paper_buy":
+   357→      case "paper_sell": {
+   358→        const row = await findTicker(A(args.ticker) || A(args.name));
+   359→        if (!row) return { ok: false, text: t("لم أجد السهم", "Couldn't find that stock") };
+   360→        const qty = Math.max(1, Math.floor(Number(args.qty ?? 10) || 10));
+   361→        const book = (await loadBook()) ?? emptyBook();
+   362→        const result = name === "paper_buy" ? buy(book, row.ticker, qty, row.close) : sell(book, row.ticker, qty, row.close);
+   363→        if (!result.ok) {
+   364→          return { ok: false, text: tradeErrText(result.reason, lang) };
+   365→        }
+   366→        saveBook(result.book);
+   367→        const cash = result.book.cash;
+   368→        return {
+   369→          ok: true,
+   370→          text: t(
+   371→            `تنفيذ تجريبي ✓ ${name === "paper_buy" ? "شراء" : "بيع"} ${qty} ${row.ticker} @ ${nf(row.close)} EGP\nعمولة ${nf(result.trade.fee)} EGP · الرصيد النقدي ${nf(cash)} EGP`,
+   372→            `Paper fill ✓ ${name === "paper_buy" ? "bought" : "sold"} ${qty} ${row.ticker} @ ${nf(row.close)} EGP\nFee ${nf(result.trade.fee)} EGP · cash left ${nf(cash)} EGP`,
+   373→          ),
+   374→          data: { side: name === "paper_buy" ? "buy" : "sell", ticker: row.ticker, qty, price: row.close, fee: result.trade.fee, cash },
+   375→        };
+   376→      }
+   377→      case "paper_portfolio": {
+   378→        const { book, prices } = await bookWithPrices();
+   379→        const pos = book.positions ?? [];
+   380→        if (!pos.length) return { ok: true, text: t("لا مراكز تجريبية بعد — جرّب: buy 100 COMI", "No paper positions yet — try: buy 100 COMI"), data: { cash: book.cash, positions: [] } };
+   381→        const lines = pos.map((p) => {
+   382→          const price = prices.get(p.ticker)?.close ?? p.avgPrice;
+   383→          const pnl = (price - p.avgPrice) * p.qty;
+   384→          const pctP = p.avgPrice > 0 ? ((price - p.avgPrice) / p.avgPrice) * 100 : 0;
+   385→          return `• **${p.ticker}**: ${p.qty} @ ${nf(p.avgPrice)} → ${nf(price)} (${pct(pctP)} · ${nf(pnl)} EGP)`;
+   386→        });
+   387→        const unreal = pos.reduce((s, p) => {
+   388→          const price = prices.get(p.ticker)?.close ?? p.avgPrice;
+   389→          return s + (price - p.avgPrice) * p.qty;
+   390→        }, 0);
+   391→        const text = [
+   392→          AR ? "**المحفظة التجريبية**" : "**Paper portfolio**",
+   393→          ...lines,
+   394→          "",
+   395→          AR ? `نقدي: ${nf(book.cash)} EGP · غير محقق: ${nf(unreal)} EGP` : `Cash: ${nf(book.cash)} EGP · unrealized: ${nf(unreal)} EGP`,
+   396→        ].join("\n");
+   397→        return { ok: true, text, data: { cash: book.cash, unrealized: unreal, positions: pos.map((p) => ({ ticker: p.ticker, qty: p.qty, avgPrice: p.avgPrice })) } };
+   398→      }
+   399→      case "set_language": {
+   400→        const l = A(args.lang).toLowerCase() === "en" ? "en" : "ar";
+   401→        ctx.setLang(l as Lang);
+   402→        return { ok: true, text: l === "ar" ? "تم التبديل إلى العربية ✓" : "Switched to English ✓", data: { lang: l } };
+   403→      }
+   404→      case "set_theme": {
+   405→        const th = A(args.theme).toLowerCase() === "light" ? "light" : "dark";
+   406→        ctx.setTheme(th as "dark" | "light");
+   407→        return { ok: true, text: t(`تم التبديل للوضع ${th === "dark" ? "الليلي" : "النهاري"} ✓`, `Switched to ${th} mode ✓`), data: { theme: th } };
+   408→      }
+   409→      default:
+   410→        return { ok: false, text: t(`أداة غير معروفة: ${name}`, `Unknown tool: ${name}`) };
+   411→    }
+   412→  } catch (err) {
+   413→    const msg = err instanceof Error ? err.message : "error";
+   414→    return { ok: false, text: t(`تعذّر التنفيذ (${msg})`, `Execution failed (${msg})`) };
+   415→  }
+   416→}
+   417→
+   418→// ── the INSTANT router — bilingual regex intent matching, zero model ──
+   419→
+   420→const TICKER_BLOCK = new Set([
+   421→  "EGX", "EGX30", "EGX70", "EGX100", "GCC", "TASI", "MT30", "DFMGI", "ADI", "DFM", "ADX",
+   422→  "RSI", "MACD", "MA", "EMA", "SMA", "VWAP", "ATR", "OBV", "USD", "EGP", "SAR", "AED",
+   423→  "ETF", "CEO", "CFO", "IPO", "GDP", "ROE", "ROA", "EPS", "PBOC", "FOMC", "KSA", "UAE",
+   424→  "AND", "THE", "FOR", "WITH", "ALL", "TOP", "BUY", "SELL", "OPEN", "SHOW", "AAPL", "AI",
+   425→]);
+   426→
+   427→function toLatinDigits(s: string): string {
+   428→  return s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+   429→}
+   430→
+   431→function extractTicker(text: string): string | null {
+   432→  const caps = text.match(/\b[A-Z]{3,5}\b/g) ?? [];
+   433→  const cand = caps.find((c) => !TICKER_BLOCK.has(c));
+   434→  return cand ?? null;
+   435→}
+   436→
+   437→/** Leftover noun phrase for name search: strip command verbs, numbers,
+   438→ *  latin tickers and common filler words, keep the rest. */
+   439→function extractPhrase(text: string): string | null {
+   440→  let s = text
+   441→    .replace(/(?:open|show|go to|take me to|watch|follow|add|remove|unwatch|alert|notify|buy|sell|quote|price of|chart of|chart|technicals of|technical|technicals|news about|find|search|me|the|a|an|to|my|please|page|view|stock|share|shares|company|of|about|for|and|with|any|what|whats|how|is|does|do|today)/gi, " ")
+   442→    .replace(/(?:افتح|اعرض|روح|وديني|خدني|تابع|ضيف|أضف|اضف|ازالة|أزل|احذف|تنبيه|ذكرني|اشتري|بِع|سعر|سهم|أسهم|اسهم|شركة|صفحة|عرض|عن|على|في|من|الي|إلى|لى|لي|من فضلك|ما|كيف|هل|ايه|إيه|النهاردة|اليوم)/g, " ")
+   443→    .replace(/[٠-٩\d.,%+×x]/g, " ")
+   444→    .replace(/\b[A-Z]{3,5}\b/g, " ")
+   445→    .replace(/\s+/g, " ")
+   446→    .trim();
+   447→  const words = s.split(/\s+/).filter((w) => w.length >= 3);
+   448→  return words.length ? words.slice(0, 4).join(" ") : null;
+   449→}
+   450→
+   451→const VIEW_WORDS: Record<string, string> = {
+   452→  home: "home|overview|الرئيسية|الرئيسيه",
+   453→  market: "market|markets|all stocks|السوق|الاسهم|الأسهم",
+   454→  screener: "screener|screen|الفرز",
+   455→  sectors: "sectors|sector|القطاعات|القطاع",
+   456→  heat: "heat ?map|heatmap|heat|map|الخريطة|الخرائط",
+   457→  activity: "activity|النشاط",
+   458→  investors: "investors?|flows|المستثمرين|المستثمرين|التدفقات|تدفقات",
+   459→  calendar: "calendar|التقويم|الرزنامة",
+   460→  funds: "funds?|etfs?|الصناديق|الصندوق",
+   461→  compare: "compare|المقارنة",
+   462→  gcc: "gcc|gulf|tadawul|saudi|dubai|abu ?dhabi|الخليج|السعودية|تداول|دبي|أبوظبي|ابوظبي",
+   463→  lab: "lab|strategy|backtest|المختبر|الاستراتيجية",
+   464→  reports: "reports?|التقارير|تقرير",
+   465→  watchlist: "watch ?list|متابعتي|قائمة المتابعة",
+   466→  paper: "paper|simulator|simulation|التجريبي|المحاكاة",
+   467→  tools: "tools|الأدوات|الادوات",
+   468→  today: "news page|news feed|صفحة الأخبار|اخبار الصفحة",
+   469→  signals: "signals|الإشارات|الاشارات",
+   470→};
+   471→
+   472→type Instant = { tool: string; args: Record<string, unknown> } | null;
+   473→
+   474→/** Unicode-aware word matcher — JS `\b` is ASCII-only (Arabic letters are
+   475→ *  NOT \w chars), so every bilingual intent needs letter-class boundaries
+   476→ *  instead: a match must start after a non-letter and end before one. */
+   477→function hasWord(low: string, words: string): boolean {
+   478→  try {
+   479→    return new RegExp(`(?:^|[^\\p{L}\\p{N}_])(${words})(?![\\p{L}\\p{N}_])`, "iu").test(low);
+   480→  } catch {
+   481→    return low.includes(words);
+   482→  }
+   483→}
+   484→
+   485→/** Bilingual zero-model router. Returns a tool+args, or null when nothing
+   486→ *  matched with confidence (then a real model is needed). */
+   487→export function instantRoute(rawText: string): Instant {
+   488→  const text = toLatinDigits(rawText).trim();
+   489→  if (!text) return null;
+   490→  const low = text.toLowerCase();
+   491→
+   492→  // theme / language — highest specificity, checked first
+   493→  if (hasWord(low, "dark|night|ليلي|الليلي|داكن")) return { tool: "set_theme", args: { theme: "dark" } };
+   494→  if (hasWord(low, "light|bright|day ?mode|نهاري|فاتح|النهاري")) return { tool: "set_theme", args: { theme: "light" } };
+   495→  if (hasWord(low, "english|انجليزي|الانجليزية|الإنجليزية")) return { tool: "set_language", args: { lang: "en" } };
+   496→  if (hasWord(low, "arabic|عربي|العربية")) return { tool: "set_language", args: { lang: "ar" } };
+   497→
+   498→  // market data intents
+   499→  if (/(movers?|gainers?|losers?|الأكثر|الاكثر ارتفاعا|الأكثر ارتفاعًا|الاكثر انخفاضا|الأكثر انخفاضًا|رابح|خاسر)/i.test(low)) return { tool: "movers", args: {} };
+   500→  if (/(market (overview|summary|today|doing|going)|how'?s the market|ملخص السوق|حالة السوق|السوق اليوم|إجمالي السوق|اجمالي السوق)/i.test(low)) return { tool: "market_overview", args: {} };
+   501→  if (/(gulf|gcc|tadawul|saudi market|dfm|dubai market|abu ?dhabi|adx|الخليج|تاسي|تداول|سوق السعودية|سوق دبي|أبوظبي|ابوظبي)/i.test(low) && !/(open|افتح|اعرض|صفحة)/i.test(low)) return { tool: "gcc", args: {} };
+   502→  if (/\b(my )?(alerts?|تنبيهاتي|التنبيهات)\b/i.test(low) || hasWord(low, "تنبيهاتي|التنبيهات")) {
+   503→    if (!/alert .*(above|below|فوق|تحت|أعلى|أقل)/i.test(low)) return { tool: "alert_list", args: {} };
+   504→  }
+   505→  if (/\b(my )?(watch ?list)\b/i.test(low) || hasWord(low, "قائمة المتابعة|متابعتي")) return { tool: "watch_list", args: {} };
+   506→  if (/\b(my |the )?(paper )?(portfolio|positions|p&l|pnl)\b/i.test(low) || hasWord(low, "محفظتي|محفظة التجريبي|مراكزي|مراكز")) return { tool: "paper_portfolio", args: {} };
+   507→
+   508→  // watch add/remove
+   509→  if (/(unwatch|remove .* from (the )?watch|أزل .* من المتابعة|احذف .* من المتابعة|ازالة .* من المتابعة)/i.test(low)) {
+   510→    const ticker = extractTicker(text);
+   511→    return { tool: "watch_remove", args: ticker ? { ticker } : { ticker: extractPhrase(text) ?? "" } };
+   512→  }
+   513→  if (/(watch|follow|add .* to (the )?watch|تابع|ضيف .* للمتابعة|أضف .* للمتابعة|اضف .* للمتابعة)/i.test(low)) {
+   514→    const ticker = extractTicker(text);
+   515→    return { tool: "watch_add", args: ticker ? { ticker } : { ticker: extractPhrase(text) ?? "" } };
+   516→  }
+   517→
+   518→  // paper trades: IMPERATIVE form only ("buy 100 COMI") — "should I buy…"
+   519→  // is advice, not an order, and must go to a model.
+   520→  const buyM = low.match(/^\s*(?:please\s+)?(?:buy|purchase)\s*(\d[\d,]*)?\s*(?:shares? of)?\s*([a-z]{3,5})?\b/i)
+   521→    ?? low.match(/^\s*(?:من فضلك\s*)?(?:اشتري|اشتر)\s*(\d[\d,]*)?\s*(?:سهم|سهم من)?\s*([\p{Script=Arabic}][\p{Script=Arabic}\s]{2,})/u);
+   522→  if (buyM) {
+   523→    const qty = buyM[1] ? Number(buyM[1].replace(/,/g, "")) : undefined;
+   524→    const ticker = extractTicker(text) ?? (buyM[2] ?? "").trim() || extractPhrase(text) ?? "";
+   525→    return { tool: "paper_buy", args: { ticker: String(ticker), ...(qty ? { qty } : {}) } };
+   526→  }
+   527→  const sellM = low.match(/^\s*(?:please\s+)?(?:sell)\s*(\d[\d,]*)?\s*(?:shares? of)?\s*([a-z]{3,5})?\b/i)
+   528→    ?? low.match(/^\s*(?:من فضلك\s*)?(?:بِع|بيع)\s*(\d[\d,]*)?\s*(?:سهم|سهم من)?\s*([\p{Script=Arabic}][\p{Script=Arabic}\s]{2,})/u);
+   529→  if (sellM) {
+   530→    const qty = sellM[1] ? Number(sellM[1].replace(/,/g, "")) : undefined;
+   531→    const ticker = extractTicker(text) ?? (sellM[2] ?? "").trim() || extractPhrase(text) ?? "";
+   532→    return { tool: "paper_sell", args: { ticker: String(ticker), ...(qty ? { qty } : {}) } };
+   533→  }
+   534→
+   535→  // alerts: "alert COMI above 90" | "notify me when HRHO rsi above 70" | "تنبيه كومي فوق ٩٠"
+   536→  if (/(alert|notify|تنبيه|ذكرني)/i.test(low)) {
+   537→    // multi-condition requests are too rich for the fast path — let the model plan
+   538→    if (/\s(?:and|و)\s/i.test(low)) return null;
+   539→    const ticker = extractTicker(text);
+   540→    const rsiM = low.match(/rsi[^\d]*(\d+(?:\.\d+)?)/i);
+   541→    if (rsiM) {
+   542→      const above = /(above|over|exceeds|فوق|أعلى|اعلى|يتجاوز)/i.test(low);
+   543→      return { tool: "alert_create", args: { ticker: ticker ?? extractPhrase(text) ?? "", conditions: [{ kind: above ? "rsiAbove" : "rsiBelow", value: Number(rsiM[1]) }] } };
+   544→    }
+   545→    const numM = low.match(/(?:above|over|exceeds|below|under|drops? below|فوق|أعلى من|اعلى من|يتجاوز|تحت|أقل من|اقل من|ينزل تحت|عند)\s*(\d+(?:\.\d+)?)/i);
+   546→    if (numM) {
+   547→      const above = /(above|over|exceeds|فوق|أعلى من|اعلى من|يتجاوز)/i.test(low.slice(0, low.indexOf(numM[1])));
+   548→      return { tool: "alert_create", args: { ticker: ticker ?? extractPhrase(text) ?? "", conditions: [{ kind: above ? "priceAbove" : "priceBelow", value: Number(numM[1]) }] } };
+   549→    }
+   550→    return null; // "alert X" without a level — needs the model / clarification
+   551→  }
+   552→
+   553→  // bare news intent (no specific subject)
+   554→  if (/(news|latest news|headlines|أخبار|اخبار|الأخبار|آخر الأخبار|اخر الاخبار)/i.test(low) && !extractTicker(text)) return { tool: "news", args: {} };
+   555→
+   556→  // quote / technicals / chart / news-about — needs a subject
+   557→  const hasSubjectCmd = /(quote|price|سعر|technicals|technical|فني|chart|رسم|بياني|news|أخبار|اخبار)/i.test(low);
+   558→  if (hasSubjectCmd) {
+   559→    const ticker = extractTicker(text);
+   560→    const phrase = extractPhrase(text);
+   561→    if (/(technicals|technical|فني|تحليل فني)/i.test(low)) return { tool: "technicals", args: { ticker: ticker ?? phrase ?? "" } };
+   562→    if (/(chart|رسم|بياني)/i.test(low) && (ticker || phrase)) {
+   563→      // "show COMI chart" opens the chart panel
+   564→      return { tool: "open_ticker", args: { ticker: ticker ?? phrase ?? "", panel: "chart" } };
+   565→    }
+   566→    if (/(news|أخبار|اخبار)/i.test(low) && (phrase || ticker)) return { tool: "news", args: { q: ticker ?? phrase ?? "" } };
+   567→    if ((ticker || phrase) && /(quote|price|سعر)/i.test(low)) return { tool: "quote", args: { ticker: ticker ?? phrase ?? "" } };
+   568→  }
+   569→  const navCmd = /(open|go to|take me to|show me|show|افتح|اعرض|روح|وديني|خدني|الانتقال)/i.test(low);
+   570→  if (navCmd) {
+   571→    for (const [view, words] of Object.entries(VIEW_WORDS)) {
+   572→      if (hasWord(low, words)) return { tool: "open_view", args: { view: view === "today" ? "today" : view } };
+   573→    }
+   574→    // "open <something>" that is not a known view → company page
+   575→    const ticker = extractTicker(text);
+   576→    const phrase = extractPhrase(text);
+   577→    if (ticker || phrase) return { tool: "open_ticker", args: { ticker: ticker ?? phrase ?? "" } };
+   578→    return { tool: "open_view", args: { view: "home" } };
+   579→  }
+   580→
+   581→  // bare ticker mention like "COMI?" or "COMI" alone
+   582→  const bareTicker = text.match(/^([A-Z]{3,5})(?:\?|\.|!)?$/);
+   583→  if (bareTicker && !TICKER_BLOCK.has(bareTicker[1])) return { tool: "open_ticker", args: { ticker: bareTicker[1] } };
+   584→
+   585→  return null;
+   586→}
+   587→
+   588→/** Parse a model's JSON tool-call (tolerant: strips  reasoning,
+   589→ *  markdown fences, finds the first balanced JSON object). */
+   590→export function parseToolJson(out: string): { tool?: string; args?: Record<string, unknown>; reply?: string } | null {
+   591→  let s = out.replace(/</think>[\s\S]*?<\/think>/g, "").trim();
+   592→  s = s.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+   593→  // find the outermost {...}
+   594→  const start = s.indexOf("{");
+   595→  if (start === -1) return null;
+   596→  let depth = 0;
+   597→  for (let i = start; i < s.length; i++) {
+   598→    if (s[i] === "{") depth++;
+   599→    else if (s[i] === "}") {
+   600→      depth--;
+   601→      if (depth === 0) {
+   602→        const slice = s.slice(start, i + 1);
+   603→        try {
+   604→          return JSON.parse(slice) as { tool?: string; args?: Record<string, unknown>; reply?: string };
+   605→        } catch {
+   606→          return null;
+   607→        }
+   608→      }
+   609→    }
+   610→  }
+   611→  return null;
+   612→}
+   613→

@@ -28,6 +28,7 @@ import { AgentView } from "@/components/views/agent-view";
 import { ReportsView } from "@/components/views/reports-view";
 import { GccView } from "@/components/views/gcc-view";
 import { PaperView } from "@/components/views/paper-view";
+import { AiAssistant } from "@/components/market/ai-assistant";
 import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 import { Button } from "@/components/ui/button";
 import {
@@ -149,6 +150,9 @@ export function AppShell() {
     <div className="min-h-screen flex flex-col">
       {/* G14 — service-worker registration (app shell cache; API never cached) */}
       <PwaRegister />
+      {/* T28 — the floating AI assistant popup (Ctrl+K): executes any site
+          action + free client-based model switcher (Instant/Cloud/WebLLM) */}
+      <AiAssistant />
       {/* header */}
       <header className="border-b bg-card sticky top-0 z-40">
         <div className="mx-auto max-w-6xl px-4">

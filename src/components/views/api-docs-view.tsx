@@ -153,6 +153,14 @@ const ENDPOINTS: Endpoint[] = [
     source: "z-ai-web-dev-sdk over our own data layer",
   },
   {
+    method: "POST",
+    path: "/api/assistant",
+    params: ["stage — \"plan\" | \"answer\"", "lang — \"ar\" | \"en\"", "context — {view, ticker} حالة التطبيق الحالية", "messages — سجل المحادثة (plan) أو tool/args/result/question (answer)"],
+    returnsAr: "دماغ النسخة السحابية لمساعد الموقع المنبثق: مرحلة التخطيط تُرجع {tool, args} أو {reply} بصيغة JSON صارمة ينفّذها المتصفح مباشرة على الموقع، ومرحلة الإجابة تكتب الرد النهائي من نتيجة الأداة الحقيقية. ٢٤٠ نداء/ساعة.",
+    returnsEn: "The cloud brain of the popup site-assistant: the plan stage returns strict-JSON {tool, args} or {reply} which the browser executes directly on the website, and the answer stage writes the final reply from the real tool result. 240 calls/hour.",
+    source: "z-ai-web-dev-sdk · client execution layer (src/lib/assistant-tools.ts)",
+  },
+  {
     method: "GET",
     path: "/api/ai-signals",
     returnsAr: "إشارات الذكاء الاصطناعي المشتركة: مجموعة إشارات واحدة تُحسب كل ٤٥ دقيقة لكل المستخدمين (قراءة السوق + أفكار بمستويات دخول/وقف/هدف مع الأدلة) + نتائج الاختبار التاريخي للاستراتيجية. مجاني بلا حد قراءة.",
