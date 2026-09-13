@@ -68,7 +68,7 @@ const WATCH_KEY = "egx-watchlist";
 const KNOWN_VIEWS = new Set([
   "home", "market", "screener", "sectors", "heat", "activity",
   "investors", "today", "watchlist", "tools", "exchange", "company",
-  "calendar", "compare", "api", "signals", "agent",
+  "calendar", "compare", "api", "signals", "agent", "reports",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview

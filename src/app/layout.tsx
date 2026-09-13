@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono, IBM_Plex_Sans, Lora, Amiri } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "next-themes";
@@ -20,6 +20,22 @@ const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+
+/* Task 22-b — the serif voice of the AI answers (the Claude-look): Lora is
+ * the Latin serif (closest open equivalent of Claude's Tiempos), Amiri is
+ * the classic Naskh serif for Arabic answers. Font fallback is per-glyph,
+ * so a mixed Arabic/Latin answer sets each script in its own serif. */
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const amiri = Amiri({
+  variable: "--font-amiri",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -47,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body
-        className={`${plexArabic.variable} ${plexMono.variable} ${plexSans.variable} antialiased bg-background text-foreground`}
+        className={`${plexArabic.variable} ${plexMono.variable} ${plexSans.variable} ${lora.variable} ${amiri.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}

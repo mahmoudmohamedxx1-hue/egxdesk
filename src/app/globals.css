@@ -172,3 +172,60 @@
 .thin-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .thin-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Claude-inspired chat surface (agent view only — Task 22-b) ──
+ * A warm cream canvas with a terracotta asterisk mark and serif answers —
+ * the visual grammar of a modern AI chat. Scoped to tokens so the rest of
+ * the app keeps its paper & ink editorial theme. Light = warm cream + ink;
+ * dark = warm charcoal + ivory, like the reference chat apps. */
+:root {
+  --chat-bg: oklch(0.955 0.009 89);
+  --chat-bubble: oklch(0.905 0.012 89);
+  --chat-accent: oklch(0.67 0.12 45); /* terracotta — the mark, focus, toggles */
+  --chat-accent-soft: oklch(0.67 0.12 45 / 14%);
+  --chat-ink: oklch(0.25 0.015 60);
+  --chat-muted: oklch(0.5 0.02 60);
+  --chat-send: oklch(0.3 0.02 60); /* the dark circular send button */
+  --chat-send-fg: oklch(0.975 0.004 95);
+  --chat-border: oklch(0.86 0.012 85);
+}
+.dark {
+  --chat-bg: oklch(0.245 0.005 70);
+  --chat-bubble: oklch(1 0 0 / 8%);
+  --chat-accent: oklch(0.73 0.1 45);
+  --chat-accent-soft: oklch(0.73 0.1 45 / 16%);
+  --chat-ink: oklch(0.92 0.005 90);
+  --chat-muted: oklch(0.66 0.01 80);
+  --chat-send: oklch(0.88 0.01 90); /* ivory send on charcoal */
+  --chat-send-fg: oklch(0.22 0.01 60);
+  --chat-border: oklch(1 0 0 / 14%);
+}
+
+/* the serif voice of the AI answers — Lora for Latin, Amiri for Arabic
+ * (per-glyph fallback), Georgia as the final safety net */
+.claude-serif {
+  font-family: var(--font-lora), var(--font-amiri), Georgia, "Times New Roman", ui-serif, serif;
+}
+
+/* the composer canvas carries its own focus state (terracotta ring) */
+.claude-canvas:focus-within {
+  border-color: var(--chat-accent);
+  box-shadow: 0 0 0 3px var(--chat-accent-soft);
+}
+
+/* blinking caret at the end of a streaming answer */
+.claude-caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: text-bottom;
+  background: var(--chat-accent);
+  border-radius: 1px;
+  animation: claude-caret-blink 1s steps(2, start) infinite;
+}
+@keyframes claude-caret-blink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0; }
+}

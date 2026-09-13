@@ -23,6 +23,7 @@ import { CompareView } from "@/components/views/compare-view";
 import { ApiDocsView } from "@/components/views/api-docs-view";
 import { SignalsView } from "@/components/views/signals-view";
 import { AgentView } from "@/components/views/agent-view";
+import { ReportsView } from "@/components/views/reports-view";
 import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +47,7 @@ const NAV = [
   { view: "market", t: T.market },
   { view: "screener", t: { ar: "الفرز", en: "Screener" } },
   { view: "signals", t: T.signalsNav },
+  { view: "reports", t: T.reportsNav },
   { view: "heat", t: T.map },
   { view: "sectors", t: T.sectors },
   { view: "investors", t: { ar: "المستثمرون", en: "Investors" } },
@@ -230,6 +232,7 @@ export function AppShell() {
           {view.name === "calendar" && <CalendarView />}
           {view.name === "compare" && <CompareView />}
           {view.name === "signals" && <SignalsView />}
+          {view.name === "reports" && <ReportsView />}
           {view.name === "agent" && <AgentView />}
           {view.name === "api" && <ApiDocsView />}
         </div>

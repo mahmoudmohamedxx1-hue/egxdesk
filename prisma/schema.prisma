@@ -170,3 +170,29 @@ model AiSignalSet {
 
   @@index([createdAt])
 }
+
+// ── Market Desk Reports (Task 22: hourly while the market is open + the
+//    final end-of-day report) ──
+
+/** One desk report — the shared-compute "what could surge next" briefing.
+ *  `kind` is "hourly" (one per Cairo trading hour while the session is open)
+ *  or "eod" (the final report published after the close). `session` is the
+ *  YYYY-MM-DD trading session the report belongs to; `hourLabel` is the
+ *  Cairo floor-hour ("10:00".."13:00") for hourly reports and "" for eod.
+ *  ONE LLM call + a couple of shared web searches produce a report that is
+ *  served to EVERY visitor from cache — same free-public economics as
+ *  AiSignalSet. Rows are pruned (newest kept). */
+model MarketReport {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  kind      String // "hourly" | "eod"
+  session   String // YYYY-MM-DD trading session (Cairo)
+  hourLabel String   @default("") // floor hour "HH:00" for hourly, "" for eod
+  model     String   @default("GLM")
+  llmMs     Int      @default(0)
+  webSearches Int    @default(0)
+  data      String // validated JSON: marketBias + movers[] + webNotes + sources
+
+  @@index([session, kind])
+  @@index([createdAt])
+}

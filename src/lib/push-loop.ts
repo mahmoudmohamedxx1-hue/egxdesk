@@ -16,6 +16,12 @@
  *     section stays free; the warm makes sure a set is usually ready before
  *     the first visitor asks for it.
  *
+ *  4. Desk reports scheduler (Task 22): every 10 minutes check the Cairo
+ *     clock — while the EGX session is open, publish ONE shared report per
+ *     trading hour; shortly after the close, publish the final end-of-day
+ *     report. maybeGenerateReport no-ops when the due report already exists,
+ *     so the cadence is exact and the cost stays one call per report.
+ *
  *  Guarded by a globalThis flag so dev hot-reloads / route module isolation
  *  can never start a second copy of the same interval. */
 
@@ -26,6 +32,7 @@ const g = globalThis as unknown as { __egxBgStarted?: boolean };
 const PUSH_INTERVAL_MS = 5 * 60_000;
 const SIGNALS_WARM_DELAY_MS = 15_000;
 const SIGNALS_WARM_INTERVAL_MS = 60 * 60_000;
+const REPORT_CHECK_INTERVAL_MS = 10 * 60_000;
 
 async function safePushTick(): Promise<void> {
   try {
@@ -60,6 +67,17 @@ async function safeAiSignalsWarm(): Promise<void> {
   }
 }
 
+async function safeDeskReportTick(): Promise<void> {
+  try {
+    const { maybeGenerateReport } = await import("@/lib/hourly-report");
+    // maybeGenerateReport itself decides what is due (hourly while open /
+    // EOD after the close) and no-ops when the report already exists
+    await maybeGenerateReport();
+  } catch (err) {
+    console.warn("[desk-report] tick failed:", err instanceof Error ? err.message : err);
+  }
+}
+
 export function startBackgroundJobs(): void {
   if (g.__egxBgStarted) return;
   g.__egxBgStarted = true;
@@ -78,5 +96,11 @@ export function startBackgroundJobs(): void {
   setTimeout(() => void safeAiSignalsWarm(), 90_000).unref?.();
   setInterval(() => void safeAiSignalsWarm(), 30 * 60_000).unref?.();
 
-  console.log("[bg] push loop + signals + ai-signals warm started");
+  // desk reports: first check ~2 min after boot (needs the scan warm), then
+  // every 10 minutes — publishes the hourly report while the market is open
+  // and the EOD report after the close, exactly once each
+  setTimeout(() => void safeDeskReportTick(), 2 * 60_000).unref?.();
+  setInterval(() => void safeDeskReportTick(), REPORT_CHECK_INTERVAL_MS).unref?.();
+
+  console.log("[bg] push loop + signals + ai-signals warm + desk reports started");
 }

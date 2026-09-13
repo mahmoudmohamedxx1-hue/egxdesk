@@ -55,6 +55,7 @@ export async function GET() {
     const today = {
       questions: todayRows.filter((r) => r.route === "agent").length,
       aiSignalRefreshes: todayRows.filter((r) => r.route === "ai-signals").length,
+      deskReportRefreshes: todayRows.filter((r) => r.route === "hourly-report").length,
       llmCalls: todayRows.reduce((s, r) => s + r.llmCalls, 0),
       toolCalls: todayRows.reduce((s, r) => s + r.toolCalls, 0),
       webSearches: todayRows.reduce((s, r) => s + r.webSearches, 0),

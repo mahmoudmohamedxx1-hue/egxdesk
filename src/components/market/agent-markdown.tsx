@@ -25,7 +25,7 @@ export const AgentMarkdown = memo(function AgentMarkdown({
   streaming?: boolean;
 }) {
   return (
-    <div className="agent-md text-sm leading-relaxed">
+    <div className={`agent-md leading-relaxed ${streaming ? "claude-caret" : ""}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -97,12 +97,6 @@ export const AgentMarkdown = memo(function AgentMarkdown({
       >
         {text}
       </ReactMarkdown>
-      {streaming && (
-        <span
-          className="mt-1 inline-block h-4 w-1.5 animate-pulse rounded-full bg-primary align-middle"
-          aria-hidden
-        />
-      )}
     </div>
   );
 });

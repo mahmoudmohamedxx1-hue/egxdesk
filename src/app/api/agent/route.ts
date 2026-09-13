@@ -770,6 +770,39 @@ const TOOLS: Tool[] = [
       };
     },
   },
+  {
+    name: "desk_reports",
+    desc: "The Desk Reports section's latest shared market report (hourly while the market is open, end-of-day after the close): the desk's market read plus surge candidates with evidence-backed reasons, attributed web catalysts and ATR levels. No args — read-only, shared compute.",
+    run: async () => {
+      const { getLatestReport } = await import("@/lib/hourly-report");
+      const r = await getLatestReport();
+      if (!r) return { status: "warming — no desk report generated yet, try again later" };
+      return {
+        generatedAt: r.generatedAt,
+        kind: r.kind,
+        hourLabel: r.hourLabel,
+        session: r.session,
+        marketBias: r.marketBias,
+        movers: r.movers.map((m) => ({
+          ticker: m.ticker,
+          nameAr: m.nameAr,
+          surgePotential: m.surgePotential,
+          conviction: m.conviction,
+          charterScore: m.charterScore,
+          close: m.close,
+          changePct: m.changePct,
+          entry: m.entry,
+          stop: m.stop,
+          target: m.target,
+          reasonsAr: m.reasonsAr.slice(0, 3),
+          reasonsEn: m.reasonsEn.slice(0, 3),
+          catalysts: m.catalysts.slice(0, 2),
+        })),
+        webNotesAr: r.webNotesAr,
+        webNotesEn: r.webNotesEn,
+      };
+    },
+  },
 ];
 
 const TOOL_LIST = TOOLS.map((t) => `- ${t.name}: ${t.desc}`).join("\n");
@@ -816,14 +849,18 @@ export async function POST(req: Request) {
     req.headers.get("x-real-ip") ||
     "local";
 
-  let body: { messages?: unknown; lang?: unknown; debug?: unknown; deviceId?: unknown };
+  let body: { messages?: unknown; lang?: unknown; debug?: unknown; deviceId?: unknown; deep?: unknown };
   try {
-    body = (await req.json()) as { messages?: unknown; lang?: unknown; deviceId?: unknown };
+    body = (await req.json()) as { messages?: unknown; lang?: unknown; deviceId?: unknown; deep?: unknown };
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const deviceId =
     typeof body.deviceId === "string" && body.deviceId.length >= 8 ? body.deviceId.slice(0, 64) : null;
+  // Task 22-b — the composer's "extended thinking" toggle: when ON, even
+  // round 0 (tool picking / quick conversational replies) runs with
+  // chain-of-thought enabled; the default behavior is unchanged.
+  const deep = body.deep === true;
 
   // persisted hourly limit (per IP or device) — UsageEvent survives restarts
   if (await overLimit(ip, deviceId)) {
@@ -918,12 +955,13 @@ export async function POST(req: Request) {
             // conversational reply) runs with thinking off; every later round —
             // i.e. once real tool data is on the table, the synthesis moment —
             // runs with chain-of-thought ON so the final answer is genuine
-            // reasoning, not a shallow template.
-            const deep = round > 0;
+            // reasoning, not a shallow template. With the composer's
+            // extended-thinking toggle ON, round 0 thinks too.
+            const deepRound = round > 0 || deep;
             const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
             raw = await createChatStream(
               zai,
-              { messages: msgs, thinking: deep ? "enabled" : "disabled" },
+              { messages: msgs, thinking: deepRound ? "enabled" : "disabled" },
               retry,
               preview,
               (note) => send({ type: "status", note })

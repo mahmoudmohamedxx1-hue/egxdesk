@@ -3,19 +3,25 @@ import { buildReportBuffer, type ReportSpec, type TableSpec, type ColSpec } from
 import { fetchUniverse, fetchIndices, companyRow, sessionMeta, sectorRows, SECTOR_AR } from "@/lib/market";
 import { scanSignals, signalForTicker } from "@/lib/signals-scan";
 import { getLatestAiSignals } from "@/lib/ai-signals";
+import { getLatestReport, getReportById } from "@/lib/hourly-report";
+import { fetchStockChart } from "@/lib/history";
 import { fetchDividends } from "@/lib/dividends";
 import { makeRateLimiter } from "@/lib/rate-limit";
 
-/** POST /api/export — professional XLSX reports (Task 21-b).
+/** POST /api/export — professional XLSX reports (Task 21-b, upgraded 22-c).
  *
  *  Server-defined reports (market / overview / signals / ai-signals /
- *  company / compare) pull their data from the SAME live data layer the
- *  pages use, so an export is always fresh and honest. Device-local
- *  reports (screener / watchlist / portfolio) receive the rows the client
- *  is looking at (sanitized primitives only) and get the same branded
- *  treatment. Every workbook carries the EGX Desk brand block, frozen
- *  styled headers, zebra rows, tabular number formats, autofilter on main
- *  tables, an honest disclaimer — and right-to-left sheets for Arabic. */
+ *  company / compare / hourly desk report) pull their data from the SAME
+ *  live data layer the pages use, so an export is always fresh and honest.
+ *  Device-local reports (screener / watchlist / portfolio) receive the rows
+ *  the client is looking at (sanitized primitives only) and get the same
+ *  branded treatment. Every workbook carries the EGX Desk brand block —
+ *  and now (22-c) a branded COVER sheet with a table of contents on the
+ *  major reports, conditional formatting (red→green color scales on change
+ *  columns, data bars on volume/value), a methodology & definitions
+ *  appendix, and print setup (landscape, fit-to-width, repeating headers) —
+ *  plus frozen styled headers, zebra rows, tabular number formats,
+ *  autofilter and right-to-left sheets for Arabic. */
 
 export const runtime = "nodejs";
 
@@ -84,6 +90,27 @@ function labels(lang: Lang) {
       ? "EGX ديسك تقرير بيانات لأغراض تعليمية — الأسعار مؤجلة (~١٥ دقيقة) وقد تكون أكثر تأخيرًا وقت الإنشاء؛ ليست مشورة استثمارية. تحقق من الأرقام في التطبيق قبل أي قرار."
       : "EGX Desk is an educational data report — quotes are delayed (~15 min) and may be older at generation time; not investment advice. Verify figures in the app before any decision.",
     filtersApplied: ar ? "الفلاتر المطبقة" : "Filters applied",
+    // sheet names / labels for the 22-c upgrades
+    coverTocSheet: ar ? "الغلاف" : "Cover",
+    gainersSheet: ar ? "الأكثر ارتفاعًا" : "Top gainers",
+    losersSheet: ar ? "الأكثر انخفاضًا" : "Top losers",
+    activeSheet: ar ? "الأكثر نشاطًا" : "Most active",
+    priceHistorySheet: ar ? "تاريخ السعر" : "Price history",
+    methodologySheet: ar ? "المنهجية والتعريفات" : "Methodology & definitions",
+    methodologyTitle: ar ? "المنهجية والتعريفات" : "Methodology & definitions",
+    hourlySheet: ar ? "لمحة التقرير" : "Report snapshot",
+    moversSheet: ar ? "مرشحو القفزة" : "Surge candidates",
+    date: ar ? "التاريخ" : "Date",
+    open: ar ? "الأعلى" : "High",
+    lowCol: ar ? "الأدنى" : "Low",
+    closeCol: ar ? "الإغلاق" : "Close",
+    volCol: ar ? "الحجم" : "Volume",
+    dayChangeCol: ar ? "التغير اليومي %" : "Day change %",
+    rank: ar ? "الترتيب" : "Rank",
+    potential: ar ? "إمكانية القفزة" : "Surge potential",
+    reasons: ar ? "الأسباب" : "Reasons",
+    catalysts: ar ? "المحفّزات" : "Catalysts",
+    riskCol: ar ? "ما يُبطل الفكرة" : "What breaks the idea",
   };
 }
 
@@ -185,7 +212,7 @@ export async function POST(req: NextRequest) {
     switch (report) {
       // ─────────────────────────── server-data reports ───────────────────────────
       case "market": {
-        const stocks = await fetchUniverse();
+        const [stocks, indices] = await Promise.all([fetchUniverse(), fetchIndices()]);
         const rows = [...stocks].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct)).map(companyRow);
         const table: TableSpec = {
           title: lang === "ar" ? `جميع الشركات المدرجة (${rows.length})` : `All listed companies (${rows.length})`,
@@ -194,15 +221,15 @@ export async function POST(req: NextRequest) {
             { header: L.name, width: 32 },
             { header: L.sector, width: 24 },
             { header: L.close, fmt: "num" },
-            { header: L.change, fmt: "pct" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
             { header: L.volume, fmt: "int" },
-            { header: L.valueMn, fmt: "num" },
+            { header: L.valueMn, fmt: "num", condFmt: "dataBar" },
             { header: L.capMn, fmt: "num" },
             { header: L.pe, fmt: "num" },
             { header: L.pb, fmt: "num" },
             { header: L.divYield, fmt: "pct" },
             { header: L.roe, fmt: "pct" },
-            { header: L.perfYTD, fmt: "pct" },
+            { header: L.perfYTD, fmt: "pct", condFmt: "changeScale" },
           ],
           rows: rows.map((r) => [
             r.ticker,
@@ -221,11 +248,104 @@ export async function POST(req: NextRequest) {
           ]),
           autoFilter: true,
         };
+        // ── 22-c: the market report is now a full desk package — summary
+        //    sheet (indices + totals + breadth + gainers/losers/most active)
+        //    first, then the complete companies table, all under a cover.
+        const up = stocks.filter((c) => c.changePct > 0).length;
+        const down = stocks.filter((c) => c.changePct < 0).length;
+        const totals = {
+          valueTraded: stocks.reduce((a, c) => a + c.valueTraded, 0),
+          volume: stocks.reduce((a, c) => a + c.volume, 0),
+          marketCap: stocks.reduce((a, c) => a + (c.marketCap ?? 0), 0),
+        };
+        const summaryTable: TableSpec = {
+          title: lang === "ar" ? "إجماليات الجلسة واتساع السوق" : "Session totals & breadth",
+          columns: [
+            { header: L.metric, width: 34 },
+            { header: lang === "ar" ? "القيمة" : "Value", width: 22 },
+          ],
+          rows: [
+            [lang === "ar" ? "عدد الشركات" : "Companies", stocks.length],
+            [lang === "ar" ? "مرتفعة" : "Advancing", up],
+            [lang === "ar" ? "منخفضة" : "Declining", down],
+            [lang === "ar" ? "مستقرة" : "Unchanged", stocks.length - up - down],
+            [lang === "ar" ? "قيمة التداول (مليون جنيه)" : "Value traded (EGP mn)", +(totals.valueTraded / 1e6).toFixed(2)],
+            [lang === "ar" ? "حجم التداول" : "Volume", totals.volume],
+            [lang === "ar" ? "القيمة السوقية (مليار جنيه)" : "Market cap (EGP bn)", +(totals.marketCap / 1e9).toFixed(2)],
+          ] as Cell[][],
+        };
+        const indicesTable: TableSpec = {
+          title: lang === "ar" ? "المؤشرات" : "Indices",
+          columns: [
+            { header: lang === "ar" ? "المؤشر" : "Index", width: 12 },
+            { header: L.close, fmt: "num" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
+            { header: lang === "ar" ? "شهر %" : "1M %", fmt: "pct" },
+            { header: lang === "ar" ? "٦ أشهر %" : "6M %", fmt: "pct" },
+            { header: L.perfYTD, fmt: "pct", condFmt: "changeScale" },
+            { header: lang === "ar" ? "سنة %" : "1Y %", fmt: "pct" },
+          ],
+          rows: indices.map((i) => [i.code, i.close, i.changePct, i.perf1M, i.perf6M, i.perfYTD, i.perfY]),
+        };
+        const moversCols = (title: string, sortKey: (a: ReturnType<typeof companyRow>, b: ReturnType<typeof companyRow>) => number): TableSpec => ({
+          title,
+          columns: [
+            { header: L.ticker, width: 10 },
+            { header: L.name, width: 30 },
+            { header: L.close, fmt: "num" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
+            { header: L.volume, fmt: "int" },
+            { header: L.valueMn, fmt: "num", condFmt: "dataBar" },
+          ],
+          rows: [...rows].sort(sortKey).slice(0, 10).map((r) => [
+            r.ticker,
+            lang === "ar" ? r.nameAr : r.name,
+            r.close,
+            r.changePct,
+            r.volume,
+            r.valueTraded != null ? +(r.valueTraded / 1e6).toFixed(2) : null,
+          ]),
+        });
+        const gainersTable = moversCols(
+          lang === "ar" ? "الأكثر ارتفاعًا (أعلى ١٠)" : "Top gainers (top 10)",
+          (a, b) => b.changePct - a.changePct
+        );
+        const losersTable = moversCols(
+          lang === "ar" ? "الأكثر انخفاضًا (أدنى ١٠)" : "Top losers (bottom 10)",
+          (a, b) => a.changePct - b.changePct
+        );
+        const activeTable = moversCols(
+          lang === "ar" ? "الأكثر نشاطًا بقيمة التداول (أعلى ١٠)" : "Most active by value traded (top 10)",
+          (a, b) => (b.valueTraded ?? 0) - (a.valueTraded ?? 0)
+        );
         spec = {
           lang,
           reportTitle: lang === "ar" ? "تقرير السوق — جميع الشركات" : "Market report — all companies",
           meta: meta([[L.rows, String(rows.length)]]),
-          sheets: [{ name: L.companiesSheet, tables: [table] }],
+          cover: {
+            toc: [
+              { sheet: L.summarySheet, title: lang === "ar" ? "المؤشرات وإجماليات الجلسة والاتساع" : "Indices, session totals & breadth" },
+              { sheet: L.gainersSheet, title: lang === "ar" ? "الأكثر ارتفاعًا وانخفاضًا ونشاطًا" : "Gainers, losers & most active" },
+              { sheet: L.companiesSheet, title: lang === "ar" ? `جميع الشركات المدرجة (${rows.length})` : `All listed companies (${rows.length})` },
+              { sheet: L.methodologySheet, title: lang === "ar" ? "تعريفات الأعمدة والمصادر" : "Column definitions & sources" },
+            ],
+          },
+          sheets: [
+            { name: L.summarySheet, tables: [indicesTable, summaryTable] },
+            { name: L.gainersSheet, tables: [gainersTable, losersTable, activeTable] },
+            { name: L.companiesSheet, tables: [table] },
+          ],
+          methodology: {
+            title: L.methodologyTitle,
+            rows: [
+              [L.close, lang === "ar" ? "آخر إغلاق متاح من TradingView (مؤجل ~١٥ دقيقة وقد يكون أقدم وقت الإنشاء). بالجنيه المصري." : "Last available close from TradingView (delayed ~15 min, may be older at generation). In EGP."],
+              [L.change, lang === "ar" ? "التغير اليومي % مقابل إغلاق الجلسة السابقة. تدرّج لوني: أحمر (هبوط) ← محايد ← أخضر (صعود)." : "Day change % vs the previous session close. Color scale: red (down) → neutral → green (up)."],
+              [L.valueMn, lang === "ar" ? "قيمة التداول بالجلسة بالمليون جنيه (الحجم × السعر تقريبيًا). أشرطة بيانات متناسبة مع القيمة." : "Session value traded in EGP millions (volume × price, approximate). Proportional data bars."],
+              ["P/E · P/B · ROE", lang === "ar" ? "مقاييس التقييم والربحية من مجمّع TradingView — قد تكون فارغة للشركات غير المُدرجة ببيانات كاملة." : "Valuation & profitability metrics from the TradingView screener — may be empty where the source lacks data."],
+              [lang === "ar" ? "الأكثر نشاطًا" : "Most active", lang === "ar" ? "مرتبة بقيمة التداول (مليون جنيه) داخل الجلسة." : "Ranked by session value traded (EGP mn)."],
+              [lang === "ar" ? "المصدر" : "Source", "TradingView — delayed ~15 min; EGX Desk generation timestamp on every sheet."],
+            ],
+          },
           footerNote: L.disclaimer,
         };
         fileBase = "Market";
@@ -247,10 +367,10 @@ export async function POST(req: NextRequest) {
           columns: [
             { header: lang === "ar" ? "المؤشر" : "Index", width: 12 },
             { header: L.close, fmt: "num" },
-            { header: L.change, fmt: "pct" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
             { header: lang === "ar" ? "شهر %" : "1M %", fmt: "pct" },
             { header: lang === "ar" ? "٦ أشهر %" : "6M %", fmt: "pct" },
-            { header: L.perfYTD, fmt: "pct" },
+            { header: L.perfYTD, fmt: "pct", condFmt: "changeScale" },
             { header: lang === "ar" ? "سنة %" : "1Y %", fmt: "pct" },
           ],
           rows: indices.map((i) => [i.code, i.close, i.changePct, i.perf1M, i.perf6M, i.perfYTD, i.perfY]),
@@ -278,9 +398,9 @@ export async function POST(req: NextRequest) {
             { header: L.sector, width: 30 },
             { header: lang === "ar" ? "الشركات" : "Companies", fmt: "int" },
             { header: lang === "ar" ? "مرتفع/منخفض" : "Up/Down", width: 14 },
-            { header: L.change, fmt: "pct" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
             { header: L.capMn, fmt: "num" },
-            { header: L.valueMn, fmt: "num" },
+            { header: L.valueMn, fmt: "num", condFmt: "dataBar" },
             { header: L.pe, fmt: "num" },
             { header: L.pb, fmt: "num" },
             { header: L.roe, fmt: "pct" },
@@ -304,6 +424,12 @@ export async function POST(req: NextRequest) {
           lang,
           reportTitle: lang === "ar" ? "تقرير نظرة عامة على السوق" : "Market overview report",
           meta: meta(),
+          cover: {
+            toc: [
+              { sheet: L.summarySheet, title: lang === "ar" ? "المؤشرات وإجماليات الجلسة والاتساع" : "Indices, session totals & breadth" },
+              { sheet: L.sectorsSheet, title: lang === "ar" ? "أداء القطاعات (مرجّح بالقيمة السوقية)" : "Sector performance (cap-weighted)" },
+            ],
+          },
           sheets: [
             { name: L.summarySheet, tables: [indicesTable, summaryTable] },
             { name: L.sectorsSheet, tables: [sectorTable] },
@@ -325,18 +451,18 @@ export async function POST(req: NextRequest) {
             { header: L.name, width: 30 },
             { header: L.sector, width: 22 },
             { header: L.close, fmt: "num" },
-            { header: L.change, fmt: "pct" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
             { header: L.rating, width: 13 },
-            { header: L.score, fmt: "score" },
+            { header: L.score, fmt: "score", condFmt: "changeScale" },
             { header: "RSI", fmt: "num" },
             { header: "MACD hist", fmt: "num" },
             { header: "SMA50", fmt: "num" },
             { header: "SMA200", fmt: "num" },
             { header: L.pos52, fmt: "pct" },
-            { header: L.volRatio, fmt: "ratio" },
-            { header: lang === "ar" ? "شهر %" : "1M %", fmt: "pct" },
+            { header: L.volRatio, fmt: "ratio", condFmt: "dataBar" },
+            { header: lang === "ar" ? "شهر %" : "1M %", fmt: "pct", condFmt: "changeScale" },
             { header: lang === "ar" ? "٦ أشهر %" : "6M %", fmt: "pct" },
-            { header: L.perfYTD, fmt: "pct" },
+            { header: L.perfYTD, fmt: "pct", condFmt: "changeScale" },
             { header: L.nextEarnings, width: 14 },
           ],
           rows: scan.rows.map((r, i) => [
@@ -383,6 +509,12 @@ export async function POST(req: NextRequest) {
           lang,
           reportTitle: lang === "ar" ? "تقرير إشارات المسح الفني" : "Technical signals scan report",
           meta: meta([[L.rows, String(scan.rows.length)]]),
+          cover: {
+            toc: [
+              { sheet: L.scanSheet, title: lang === "ar" ? `المسح الفني الكامل (${scan.rows.length} سهم)` : `Full technical scan (${scan.rows.length} stocks)` },
+              { sheet: L.breadthSheet, title: lang === "ar" ? "اتساع التقييمات" : "Rating breadth" },
+            ],
+          },
           sheets: [
             { name: L.scanSheet, tables: [table] },
             { name: L.breadthSheet, tables: [breadth] },
@@ -410,8 +542,8 @@ export async function POST(req: NextRequest) {
             { header: L.name, width: 30 },
             { header: L.sector, width: 22 },
             { header: L.stance, width: 10 },
-            { header: L.conviction, fmt: "int" },
-            { header: L.engineScore, fmt: "score" },
+            { header: L.conviction, fmt: "int", condFmt: "dataBar" },
+            { header: L.engineScore, fmt: "score", condFmt: "changeScale" },
             { header: L.close, fmt: "num" },
             { header: L.entry, fmt: "num" },
             { header: L.stop, fmt: "num" },
@@ -484,6 +616,12 @@ export async function POST(req: NextRequest) {
           lang,
           reportTitle: lang === "ar" ? "تقرير إشارات الذكاء الاصطناعي" : "AI signals report",
           meta: meta([[lang === "ar" ? "المراجعة" : "Revision", ai.strategyRev]]),
+          cover: {
+            toc: [
+              { sheet: L.picksSheet, title: lang === "ar" ? `اختيارات النموذج (${ai.picks.length})` : `Model picks (${ai.picks.length})` },
+              { sheet: L.evidenceSheet, title: lang === "ar" ? "الانحياز وأدلة الاختبار التاريخي" : "Bias & backtest evidence" },
+            ],
+          },
           sheets: [
             { name: L.picksSheet, tables: [picksTable] },
             { name: L.evidenceSheet, tables: [biasTable, btTable] },
@@ -491,6 +629,121 @@ export async function POST(req: NextRequest) {
           footerNote: L.disclaimer,
         };
         fileBase = "AI-Signals";
+        break;
+      }
+
+      case "hourly": {
+        // ── 22-a/22-c: the Desk Report export — the shared hourly / EOD
+        //    "what could surge" briefing as a full analyst workbook.
+        const id =
+          typeof (payload as { id?: unknown })?.id === "string"
+            ? (payload as { id: string }).id.slice(0, 64)
+            : "";
+        const report = id ? await getReportById(id) : await getLatestReport();
+        if (!report) {
+          return NextResponse.json({ error: "no desk report generated yet — open the reports page first" }, { status: 503 });
+        }
+        const potentials = { high: lang === "ar" ? "مرتفعة" : "High", medium: lang === "ar" ? "متوسطة" : "Medium", low: lang === "ar" ? "منخفضة" : "Low" } as const;
+        const kindLabel = report.kind === "eod" ? (lang === "ar" ? "التقرير الختامي للجلسة" : "End-of-day report") : lang === "ar" ? `تقرير الساعة ${report.hourLabel}` : `Hourly report ${report.hourLabel}`;
+
+        const snapshotTable: TableSpec = {
+          title: lang === "ar" ? "لمحة التقرير" : "Report snapshot",
+          columns: [
+            { header: L.metric, width: 30 },
+            { header: lang === "ar" ? "القيمة" : "Value", width: 78 },
+          ],
+          rows: [
+            [lang === "ar" ? "نوع التقرير" : "Report kind", kindLabel],
+            [lang === "ar" ? "الجلسة" : "Session", report.session],
+            [lang === "ar" ? "صدر" : "Generated", report.generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
+            [lang === "ar" ? "الانحياز" : "Market bias", `${report.marketBias.direction} · ${report.marketBias.conviction}/5`],
+            [lang === "ar" ? "ملخص السوق" : "Market summary", lang === "ar" ? report.marketBias.summaryAr : report.marketBias.summaryEn],
+            [lang === "ar" ? "سياق الويب" : "Web context", (lang === "ar" ? report.webNotesAr : report.webNotesEn) ?? "—"],
+            [lang === "ar" ? "الأسهم الممسوحة" : "Scanned", report.scanned],
+            [lang === "ar" ? "المصادر" : "Sources", report.sources.join(" · ") || "—"],
+            ["Model", `${report.model} · ${(report.llmMs / 1000).toFixed(1)}s · ${report.webSearches} web searches`],
+          ] as Cell[][],
+        };
+        const moversTable: TableSpec = {
+          title: lang === "ar" ? `مرشحو القفزة السعرية (${report.movers.length})` : `Surge candidates (${report.movers.length})`,
+          note:
+            lang === "ar"
+              ? "المستويات من معادلات ATR الميثاق — لا يستطيع النموذج تعديلها · المحفّزات من نتائج بحث حي في الويب مع المصدر"
+              : "Levels from the charter's fixed ATR math — the model cannot alter them · catalysts from live web-search results with sources",
+          columns: [
+            { header: L.ticker, width: 10 },
+            { header: L.name, width: 28 },
+            { header: L.sector, width: 22 },
+            { header: L.close, fmt: "num" },
+            { header: L.change, fmt: "pct", condFmt: "changeScale" },
+            { header: L.potential, width: 12 },
+            { header: L.conviction, fmt: "int", condFmt: "dataBar" },
+            { header: L.engineScore, fmt: "score", condFmt: "changeScale" },
+            { header: L.entry, fmt: "num" },
+            { header: L.stop, fmt: "num" },
+            { header: L.target, fmt: "num" },
+            { header: L.rr, fmt: "num" },
+            { header: L.horizon, fmt: "int" },
+            { header: L.reasons, width: 64 },
+            { header: L.catalysts, width: 58 },
+            { header: L.riskCol, width: 44 },
+          ],
+          rows: report.movers.map((m) => [
+            m.ticker,
+            lang === "ar" ? m.nameAr : m.nameEn,
+            lang === "ar" ? m.sectorAr : (SECTOR_EN[m.sectorAr] ?? m.sectorAr),
+            m.close,
+            m.changePct,
+            potentials[m.surgePotential],
+            m.conviction,
+            m.charterScore != null ? +m.charterScore.toFixed(2) : null,
+            m.entry,
+            m.stop,
+            m.target,
+            m.rr,
+            m.horizonSessions,
+            (lang === "ar" ? m.reasonsAr : m.reasonsEn).join(" • "),
+            m.catalysts.map((c) => `${(lang === "ar" ? (c.textAr ?? c.text) : c.text)} — ${c.source}${c.date ? ` (${c.date})` : ""}${c.url ? ` — ${c.url}` : ""}`).join(" • ") || "—",
+            lang === "ar" ? m.riskAr : m.riskEn,
+          ]),
+          autoFilter: true,
+        };
+        spec = {
+          lang,
+          reportTitle:
+            lang === "ar"
+              ? `تقرير مكتب EGX — ${kindLabel}`
+              : `EGX Desk report — ${kindLabel}`,
+          meta: meta([
+            [lang === "ar" ? "النوع" : "Kind", kindLabel],
+            [lang === "ar" ? "الجلسة" : "Session", report.session],
+          ]),
+          cover: {
+            toc: [
+              { sheet: L.hourlySheet, title: lang === "ar" ? "لمحة التقرير: الانحياز والملخص وسياق الويب" : "Snapshot: bias, summary & web context" },
+              { sheet: L.moversSheet, title: lang === "ar" ? `مرشحو القفزة مع الأسباب والمحفّزات والمستويات (${report.movers.length})` : `Surge candidates with reasons, catalysts & levels (${report.movers.length})` },
+              { sheet: L.methodologySheet, title: lang === "ar" ? "كيف يُكتب التقرير" : "How the report is written" },
+            ],
+          },
+          sheets: [
+            { name: L.hourlySheet, tables: [snapshotTable] },
+            { name: L.moversSheet, tables: [moversTable] },
+          ],
+          methodology: {
+            title: L.methodologyTitle,
+            rows: [
+              [lang === "ar" ? "ما هذا التقرير؟" : "What this is", lang === "ar" ? "تقرير مكتب مشارَك: نداء واحد لنموذج GLM (بتفكير موسّع) لكل ساعة تداول أثناء الجلسة، والتقرير الختامي بعد الإغلاق — يُحفظ ويُقدّم لكل الزوار من نفس النسخة (حوسبة مشتركة تجعله مجانيًا)." : "A shared desk report: ONE GLM call (extended thinking) per trading hour while the market is open, plus the final report after the close — persisted and served to every visitor from the same copy (shared compute keeps it free)."],
+              [lang === "ar" ? "الأدلة" : "Evidence", lang === "ar" ? "المسح الفني الكامل (١٣ مؤشرًا لكل سهم)، درجات ميثاق الاستراتيجية، أحدث الأسعار المؤجلة، ونتائج بحث حي في الويب للمحفّزات وأخبار الاقتصاد المصري." : "The full technical scan (13 indicators per stock), strategy charter scores, the latest delayed quotes, and live web-search results for catalysts and Egypt macro news."],
+              [L.entry, lang === "ar" ? "الدخول = الإغلاق ÷ SMA20 بخصم مساوٍ لـ 0.5×ATR (معادلات الميثاق الثابتة — النموذج لا يستطيع تعديلها)." : "Entry = close vs SMA20 dipped by 0.5×ATR (the charter's fixed math — the model cannot alter it)."],
+              [L.stop, lang === "ar" ? "وقف الخسارة = الدخول − 2×ATR. الهدف = الدخول + 3×ATR. نسبة المخاطرة/العائد ≈ 1:1.5." : "Stop = entry − 2×ATR. Target = entry + 3×ATR. Risk/reward ≈ 1:1.5."],
+              [L.potential, lang === "ar" ? "تصنيف النموذج لإمكانية القفزة — مقيّد بالانضباط: لا يمكن أن تكون «مرتفعة» لسهم درجة ميثاقه أقل من 0.35." : "The model's surge-potential rating — discipline-capped: never «High» for a candidate whose charter score is below 0.35."],
+              [L.catalysts, lang === "ar" ? "من نتائج البحث الحي فقط — كل محفّز يحمل اسم المصدر (والتاريخ والرابط عند توفرهما). لا محفّزات مُختلقة." : "From live web-search results only — every catalyst carries its source name (and date/URL when available). No invented catalysts."],
+              [lang === "ar" ? "إخلاء مسؤولية" : "Disclaimer", lang === "ar" ? "بحث احتمالي لأغراض تعليمية — ليس توصية شراء ولا ضمانًا لأي حركة سعرية." : "Probabilistic research for education — not a buy recommendation nor a promise of any price move."],
+            ],
+          },
+          footerNote: L.disclaimer,
+        };
+        fileBase = `Desk-Report-${report.session}${report.kind === "eod" ? "-EOD" : report.hourLabel ? "-" + report.hourLabel.replace(":", "") : ""}`;
         break;
       }
 
@@ -579,10 +832,46 @@ export async function POST(req: NextRequest) {
             sheets.push({ name: L.dividendsSheet, tables: [divT] });
           }
         } catch {}
+        // price history (22-c): one year of REAL daily candles — the sheet a
+        // spreadsheet user actually opens a company workbook for
+        try {
+          const chart = await fetchStockChart(ticker, "1Y");
+          if (chart.points.length) {
+            let prevClose: number | null = null;
+            const histRows = chart.points.map((p) => {
+              const dayChange = prevClose !== null && prevClose !== 0 ? +(((p.close - prevClose) / prevClose) * 100).toFixed(2) : null;
+              prevClose = p.close;
+              return [p.date, p.high ?? null, p.low ?? null, p.close, dayChange, p.volume] as Cell[];
+            });
+            const hist: TableSpec = {
+              title: lang === "ar" ? `تاريخ السعر اليومي — سنة (${chart.points.length} جلسة)` : `Daily price history — 1Y (${chart.points.length} sessions)`,
+              note: lang === "ar" ? "شموع Yahoo Finance اليومية بتوقيت القاهرة؛ التغير اليومي محسوب من إغلاق الجلسة السابقة." : "Yahoo Finance daily candles in Cairo time; day change computed from the previous session's close.",
+              columns: [
+                { header: L.date, width: 12 },
+                { header: L.open, fmt: "num" },
+                { header: L.lowCol, fmt: "num" },
+                { header: L.closeCol, fmt: "num" },
+                { header: L.dayChangeCol, fmt: "pct", condFmt: "changeScale" },
+                { header: L.volCol, fmt: "int", condFmt: "dataBar" },
+              ],
+              rows: histRows,
+              autoFilter: true,
+            };
+            sheets.push({ name: L.priceHistorySheet, tables: [hist] });
+          }
+        } catch {}
         spec = {
           lang,
           reportTitle: lang === "ar" ? `تقرير شركة — ${c.ticker}` : `Company report — ${c.ticker}`,
           meta: meta([[L.ticker, c.ticker]]),
+          cover: {
+            toc: [
+              { sheet: L.snapshotSheet, title: `${c.ticker} — ${lang === "ar" ? c.nameAr : c.name}` },
+              { sheet: L.technicalsSheet, title: lang === "ar" ? "التقييم الفني (١٣ مؤشرًا)" : "Technical rating (13 indicators)" },
+              { sheet: L.dividendsSheet, title: lang === "ar" ? "تاريخ التوزيعات النقدية" : "Cash dividend history" },
+              { sheet: L.priceHistorySheet, title: lang === "ar" ? "تاريخ السعر اليومي — سنة" : "Daily price history — 1Y" },
+            ].filter((row) => sheets.some((s) => s.name === row.sheet)) as { sheet: string; title: string }[],
+          },
           sheets,
           footerNote: L.disclaimer,
         };
