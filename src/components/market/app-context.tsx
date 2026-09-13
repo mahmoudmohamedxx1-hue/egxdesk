@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -103,6 +104,14 @@ function viewParams(name: string, extra: { ticker?: string; panel?: string } | u
   return params.toString();
 }
 
+/** T25 — every view change must land with the HEADER at the top of the
+ *  viewport (the user's "load the header by default" requirement). Runs as a
+ *  layout effect AFTER the new view is committed but BEFORE paint, so it
+ *  never scrolls against the outgoing view's DOM and never flashes. Plain
+ *  useEffect on the server/prerender (useLayoutEffect is a no-op there and
+ *  would log a warning). */
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 export function useApp() {
   const ctx = useContext(AppCtx);
   if (!ctx) throw new Error("useApp outside provider");
@@ -122,6 +131,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // one-time hydration init from browser-only stores (localStorage + URL) —
   // cannot run in render because this component is also server-rendered
   useEffect(() => {
+    // T25 — take scroll control away from the browser: with "auto" it
+    // restores the stale offset saved on each history entry, so back/forward
+    // reopened pages at the FOOTER and reloads landed mid-page. "manual" +
+    // the scroll-on-view-change effect below makes every page open at the
+    // header, deterministically, across every entry path (nav click, browser
+    // back/forward, shared links, reloads, restored tabs/PWA launches).
+    try {
+      window.history.scrollRestoration = "manual";
+    } catch {}
     const params = new URLSearchParams(window.location.search);
     try {
       const stored = localStorage.getItem("egx-lang") as Lang | null;
@@ -191,15 +209,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const next: View = { name, ...(extra ?? {}) };
       setView(next);
       // PUSH (not replace): back/forward move between pages — this is the
-      // routing entry; in-page state changes later replaceState onto it
+      // routing entry; in-page state changes later replaceState onto it.
+      // (Scroll-to-header now happens in the layout effect on [view] AFTER
+      // the new view commits — scrolling here would run against the OLD
+      // view's DOM and fight the re-render; see useIsoLayoutEffect below.)
       const qs = viewParams(name, extra, langRef.current);
       try {
         window.history.pushState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
       } catch {}
-      document.getElementById("main-content")?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
     []
   );
+
+  // T25 — the deterministic "header by default" rule: whenever the view
+  // changes (nav click, company/symbol jump, browser back/forward, boot from
+  // a shared URL, restored tab) the window scrolls to the very top so the
+  // header is the first thing on screen — exactly like opening a fresh page
+  // on a multi-page site. Instant (not smooth): it lands before paint, and
+  // flying content on every navigation would read as lag. `view` is a fresh
+  // object on every navigate/popstate/boot, so this fires on each change;
+  // in-page state (lang swap, panel tabs, report id) never touches `view`, so
+  // those keep their reading position.
+  useIsoLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
 
   // listen to browser back/forward — the target entry carries its own view
   // AND its own lang (each pushed entry froze the sharer's language choice)
