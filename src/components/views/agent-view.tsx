@@ -7,6 +7,10 @@
  *  - h-dvh canvas in the warm cream/charcoal chat palette, own slim top bar
  *    (back-to-desk + logo + title, history, new chat, theme & language — the
  *    controls the hidden main header would normally carry).
+ *  - The CHAT HISTORY lives in a real SIDEBAR (Task 24): a drawer that pushes
+ *    the chat aside on desktop and overlays it (with a dim backdrop) on
+ *    phones — opened/closed from the top bar, its header X, backdrop tap or
+ *    Escape, and the open/closed choice is remembered in localStorage.
  *  - The message column fills ALL remaining height (flex-1, own scroll) and
  *    the composer pins to the bottom of the viewport.
  *  - USER messages are soft rounded bubbles on the end side; ASSISTANT
@@ -34,7 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  ArrowLeft, Check, Copy, Cpu, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench,
+  ArrowLeft, Check, Copy, Cpu, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench, X,
 } from "lucide-react";
 import { getDeviceId } from "@/lib/push-client";
 import { useTheme } from "next-themes";
@@ -56,6 +60,7 @@ type AgentMsg = {
 const CHAT_KEY = "egx-agent-chat";
 const CHAT_ID_KEY = "egx-agent-chat-id";
 const THINK_KEY = "egx-agent-deep";
+const SIDEBAR_KEY = "egx-agent-sidebar"; // "1"/"0" — remembered open/closed choice
 const MAX_STORED = 80;
 
 type HistoryRow = { id: string; title: string; updatedAt: string; count: number };
@@ -207,7 +212,7 @@ export function AgentView() {
   const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
   const [liveNote, setLiveNote] = useState<string | null>(null);
   const [streamText, setStreamText] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false); // chat-history sidebar (Task 24)
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyList, setHistoryList] = useState<HistoryRow[]>([]);
   const [usage, setUsage] = useState<UsageSummary | null>(null);
@@ -239,6 +244,12 @@ export function AgentView() {
       }
       chatIdRef.current = id;
       setDeep(localStorage.getItem(THINK_KEY) === "1");
+      // remembered sidebar choice; first visit defaults to OPEN on desktop
+      // (Claude-like) and closed on phones, where it is an overlay
+      try {
+        const pref = localStorage.getItem(SIDEBAR_KEY);
+        setHistoryOpen(pref === null ? window.matchMedia("(min-width: 640px)").matches : pref === "1");
+      } catch {}
     } catch {}
     const q = bootParam("q");
     if (q) setInput(q.slice(0, 2000));
@@ -262,6 +273,22 @@ export function AgentView() {
     });
   };
 
+  /** open/close the chat-history sidebar — the choice is remembered */
+  const setSidebar = (open: boolean) => {
+    setHistoryOpen(open);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, open ? "1" : "0");
+    } catch {}
+  };
+
+  const toggleSidebar = () => setSidebar(!historyOpen);
+
+  /** on phones the sidebar is an overlay — dismiss it after picking a chat;
+   *  on desktop it stays put (Claude-like behavior) */
+  const closeSidebarOnMobile = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 640) setSidebar(false);
+  };
+
   // elapsed-seconds timer while the agent works
   useEffect(() => {
     if (!busy) {
@@ -276,6 +303,16 @@ export function AgentView() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy, liveSteps, streamText]);
+
+  // Escape closes the history sidebar (it behaves like a drawer)
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebar(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [historyOpen]);
 
   const ask = async (text: string) => {
     const q = text.trim();
@@ -434,6 +471,11 @@ export function AgentView() {
     } catch {}
   };
 
+  // refresh the saved-conversations list every time the sidebar opens
+  useEffect(() => {
+    if (historyOpen) void loadHistory();
+  }, [historyOpen]);
+
   const loadChat = async (id: string) => {
     if (busy) return;
     try {
@@ -448,7 +490,7 @@ export function AgentView() {
       try {
         localStorage.setItem(CHAT_ID_KEY, id);
       } catch {}
-      setHistoryOpen(false);
+      closeSidebarOnMobile();
     } catch {}
   };
 
@@ -472,7 +514,7 @@ export function AgentView() {
       localStorage.setItem(CHAT_ID_KEY, id);
     } catch {}
     persist([]);
-    setHistoryOpen(false);
+    closeSidebarOnMobile();
   };
 
   const newChat = () => {
@@ -556,7 +598,7 @@ export function AgentView() {
               type="button"
               onClick={() => {
                 setInput(tt(s, lang));
-                setHistoryOpen(false);
+                closeSidebarOnMobile();
               }}
               className="w-full text-start rounded-md px-2 py-1.5 text-[11px] hover:bg-accent/60 transition-colors"
             >
@@ -570,10 +612,145 @@ export function AgentView() {
 
   return (
     <section
-      className="flex h-dvh w-full flex-col overflow-hidden"
+      className="relative flex h-dvh w-full overflow-hidden"
       style={{ backgroundColor: "var(--chat-bg)" }}
       aria-label={tt(T.agentTitle, lang)}
     >
+      {/* ── chat-history sidebar — Task 24: a real drawer instead of the old
+          popover. Desktop (sm+): in-flow, PUSHES the chat aside. Mobile: an
+          overlay with a dim backdrop, dismissed by backdrop tap or Escape.
+          The width animates (w-72 ⇄ w-0); in RTL the drawer sits on the
+          inline-start edge (right) automatically. ── */}
+      <div
+        className={`absolute inset-0 z-30 bg-black/40 transition-opacity duration-300 sm:hidden ${
+          historyOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setSidebar(false)}
+        aria-hidden="true"
+      />
+      <aside
+        id="agent-history-sidebar"
+        aria-label={tt(T.agentHistory, lang)}
+        aria-hidden={!historyOpen}
+        className={`absolute inset-y-0 start-0 z-40 flex h-full shrink-0 flex-col overflow-hidden border-e shadow-2xl transition-all duration-300 ease-in-out sm:relative sm:z-auto sm:shadow-none ${
+          historyOpen ? "w-72 opacity-100" : "pointer-events-none w-0 opacity-0"
+        }`}
+        style={{ borderColor: "var(--chat-border)", backgroundColor: "var(--chat-bg)" }}
+      >
+        {/* inner rail keeps its fixed width so the drawer content never
+            squishes while the outer width animates */}
+        <div className="flex h-full w-72 flex-col">
+          {/* sidebar header: title + close */}
+          <div
+            className="flex items-center justify-between gap-2 border-b px-3 py-2.5"
+            style={{ borderColor: "var(--chat-border)" }}
+          >
+            <h2 className="flex min-w-0 items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--chat-ink)" }}>
+              <History className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{tt(T.agentHistory, lang)}</span>
+              <span className="num shrink-0 text-[10px] font-normal text-muted-foreground">{historyList.length}</span>
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 shrink-0 p-0"
+              onClick={toggleSidebar}
+              aria-label={tt(T.agentCloseSidebar, lang)}
+              title={tt(T.agentCloseSidebar, lang)}
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </Button>
+          </div>
+
+          {/* new chat — the sidebar's primary action (Claude-like) */}
+          <div className="px-2.5 pt-2.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-full justify-start gap-1.5 px-2.5 text-[11px]"
+              onClick={newChat}
+              disabled={busy}
+            >
+              <Eraser className="h-3.5 w-3.5" aria-hidden />
+              {tt(T.agentClear, lang)}
+            </Button>
+          </div>
+
+          {/* the saved conversations */}
+          <div className="thin-scroll flex-1 overflow-y-auto px-2.5 py-2">
+            {historyLoading ? (
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-11 w-full" />
+              </div>
+            ) : historyList.length === 0 ? (
+              <p className="px-2 py-6 text-center text-xs" style={{ color: "var(--chat-muted)" }}>
+                {tt(T.agentHistoryEmpty, lang)}
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {historyList.map((c) => {
+                  const active = c.id === chatIdRef.current;
+                  return (
+                    <li key={c.id}>
+                      <div
+                        className="group flex items-center gap-1 rounded-lg border px-1.5 py-1.5 transition-colors"
+                        style={
+                          active
+                            ? { borderColor: "var(--chat-accent)", backgroundColor: "var(--chat-accent-soft)" }
+                            : { borderColor: "transparent" }
+                        }
+                      >
+                        <button
+                          onClick={() => void loadChat(c.id)}
+                          disabled={busy}
+                          className="min-w-0 flex-1 text-start disabled:opacity-50"
+                        >
+                          <span
+                            className="block truncate text-xs transition-colors"
+                            style={{ color: active ? "var(--chat-accent)" : "var(--chat-ink)" }}
+                          >
+                            {c.title || tt(T.agentUntitledChat, lang)}
+                          </span>
+                          <span className="num block text-[10px] text-muted-foreground">
+                            {new Date(c.updatedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB")} · {c.count}{" "}
+                            {tt(T.agentMsgsUnit, lang)}
+                          </span>
+                        </button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 shrink-0 p-0 text-muted-foreground opacity-0 transition-opacity hover:text-down focus-visible:opacity-100 group-hover:opacity-100"
+                          onClick={() => void deleteChat(c.id)}
+                          aria-label={tt(T.agentDeleteChat, lang)}
+                          title={tt(T.agentDeleteChat, lang)}
+                        >
+                          <Trash2 className="h-3 w-3" aria-hidden />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* usage metering strip (from the old popover footer) */}
+          {usage && (
+            <p
+              className="num border-t px-3 py-2 text-[10px] leading-relaxed text-muted-foreground"
+              style={{ borderColor: "var(--chat-border)" }}
+            >
+              {tt(T.agentUsageToday, lang)}: {usage.today.questions} {tt(T.agentUsageQUnit, lang)} ·{" "}
+              {usage.today.llmCalls} {tt(T.agentUsageAiCalls, lang)} · {tt(T.agentUsageLimit, lang)}
+            </p>
+          )}
+        </div>
+      </aside>
+
+      {/* ── the chat column: top bar · messages · composer ── */}
+      <div className="flex h-full min-w-0 flex-1 flex-col">
       {/* ── slim top bar: back-to-desk · logo · title · history · new chat · theme · lang ── */}
       <div
         className="flex items-center justify-between gap-2 px-3 py-2.5 border-b sm:px-4"
@@ -618,66 +795,20 @@ export function AgentView() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* server-side chat history — popover panel */}
-          <Popover open={historyOpen} onOpenChange={(o) => { setHistoryOpen(o); if (o) void loadHistory(); }}>
-            <PopoverTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1.5 px-2.5 text-[11px]"
-                aria-expanded={historyOpen}
-              >
-                <History className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{tt(T.agentHistory, lang)}</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold">{tt(T.agentHistory, lang)}</h2>
-                <span className="num text-[10px] text-muted-foreground">{historyList.length}</span>
-              </div>
-              {historyLoading ? (
-                <Skeleton className="h-16 w-full" />
-              ) : historyList.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2 text-center">{tt(T.agentHistoryEmpty, lang)}</p>
-              ) : (
-                <ul className="max-h-64 overflow-y-auto thin-scroll">
-                  {historyList.map((c) => (
-                    <li key={c.id} className="flex items-center gap-2 border-b border-border/60 last:border-0 py-1.5">
-                      <button
-                        onClick={() => void loadChat(c.id)}
-                        disabled={busy}
-                        className="min-w-0 flex-1 text-start group disabled:opacity-50"
-                      >
-                        <span className="block truncate text-xs group-hover:text-primary transition-colors">
-                          {c.title || tt(T.agentUntitledChat, lang)}
-                        </span>
-                        <span className="num block text-[10px] text-muted-foreground">
-                          {new Date(c.updatedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB")} · {c.count}{" "}
-                          {tt(T.agentMsgsUnit, lang)}
-                        </span>
-                      </button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 shrink-0 p-0 text-muted-foreground hover:text-down"
-                        onClick={() => void deleteChat(c.id)}
-                        aria-label={tt(T.agentDeleteChat, lang)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {usage && (
-                <p className="num border-t border-border/60 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-                  {tt(T.agentUsageToday, lang)}: {usage.today.questions} {tt(T.agentUsageQUnit, lang)} ·{" "}
-                  {usage.today.llmCalls} {tt(T.agentUsageAiCalls, lang)} · {tt(T.agentUsageLimit, lang)}
-                </p>
-              )}
-            </PopoverContent>
-          </Popover>
+          {/* history — toggles the conversations sidebar (drawer) */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 px-2.5 text-[11px]"
+            onClick={toggleSidebar}
+            aria-expanded={historyOpen}
+            aria-controls="agent-history-sidebar"
+            aria-label={tt(T.agentHistory, lang)}
+            title={tt(T.agentHistory, lang)}
+          >
+            <History className="h-3.5 w-3.5" aria-hidden />
+            <span className="hidden sm:inline">{tt(T.agentHistory, lang)}</span>
+          </Button>
           <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-[11px]" onClick={newChat} disabled={busy}>
             <Eraser className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{tt(T.agentClear, lang)}</span>
@@ -816,6 +947,7 @@ export function AgentView() {
             {tt(T.agentDisclaimer, lang)}
           </p>
         </div>
+      </div>
       </div>
     </section>
   );

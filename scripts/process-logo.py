@@ -130,15 +130,28 @@ if gap_lo and gap_hi:
         mark_dark = mark_dark.crop(mb)
     mark_dark.save(f"{OUT}/logo-mark-dark.png")
     print(f"mark-only: {mark.size[0]}x{mark.size[1]} (aspect {mark.size[0]/mark.size[1]:.3f})")
+else:
+    # fallback: no gap detected — degrade to the full logo rather than crash
+    mark, mark_dark = rgba, dark
+    print("WARN: mark/text gap not found — icons will use the full logo")
 
-# ── 5. favicons: dark charcoal tile + cream/gold content ───────────────
+# ── 5. favicons: dark charcoal tile + cream/gold MARK ONLY ───────────────
+# Task 24 fix: the icons used to composite the FULL mark+wordmark logo,
+# which at 16–192 px reads as the whole shrunken photo (unreadable "EGXDesk"
+# text). A favicon carries the hexagon mark alone — the wordmark already
+# lives in the header/footer logo and the manifest name.
 TILE = (44, 44, 46)  # matches the app's dark theme canvas
 
-def make_icon(size, content_scale=0.80, rounded=None, src=dark, path=None):
+def make_icon(size, content_scale=0.74, rounded=None, path=None):
+    """Composite mark_dark onto a charcoal tile, fitted INSIDE a
+    content_scale×content_scale box (mark is taller than wide, so the fit
+    is driven by its height — never distorted, never cropped)."""
+    mw, mh = mark_dark.size
+    box = size * content_scale
+    s = min(box / mw, box / mh)
+    cw, ch = max(1, int(mw * s)), max(1, int(mh * s))
     tile = Image.new("RGBA", (size, size), (*TILE, 255))
-    cw = int(size * content_scale)
-    ch = int(cw * H / W)
-    content = src.resize((cw, ch), Image.LANCZOS)
+    content = mark_dark.resize((cw, ch), Image.LANCZOS)
     ox = (size - cw) // 2
     oy = (size - ch) // 2
     tile.alpha_composite(content, (ox, oy))
@@ -149,11 +162,32 @@ def make_icon(size, content_scale=0.80, rounded=None, src=dark, path=None):
         d.rounded_rectangle([0, 0, size-1, size-1], radius=rounded, fill=255)
         tile.putalpha(mask)
     tile.save(path)
-    print(f"icon {path}: {size}x{size} (content {cw}x{ch})")
+    print(f"icon {path}: {size}x{size} (mark {cw}x{ch}, aspect {cw/ch:.3f})")
+    return tile
 
-make_icon(512, 0.82, rounded=96, path=f"{OUT}/icon-512.png")
-make_icon(192, 0.82, rounded=36, path=f"{OUT}/icon-192.png")
-make_icon(180, 0.82, rounded=34, path=f"{OUT}/apple-touch-icon.png")
-make_icon(512, 0.62, rounded=None, path=f"{OUT}/icon-512-maskable.png")  # safe zone
+make_icon(512, 0.74, rounded=96, path=f"{OUT}/icon-512.png")
+make_icon(192, 0.74, rounded=36, path=f"{OUT}/icon-192.png")
+make_icon(180, 0.74, rounded=34, path=f"{OUT}/apple-touch-icon.png")
+make_icon(512, 0.56, rounded=None, path=f"{OUT}/icon-512-maskable.png")  # safe zone
+
+# ── 6. QA: the icon content must be the MARK (taller than wide), not the
+# full logo (wide). Scan icon-192 for non-tile pixels and assert the aspect.
+iq = Image.open(f"{OUT}/icon-192.png").convert("RGBA")
+qx = iq.load()
+iw, ih = iq.size
+xs, ys, xe, ye = iw, ih, 0, 0
+for y in range(0, ih):
+    for x in range(0, iw):
+        r, g, b, a = qx[x, y]
+        if a > 200 and (abs(r-44) > 24 or abs(g-44) > 24 or abs(b-46) > 24):
+            xs, ys = min(xs, x), min(ys, y)
+            xe, ye = max(xe, x), max(ye, y)
+if xe > xs and ye > ys:
+    cw_, ch_ = xe - xs + 1, ye - ys + 1
+    print(f"QA icon-192 content bbox: {cw_}x{ch_} (aspect {cw_/ch_:.3f})")
+    assert cw_ / ch_ < 1.0, "favicon content is WIDER than tall — looks like the full logo, not the mark!"
+    print("QA PASS: favicon carries the mark only (no wordmark)")
+else:
+    raise SystemExit("QA FAIL: no content found in icon-192")
 
 print("\nAll assets written to public/")

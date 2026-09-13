@@ -940,6 +940,7 @@ export const T = {
     en: "Powered by the GLM LLM — real AI, server-side",
   },
   agentHistory: { ar: "السجل", en: "History" },
+  agentCloseSidebar: { ar: "إغلاق السجل", en: "Close history" },
   agentHistoryEmpty: {
     ar: "لا محادثات محفوظة بعد — كل محادثة تُحفظ تلقائيًا على الخادم",
     en: "No saved chats yet — every conversation is saved to the server automatically",
