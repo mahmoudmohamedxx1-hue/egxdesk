@@ -16,13 +16,15 @@
  *  - VERSION bump on every release so installed apps pick the new shell on
  *    their next launch (skipWaiting + clients.claim apply it immediately). */
 
-const VERSION = "egx-desk-v9";
+const VERSION = "egx-desk-v10";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 
 const SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
+  "/logo.png",
+  "/logo-dark.png",
   "/icon-192.png",
   "/icon-512.png",
   "/icon-512-maskable.png",

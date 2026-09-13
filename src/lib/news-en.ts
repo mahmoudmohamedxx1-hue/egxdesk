@@ -21,10 +21,20 @@ export type NewsEnData = {
   fetchedAt: string;
 };
 
-const QUERY = "EGX Egyptian stock market";
-const FEED_URL = `https://news.google.com/rss/search?q=${encodeURIComponent(
-  QUERY
-)}&hl=en-US&gl=US&ceid=US:en`;
+// Task 23 fix — a single narrow query ("EGX Egyptian stock market") let the
+// English feed go days without a matching article while the Arabic archive
+// updated hourly. Multiple complementary queries are fetched in parallel and
+// merged (dedup by link AND by normalized title) so the EN view stays as
+// fresh as the publishers' coverage of Egypt's market.
+const QUERIES = [
+  "EGX Egyptian stock market",
+  "EGX30 index",
+  "Egypt stock exchange",
+  "Egyptian stocks market",
+  "Egypt capital market EGX",
+];
+const FEED_URL_FOR = (q: string) =>
+  `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
 
 const TTL = 10 * 60_000;
 type Entry = { data: NewsEnData; at: number };
@@ -67,31 +77,51 @@ export async function fetchNewsEn(): Promise<NewsEnData> {
   if (hit && Date.now() - hit.at < TTL) return hit.data;
   if (inflight) return inflight;
   const p = (async (): Promise<NewsEnData> => {
-    try {
-      const res = await fetch(FEED_URL, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-          Accept: "application/rss+xml, application/xml, text/xml",
-        },
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!res.ok) throw new Error(`news-en ${res.status}`);
-      const xml = await res.text();
-      const items = parseFeed(xml);
-      if (!items.length) throw new Error("news-en empty");
-      const data: NewsEnData = {
-        items,
-        total: items.length,
-        query: QUERY,
-        fetchedAt: new Date().toISOString(),
-      };
-      cache[0] = { data, at: Date.now() };
-      staleData = data;
-      return data;
-    } finally {
-      // cleanup handled by caller
+    // parallel per-query fetches; each may fail without sinking the merge
+    const perQuery = await Promise.allSettled(
+      QUERIES.map(async (q) => {
+        const res = await fetch(FEED_URL_FOR(q), {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+            Accept: "application/rss+xml, application/xml, text/xml",
+          },
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (!res.ok) throw new Error(`news-en ${res.status}`);
+        return parseFeed(await res.text());
+      })
+    );
+    const merged = new Map<string, NewsItemEn>();
+    const normTitle = (t: string) =>
+      t
+        .toLowerCase()
+        .replace(/\s+-\s+[^-]+$/, "") // strip trailing " - Publisher" suffixes
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    for (const r of perQuery) {
+      if (r.status !== "fulfilled") continue;
+      for (const it of r.value) {
+        if (merged.has(it.link)) continue; // same article via two queries
+        const key = `t:${normTitle(it.title)}`;
+        if ([...merged.values()].some((x) => normTitle(x.title) === normTitle(it.title) && key.length > 8)) {
+          continue; // same story syndicated under a different link
+        }
+        merged.set(it.link, it);
+      }
     }
+    const items = [...merged.values()]
+      .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : a.publishedAt > b.publishedAt ? -1 : 0))
+      .slice(0, 90);
+    if (!items.length) throw new Error("news-en empty");
+    const data: NewsEnData = {
+      items,
+      total: items.length,
+      query: QUERIES.join(" · "),
+      fetchedAt: new Date().toISOString(),
+    };
+    cache[0] = { data, at: Date.now() };
+    staleData = data;
+    return data;
   })();
   inflight = p;
   try {

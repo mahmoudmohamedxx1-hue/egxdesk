@@ -306,9 +306,17 @@ function parseSigma(html: string): RawTable {
 export function sigmaSnapshotFromHtml(html: string): FlowsSnapshot {
   const t = parseSigma(html);
   const status = marketStatus();
-  const asOf =
+  const found =
     latestDate([...isoDates(html).slice(0, 50), ...euDates(html).slice(0, 50)], status.cairoDate) ??
     status.lastSession;
+  // Task 23 fix — never stamp a snapshot with a date NEWER than the session
+  // it can actually contain: overnight / pre-open / weekend captures still
+  // show the LAST session's table, but stray dates in the HTML (footer
+  // "generated at", ads, next-day headers) used to relabel those rows as
+  // future sessions, creating phantom duplicate days in the flow-history
+  // chart (e.g. a "Friday" row identical to Thursday). While the market is
+  // open the table IS today's live session.
+  const asOf = status.open ? status.cairoDate : found > status.lastSession ? status.lastSession : found;
   const categories: FlowCategory[] = CAT_KEYS.map((key, i) => ({
     key,
     buy: t.buy[i],
@@ -350,6 +358,9 @@ export async function fetchFlows(): Promise<FlowsSnapshot> {
 type EgxbotReport = ParticipationPoint & {
   egx70Close: number | null;
   egx100Close: number | null;
+  up: number | null; // breadth: shares that rose
+  down: number | null; // breadth: shares that fell
+  flat: number | null; // breadth: shares unchanged
   archiveDates: string[];
 };
 
@@ -430,7 +441,11 @@ function parseEgxbot(html: string, fallbackDate: string): EgxbotReport {
 
   // EGX70 EWI / EGX100 EWI closes — the report's market-summary table lists
   // them right after EGX30; validate the value range to avoid picking up
-  // stray percentages or prose numbers.
+  // stray percentages or prose numbers. The label appears both as
+  // "EGX70 (EWI) 21,192.67" and "EGX70 EWI 21,192.67" (archive pages), so the
+  // EWI part is optional and tolerates parentheses (Task 23 fix: the current
+  // report switched to the parenthesized form and the old pattern silently
+  // returned null for egx70/egx100).
   const pick = (re: RegExp, lo: number, hi: number): number | null => {
     for (const m of text.matchAll(re)) {
       const v = Number(m[1].replace(/,/g, ""));
@@ -438,8 +453,41 @@ function parseEgxbot(html: string, fallbackDate: string): EgxbotReport {
     }
     return null;
   };
-  const egx70Close = pick(/EGX70(?:\s*EWI)?\s*([\d][\d,.]*)/gi, 4_000, 60_000);
-  const egx100Close = pick(/EGX100(?:\s*EWI)?\s*([\d][\d,.]*)/gi, 8_000, 80_000);
+  const ewi = String.raw`(?:\s*\(?\s*EWI\s*\)?)?`;
+  const egx70Close = pick(new RegExp(`EGX70${ewi}\\s*([\\d][\\d,.]*)`, "gi"), 4_000, 60_000);
+  const egx100Close = pick(new RegExp(`EGX100${ewi}\\s*([\\d][\\d,.]*)`, "gi"), 8_000, 80_000);
+
+  // market breadth — two shapes (Task 23 fix: BreadthDay previously had NO
+  // runtime writer, so the home breadth chart froze; now every EGXBot fetch
+  // persists it):
+  //  (a) the current report's "مؤشر الاتساع" table: شركات صاعدة/هابطة/بدون تغيير
+  //  (b) the archive pages' AI narrative: "60 gainers versus 160 losers (18
+  //      unchanged)" / "123 advancers vs 111 decliners and 22 unchanged" /
+  //      "79 stocks rose versus 150 stocks declined (26 unchanged)"
+  let up: number | null = null;
+  let down: number | null = null;
+  let flat: number | null = null;
+  const arBreadth = text.match(
+    /شركات\s*صاعدة\D{0,10}(\d+)\D{0,40}?شركات\s*هابطة\D{0,10}(\d+)\D{0,40}?بدون\s*تغيير\D{0,10}(\d+)/
+  );
+  const upWord = String.raw`(?:advancers?|gainers?|(?:stocks?|companies?|shares?)\s+(?:rose|advanced|gained|climbed|rose))`;
+  const downWord = String.raw`(?:decliners?|losers?|(?:stocks?|companies?|shares?)\s+(?:declined|fell|dropped))`;
+  const enBreadth = text.match(
+    new RegExp(
+      `(\\d+)\\s+${upWord}\\s*(?:versus|vs\\.?|and|to)\\s+(\\d+)\\s+${downWord}\\s*[(;]?\\s*(?:and\\s+)?(\\d+)\\s+unchanged`,
+      "i"
+    )
+  );
+  const breadth = arBreadth ?? enBreadth;
+  if (breadth) {
+    const n = (i: number) => {
+      const v = Number(breadth[i]);
+      return Number.isFinite(v) && v >= 0 && v <= 600 ? v : null;
+    };
+    up = n(1);
+    down = n(2);
+    flat = n(3);
+  }
 
   const archiveDates = [...html.matchAll(/\/en\/market-report\/(\d{4}-\d{2}-\d{2})/g)].map((m) => m[1]);
   const uniqueDates = [...new Set(archiveDates)];
@@ -454,6 +502,9 @@ function parseEgxbot(html: string, fallbackDate: string): EgxbotReport {
     egx30ChangePct,
     egx70Close,
     egx100Close,
+    up,
+    down,
+    flat,
     archiveDates: uniqueDates,
   };
 }
@@ -576,6 +627,36 @@ async function upsertIndexDay(r: EgxbotReport) {
   }
 }
 
+/** Store one day's market breadth (shares up/down/flat). Written by every
+ *  EGXBot fetch (current + archive) and by the overview route's live persist —
+ *  Task 23 fix: this writer did not exist before, so the home breadth chart
+ *  froze at the last one-time import. */
+async function upsertBreadthDay(date: string, up: number | null, down: number | null, flat: number | null, source: string): Promise<void> {
+  if (up === null || down === null || flat === null) return;
+  try {
+    // a live row counts the full listed universe (the same methodology the
+    // historical esthmr rows used); EGXBot counts only traded names, so its
+    // figures would make the last bar shrink vs. the rest of the chart —
+    // keep the live row when one exists.
+    const existing = await db.breadthDay.findUnique({ where: { date } });
+    if (existing && existing.source === "live" && source !== "live") return;
+    await db.breadthDay.upsert({
+      where: { date },
+      create: { date, up, down, flat, counted: up + down + flat, source },
+      update: { up, down, flat, counted: up + down + flat, source, capturedAt: new Date() },
+    });
+  } catch (err) {
+    console.error("flows: breadth day persist failed", err);
+  }
+}
+
+/** Persist the LIVE breadth computed from the TradingView universe (final
+ *  figure once the market has closed). Exported for the overview route so
+ *  the breadth chart keeps updating even on days EGXBot is never hit. */
+export async function persistBreadthLive(date: string, up: number, down: number, flat: number): Promise<void> {
+  await upsertBreadthDay(date, up, down, flat, "live");
+}
+
 /** Sun–Thu trading dates (Africa/Cairo week), oldest first, excluding today —
  *  today is covered separately by the live current-report fetch. */
 function tradingDaysBack(calendarDays: number): string[] {
@@ -611,10 +692,11 @@ export async function ensureHistory(): Promise<void> {
   if (historyEnsured) return;
   historyEnsured = true;
   try {
-    // 1) live current report → participation + today's index closes
+    // 1) live current report → participation + today's index closes + breadth
     const current = await fetchEgxbotCurrent();
     await upsertParticipation(current);
     await upsertIndexDay(current);
+    await upsertBreadthDay(current.date, current.up, current.down, current.flat, "egxbot");
 
     // 2) backfill past sessions from the dated archive pages
     const dates = tradingDaysBack(98);
@@ -626,6 +708,19 @@ export async function ensureHistory(): Promise<void> {
       await upsertIndexDay(r); // marker row even when values are null (holidays)
       if (r.egyptiansPct !== null || r.totalValueEgpMn !== null || r.egx30Close !== null) {
         await upsertParticipation(r);
+      }
+    }
+
+    // 3) breadth-only backfill — sessions where index rows exist but the
+    //    breadth block was never stored (Task 23: the frozen-home-chart fix;
+    //    covers everything the one-time esthmr import missed, e.g. Sep 8-13)
+    const breadthExisting = new Set((await db.breadthDay.findMany({ select: { date: true } })).map((r) => r.date));
+    const breadthMissing = dates.filter((d) => !breadthExisting.has(d));
+    if (breadthMissing.length > 0) {
+      const breadthReports = await mapLimit(breadthMissing, 5, (d) => fetchEgxbotArchive(d));
+      for (const r of breadthReports) {
+        if (!r) continue;
+        await upsertBreadthDay(r.date, r.up, r.down, r.flat, "egxbot");
       }
     }
   } catch (err) {

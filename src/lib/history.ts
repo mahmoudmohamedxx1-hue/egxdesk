@@ -7,6 +7,9 @@
  *  see flows.ts.
  */
 
+import { fetchUniverse } from "./market";
+import { marketStatus } from "./market-status";
+
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -23,7 +26,7 @@ const RANGE_MAP: Record<ChartRange, { yahoo: string; interval: string; maxDays: 
   "5Y": { yahoo: "5y", interval: "1wk", maxDays: 1900 },
 };
 
-export type ChartPoint = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
+export type ChartPoint = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null; live?: boolean };
 
 export type StockChart = {
   symbol: string; // plain ticker, e.g. COMI
@@ -133,6 +136,36 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
     for (const p of points) byDate.set(p.date, p);
     const final = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
     if (final.length < 2) throw new Error("history: not enough candles");
+
+    // Task 23 fix — Yahoo routinely publishes the latest EGX session with a
+    // NULL close for hours after the EGX close (null candles are dropped
+    // above), so charts, technical panels and signals all ended a session
+    // behind the live quote header. When the candle series lags the last
+    // real session, splice the live TradingView close as a final "live"
+    // candle: after close it IS the session's final print; intraday it moves
+    // with the tape. Implemented HERE so every consumer (chart route,
+    // technical panel, signals scan, AI signals, hourly reports) inherits it.
+    const status = marketStatus();
+    const lastPt = final[final.length - 1];
+    let spliced = false;
+    if (lastPt.date < status.lastSession) {
+      try {
+        const universe = await fetchUniverse();
+        const live = universe.find((s) => s.ticker === t);
+        if (live && live.close > 0) {
+          final.push({
+            date: status.lastSession,
+            close: live.close,
+            volume: live.volume > 0 ? live.volume : null,
+            live: true,
+          });
+          spliced = true;
+        }
+      } catch {
+        // universe hiccup — candles stay as-is (still honest, just lagging)
+      }
+    }
+
     const closesArr = final.map((p) => p.close);
     const first = closesArr[0];
     const last = closesArr[closesArr.length - 1];
@@ -147,7 +180,9 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
       high: Math.max(...closesArr),
       low: Math.min(...closesArr),
       changePct: first > 0 ? ((last - first) / first) * 100 : null,
-      source: "Yahoo Finance (EGX daily candles)",
+      source: spliced
+        ? "Yahoo Finance (EGX daily candles) + live TradingView close (latest session)"
+        : "Yahoo Finance (EGX daily candles)",
       asOf: final[final.length - 1].date,
     } satisfies StockChart;
   });

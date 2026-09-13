@@ -7,7 +7,7 @@ import { T, tt, dn } from "@/lib/i18n";
 import { fmtInt, fmtDateAr } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, ArrowDownRight, ArrowUpRight, Landmark, ExternalLink } from "lucide-react";
+import { ShieldCheck, ArrowDownRight, ArrowUpRight, Landmark, ExternalLink, Newspaper } from "lucide-react";
 
 /**
  * Insider & treasury-share dealing log — real filed disclosures from the
@@ -37,6 +37,14 @@ type Item = {
   link: string;
 };
 
+type PressItem = {
+  id: string;
+  title: string;
+  link: string;
+  publishedAt: string;
+  source: string;
+};
+
 type InsidersData = {
   asOf: string;
   source: string;
@@ -57,6 +65,7 @@ type InsidersData = {
   };
   total: number;
   items: Item[];
+  press?: PressItem[];
 };
 
 const FILTERS = [
@@ -98,6 +107,36 @@ export function InsidersPanel() {
           ? "إفصاحات رسمية أودعتها الشركات لدى البورصة المصرية عن تعاملات أعضاء مجالس الإدارة والداخليين وكبار المساهمين والمجموعات المرتبطة وعمليات أسهم الخزينة. سجلُّ إفصاح لا إشارة: الشركة التي لم تُفصح لا يعني ذلك شيئاً عن أدائها."
           : "Official disclosures filed with the Egyptian Exchange for dealings by board members, insiders, major shareholders, related groups and treasury-share operations. A filing record, not a signal."}
       </p>
+
+      {/* Task 23 — press-disclosure strip: the live archive's newest filings /
+          dividends / AGM / insider coverage. Keeps the section visibly fresh
+          between official-snapshot harvests, honestly labelled as press. */}
+      {data?.press && data.press.length > 0 && (
+        <div className="mb-4 rounded-md border bg-secondary/30 px-3 py-2.5">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold">
+            <Newspaper className="h-3.5 w-3.5 text-primary" aria-hidden />
+            {lang === "ar" ? "أحدث تغطية صحفية للإفصاحات (بعد لقطة السجل الرسمي)" : "Latest disclosure press coverage (since the official snapshot)"}
+          </p>
+          <ul className="space-y-1">
+            {data.press.slice(0, 6).map((p) => (
+              <li key={p.id} className="flex items-baseline gap-2 text-xs">
+                <span className="num shrink-0 text-[10px] text-muted-foreground">
+                  {new Date(p.publishedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { day: "numeric", month: "short" })}
+                </span>
+                <a
+                  href={p.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 truncate hover:text-primary hover:underline"
+                >
+                  {p.title}
+                </a>
+                <span className="ms-auto hidden shrink-0 text-[10px] text-muted-foreground sm:inline">{p.source}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
@@ -237,8 +276,8 @@ export function InsidersPanel() {
 
       <p className="mt-3 text-[10px] text-muted-foreground">
         {lang === "ar"
-          ? "المصدر: إفصاحات البورصة المصرية كما نشرها esthmr.com — سجل لحظي حتى تاريخ التحديث أعلاه."
-          : "Source: Egyptian Exchange filings as published by esthmr.com — a snapshot as of the date above."}
+          ? "المصدر: إفصاحات البورصة المصرية كما نشرها esthmr.com — سجل لحظي حتى تاريخ التحديث أعلاه، والشريط الصحفي أعلاه يتحدث من أرشيف الأخبار الحي."
+          : "Source: Egyptian Exchange filings as published by esthmr.com — a snapshot as of the date above; the press strip updates from the live news archive."}
       </p>
     </section>
   );

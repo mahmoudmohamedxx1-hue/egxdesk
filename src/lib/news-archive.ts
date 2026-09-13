@@ -335,3 +335,20 @@ export async function companyDisclosures(ticker: string, name: string, limit = 1
     .slice(0, limit)
     .map(toRow);
 }
+
+/** Market-wide disclosure press log (Task 23): newest archived articles
+ *  matching disclosure-type keywords — filings, dividends, AGMs, insider /
+ *  treasury coverage. Serves the insiders section's "fresh since the
+ *  snapshot" strip so the view keeps updating daily even while the official
+ *  EGX filings harvest (which needs authenticated re-harvesting) is between
+ *  snapshots. Real press coverage — labeled as such, never mixed into the
+ *  official filing rows. */
+export async function disclosureNews(limit = 12): Promise<ArchivedNews[]> {
+  const kw =
+    /إفصاح|إفصاحات|العمومية|عمومية|توزيعات|كوبون|القوائم المالية|قوائم مالية|نتائج أعمال|أرباح|نصف سنوية|ربع سنوية|زيادة رأس المال|اكتتاب|إدراج|شطب|تغيرات جوهرية|أسهم الخزينة|صفقات|استحواذ|مجلس الإدارة|insider|disclosure|dividend|AGM|earnings/i;
+  const recent = await db.newsPost.findMany({ orderBy: { publishedAt: "desc" }, take: 600 });
+  return recent
+    .filter((r) => kw.test(`${r.title} ${r.snippet ?? ""}`))
+    .slice(0, limit)
+    .map(toRow);
+}

@@ -84,6 +84,20 @@ export function AppShell() {
     } catch {}
   }, []);
 
+  // Task 23 — the AI agent view takes over the WHOLE page: no header, no nav
+  // row, no footer, no max-width padding. AgentView is a self-sufficient
+  // h-dvh chat canvas with its own top bar (back-to-desk + logo + history +
+  // new chat + theme + language), exactly like a standalone chat app. The
+  // PWA registration still runs — installed apps keep offline/push behavior.
+  if (view.name === "agent") {
+    return (
+      <>
+        <PwaRegister />
+        <AgentView />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* G14 — service-worker registration (app shell cache; API never cached) */}
@@ -94,11 +108,11 @@ export function AppShell() {
           {/* top row */}
           <div className="flex items-center justify-between gap-3 py-2.5">
             <div className="flex items-center gap-3 min-w-0">
-              <button onClick={() => navigate("home")} className="flex items-center gap-2 shrink-0" aria-label="EGX Desk home">
-                <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground text-xs font-bold num">
-                  X
-                </span>
-                <span className="text-sm font-bold tracking-tight">{tt(T.brand, lang)}</span>
+              <button onClick={() => navigate("home")} className="flex items-center shrink-0" aria-label="EGX Desk home">
+                {/* the official EGXDesk mark+wordmark (from the supplied artwork,
+                    checkerboard removed, cropped to logo+text) — one file per theme */}
+                <img src="/logo.png" alt="EGX Desk" width={38} height={30} className="h-[30px] w-auto dark:hidden" />
+                <img src="/logo-dark.png" alt="EGX Desk" width={38} height={30} className="hidden h-[30px] w-auto dark:block" />
               </button>
               <span className="hidden sm:block text-[11px] text-muted-foreground border-s ps-3 leading-snug">
                 {tt(T.tagline, lang)}
@@ -129,12 +143,15 @@ export function AppShell() {
               {/* G1 price alerts — device-stored, evaluated on quote refresh */}
               <AlertsBell />
 
-              {/* direct light/dark toggle — dark is the default; theme state is
-                  undefined until mount, so we fall back to "dark" pre-mount to
-                  keep prerendered HTML matching hydration */}
+              {/* direct light/dark toggle — dark is the default. BOTH icons are
+                  rendered and switched with the html.dark CSS class (set by
+                  next-themes' pre-hydration script), so server and client
+                  markup match exactly — no hydration mismatch on the icon or
+                  the label. */}
               <Button
                 variant="ghost"
                 size="sm"
+                suppressHydrationWarning
                 aria-label={tt((theme ?? "dark") === "dark" ? T.switchToLight : T.switchToDark, lang)}
                 title={tt((theme ?? "dark") === "dark" ? T.switchToLight : T.switchToDark, lang)}
                 onClick={() => {
@@ -144,11 +161,8 @@ export function AppShell() {
                   setTheme((theme ?? "dark") === "dark" ? "light" : "dark");
                 }}
               >
-                {(theme ?? "dark") === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
+                <Sun className="hidden h-4 w-4 dark:block" aria-hidden />
+                <Moon className="block h-4 w-4 dark:hidden" aria-hidden />
               </Button>
 
               <DropdownMenu>
@@ -242,8 +256,8 @@ export function AppShell() {
       <footer className="mt-auto border-t bg-card">
         <div className="mx-auto max-w-6xl px-4 py-5 text-xs text-muted-foreground leading-relaxed">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-primary text-primary-foreground text-[10px] font-bold num">X</span>
-            <span className="font-semibold text-foreground">{tt(T.brand, lang)}</span>
+            <img src="/logo.png" alt="EGX Desk" width={27} height={22} className="h-[22px] w-auto dark:hidden" />
+            <img src="/logo-dark.png" alt="EGX Desk" width={27} height={22} className="hidden h-[22px] w-auto dark:block" />
             <button
               onClick={() => navigate("api")}
               className="ms-auto text-[11px] hover:text-primary hover:underline"

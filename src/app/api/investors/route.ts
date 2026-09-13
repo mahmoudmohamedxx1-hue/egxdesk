@@ -25,8 +25,11 @@ export async function GET() {
     flowsError = true;
   }
 
-  // persist the final session figure once the market has closed
-  if (today && !status.open) {
+  // persist the final session figure once the market has closed — but ONLY
+  // when the snapshot is genuinely stamped with the last session (Task 23 fix:
+  // overnight/weekend captures used to be persisted under stray HTML dates,
+  // creating phantom duplicate days in the flow-history chart)
+  if (today && !status.open && today.asOf === status.lastSession) {
     await persistFlowDay(today);
   }
 

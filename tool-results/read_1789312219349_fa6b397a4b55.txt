@@ -1,0 +1,753 @@
+     1→"use client";
+     2→
+     3→/** AI Agent tab — the in-app EGX analyst, redesigned (Task 22-b) to LOOK and
+     4→ *  FEEL like a modern AI chat (the Claude reference the user pointed at):
+     5→ *
+     6→ *  - ONE warm cream/charcoal chat canvas (not cards-in-cards): a slim top bar
+     7→ *    (title + history + new chat), a scrolling message column centered at
+     8→ *    reading width, and the composer pinned at the bottom of the canvas.
+     9→ *  - USER messages are soft rounded bubbles on the end side; ASSISTANT
+    10→ *    messages have NO bubble — plain generous text in a serif voice (Lora
+    11→ *    for Latin / Amiri for Arabic) under a terracotta asterisk mark, the
+    12→ *    way reference AI chats set their answers.
+    13→ *  - The composer is the Claude-style input: auto-growing canvas with its
+    14→ *    own focus ring, a round "+" context button, tools/model chips, an
+    15→ *    "extended thinking" toggle (a REAL flag the backend honors), and the
+    16→ *    filled circular send button that becomes stop while streaming.
+    17→ *
+    18→ *  Everything else from Task 20/21 is preserved: SSE streaming with live
+    19→ *  tool chips, stop/copy controls, server-side chat history + usage strip,
+    20→ *  bilingual rendering, ?q= deep-link prefill (never auto-sent). */
+    21→
+    22→import { useEffect, useRef, useState } from "react";
+    23→import { useApp } from "@/components/market/app-context";
+    24→import { T, tt } from "@/lib/i18n";
+    25→import { AgentMarkdown } from "@/components/market/agent-markdown";
+    26→import { ClaudeInput } from "@/components/market/claude-input";
+    27→import { bootParam } from "@/lib/url-state";
+    28→import { copyText } from "@/lib/url-state";
+    29→import { Button } from "@/components/ui/button";
+    30→import { Skeleton } from "@/components/ui/skeleton";
+    31→import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+    32→import {
+    33→  Check, Copy, Cpu, Eraser, History, Sparkles, Trash2, Wrench,
+    34→} from "lucide-react";
+    35→import { getDeviceId } from "@/lib/push-client";
+    36→
+    37→type AgentStep = {
+    38→  tool: string;
+    39→  args: Record<string, unknown>;
+    40→  ok: boolean;
+    41→};
+    42→
+    43→type AgentMsg = {
+    44→  role: "user" | "assistant";
+    45→  content: string;
+    46→  steps?: AgentStep[];
+    47→  error?: boolean;
+    48→  ts: number;
+    49→};
+    50→
+    51→const CHAT_KEY = "egx-agent-chat";
+    52→const CHAT_ID_KEY = "egx-agent-chat-id";
+    53→const THINK_KEY = "egx-agent-deep";
+    54→const MAX_STORED = 80;
+    55→
+    56→type HistoryRow = { id: string; title: string; updatedAt: string; count: number };
+    57→type UsageSummary = { today: { questions: number; llmCalls: number }; limits?: { agentQuestionsPerHourPerUser?: number } };
+    58→
+    59→function newChatId(): string {
+    60→  try {
+    61→    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+    62→  } catch {}
+    63→  return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    64→}
+    65→
+    66→const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
+    67→  market_overview: { ar: "نظرة السوق", en: "Market overview" },
+    68→  top_movers: { ar: "الأكثر حركة", en: "Top movers" },
+    69→  quote: { ar: "سعر سهم", en: "Stock quote" },
+    70→  screen: { ar: "فرز السوق", en: "Screening" },
+    71→  technicals: { ar: "تحليل فني", en: "Technicals" },
+    72→  best_signals: { ar: "أفضل الإشارات", en: "Best signals" },
+    73→  statements: { ar: "القوائم المالية", en: "Statements" },
+    74→  dividends: { ar: "التوزيعات", en: "Dividends" },
+    75→  news: { ar: "الأخبار", en: "News" },
+    76→  calendar: { ar: "التقويم", en: "Calendar" },
+    77→  rates: { ar: "أسعار الفائدة", en: "Interest rates" },
+    78→  insiders: { ar: "تعاملات الداخليين", en: "Insider deals" },
+    79→  compare: { ar: "مقارنة", en: "Compare" },
+    80→  web_search: { ar: "بحث الويب", en: "Web search" },
+    81→  ai_signals: { ar: "إشارات AI", en: "AI signals" },
+    82→  desk_reports: { ar: "تقارير المكتب", en: "Desk reports" },
+    83→};
+    84→
+    85→const SUGGESTIONS = [T.agentSuggest1, T.agentSuggest2, T.agentSuggest3, T.agentSuggest4, T.agentSuggest5, T.agentSuggest6];
+    86→
+    87→/** The terracotta asterisk mark — an original 12-ray sunburst that plays the
+    88→ *  role of the assistant's avatar (inspired by reference AI chats, not a
+    89→ *  copy of any logo). */
+    90→function ClaudeMark({ className }: { className?: string }) {
+    91→  const rays = Array.from({ length: 12 }, (_, i) => i * 30);
+    92→  return (
+    93→    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+    94→      {rays.map((a) => {
+    95→        const rad = (a * Math.PI) / 180;
+    96→        const x1 = 12 + Math.sin(rad) * 3.4;
+    97→        const y1 = 12 - Math.cos(rad) * 3.4;
+    98→        const x2 = 12 + Math.sin(rad) * 10.2;
+    99→        const y2 = 12 - Math.cos(rad) * 10.2;
+   100→        return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />;
+   101→      })}
+   102→    </svg>
+   103→  );
+   104→}
+   105→
+   106→function StepChips({ steps, lang }: { steps: AgentStep[]; lang: "ar" | "en" }) {
+   107→  if (!steps.length) return null;
+   108→  return (
+   109→    <div className="flex items-center gap-1.5 flex-wrap mb-2" aria-label={tt(T.agentStepsUsed, lang)}>
+   110→      <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "var(--chat-muted)" }}>
+   111→        <Wrench className="h-3 w-3" aria-hidden />
+   112→        {tt(T.agentStepsUsed, lang)}:
+   113→      </span>
+   114→      {steps.map((s, i) => (
+   115→        <span
+   116→          key={i}
+   117→          className={`num inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+   118→            s.ok ? "bg-secondary/70 text-muted-foreground" : "bg-down-soft text-down"
+   119→          }`}
+   120→          title={`${s.tool} ${JSON.stringify(s.args).slice(0, 120)}`}
+   121→        >
+   122→          {tt(TOOL_LABELS[s.tool] ?? { ar: s.tool, en: s.tool }, lang)}
+   123→          {s.ok ? "✓" : "✕"}
+   124→        </span>
+   125→      ))}
+   126→    </div>
+   127→  );
+   128→}
+   129→
+   130→function CopyAnswer({ text, lang }: { text: string; lang: "ar" | "en" }) {
+   131→  const [done, setDone] = useState(false);
+   132→  return (
+   133→    <button
+   134→      onClick={() => {
+   135→        void copyText(text).then((ok) => {
+   136→          if (ok) {
+   137→            setDone(true);
+   138→            setTimeout(() => setDone(false), 1600);
+   139→          }
+   140→        });
+   141→      }}
+   142→      aria-label={tt(T.agentCopy, lang)}
+   143→      title={tt(T.agentCopy, lang)}
+   144→      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] transition-colors hover:bg-accent"
+   145→      style={{ color: "var(--chat-muted)" }}
+   146→    >
+   147→      {done ? <Check className="h-3 w-3 text-up" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+   148→      {done ? tt(T.agentCopied, lang) : tt(T.agentCopy, lang)}
+   149→    </button>
+   150→  );
+   151→}
+   152→
+   153→/** One exchange: user bubble (end side) / assistant serif answer under the
+   154→ *  sunburst mark (no bubble — the reference chat grammar). */
+   155→function Exchange({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
+   156→  if (m.role === "user") {
+   157→    return (
+   158→      <div className="flex justify-end">
+   159→        <div
+   160→          className="max-w-[85%] rounded-2xl px-4 py-3 text-[14px] leading-relaxed whitespace-pre-wrap"
+   161→          style={{ backgroundColor: "var(--chat-bubble)", color: "var(--chat-ink)" }}
+   162→        >
+   163→          {m.content}
+   164→        </div>
+   165→      </div>
+   166→    );
+   167→  }
+   168→  return (
+   169→    <div className="group space-y-2">
+   170→      <div className="flex items-center gap-2">
+   171→        <ClaudeMark className="h-5 w-5 shrink-0" />
+   172→        <span className="text-[11px] font-medium" style={{ color: "var(--chat-muted)" }}>
+   173→          EGX Desk
+   174→        </span>
+   175→      </div>
+   176→      {m.steps && !m.error && <StepChips steps={m.steps} lang={lang} />}
+   177→      {m.error ? (
+   178→        <p className="text-sm leading-relaxed text-down">{m.content}</p>
+   179→      ) : (
+   180→        <div className="claude-serif text-[15px] leading-[1.85]" style={{ color: "var(--chat-ink)" }}>
+   181→          <AgentMarkdown text={m.content} />
+   182→        </div>
+   183→      )}
+   184→      {!m.error && (
+   185→        <div className="flex justify-end opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60">
+   186→          <CopyAnswer text={m.content} lang={lang} />
+   187→        </div>
+   188→      )}
+   189→    </div>
+   190→  );
+   191→}
+   192→
+   193→export function AgentView() {
+   194→  const { lang, toast } = useApp();
+   195→  const [messages, setMessages] = useState<AgentMsg[]>([]);
+   196→  const [ready, setReady] = useState(false);
+   197→  const [input, setInput] = useState("");
+   198→  const [busy, setBusy] = useState(false);
+   199→  const [deep, setDeep] = useState(false);
+   200→  const [elapsed, setElapsed] = useState(0);
+   201→  const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
+   202→  const [liveNote, setLiveNote] = useState<string | null>(null);
+   203→  const [streamText, setStreamText] = useState("");
+   204→  const [historyOpen, setHistoryOpen] = useState(false);
+   205→  const [historyLoading, setHistoryLoading] = useState(false);
+   206→  const [historyList, setHistoryList] = useState<HistoryRow[]>([]);
+   207→  const [usage, setUsage] = useState<UsageSummary | null>(null);
+   208→  const chatIdRef = useRef<string>("");
+   209→  const lastQueryRef = useRef<string | null>(null);
+   210→  const bottomRef = useRef<HTMLDivElement | null>(null);
+   211→  const abortRef = useRef<AbortController | null>(null);
+   212→
+   213→  // restore the chat from the device (SSR-safe mount read); a shared
+   214→  // ?q=… link prefills the composer (never auto-sends — it would burn the
+   215→  // recipient's AI quota without their consent)
+   216→  useEffect(() => {
+   217→    try {
+   218→      const raw = localStorage.getItem(CHAT_KEY);
+   219→      if (raw) {
+   220→        const arr = JSON.parse(raw);
+   221→        if (Array.isArray(arr)) {
+   222→          setMessages(
+   223→            arr
+   224→              .filter((m): m is AgentMsg => m && typeof m === "object" && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+   225→              .slice(-MAX_STORED)
+   226→          );
+   227→        }
+   228→      }
+   229→      let id = localStorage.getItem(CHAT_ID_KEY);
+   230→      if (!id) {
+   231→        id = newChatId();
+   232→        localStorage.setItem(CHAT_ID_KEY, id);
+   233→      }
+   234→      chatIdRef.current = id;
+   235→      setDeep(localStorage.getItem(THINK_KEY) === "1");
+   236→    } catch {}
+   237→    const q = bootParam("q");
+   238→    if (q) setInput(q.slice(0, 2000));
+   239→    setReady(true);
+   240→  }, []);
+   241→
+   242→  const persist = (next: AgentMsg[]) => {
+   243→    setMessages(next);
+   244→    try {
+   245→      localStorage.setItem(CHAT_KEY, JSON.stringify(next.slice(-MAX_STORED)));
+   246→    } catch {}
+   247→  };
+   248→
+   249→  const toggleDeep = () => {
+   250→    setDeep((d) => {
+   251→      const next = !d;
+   252→      try {
+   253→        localStorage.setItem(THINK_KEY, next ? "1" : "0");
+   254→      } catch {}
+   255→      return next;
+   256→    });
+   257→  };
+   258→
+   259→  // elapsed-seconds timer while the agent works
+   260→  useEffect(() => {
+   261→    if (!busy) {
+   262→      setElapsed(0);
+   263→      return;
+   264→    }
+   265→    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+   266→    return () => clearInterval(t);
+   267→  }, [busy]);
+   268→
+   269→  // keep the newest message in view (also while the answer streams in)
+   270→  useEffect(() => {
+   271→    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+   272→  }, [messages, busy, liveSteps, streamText]);
+   273→
+   274→  const ask = async (text: string) => {
+   275→    const q = text.trim();
+   276→    if (!q || busy) return;
+   277→    lastQueryRef.current = q;
+   278→    const userMsg: AgentMsg = { role: "user", content: q, ts: Date.now() };
+   279→    const history = [...messages, userMsg];
+   280→    persist(history);
+   281→    setInput("");
+   282→    setBusy(true);
+   283→    setLiveSteps([]);
+   284→    setLiveNote(null);
+   285→    setStreamText("");
+   286→    const ac = new AbortController();
+   287→    abortRef.current = ac;
+   288→    let streamSoFar = "";
+   289→    try {
+   290→      const res = await fetch("/api/agent", {
+   291→        method: "POST",
+   292→        headers: { "Content-Type": "application/json" },
+   293→        signal: ac.signal,
+   294→        body: JSON.stringify({
+   295→          messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
+   296→          lang,
+   297→          deviceId: getDeviceId(), // usage metering + per-user hourly limit
+   298→          deep, // the composer's extended-thinking toggle (Task 22-b)
+   299→        }),
+   300→      });
+   301→      const ct = res.headers.get("content-type") ?? "";
+   302→      // plain-JSON error path (429 rate limit / 400 validation / gateway html)
+   303→      if (!res.ok || !ct.includes("text/event-stream")) {
+   304→        const json = (await res.json().catch(() => ({}))) as { error?: string };
+   305→        persist([
+   306→          ...history,
+   307→          {
+   308→            role: "assistant",
+   309→            content: json.error ? `${tt(T.agentError, lang)} (${json.error})` : tt(T.agentError, lang),
+   310→            error: true,
+   311→            ts: Date.now(),
+   312→          },
+   313→        ]);
+   314→        return;
+   315→      }
+   316→      // SSE stream: tool steps arrive as they run, the answer previews live
+   317→      const reader = res.body?.getReader();
+   318→      if (!reader) throw new Error("no stream body");
+   319→      const dec = new TextDecoder();
+   320→      let buf = "";
+   321→      let gotTerminal = false;
+   322→      const stepsAcc: AgentStep[] = [];
+   323→      const handleEvent = (evt: Record<string, unknown>) => {
+   324→        if (evt.type === "step") {
+   325→          stepsAcc.push({ tool: String(evt.tool ?? ""), args: (evt.args as Record<string, unknown>) ?? {}, ok: evt.ok !== false });
+   326→          setLiveSteps([...stepsAcc]);
+   327→        } else if (evt.type === "status") {
+   328→          setLiveNote(typeof evt.note === "string" ? evt.note : null);
+   329→        } else if (evt.type === "delta" && typeof evt.text === "string") {
+   330→          streamSoFar += evt.text;
+   331→          setStreamText(streamSoFar);
+   332→        } else if (evt.type === "done" && typeof evt.answer === "string") {
+   333→          gotTerminal = true;
+   334→          const finalSteps = Array.isArray(evt.steps) ? (evt.steps as AgentStep[]) : stepsAcc;
+   335→          const next: AgentMsg[] = [...history, { role: "assistant", content: evt.answer, steps: finalSteps, ts: Date.now() }];
+   336→          persist(next);
+   337→          saveChat(next); // server-side history (fire-and-forget)
+   338→        } else if (evt.type === "error") {
+   339→          gotTerminal = true;
+   340→          persist([
+   341→            ...history,
+   342→            {
+   343→              role: "assistant",
+   344→              content: evt.message ? `${tt(T.agentError, lang)} (${evt.message})` : tt(T.agentError, lang),
+   345→              error: true,
+   346→              ts: Date.now(),
+   347→            },
+   348→          ]);
+   349→        }
+   350→      };
+   351→      for (;;) {
+   352→        const { done, value } = await reader.read();
+   353→        if (done) break;
+   354→        buf += dec.decode(value, { stream: true });
+   355→        let sep: number;
+   356→        while ((sep = buf.indexOf("\n\n")) !== -1) {
+   357→          const rawEvt = buf.slice(0, sep);
+   358→          buf = buf.slice(sep + 2);
+   359→          for (const line of rawEvt.split("\n")) {
+   360→            if (!line.startsWith("data:")) continue;
+   361→            try {
+   362→              handleEvent(JSON.parse(line.slice(5).trim()) as Record<string, unknown>);
+   363→            } catch {
+   364→              /* partial line — the next chunk completes it */
+   365→            }
+   366→          }
+   367→        }
+   368→      }
+   369→      if (!gotTerminal) throw new Error("stream ended without a terminal event");
+   370→    } catch (err) {
+   371→      // user pressed stop — keep whatever streamed as the (partial) answer
+   372→      if (err instanceof DOMException && err.name === "AbortError") {
+   373→        if (streamSoFar.trim()) {
+   374→          persist([...history, { role: "assistant", content: streamSoFar, ts: Date.now() }]);
+   375→        } else {
+   376→          persist([...history, { role: "assistant", content: tt(T.agentStopped, lang), error: true, ts: Date.now() }]);
+   377→        }
+   378→      } else {
+   379→        persist([...history, { role: "assistant", content: tt(T.agentError, lang), error: true, ts: Date.now() }]);
+   380→      }
+   381→    } finally {
+   382→      abortRef.current = null;
+   383→      setBusy(false);
+   384→      setLiveSteps([]);
+   385→      setLiveNote(null);
+   386→      setStreamText("");
+   387→    }
+   388→  };
+   389→
+   390→  const stop = () => {
+   391→    abortRef.current?.abort();
+   392→  };
+   393→
+   394→  const retry = () => {
+   395→    if (lastQueryRef.current && !busy) void ask(lastQueryRef.current);
+   396→  };
+   397→
+   398→  // ── server-side chat history (auto-saved after every exchange) ──
+   399→
+   400→  const saveChat = (msgs: AgentMsg[]) => {
+   401→    const id = chatIdRef.current;
+   402→    if (!id || msgs.length === 0) return;
+   403→    const title = (msgs.find((m) => m.role === "user")?.content ?? "").slice(0, 80);
+   404→    void fetch("/api/agent/chats", {
+   405→      method: "PUT",
+   406→      headers: { "Content-Type": "application/json" },
+   407→      body: JSON.stringify({
+   408→        deviceId: getDeviceId(),
+   409→        id,
+   410→        title,
+   411→        messages: msgs.filter((m) => !m.error).slice(-80),
+   412→      }),
+   413→    }).catch(() => {}); // best-effort — the next exchange retries
+   414→  };
+   415→
+   416→  const loadHistory = async () => {
+   417→    setHistoryLoading(true);
+   418→    try {
+   419→      const res = await fetch(`/api/agent/chats?deviceId=${encodeURIComponent(getDeviceId())}`);
+   420→      const json = (await res.json()) as { chats?: HistoryRow[] };
+   421→      setHistoryList(json.chats ?? []);
+   422→    } catch {}
+   423→    setHistoryLoading(false);
+   424→    // usage metering strip (best-effort, never blocks the panel)
+   425→    try {
+   426→      const res = await fetch("/api/usage");
+   427→      if (res.ok) setUsage((await res.json()) as UsageSummary);
+   428→    } catch {}
+   429→  };
+   430→
+   431→  const loadChat = async (id: string) => {
+   432→    if (busy) return;
+   433→    try {
+   434→      const res = await fetch(`/api/agent/chats?deviceId=${encodeURIComponent(getDeviceId())}&id=${encodeURIComponent(id)}`);
+   435→      if (!res.ok) return;
+   436→      const json = (await res.json()) as { messages?: AgentMsg[] };
+   437→      const msgs = (json.messages ?? [])
+   438→        .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+   439→        .slice(-MAX_STORED);
+   440→      persist(msgs);
+   441→      chatIdRef.current = id;
+   442→      try {
+   443→        localStorage.setItem(CHAT_ID_KEY, id);
+   444→      } catch {}
+   445→      setHistoryOpen(false);
+   446→    } catch {}
+   447→  };
+   448→
+   449→  const deleteChat = async (id: string) => {
+   450→    try {
+   451→      await fetch(`/api/agent/chats?deviceId=${encodeURIComponent(getDeviceId())}&id=${encodeURIComponent(id)}`, {
+   452→        method: "DELETE",
+   453→      });
+   454→      setHistoryList((h) => h.filter((c) => c.id !== id));
+   455→      if (chatIdRef.current === id) {
+   456→        startNewChat();
+   457→        toast(tt(T.agentChatDeleted, lang));
+   458→      }
+   459→    } catch {}
+   460→  };
+   461→
+   462→  const startNewChat = () => {
+   463→    const id = newChatId();
+   464→    chatIdRef.current = id;
+   465→    try {
+   466→      localStorage.setItem(CHAT_ID_KEY, id);
+   467→    } catch {}
+   468→    persist([]);
+   469→    setHistoryOpen(false);
+   470→  };
+   471→
+   472→  const newChat = () => {
+   473→    startNewChat();
+   474→    toast(tt(T.agentClear, lang));
+   475→  };
+   476→
+   477→  const suggestions = SUGGESTIONS.slice(0, 6);
+   478→
+   479→  /** the composer's bottom-left chips: tools · extended thinking · model */
+   480→  const toolbar = (
+   481→    <>
+   482→      {/* tools chip */}
+   483→      <Popover>
+   484→        <PopoverTrigger asChild>
+   485→          <button
+   486→            type="button"
+   487→            aria-label={tt(T.agentAttachTitle, lang)}
+   488→            title={tt(T.agentAttachTitle, lang)}
+   489→            className="inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] transition-colors hover:opacity-80"
+   490→            style={{ color: "var(--chat-muted)" }}
+   491→          >
+   492→            <Wrench className="h-3 w-3" aria-hidden />
+   493→            <span className="hidden sm:inline">{tt(T.agentToolsInfo, lang)}</span>
+   494→          </button>
+   495→        </PopoverTrigger>
+   496→        <PopoverContent align="start" className="w-64 p-3 space-y-1.5">
+   497→          <p className="text-[11px] font-semibold">{tt(T.agentToolsInfo, lang)}</p>
+   498→          <p className="text-[10px] leading-relaxed text-muted-foreground">{tt(T.agentToolsHint, lang)}</p>
+   499→          <ul className="max-h-52 overflow-y-auto thin-scroll pt-1">
+   500→            {Object.entries(TOOL_LABELS).map(([key, label]) => (
+   501→              <li key={key} className="flex items-center gap-1.5 py-0.5 text-[11px]">
+   502→                <Check className="h-3 w-3 text-up shrink-0" aria-hidden />
+   503→                {tt(label, lang)}
+   504→              </li>
+   505→            ))}
+   506→          </ul>
+   507→        </PopoverContent>
+   508→      </Popover>
+   509→
+   510→      {/* extended thinking toggle — a REAL flag honored by /api/agent */}
+   511→      <button
+   512→        type="button"
+   513→        onClick={toggleDeep}
+   514→        aria-pressed={deep}
+   515→        aria-label={tt(T.agentThinkingToggle, lang)}
+   516→        title={tt(T.agentThinkingHint, lang)}
+   517→        className="inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium transition-all"
+   518→        style={
+   519→          deep
+   520→            ? { backgroundColor: "var(--chat-accent-soft)", borderColor: "var(--chat-accent)", color: "var(--chat-accent)" }
+   521→            : { color: "var(--chat-muted)" }
+   522→        }
+   523→      >
+   524→        <Sparkles className="h-3 w-3" aria-hidden />
+   525→        <span className="hidden sm:inline">{tt(T.agentThinkingToggle, lang)}</span>
+   526→      </button>
+   527→
+   528→      {/* model chip */}
+   529→      <span
+   530→        className="num inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium"
+   531→        style={{ color: "var(--chat-muted)" }}
+   532→      >
+   533→        <Cpu className="h-3 w-3" aria-hidden />
+   534→        GLM
+   535→      </span>
+   536→    </>
+   537→  );
+   538→
+   539→  /** the "+" context popover: quick prompts about the desk's data */
+   540→  const plusMenu = (
+   541→    <>
+   542→      <p className="text-[11px] font-semibold">{tt(T.agentQuickPrompts, lang)}</p>
+   543→      <p className="text-[10px] leading-relaxed text-muted-foreground">{tt(T.agentToolsHint, lang)}</p>
+   544→      <ul className="max-h-56 overflow-y-auto thin-scroll pt-1">
+   545→        {suggestions.map((s, i) => (
+   546→          <li key={i}>
+   547→            <button
+   548→              type="button"
+   549→              onClick={() => {
+   550→                setInput(tt(s, lang));
+   551→                setHistoryOpen(false);
+   552→              }}
+   553→              className="w-full text-start rounded-md px-2 py-1.5 text-[11px] hover:bg-accent/60 transition-colors"
+   554→            >
+   555→              {tt(s, lang)}
+   556→            </button>
+   557→          </li>
+   558→        ))}
+   559→      </ul>
+   560→    </>
+   561→  );
+   562→
+   563→  return (
+   564→    <section
+   565→      className="overflow-hidden rounded-2xl border shadow-sm flex flex-col"
+   566→      style={{ backgroundColor: "var(--chat-bg)", borderColor: "var(--chat-border)" }}
+   567→      aria-label={tt(T.agentTitle, lang)}
+   568→    >
+   569→      {/* ── slim top bar: identity · history · new chat ── */}
+   570→      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--chat-border)" }}>
+   571→        <div className="flex items-center gap-2 min-w-0">
+   572→          <ClaudeMark className="h-6 w-6 shrink-0" />
+   573→          <div className="min-w-0">
+   574→            <h1 className="text-sm font-bold truncate" style={{ color: "var(--chat-ink)" }}>
+   575→              {tt(T.agentTitle, lang)}
+   576→            </h1>
+   577→            <p className="num text-[10px] truncate" style={{ color: "var(--chat-muted)" }}>
+   578→              GLM · {tt(T.delayed, lang)}
+   579→            </p>
+   580→          </div>
+   581→        </div>
+   582→        <div className="flex items-center gap-1.5">
+   583→          {/* server-side chat history — popover panel */}
+   584→          <Popover open={historyOpen} onOpenChange={(o) => { setHistoryOpen(o); if (o) void loadHistory(); }}>
+   585→            <PopoverTrigger asChild>
+   586→              <Button
+   587→                size="sm"
+   588→                variant="outline"
+   589→                className="h-8 gap-1.5 px-2.5 text-[11px]"
+   590→                aria-expanded={historyOpen}
+   591→              >
+   592→                <History className="h-3.5 w-3.5" />
+   593→                <span className="hidden sm:inline">{tt(T.agentHistory, lang)}</span>
+   594→              </Button>
+   595→            </PopoverTrigger>
+   596→            <PopoverContent align="end" className="w-80 p-3 space-y-2">
+   597→              <div className="flex items-center justify-between">
+   598→                <h2 className="text-xs font-semibold">{tt(T.agentHistory, lang)}</h2>
+   599→                <span className="num text-[10px] text-muted-foreground">{historyList.length}</span>
+   600→              </div>
+   601→              {historyLoading ? (
+   602→                <Skeleton className="h-16 w-full" />
+   603→              ) : historyList.length === 0 ? (
+   604→                <p className="text-xs text-muted-foreground py-2 text-center">{tt(T.agentHistoryEmpty, lang)}</p>
+   605→              ) : (
+   606→                <ul className="max-h-64 overflow-y-auto thin-scroll">
+   607→                  {historyList.map((c) => (
+   608→                    <li key={c.id} className="flex items-center gap-2 border-b border-border/60 last:border-0 py-1.5">
+   609→                      <button
+   610→                        onClick={() => void loadChat(c.id)}
+   611→                        disabled={busy}
+   612→                        className="min-w-0 flex-1 text-start group disabled:opacity-50"
+   613→                      >
+   614→                        <span className="block truncate text-xs group-hover:text-primary transition-colors">
+   615→                          {c.title || tt(T.agentUntitledChat, lang)}
+   616→                        </span>
+   617→                        <span className="num block text-[10px] text-muted-foreground">
+   618→                          {new Date(c.updatedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB")} · {c.count}{" "}
+   619→                          {tt(T.agentMsgsUnit, lang)}
+   620→                        </span>
+   621→                      </button>
+   622→                      <Button
+   623→                        size="sm"
+   624→                        variant="ghost"
+   625→                        className="h-6 w-6 shrink-0 p-0 text-muted-foreground hover:text-down"
+   626→                        onClick={() => void deleteChat(c.id)}
+   627→                        aria-label={tt(T.agentDeleteChat, lang)}
+   628→                      >
+   629→                        <Trash2 className="h-3 w-3" />
+   630→                      </Button>
+   631→                    </li>
+   632→                  ))}
+   633→                </ul>
+   634→              )}
+   635→              {usage && (
+   636→                <p className="num border-t border-border/60 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+   637→                  {tt(T.agentUsageToday, lang)}: {usage.today.questions} {tt(T.agentUsageQUnit, lang)} ·{" "}
+   638→                  {usage.today.llmCalls} {tt(T.agentUsageAiCalls, lang)} · {tt(T.agentUsageLimit, lang)}
+   639→                </p>
+   640→              )}
+   641→            </PopoverContent>
+   642→          </Popover>
+   643→          <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-[11px]" onClick={newChat} disabled={busy}>
+   644→            <Eraser className="h-3.5 w-3.5" />
+   645→            <span className="hidden sm:inline">{tt(T.agentClear, lang)}</span>
+   646→          </Button>
+   647→        </div>
+   648→      </div>
+   649→
+   650→      {/* ── the message column (reading width, scrolls above the composer) ── */}
+   651→      <div className="thin-scroll max-h-[62vh] min-h-[320px] overflow-y-auto px-4">
+   652→        <div className="mx-auto max-w-3xl space-y-6 py-5">
+   653→          {!ready ? (
+   654→            <Skeleton className="h-24 w-full" />
+   655→          ) : messages.length === 0 && !busy ? (
+   656→            /* first visit — the Claude-style greeting + suggestion pills */
+   657→            <div className="py-8 text-center space-y-5">
+   658→              <ClaudeMark className="mx-auto h-9 w-9" />
+   659→              <h2 className="claude-serif text-xl sm:text-2xl font-semibold" style={{ color: "var(--chat-ink)" }}>
+   660→                {tt(T.agentGreeting, lang)}
+   661→              </h2>
+   662→              <p className="mx-auto max-w-xl text-xs leading-relaxed" style={{ color: "var(--chat-muted)" }}>
+   663→                {tt(T.agentNote, lang)}
+   664→              </p>
+   665→              <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto">
+   666→                {suggestions.map((s, i) => (
+   667→                  <button
+   668→                    key={i}
+   669→                    onClick={() => void ask(tt(s, lang))}
+   670→                    disabled={busy}
+   671→                    className="rounded-full border px-3.5 py-2 text-xs transition-all hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-50"
+   672→                    style={{ color: "var(--chat-muted)" }}
+   673→                  >
+   674→                    {tt(s, lang)}
+   675→                  </button>
+   676→                ))}
+   677→              </div>
+   678→            </div>
+   679→          ) : (
+   680→            messages.map((m, i) => <Exchange key={i} m={m} lang={lang} />)
+   681→          )}
+   682→
+   683→          {/* the live exchange while the agent works */}
+   684→          {busy && (
+   685→            <div className="space-y-2">
+   686→              <div className="flex items-center gap-2">
+   687→                <ClaudeMark className="h-5 w-5 shrink-0 animate-pulse" />
+   688→                <span className="text-[11px] font-medium" style={{ color: "var(--chat-muted)" }}>
+   689→                  EGX Desk
+   690→                  {elapsed > 2 && <span className="num"> · {elapsed}s</span>}
+   691→                </span>
+   692→              </div>
+   693→              {liveSteps.length > 0 && <StepChips steps={liveSteps} lang={lang} />}
+   694→              {liveNote && (
+   695→                <p className="text-[10px]" style={{ color: "var(--chat-muted)" }}>
+   696→                  {liveNote}
+   697→                </p>
+   698→              )}
+   699→              {streamText ? (
+   700→                <div className="claude-serif text-[15px] leading-[1.85]" style={{ color: "var(--chat-ink)" }}>
+   701→                  <AgentMarkdown text={streamText} streaming />
+   702→                </div>
+   703→              ) : (
+   704→                <div className="flex items-center gap-2.5 py-1">
+   705→                  <span className="flex gap-1" aria-hidden>
+   706→                    <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:0ms]" style={{ backgroundColor: "var(--chat-accent)" }} />
+   707→                    <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: "var(--chat-accent)" }} />
+   708→                    <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: "var(--chat-accent)" }} />
+   709→                  </span>
+   710→                  <span className="text-xs" style={{ color: "var(--chat-muted)" }}>
+   711→                    {tt(T.agentThinking, lang)}
+   712→                  </span>
+   713→                </div>
+   714→              )}
+   715→            </div>
+   716→          )}
+   717→          <div ref={bottomRef} />
+   718→        </div>
+   719→      </div>
+   720→
+   721→      {/* ── the composer, pinned to the bottom of the canvas ── */}
+   722→      <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: "var(--chat-border)" }}>
+   723→        <div className="mx-auto max-w-3xl">
+   724→          {/* error retry */}
+   725→          {messages.length > 0 && messages[messages.length - 1].error && !busy && (
+   726→            <div className="mb-2 flex justify-center">
+   727→              <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px]" onClick={retry}>
+   728→                {tt(T.agentRetry, lang)}
+   729→              </Button>
+   730→            </div>
+   731→          )}
+   732→          <ClaudeInput
+   733→            value={input}
+   734→            onChange={setInput}
+   735→            onSubmit={() => void ask(input)}
+   736→            onStop={stop}
+   737→            busy={busy}
+   738→            placeholder={tt(T.agentPlaceholder, lang)}
+   739→            ariaLabel={tt(T.agentPlaceholder, lang)}
+   740→            hint={tt(T.agentSendHint, lang)}
+   741→            toolbar={toolbar}
+   742→            plusMenu={plusMenu}
+   743→            plusLabel={tt(T.agentQuickPrompts, lang)}
+   744→          />
+   745→          <p className="mt-2 text-center text-[10px] leading-relaxed" style={{ color: "var(--chat-muted)" }}>
+   746→            {tt(T.agentDisclaimer, lang)}
+   747→          </p>
+   748→        </div>
+   749→      </div>
+   750→    </section>
+   751→  );
+   752→}
+   753→

@@ -1,21 +1,25 @@
 "use client";
 
-/** AI Agent tab — the in-app EGX analyst, redesigned (Task 22-b) to LOOK and
- *  FEEL like a modern AI chat (the Claude reference the user pointed at):
+/** AI Agent — now a FULL-PAGE chat (Task 23): clicking the AI Agent nav item
+ *  takes over the whole viewport (the app shell's header/nav/footer are not
+ *  rendered for this view), exactly like a standalone Claude-style page:
  *
- *  - ONE warm cream/charcoal chat canvas (not cards-in-cards): a slim top bar
- *    (title + history + new chat), a scrolling message column centered at
- *    reading width, and the composer pinned at the bottom of the canvas.
+ *  - h-dvh canvas in the warm cream/charcoal chat palette, own slim top bar
+ *    (back-to-desk + logo + title, history, new chat, theme & language — the
+ *    controls the hidden main header would normally carry).
+ *  - The message column fills ALL remaining height (flex-1, own scroll) and
+ *    the composer pins to the bottom of the viewport.
  *  - USER messages are soft rounded bubbles on the end side; ASSISTANT
  *    messages have NO bubble — plain generous text in a serif voice (Lora
- *    for Latin / Amiri for Arabic) under a terracotta asterisk mark, the
- *    way reference AI chats set their answers.
+ *    for Latin / Amiri for Arabic) under a terracotta asterisk mark.
  *  - The composer is the Claude-style input: auto-growing canvas with its
  *    own focus ring, a round "+" context button, tools/model chips, an
  *    "extended thinking" toggle (a REAL flag the backend honors), and the
  *    filled circular send button that becomes stop while streaming.
+ *  - The model chip states the FULL served model name (GLM-4-Plus by Z.ai),
+ *    verified against the gateway's own response payload.
  *
- *  Everything else from Task 20/21 is preserved: SSE streaming with live
+ *  Everything else from Task 20/21/22 is preserved: SSE streaming with live
  *  tool chips, stop/copy controls, server-side chat history + usage strip,
  *  bilingual rendering, ?q= deep-link prefill (never auto-sent). */
 
@@ -30,9 +34,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Check, Copy, Cpu, Eraser, History, Sparkles, Trash2, Wrench,
+  ArrowLeft, Check, Copy, Cpu, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench,
 } from "lucide-react";
 import { getDeviceId } from "@/lib/push-client";
+import { useTheme } from "next-themes";
 
 type AgentStep = {
   tool: string;
@@ -191,7 +196,8 @@ function Exchange({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
 }
 
 export function AgentView() {
-  const { lang, toast } = useApp();
+  const { lang, setLang, navigate, toast } = useApp();
+  const { theme, setTheme } = useTheme();
   const [messages, setMessages] = useState<AgentMsg[]>([]);
   const [ready, setReady] = useState(false);
   const [input, setInput] = useState("");
@@ -525,13 +531,15 @@ export function AgentView() {
         <span className="hidden sm:inline">{tt(T.agentThinkingToggle, lang)}</span>
       </button>
 
-      {/* model chip */}
+      {/* model chip — the FULL served model name (verified via the gateway's
+          response payload: model "glm-4-plus") */}
       <span
         className="num inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium"
         style={{ color: "var(--chat-muted)" }}
+        title={tt(T.agentModelName, lang)}
       >
         <Cpu className="h-3 w-3" aria-hidden />
-        GLM
+        GLM-4-Plus
       </span>
     </>
   );
@@ -562,20 +570,50 @@ export function AgentView() {
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border shadow-sm flex flex-col"
-      style={{ backgroundColor: "var(--chat-bg)", borderColor: "var(--chat-border)" }}
+      className="flex h-dvh w-full flex-col overflow-hidden"
+      style={{ backgroundColor: "var(--chat-bg)" }}
       aria-label={tt(T.agentTitle, lang)}
     >
-      {/* ── slim top bar: identity · history · new chat ── */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--chat-border)" }}>
+      {/* ── slim top bar: back-to-desk · logo · title · history · new chat · theme · lang ── */}
+      <div
+        className="flex items-center justify-between gap-2 px-3 py-2.5 border-b sm:px-4"
+        style={{ borderColor: "var(--chat-border)", backgroundColor: "var(--chat-bg)" }}
+      >
         <div className="flex items-center gap-2 min-w-0">
-          <ClaudeMark className="h-6 w-6 shrink-0" />
+          {/* back to the desk — the chat takes over the whole page, so this is
+              the way out (arrow auto-flips in RTL via the rtl: variant) */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate("home")}
+            className="h-8 shrink-0 gap-1.5 px-2.5 text-[11px]"
+            aria-label={tt(T.agentBackToDesk, lang)}
+            title={tt(T.agentBackToDesk, lang)}
+          >
+            <ArrowLeft className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
+            <span className="hidden sm:inline">{tt(T.agentBackToDesk, lang)}</span>
+          </Button>
+          {/* the official EGXDesk mark+wordmark (logo for this theme) */}
+          <img
+            src="/logo.png"
+            alt="EGX Desk"
+            width={35}
+            height={28}
+            className="h-6 w-auto sm:h-[28px] dark:hidden"
+          />
+          <img
+            src="/logo-dark.png"
+            alt="EGX Desk"
+            width={35}
+            height={28}
+            className="hidden h-6 w-auto sm:h-[28px] dark:block"
+          />
           <div className="min-w-0">
-            <h1 className="text-sm font-bold truncate" style={{ color: "var(--chat-ink)" }}>
+            <h1 className="truncate text-sm font-bold" style={{ color: "var(--chat-ink)" }}>
               {tt(T.agentTitle, lang)}
             </h1>
-            <p className="num text-[10px] truncate" style={{ color: "var(--chat-muted)" }}>
-              GLM · {tt(T.delayed, lang)}
+            <p className="num truncate text-[10px]" style={{ color: "var(--chat-muted)" }}>
+              GLM-4-Plus · {tt(T.delayed, lang)}
             </p>
           </div>
         </div>
@@ -644,12 +682,44 @@ export function AgentView() {
             <Eraser className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{tt(T.agentClear, lang)}</span>
           </Button>
+
+          {/* the controls the hidden main header would normally carry — the
+              theme toggle renders BOTH icons and switches them with the
+              html.dark CSS class so SSR and client markup match exactly */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            suppressHydrationWarning
+            aria-label={tt((theme ?? "dark") === "dark" ? T.switchToLight : T.switchToDark, lang)}
+            title={tt((theme ?? "dark") === "dark" ? T.switchToLight : T.switchToDark, lang)}
+            onClick={() => {
+              try {
+                localStorage.setItem("egx-theme-chosen", "1");
+              } catch {}
+              setTheme((theme ?? "dark") === "dark" ? "light" : "dark");
+            }}
+          >
+            <Sun className="hidden h-4 w-4 dark:block" aria-hidden />
+            <Moon className="block h-4 w-4 dark:hidden" aria-hidden />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 px-2"
+            aria-label={tt(T.langAppearance, lang)}
+            title={tt(T.langAppearance, lang)}
+            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+          >
+            <Languages className="h-4 w-4" aria-hidden />
+            <span className="num text-[11px]">{lang === "ar" ? "EN" : "ع"}</span>
+          </Button>
         </div>
       </div>
 
-      {/* ── the message column (reading width, scrolls above the composer) ── */}
-      <div className="thin-scroll max-h-[62vh] min-h-[320px] overflow-y-auto px-4">
-        <div className="mx-auto max-w-3xl space-y-6 py-5">
+      {/* ── the message column — fills ALL remaining height (own scroll) ── */}
+      <div className="thin-scroll flex-1 overflow-y-auto px-4">
+        <div className="mx-auto max-w-3xl space-y-6 py-6">
           {!ready ? (
             <Skeleton className="h-24 w-full" />
           ) : messages.length === 0 && !busy ? (
@@ -718,8 +788,8 @@ export function AgentView() {
         </div>
       </div>
 
-      {/* ── the composer, pinned to the bottom of the canvas ── */}
-      <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: "var(--chat-border)" }}>
+      {/* ── the composer, pinned to the bottom of the viewport ── */}
+      <div className="px-4 pb-4 pt-2" style={{ backgroundColor: "var(--chat-bg)" }}>
         <div className="mx-auto max-w-3xl">
           {/* error retry */}
           {messages.length > 0 && messages[messages.length - 1].error && !busy && (

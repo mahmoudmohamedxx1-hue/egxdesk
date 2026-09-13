@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchUniverse, fetchIndices, fetchNews, sectorRows, companyRow, sessionMeta } from "@/lib/market";
-import { fetchFlows, breadthHistory } from "@/lib/flows";
+import { fetchFlows, breadthHistory, persistBreadthLive } from "@/lib/flows";
+import { marketStatus } from "@/lib/market-status";
 
 /** GET /api/overview — live landing payload: indices, breadth, totals,
  *  unusual-volume actives, biggest movers, top caps, sector snapshot, news,
@@ -12,6 +13,23 @@ export async function GET() {
 
     const up = stocks.filter((c) => c.changePct > 0).length;
     const down = stocks.filter((c) => c.changePct < 0).length;
+    const flat = stocks.length - up - down;
+
+    // Task 23 fix — the home breadth chart froze because BreadthDay had no
+    // runtime writer. (a) once the session is closed, the live universe's
+    // final up/down/flat IS the session figure: persist it (fire-and-forget,
+    // source "live"; EGXBot's own writer refines it when it runs). (b) while
+    // the market is open, append today's live point to the history so the
+    // chart shows the session developing instead of lagging a day behind.
+    const status = marketStatus();
+    const breadthHistoryRows = await breadthHistory(30).catch(() => []);
+    if (!status.open && up + down > 0) {
+      void persistBreadthLive(status.lastSession, up, down, flat).catch(() => {});
+    }
+    const breadthChart =
+      status.open && up + down > 0 && breadthHistoryRows[breadthHistoryRows.length - 1]?.date !== status.cairoDate
+        ? [...breadthHistoryRows, { date: status.cairoDate, up, down, flat, counted: stocks.length }]
+        : breadthHistoryRows;
 
     const actives = stocks
       .filter((c) => c.avgVolume && c.avgVolume > 0)
@@ -74,8 +92,8 @@ export async function GET() {
     return NextResponse.json({
       session: sessionMeta(),
       indices,
-      breadth: { total: stocks.length, up, down, flat: stocks.length - up - down },
-      breadthHistory: await breadthHistory(30).catch(() => []),
+      breadth: { total: stocks.length, up, down, flat },
+      breadthHistory: breadthChart,
       totals: {
         valueTraded: stocks.reduce((a, c) => a + c.valueTraded, 0),
         volume: stocks.reduce((a, c) => a + c.volume, 0),

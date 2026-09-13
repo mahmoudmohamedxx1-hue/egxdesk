@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import raw from "@/data/insiders.json";
+import { disclosureNews } from "@/lib/news-archive";
 
 /**
  * GET /api/insiders — insider & treasury-share dealing log.
@@ -7,10 +8,17 @@ import raw from "@/data/insiders.json";
  * Real filings published by the Egyptian Exchange (the exchange's own
  * disclosure records, harvested from esthmr.com's published document on
  * 2026-09-07). Each row is a filed disclosure with its official EGX
- * document id and link. The snapshot carries ~2 months of filings; it is
- * labelled with its as-of date and refreshes when a newer document is
- * harvested. No aggregation and no inference: what the exchange filed is
- * what this returns.
+ * document id and link. The snapshot carries ~2 months of filings.
+ *
+ * Task 23 — the esthmr document requires an authenticated re-harvest (the
+ * public endpoint answers 401), so between harvests the official rows keep
+ * their snapshot as-of date, honestly labelled. So the section never reads
+ * as frozen, the response ALSO carries `press`: the newest disclosure-type
+ * articles from the live news archive (filings, dividends, AGMs, insider
+ * coverage) — real press coverage, kept separate from the official rows and
+ * labelled as such. No aggregation and no inference: what the exchange filed
+ * is what the filing rows return; what the press reported is what press
+ * shows.
  */
 
 type Item = {
@@ -68,6 +76,10 @@ export async function GET(req: Request) {
   if (filter === "sells") items = items.filter((i) => i.action === "sold");
   if (filter === "treasury") items = items.filter((i) => i.action.startsWith("treasury"));
 
+  // newest disclosure-type press coverage (best-effort — never blocks the
+  // official filing rows above)
+  const press = await disclosureNews(10).catch(() => []);
+
   return NextResponse.json({
     asOf: data.asOf,
     source: data.source,
@@ -77,5 +89,6 @@ export async function GET(req: Request) {
     summary: data.summary,
     total: items.length,
     items: items.slice(0, limit),
+    press,
   });
 }

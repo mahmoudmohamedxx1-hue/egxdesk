@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchUniverse } from "@/lib/market";
+import { fetchUniverse, type Stock } from "@/lib/market";
 import { fetchStockChart, CHART_RANGES, type ChartRange } from "@/lib/history";
 import { ensureHistory, indexHistory } from "@/lib/flows";
 
@@ -22,7 +22,7 @@ const INDEX_META: Record<IndexCode, { nameAr: string; nameEn: string }> = {
   EGX100: { nameAr: "مؤشر إيجي إكس ١٠٠ EWI", nameEn: "EGX 100 EWI" },
 };
 
-type ChartPointOut = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
+type ChartPointOut = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null; live?: boolean };
 
 type ChartResponse = {
   symbol: string;
@@ -99,10 +99,15 @@ export async function GET(req: NextRequest) {
   }
 
   // ── stocks: Yahoo Finance candles, validated against the live universe ──
+  // (the candle series itself is completed with the live TradingView close
+  //  inside fetchStockChart when Yahoo lags the last session — Task 23 fix —
+  //  so charts, technical panels and signals never end a session behind the
+  //  live quote header)
   const range: ChartRange = (CHART_RANGES as string[]).includes(rangeParam) ? (rangeParam as ChartRange) : "6M";
+  let universe: Stock[] | null = null;
   try {
-    const stocks = await fetchUniverse();
-    const stock = stocks.find((s) => s.ticker === symbol);
+    universe = await fetchUniverse();
+    const stock = universe.find((s) => s.ticker === symbol);
     if (!stock) {
       return NextResponse.json({ error: "no such symbol" }, { status: 404 });
     }

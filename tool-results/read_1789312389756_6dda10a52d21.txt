@@ -1,0 +1,534 @@
+     1→"use client";
+     2→
+     3→import { useState } from "react";
+     4→import { useApp } from "../market/app-context";
+     5→import { useLiveData } from "../market/use-live-data";
+     6→import { DivergingBars, BreadthTrend } from "../market/charts";
+     7→import { PriceChart } from "../market/price-chart";
+     8→import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
+     9→import { T, tt, dn } from "@/lib/i18n";
+    10→import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
+    11→import { WatchStar } from "../market/watch-star";
+    12→import { ChangeCell } from "../market/change-cell";
+    13→import { Skeleton } from "@/components/ui/skeleton";
+    14→import { Button } from "@/components/ui/button";
+    15→import { ExportXlsxButton } from "../market/export-xlsx-button";
+    16→import { ArrowUpRight, ArrowDownRight, MoveRight, RefreshCw, AlertTriangle, Coins, Globe2, Sparkles } from "lucide-react";
+    17→import { marketNarrative } from "@/lib/narrative";
+    18→
+    19→type Overview = {
+    20→  session: SessionMeta;
+    21→  indices: IndexRow[];
+    22→  breadth: { total: number; up: number; down: number; flat: number };
+    23→  breadthHistory?: { date: string; up: number; down: number; flat: number; counted: number }[];
+    24→  flowsSummary?: {
+    25→    asOf: string;
+    26→    egyNet: number;
+    27→    arabNet: number;
+    28→    forNet: number;
+    29→    retailPct: number;
+    30→    instPct: number;
+    31→    turnoverTotal: number;
+    32→  } | null;
+    33→  totals: { valueTraded: number; volume: number; marketCap: number };
+    34→  actives: CompanyRow[];
+    35→  movers: CompanyRow[];
+    36→  colors: CompanyRow[];
+    37→  sectorsSnapshot: { best: SectorCard[]; worst: SectorCard[] };
+    38→  sectorPerformance?: { nameEn: string; nameAr: string; v: number }[];
+    39→  news: NewsRow[];
+    40→};
+    41→
+    42→type WorldQuote = {
+    43→  key: string;
+    44→  nameAr: string;
+    45→  nameEn: string;
+    46→  group: "index" | "commodity";
+    47→  price: number | null;
+    48→  changePct: number | null;
+    49→  currency: string;
+    50→  unitAr: string;
+    51→  unitEn: string;
+    52→  whyAr: string;
+    53→  whyEn: string;
+    54→};
+    55→
+    56→type EconomyLite = {
+    57→  fx: { code: string; egpPer: number | null }[];
+    58→  gold: { egpPerGram21: number | null; egpPerGram: number | null };
+    59→  world?: {
+    60→    quotes: WorldQuote[];
+    61→    silver: { egpPerGram: number | null };
+    62→    asOf: string | null;
+    63→  } | null;
+    64→};
+    65→
+    66→export function OverviewView() {
+    67→  const { lang, navigate } = useApp();
+    68→  const { data, error, loading, refresh } = useLiveData<Overview>("/api/overview");
+    69→  const { data: econ } = useLiveData<EconomyLite>("/api/economy", 600_000);
+    70→  const [indexSel, setIndexSel] = useState<string>("EGX30");
+    71→
+    72→  if (error && !data) {
+    73→    return <ErrorCard lang={lang} onRetry={refresh} />;
+    74→  }
+    75→  if (loading && !data) {
+    76→    return (
+    77→      <div className="space-y-4">
+    78→        <Skeleton className="h-8 w-64" />
+    79→        <div className="grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}</div>
+    80→        <Skeleton className="h-40" />
+    81→        <Skeleton className="h-64" />
+    82→      </div>
+    83→    );
+    84→  }
+    85→  if (!data) return null;
+    86→
+    87→  return (
+    88→    <div className="space-y-8">
+    89→      {/* session line */}
+    90→      <div className="flex items-center justify-between flex-wrap gap-2">
+    91→        <p className="text-xs text-muted-foreground num">
+    92→          {fmtDateAr(data.session.lastSession)} · {tt(T.delayed, lang)} · {tt(T.updated, lang)}{" "}
+    93→          <span className="text-up font-medium">{data.session.cairoTime}</span> {tt(T.cairoTime, lang)}
+    94→        </p>
+    95→        <Button variant="ghost" size="sm" onClick={refresh} aria-label="refresh">
+    96→          <RefreshCw className="h-3.5 w-3.5" />
+    97→          <span className="text-xs ms-1">{tt(T.updated, lang)}</span>
+    98→        </Button>
+    99→        {/* 21-b — indices + breadth + sectors as a branded Excel report */}
+   100→        <ExportXlsxButton report="overview" />
+   101→      </div>
+   102→      <h1 className="text-2xl font-bold tracking-tight">{tt(T.marketGlance, lang)}</h1>
+   103→      <p className="text-xs text-muted-foreground -mt-4">{tt(T.liveNote, lang)}</p>
+   104→
+   105→      {/* quick links */}
+   106→      <div className="grid gap-3 sm:grid-cols-2">
+   107→        <button onClick={() => navigate("market")} className="group flex items-center justify-between rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
+   108→          <div>
+   109→            <p className="font-semibold">{tt(T.exploreCompanies, lang)}</p>
+   110→            <p className="text-xs text-muted-foreground">{tt(T.exploreHint, lang)}</p>
+   111→          </div>
+   112→          <MoveRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform rtl:rotate-180" />
+   113→        </button>
+   114→        <button onClick={() => navigate("watchlist")} className="group flex items-center justify-between rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
+   115→          <div>
+   116→            <p className="font-semibold">{tt(T.yourWatchlist, lang)}</p>
+   117→            <p className="text-xs text-muted-foreground">{tt(T.watchlistHint, lang)}</p>
+   118→          </div>
+   119→          <MoveRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform rtl:rotate-180" />
+   120→        </button>
+   121→      </div>
+   122→
+   123→      {/* G15 — one plain-language sentence joining the move, breadth, flows and sectors */}
+   124→      {(() => {
+   125→        const egx30 = data.indices.find((ix) => ix.code === "EGX30") ?? data.indices[0];
+   126→        if (!egx30) return null;
+   127→        const n = marketNarrative(
+   128→          {
+   129→            indexName: lang === "ar" ? (egx30.nameAr ?? egx30.name) : egx30.name,
+   130→            indexChangePct: egx30.changePct,
+   131→            up: data.breadth.up,
+   132→            down: data.breadth.down,
+   133→            total: data.breadth.total,
+   134→            flows: data.flowsSummary
+   135→              ? {
+   136→                  egyNet: data.flowsSummary.egyNet,
+   137→                  arabNet: data.flowsSummary.arabNet,
+   138→                  forNet: data.flowsSummary.forNet,
+   139→                }
+   140→              : null,
+   141→            bestSector: data.sectorsSnapshot.best[0]
+   142→              ? lang === "ar" ? data.sectorsSnapshot.best[0].nameAr : data.sectorsSnapshot.best[0].nameEn
+   143→              : null,
+   144→            worstSector: data.sectorsSnapshot.worst[0]
+   145→              ? lang === "ar" ? data.sectorsSnapshot.worst[0].nameAr : data.sectorsSnapshot.worst[0].nameEn
+   146→              : null,
+   147→            topMover: data.movers[0]
+   148→              ? { ticker: data.movers[0].ticker, changePct: data.movers[0].changePct }
+   149→              : null,
+   150→          },
+   151→          lang
+   152→        );
+   153→        if (!n) return null;
+   154→        return (
+   155→          <section aria-label="market narrative" className="rounded-lg border bg-primary/5 p-4">
+   156→            <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5 mb-1.5">
+   157→              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+   158→              {tt(T.narrativeTitle, lang)}
+   159→            </p>
+   160→            <p className="text-sm leading-relaxed">{n}</p>
+   161→            <p className="text-[10px] text-muted-foreground mt-1.5">{tt(T.narrativeNote, lang)}</p>
+   162→          </section>
+   163→        );
+   164→      })()}
+   165→
+   166→      {/* indices */}
+   167→      <section aria-label="indices" className="grid gap-3 sm:grid-cols-3">
+   168→        {data.indices.map((ix) => (
+   169→          <button key={ix.code} onClick={() => { setIndexSel(ix.code); document.getElementById("index-charts")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors">
+   170→            <div className="flex items-center justify-between">
+   171→              <p className="text-sm text-muted-foreground">{lang === "ar" && ix.nameAr ? ix.nameAr : ix.name}</p>
+   172→              {ix.perfYTD !== null && (
+   173→                <span className={`num text-[10px] font-medium px-1.5 py-0.5 rounded-sm ${directionClass(ix.perfYTD)} ${ix.perfYTD > 0 ? "bg-up-soft" : "bg-down-soft"}`}>
+   174→                  {lang === "ar" ? "من بداية العام" : "YTD"} {fmtPct(ix.perfYTD)}
+   175→                </span>
+   176→              )}
+   177→            </div>
+   178→            <p className="num text-2xl font-bold tracking-tight">{fmtNum(ix.close, 1)}</p>
+   179→            <p className={`num text-sm font-medium ${directionClass(ix.changePct)} flex items-center gap-1`}>
+   180→              {ix.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+   181→              {ix.changeAbs > 0 ? "+" : ""}{fmtNum(ix.changeAbs, 1)} ({fmtPct(ix.changePct)})
+   182→            </p>
+   183→          </button>
+   184→        ))}
+   185→      </section>
+   186→
+   187→      {/* WORLD MARKETS & COMMODITIES — international context on the home page */}
+   188→      {econ?.world && econ.world.quotes.some((q) => q.price !== null) && (
+   189→        <section aria-label="world markets" className="rounded-lg border bg-card p-4">
+   190→          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+   191→            <h2 className="text-lg font-bold flex items-center gap-2">
+   192→              <Globe2 className="h-4 w-4 text-primary" />
+   193→              {tt(T.worldHomeTitle, lang)}
+   194→            </h2>
+   195→            <button onClick={() => navigate("exchange")} className="text-xs text-primary hover:underline">
+   196→              {tt(T.seeExchangeFull, lang)}
+   197→            </button>
+   198→          </div>
+   199→          <p className="text-xs text-muted-foreground mb-3">{tt(T.worldHomeNote, lang)}</p>
+   200→          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+   201→            {econ.world.quotes.map((q) => (
+   202→              <div key={q.key} className="rounded-md border bg-secondary/30 p-2.5" title={lang === "ar" ? q.whyAr : q.whyEn}>
+   203→                <div className="flex items-baseline justify-between gap-1.5">
+   204→                  <p className="text-xs font-semibold truncate">{lang === "ar" ? q.nameAr : q.nameEn}</p>
+   205→                  {q.changePct !== null && (
+   206→                    <span className={`num text-[11px] font-semibold shrink-0 ${directionClass(q.changePct)} flex items-center gap-0.5`}>
+   207→                      {q.changePct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+   208→                      {fmtPct(q.changePct)}
+   209→                    </span>
+   210→                  )}
+   211→                </div>
+   212→                <p className="num text-lg font-bold tracking-tight mt-0.5">
+   213→                  {q.price !== null ? fmtNum(q.price, q.price < 100 ? 2 : 0) : "—"}
+   214→                  <span className="text-[9px] font-normal text-muted-foreground ms-1">{q.currency}</span>
+   215→                </p>
+   216→                <p className="text-[9px] text-muted-foreground leading-snug mt-1 line-clamp-2">{lang === "ar" ? q.whyAr : q.whyEn}</p>
+   217→              </div>
+   218→            ))}
+   219→            {/* gold 21k — the Egyptian retail standard */}
+   220→            <div className="rounded-md border bg-secondary/40 p-2.5">
+   221→              <div className="flex items-baseline justify-between gap-1.5">
+   222→                <p className="text-xs font-semibold truncate flex items-center gap-1">
+   223→                  <Coins className="h-3 w-3 text-primary" />
+   224→                  {tt(T.goldPerGram21, lang)}
+   225→                </p>
+   226→              </div>
+   227→              <p className="num text-lg font-bold tracking-tight mt-0.5">
+   228→                {econ.gold.egpPerGram21 !== null ? fmtNum(econ.gold.egpPerGram21) : "—"}
+   229→                <span className="text-[9px] font-normal text-muted-foreground ms-1">{lang === "ar" ? "ج.م" : "EGP"}</span>
+   230→              </p>
+   231→              <p className="text-[9px] text-muted-foreground leading-snug mt-1">
+   232→                {lang === "ar" ? "معيار التجزئة المصري (عيار ٢١) من سعر الأونصة العالمي." : "Egypt's retail standard, from the world ounce price."}
+   233→              </p>
+   234→            </div>
+   235→            {/* silver per gram */}
+   236→            {econ.world.silver.egpPerGram != null && (
+   237→              <div className="rounded-md border bg-secondary/30 p-2.5">
+   238→                <p className="text-xs font-semibold truncate">{tt(T.silverPerGram, lang)}</p>
+   239→                <p className="num text-lg font-bold tracking-tight mt-0.5">
+   240→                  {fmtNum(econ.world.silver.egpPerGram)}
+   241→                  <span className="text-[9px] font-normal text-muted-foreground ms-1">{lang === "ar" ? "ج.م" : "EGP"}</span>
+   242→                </p>
+   243→                <p className="text-[9px] text-muted-foreground leading-snug mt-1">{tt(T.worldGoldSilver, lang)}</p>
+   244→              </div>
+   245→            )}
+   246→            {/* USD/EGP */}
+   247→            {econ.fx.find((f) => f.code === "USD")?.egpPer != null && (
+   248→              <div className="rounded-md border bg-secondary/30 p-2.5">
+   249→                <p className="text-xs font-semibold truncate">{tt(T.usdEgp, lang)}</p>
+   250→                <p className="num text-lg font-bold tracking-tight mt-0.5">
+   251→                  {fmtNum(econ.fx.find((f) => f.code === "USD")?.egpPer as number, 3)}
+   252→                </p>
+   253→                <p className="text-[9px] text-muted-foreground leading-snug mt-1">
+   254→                  {lang === "ar" ? "سعر السوق المفتوح (مرجع، ليس رسمياً)." : "Open-market reference rate."}
+   255→                </p>
+   256→              </div>
+   257→            )}
+   258→          </div>
+   259→        </section>
+   260→      )}
+   261→
+   262→      {/* index price charts */}
+   263→      <section id="index-charts" aria-label="index price charts" className="rounded-lg border bg-card p-4 scroll-mt-24">
+   264→        <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+   265→          <h2 className="text-lg font-bold">{tt(T.indexChartTitle, lang)}</h2>
+   266→          <p className="text-[11px] text-muted-foreground">{tt(T.indexChartNote, lang)}</p>
+   267→        </div>
+   268→        <div className="flex items-center gap-1.5 mb-3 flex-wrap" role="tablist" aria-label={tt(T.indexChartTitle, lang)}>
+   269→          {data.indices.map((ix) => {
+   270→            const active = indexSel === ix.code;
+   271→            return (
+   272→              <button
+   273→                key={ix.code}
+   274→                role="tab"
+   275→                aria-selected={active}
+   276→                onClick={() => setIndexSel(ix.code)}
+   277→                className={`num rounded-md border px-2.5 py-1 text-xs transition-colors ${
+   278→                  active ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
+   279→                }`}
+   280→              >
+   281→                {ix.code}
+   282→              </button>
+   283→            );
+   284→          })}
+   285→        </div>
+   286→        <PriceChart key={indexSel} symbol={indexSel} defaultRange="3M" />
+   287→      </section>
+   288→
+   289→      {/* session totals + breadth */}
+   290→      <section aria-label="session totals" className="rounded-lg border bg-card p-4">
+   291→        <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+   292→          <h2 className="text-lg font-bold">{tt(T.sessionTotals, lang)}</h2>
+   293→          <div className="flex items-center gap-1.5">
+   294→            <Badge label={tt(T.rose, lang)} value={data.breadth.up} cls="text-up bg-up-soft" />
+   295→            <Badge label={tt(T.fell, lang)} value={data.breadth.down} cls="text-down bg-down-soft" />
+   296→            <Badge label={tt(T.steady, lang)} value={data.breadth.flat} cls="text-muted-foreground bg-secondary" />
+   297→          </div>
+   298→        </div>
+   299→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   300→          <Stat label={tt(T.valueTradedTotal, lang)} value={`EGP ${fmtValue(data.totals.valueTraded)}`} />
+   301→          <Stat label={tt(T.volumeTotal, lang)} value={fmtInt(data.totals.volume)} />
+   302→          <Stat label={tt(T.capTotal, lang)} value={`EGP ${fmtValue(data.totals.marketCap)}`} />
+   303→        </div>
+   304→        <p className="mt-2 text-[11px] text-muted-foreground">
+   305→          {lang === "ar" ? "القيمة ≈ حجم الجلسة × آخر سعر لكل سهم." : "Value ≈ session volume × last price per stock."}
+   306→        </p>
+   307→        {data.breadthHistory && data.breadthHistory.length > 1 && (
+   308→          <div className="mt-3 pt-3 border-t">
+   309→            <p className="text-xs font-semibold text-muted-foreground mb-1">
+   310→              {lang === "ar" ? "اتساع حركة السوق — آخر الجلسات المسجلة" : "Market breadth trend — recent stored sessions"}
+   311→            </p>
+   312→            <BreadthTrend data={data.breadthHistory} lang={lang} />
+   313→          </div>
+   314→        )}
+   315→      </section>
+   316→
+   317→      {/* behind the market move — real investor-category net flows */}
+   318→      {data.flowsSummary && (
+   319→        <section aria-label="behind the move" className="rounded-lg border bg-card p-4">
+   320→          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+   321→            <h2 className="text-lg font-bold">{tt(T.behindMove, lang)}</h2>
+   322→            <button onClick={() => navigate("investors")} className="text-xs text-primary hover:underline">
+   323→              {tt(T.seeInvestorFlows, lang)}
+   324→            </button>
+   325→          </div>
+   326→          <p className="text-[11px] text-muted-foreground mb-3">{tt(T.behindMoveNote, lang)}</p>
+   327→          <div className="grid gap-4 sm:grid-cols-2">
+   328→            <div className="space-y-2">
+   329→              {([
+   330→                [tt(T.egyptiansTotal, lang), data.flowsSummary.egyNet],
+   331→                [tt(T.arabsTotal, lang), data.flowsSummary.arabNet],
+   332→                [tt(T.foreignersTotal, lang), data.flowsSummary.forNet],
+   333→              ] as const).map(([label, v]) => (
+   334→                <div key={label} className="flex items-center justify-between text-sm">
+   335→                  <span className="text-muted-foreground">{label}</span>
+   336→                  <span className={`num font-bold ${v > 0 ? "text-up" : v < 0 ? "text-down" : "text-muted-foreground"}`}>
+   337→                    {v > 0 ? "+" : v < 0 ? "−" : ""}
+   338→                    {fmtValue(Math.abs(v) * 1_000_000)} <span className="text-[10px] font-normal text-muted-foreground">{lang === "ar" ? "ج.م" : "EGP"}</span>
+   339→                  </span>
+   340→                </div>
+   341→              ))}
+   342→              <p className="num text-[10px] text-muted-foreground">{data.flowsSummary.asOf} · {tt(T.netFlowLabel, lang)} ({tt(T.egpMn, lang)})</p>
+   343→            </div>
+   344→            <div className="rounded-md bg-secondary/60 p-3 space-y-2">
+   345→              <p className="text-xs text-muted-foreground">{tt(T.retailVsInst, lang)}</p>
+   346→              <div className="flex items-center gap-2 h-3" dir="ltr">
+   347→                <div className="h-full rounded-s-sm bg-primary" style={{ width: `${data.flowsSummary.retailPct}%` }} />
+   348→                <div className="h-full flex-1 rounded-e-sm bg-muted-foreground/40" />
+   349→              </div>
+   350→              <div className="flex justify-between text-xs">
+   351→                <span className="num">{tt(T.retailShare, lang)} {fmtPct(data.flowsSummary.retailPct, false)}</span>
+   352→                <span className="num">{tt(T.instShare, lang)} {fmtPct(data.flowsSummary.instPct, false)}</span>
+   353→              </div>
+   354→            </div>
+   355→          </div>
+   356→        </section>
+   357→      )}
+   358→
+   359→      {/* sector snapshot */}
+   360→      <section aria-label="sector snapshot">
+   361→        <div className="flex items-baseline justify-between mb-3">
+   362→          <h2 className="text-lg font-bold">{tt(T.sectorSnapshot, lang)}</h2>
+   363→          <button onClick={() => navigate("sectors")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+   364→            {tt(T.viewAll, lang)}
+   365→          </button>
+   366→        </div>
+   367→        {data.sectorPerformance && data.sectorPerformance.length > 0 && (
+   368→          <div className="rounded-lg border bg-card p-4 mb-3">
+   369→            <p className="text-xs font-semibold mb-2">{tt(T.sectorPerfChart, lang)}</p>
+   370→            <DivergingBars
+   371→              items={data.sectorPerformance.map((s) => ({
+   372→                label: lang === "ar" ? s.nameAr : s.nameEn,
+   373→                value: s.v,
+   374→              }))}
+   375→              unit="pct"
+   376→              lang={lang}
+   377→              compact
+   378→            />
+   379→          </div>
+   380→        )}
+   381→        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+   382→          <SectorMini title={tt(T.strongest, lang)} sectors={data.sectorsSnapshot.best} lang={lang} onOpen={() => navigate("sectors")} />
+   383→          <SectorMini title={tt(T.weakest, lang)} sectors={data.sectorsSnapshot.worst} lang={lang} onOpen={() => navigate("sectors")} />
+   384→        </div>
+   385→        <p className="mt-2 text-[11px] text-muted-foreground">{tt(T.capWeighted, lang)} · {tt(T.sectorClassNote, lang)}</p>
+   386→      </section>
+   387→
+   388→      {/* unusual volume actives */}
+   389→      <section aria-label="most active">
+   390→        <div className="flex items-baseline justify-between mb-3">
+   391→          <h2 className="text-lg font-bold">{tt(T.activeStocks, lang)}</h2>
+   392→          <button onClick={() => navigate("activity")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+   393→            {tt(T.viewAll, lang)}
+   394→          </button>
+   395→        </div>
+   396→        <div className="rounded-lg border bg-card divide-y">
+   397→          {data.actives.map((r) => (
+   398→            <div key={r.ticker} role="button" tabIndex={0} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+   399→              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("company", { ticker: r.ticker, panel: "overview" }); }}
+   400→              className="flex w-full items-center gap-3 p-3 text-start hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring outline-none cursor-pointer transition-colors">
+   401→              <WatchStar ticker={r.ticker} />
+   402→              <div className="min-w-0 flex-1">
+   403→                <div className="flex items-center gap-2">
+   404→                  <span className="num text-sm font-bold">{r.ticker}</span>
+   405→                  <ChangeCell pct={r.changePct} />
+   406→                </div>
+   407→                <p className="truncate text-xs text-muted-foreground">{dn(r, lang)}</p>
+   408→              </div>
+   409→              <div className="text-end shrink-0">
+   410→                <p className="num text-sm font-semibold text-primary">{fmtNum(r.volumeRatio, 1)}×</p>
+   411→                <p className="text-[10px] text-muted-foreground">{lang === "ar" ? "حجم ÷ المعتاد" : "vol ÷ usual"}</p>
+   412→              </div>
+   413→            </div>
+   414→          ))}
+   415→        </div>
+   416→        <p className="mt-2 text-[11px] text-muted-foreground">{tt(T.unusualNote, lang)}</p>
+   417→      </section>
+   418→
+   419→      {/* market colors grid */}
+   420→      <section aria-label="market colors">
+   421→        <div className="flex items-baseline justify-between mb-3">
+   422→          <h2 className="text-lg font-bold">{tt(T.marketColors, lang)}</h2>
+   423→          <button onClick={() => navigate("heat")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">{tt(T.viewAll, lang)}</button>
+   424→        </div>
+   425→        <p className="mb-2 text-[11px] text-muted-foreground">{tt(T.colorsNote, lang)}</p>
+   426→        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+   427→          {data.colors.map((r) => (
+   428→            <button key={r.ticker} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+   429→              className={`rounded-md p-2.5 border transition-transform hover:scale-[1.03] ${
+   430→                r.changePct > 0 ? "bg-up-soft border-up/20" : r.changePct < 0 ? "bg-down-soft border-down/20" : "bg-secondary"
+   431→              }`}>
+   432→              <p className="num text-sm font-bold">{r.ticker}</p>
+   433→              <p className={`num text-xs font-medium ${directionClass(r.changePct)}`}>{fmtPct(r.changePct)}</p>
+   434→            </button>
+   435→          ))}
+   436→        </div>
+   437→      </section>
+   438→
+   439→      {/* biggest movers */}
+   440→      <section aria-label="biggest movers">
+   441→        <div className="flex items-baseline justify-between mb-3">
+   442→          <h2 className="text-lg font-bold">{tt(T.biggestMoves, lang)}</h2>
+   443→          <button onClick={() => navigate("market")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">{tt(T.viewAll, lang)}</button>
+   444→        </div>
+   445→        <div className="rounded-lg border bg-card divide-y">
+   446→          {data.movers.map((r) => (
+   447→            <div key={r.ticker} role="button" tabIndex={0} onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+   448→              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("company", { ticker: r.ticker, panel: "overview" }); }}
+   449→              className="flex w-full items-center gap-3 p-3 text-start hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring outline-none cursor-pointer transition-colors">
+   450→              <WatchStar ticker={r.ticker} />
+   451→              <div className="min-w-0 flex-1">
+   452→                <span className="num text-sm font-bold">{r.ticker}</span>
+   453→                <p className="truncate text-xs text-muted-foreground">{dn(r, lang)}</p>
+   454→              </div>
+   455→              <div className="num text-sm font-semibold">{fmtNum(r.close)}</div>
+   456→              <ChangeCell pct={r.changePct} />
+   457→            </div>
+   458→          ))}
+   459→        </div>
+   460→      </section>
+   461→
+   462→      {/* latest news */}
+   463→      <section aria-label="latest news">
+   464→        <div className="flex items-baseline justify-between mb-3">
+   465→          <h2 className="text-lg font-bold">{tt(T.latestNews, lang)}</h2>
+   466→          <button onClick={() => navigate("today")} className="text-xs text-muted-foreground hover:text-foreground hover:underline">{tt(T.viewAll, lang)}</button>
+   467→        </div>
+   468→        <div className="grid gap-2 md:grid-cols-2">
+   469→          {data.news.map((n) => (
+   470→            <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" className="rounded-lg border bg-card p-3.5 text-start hover:border-ring transition-colors">
+   471→              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+   472→                <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
+   473→                {n.categories[0] && <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium">{n.categories[0]}</span>}
+   474→                <span className="num text-[10px] text-muted-foreground">{fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}</span>
+   475→              </div>
+   476→              <p className="text-sm font-medium leading-snug line-clamp-2">{n.title}</p>
+   477→            </a>
+   478→          ))}
+   479→        </div>
+   480→      </section>
+   481→    </div>
+   482→  );
+   483→}
+   484→
+   485→function SectorMini({ title, sectors, lang, onOpen }: { title: string; sectors: SectorCard[]; lang: "ar" | "en"; onOpen: () => void }) {
+   486→  return (
+   487→    <div className="rounded-lg border bg-card divide-y">
+   488→      <div className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">{title}</div>
+   489→      {sectors.map((s) => (
+   490→        <button key={s.code} onClick={onOpen} className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-start hover:bg-accent/40 transition-colors">
+   491→          <div className="min-w-0">
+   492→            <p className="text-sm font-semibold truncate">{lang === "ar" ? s.nameAr : s.nameEn}</p>
+   493→            <p className="text-[11px] text-muted-foreground num">
+   494→              {s.count} {tt(T.companies, lang)} · EGP {fmtValue(s.marketCap)}
+   495→            </p>
+   496→          </div>
+   497→          <ChangeCell pct={s.capWeightedChangePct} size="md" />
+   498→        </button>
+   499→      ))}
+   500→    </div>
+   501→  );
+   502→}
+   503→
+   504→export function ErrorCard({ lang, onRetry }: { lang: "ar" | "en"; onRetry: () => void }) {
+   505→  return (
+   506→    <div className="rounded-lg border bg-card p-8 text-center space-y-3">
+   507→      <AlertTriangle className="h-8 w-8 mx-auto text-muted-foreground" aria-hidden />
+   508→      <p className="font-medium">{tt(T.errorLoad, lang)}</p>
+   509→      <Button size="sm" onClick={onRetry}>
+   510→        <RefreshCw className="h-3.5 w-3.5 me-1.5" />
+   511→        {tt(T.retry, lang)}
+   512→      </Button>
+   513→    </div>
+   514→  );
+   515→}
+   516→
+   517→function Badge({ label, value, cls }: { label: string; value: number; cls: string }) {
+   518→  return (
+   519→    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cls}`}>
+   520→      <span className="num font-bold">{fmtInt(value)}</span>
+   521→      {label}
+   522→    </span>
+   523→  );
+   524→}
+   525→
+   526→function Stat({ label, value }: { label: string; value: string }) {
+   527→  return (
+   528→    <div className="rounded-md bg-secondary/50 px-3 py-2.5">
+   529→      <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
+   530→      <p className="num text-lg font-bold">{value}</p>
+   531→    </div>
+   532→  );
+   533→}
+   534→
