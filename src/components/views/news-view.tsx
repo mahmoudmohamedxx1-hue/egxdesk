@@ -8,7 +8,7 @@ import { T, tt } from "@/lib/i18n";
 import { fmtDateAr, fmtTimeAr, fmtInt } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Volume2, ExternalLink, Newspaper, History, ChevronUp, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ExternalLink, Newspaper, History, ChevronUp, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 type NewsPage = {
   session: SessionMeta;
@@ -200,25 +200,6 @@ export function NewsView() {
     load(next, true).finally(() => setLoadingMore(false));
   }
 
-  const [speakingId, setSpeakingId] = useState<string | null>(null);
-
-  function speak(item: NewsRow) {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    if (speakingId === item.id) {
-      window.speechSynthesis.cancel();
-      setSpeakingId(null);
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(`${item.title}. ${item.snippet ?? ""}`);
-    u.lang = "ar-EG";
-    u.rate = 0.95;
-    u.onend = () => setSpeakingId(null);
-    u.onerror = () => setSpeakingId(null);
-    window.speechSynthesis.speak(u);
-    setSpeakingId(item.id);
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
@@ -342,16 +323,6 @@ export function NewsView() {
                   {n.source}
                 </span>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => speak(n)}
-                    aria-label={tt(T.listen, lang)}
-                    className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
-                      speakingId === n.id ? "bg-accent border-ring" : "hover:bg-accent/50"
-                    }`}
-                  >
-                    <Volume2 className={`h-3.5 w-3.5 ${speakingId === n.id ? "animate-pulse" : ""}`} />
-                    {tt(T.listen, lang)}
-                  </button>
                   <a href={n.link} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors">
                     <ExternalLink className="h-3.5 w-3.5" />

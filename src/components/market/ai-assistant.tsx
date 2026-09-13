@@ -1,21 +1,26 @@
 "use client";
 
-/** T28 — the AI ASSISTANT POPUP: a floating command center that can EXECUTE
- *  anything on the website. Design inspired by the 21st.dev "ai-input"
- *  component family (animated gradient composer ring, round accessory
- *  buttons, model selector chip, circular gradient send orb, keyboard hint)
- *  — re-implemented original code in the app's warm terracotta palette.
+/** T28/T29 — the AI ASSISTANT POPUP: a floating command center that can
+ *  EXECUTE anything on the website. Design inspired by the 21st.dev
+ *  "ai-input" component family (animated gradient composer ring, round
+ *  accessory buttons, model selector chip, circular gradient send orb,
+ *  keyboard hint) — re-implemented original code in the app's warm
+ *  terracotta palette.
  *
- *  Three brains, all free:
- *  - Instant  — the built-in bilingual regex router, zero download (default)
+ *  Three brains, all free (T29: cloud models replace the local ones):
+ *  - Instant  — the built-in bilingual regex router, zero network
  *  - Cloud    — /api/assistant (GLM-4-Plus) — works in any browser
- *  - On-device — WebLLM models that download once and then run FULLY in the
- *    browser via WebGPU (163 models in the full registry, 16 featured)
+ *  - Puter    — 1,000+ FREE ONLINE CLOUD models via Puter.js (no API
+ *    keys, no cards): GLM-5.3 — the NEWEST GLM — is the default, plus
+ *    GPT-5.6, Claude Sonnet 5, Gemini 3.1, Grok 4.6, DeepSeek V4, Kimi
+ *    K3… behind ONE free Puter sign-in that uses the visitor's own free
+ *    monthly allowance.
  *
- *  The agent loop: plan (strict JSON {tool,args}|{reply}) → execute the tool
- *  against the live app (navigate / watchlist / alerts / paper trades /
- *  language / theme / data) → compose the final bilingual answer from the
- *  real result. Instant mode formats the tool result locally instead.
+ *  The agent loop: plan (strict JSON {tool,args}|{reply}) → execute the
+ *  tool against the live app (navigate / watchlist / alerts / paper
+ *  trades / language / theme / data) → compose the final bilingual
+ *  answer from the real result. Instant mode formats the tool result
+ *  locally instead.
  *
  *  Global: Ctrl/Cmd+K toggles, Escape closes, FAB launcher bottom-end,
  *  mobile = near-fullscreen sheet, safe-area aware (P1-5 app shell). */
@@ -28,17 +33,17 @@ import {
   TOOL_DEFS, instantRoute, runTool, parseToolJson, toolsPromptSpec,
 } from "@/lib/assistant-tools";
 import {
-  FEATURED_MODELS, MODEL_CLOUD, MODEL_INSTANT, modelChipLabel, isWebLLMModel,
-  onEngineStatus, currentEngineStatus, loadEngine, unloadEngine, interruptEngine,
-  detectWebGPU, engineChat, fullModelRegistry,
-  type EngineStatus, type RegistryModel,
+  MODEL_CLOUD, MODEL_INSTANT, FEATURED_CLOUD, modelChipLabel, isPuterModel,
+  puterModelId, puterChat, puterSignedIn, puterSignIn, puterSignOut,
+  puterUsername, puterCatalog, PuterAuthRequiredError,
+  type CatalogModel,
 } from "@/lib/assistant-models";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowUp, Bot, Check, ChevronDown, Cpu, Eraser, HardDriveDownload, Languages,
-  Mic, Plus, Search, Sparkles, Square, Wrench, X, Zap,
+  ArrowUp, Bot, Check, ChevronDown, Cloud, Eraser, Languages, LogIn, LogOut,
+  Plus, Search, Sparkles, Square, Wrench, X, Zap,
 } from "lucide-react";
 
 type Msg = {
@@ -46,12 +51,16 @@ type Msg = {
   text: string;
   steps?: { tool: string; ok: boolean }[];
   error?: boolean;
+  /** the Puter sign-in prompt card */
+  signin?: boolean;
   ts: number;
 };
 
 const CHAT_KEY = "egx-assistant-chat";
 const MODEL_KEY = "egx-assistant-model";
 const MAX_STORED = 30;
+/** the default brain: the NEWEST GLM, free on the Puter cloud */
+const DEFAULT_MODEL = puterModelId("z-ai:z-ai/glm-5.3");
 const SUGGESTIONS = [T.aiSuggest1, T.aiSuggest2, T.aiSuggest3, T.aiSuggest4, T.aiSuggest5, T.aiSuggest6];
 
 /** The terracotta 12-ray sunburst — the assistant's avatar mark. */
@@ -107,27 +116,21 @@ export function AiAssistant() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState<null | "think" | "run" | "answer">(null);
   const [focused, setFocused] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   // model layer state
-  const [modelId, setModelId] = useState<string>(MODEL_INSTANT);
-  const [engineStatus, setEngineStatus] = useState<EngineStatus>({ phase: "idle" });
-  const [webgpuOk, setWebgpuOk] = useState<boolean | null>(null);
-  const [registry, setRegistry] = useState<RegistryModel[] | null>(null);
+  const [modelId, setModelId] = useState<string>(DEFAULT_MODEL);
+  const [puterUser, setPuterUser] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<CatalogModel[] | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [modelQuery, setModelQuery] = useState("");
-
-  // mic
-  const [listening, setListening] = useState(false);
-  const recogRef = useRef<unknown>(null);
 
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const stopFlagRef = useRef(false);
 
-  // ── boot: mounted, chat restore, model restore, engine status, webgpu ──
+  // ── boot: mounted, chat restore, model restore (legacy ids reset) ──
   useEffect(() => {
-    setMounted(true);
     try {
       const raw = localStorage.getItem(CHAT_KEY);
       if (raw) {
@@ -135,14 +138,9 @@ export function AiAssistant() {
         if (Array.isArray(arr)) setMsgs(arr.filter((m) => m && typeof m.text === "string").slice(0, MAX_STORED));
       }
       const m = localStorage.getItem(MODEL_KEY);
-      if (m) setModelId(m);
+      // T29 migration: old WebLLM ids are no longer valid brains
+      if (m === MODEL_INSTANT || m === MODEL_CLOUD || (m != null && isPuterModel(m))) setModelId(m);
     } catch {}
-    const off = onEngineStatus((s) => setEngineStatus(s));
-    setEngineStatus(currentEngineStatus());
-    void detectWebGPU().then(setWebgpuOk);
-    return () => {
-      off();
-    };
   }, []);
 
   // ── keyboard: Ctrl/Cmd+K toggles, Escape closes ──
@@ -228,6 +226,38 @@ export function AiAssistant() {
     return res;
   }, [toolCtx]);
 
+  // ── Puter sign-in flow (free account, Puter's own first-party popup) ──
+  const doPuterSignIn = useCallback(async () => {
+    try {
+      const ok = await puterSignIn();
+      if (ok) {
+        const u = await puterUsername();
+        setPuterUser(u);
+        pushMsg({ role: "assistant", text: `**${tt(T.aiPuterSigninOk, lang)}**`, ts: Date.now() });
+        toast(tt(T.aiPuterSignedIn, lang));
+      } else {
+        pushMsg({ role: "assistant", text: tt(T.aiPuterSigninCancelled, lang), ts: Date.now(), error: true });
+      }
+    } catch {
+      pushMsg({ role: "assistant", text: tt(T.aiErrorGeneric, lang), ts: Date.now(), error: true });
+    }
+  }, [lang, pushMsg, toast]);
+
+  const doPuterSignOut = useCallback(async () => {
+    await puterSignOut();
+    setPuterUser(null);
+    toast(tt(T.aiPuterSignedOut, lang));
+  }, [toast, lang]);
+
+  const signinCard = useCallback(() => {
+    pushMsg({
+      role: "assistant",
+      text: `**${tt(T.aiPuterSigninCardTitle, lang)}**\n\n${tt(T.aiPuterSigninCardBody, lang)}`,
+      signin: true,
+      ts: Date.now(),
+    });
+  }, [lang, pushMsg]);
+
   // ── the full agent loop ──
   const ask = useCallback(async (rawText: string) => {
     const text = rawText.trim();
@@ -237,6 +267,7 @@ export function AiAssistant() {
     const history = [...msgs, userMsg];
     setMsgs(history);
     persist(history);
+    stopFlagRef.current = false;
 
     // ── INSTANT mode: zero-model fast path ──
     if (modelId === MODEL_INSTANT) {
@@ -260,7 +291,7 @@ export function AiAssistant() {
       return;
     }
 
-    // ── CLOUD mode (GLM via /api/assistant) ──
+    // ── CLOUD mode (GLM-4-Plus via /api/assistant) ──
     if (modelId === MODEL_CLOUD) {
       const ac = new AbortController();
       abortRef.current = ac;
@@ -330,14 +361,18 @@ export function AiAssistant() {
       return;
     }
 
-    // ── ON-DEVICE mode (WebLLM) ──
+    // ── PUTER CLOUD mode (GLM-5.3 / 1,000+ free online models) ──
     setBusy("think");
     try {
+      if (!(await puterSignedIn())) {
+        signinCard();
+        return;
+      }
       const planMsgs = [
         { role: "system" as const, content: planSystemPrompt(lang, view.name, view.ticker) },
         ...history.slice(-4).map((m) => ({ role: m.role as "user" | "assistant", content: m.text.slice(0, 1200) })),
       ];
-      const out = await engineChat(modelId, planMsgs);
+      const out = await puterChat(modelId, planMsgs, { stopped: () => stopFlagRef.current });
       const parsed = parseToolJson(out);
       if (parsed?.tool) {
         const toolRes = await executeTool(parsed.tool, parsed.args ?? {});
@@ -345,13 +380,17 @@ export function AiAssistant() {
         pushMsg({ role: "assistant", text: "", steps: [{ tool: parsed.tool, ok: toolRes.ok }], ts: Date.now() });
         const ansMsgs = [
           { role: "system" as const, content: answerSystemPrompt(lang, parsed.tool, parsed.args ?? {}, toolRes.data ?? { ok: toolRes.ok, text: toolRes.text }, text) },
+          { role: "user" as const, content: text || "Compose the final answer." },
         ];
-        const final = await engineChat(modelId, ansMsgs, (full) => patchLast({ text: full }));
+        const final = await puterChat(modelId, ansMsgs, {
+          onDelta: (full) => patchLast({ text: full }),
+          stopped: () => stopFlagRef.current,
+        });
         patchLast({ text: final.trim() || toolRes.text });
       } else if (parsed?.reply) {
         pushMsg({ role: "assistant", text: parsed.reply.trim(), ts: Date.now() });
       } else {
-        // the small model failed JSON — fall back to the instant router
+        // the model failed JSON — fall back to the instant router
         const hit = instantRoute(text);
         if (hit) {
           const res = await executeTool(hit.tool, hit.args);
@@ -361,24 +400,28 @@ export function AiAssistant() {
         }
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "error";
-      const cancelled = /cancel/i.test(msg);
-      pushMsg({
-        role: "assistant",
-        text: cancelled
-          ? `⏹ ${tt(T.aiInputStop, lang)}`
-          : `${tt(T.aiErrorGeneric, lang)}${engineStatus.phase === "error" ? ` — ${engineStatus.message.slice(0, 90)}` : ""}`,
-        ts: Date.now(),
-        ...(cancelled ? {} : { error: true }),
-      });
+      if (err instanceof PuterAuthRequiredError) {
+        signinCard();
+      } else {
+        const msg = err instanceof Error ? err.message : "error";
+        const stopped = stopFlagRef.current;
+        pushMsg({
+          role: "assistant",
+          text: stopped
+            ? `⏹ ${tt(T.aiInputStop, lang)}`
+            : `${tt(T.aiErrorGeneric, lang)}${msg ? ` — ${msg.slice(0, 90)}` : ""}`,
+          ts: Date.now(),
+          ...(stopped ? {} : { error: true }),
+        });
+      }
     } finally {
       setBusy(null);
     }
-  }, [busy, modelId, lang, view, msgs, executeTool, pushMsg, patchLast, engineStatus]);
+  }, [busy, modelId, lang, view, msgs, executeTool, pushMsg, patchLast, signinCard]);
 
   const stop = useCallback(() => {
+    stopFlagRef.current = true;
     abortRef.current?.abort();
-    interruptEngine();
   }, []);
 
   // ── model selection ──
@@ -387,73 +430,27 @@ export function AiAssistant() {
     try {
       localStorage.setItem(MODEL_KEY, id);
     } catch {}
-    if (isWebLLMModel(id)) {
-      if (webgpuOk === false) {
-        toast(tt(T.aiNoWebGPU, lang));
-        return;
-      }
-      void loadEngine(id).catch(() => {});
-    } else {
-      // leaving on-device mode frees the VRAM
-      void unloadEngine().catch(() => {});
-    }
-  }, [webgpuOk, lang, toast]);
+  }, []);
 
-  // lazily pull the full 163-model registry the first time the menu opens
+  // lazily pull the 1,000+ model catalog + sign-in state when the menu opens
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
-    if (menuOpen && registry === null) {
-      void fullModelRegistry().then(setRegistry);
+    if (menuOpen) {
+      if (catalog === null) void puterCatalog().then(setCatalog);
+      void puterSignedIn().then(async (ok) => {
+        setPuterUser(ok ? await puterUsername() : null);
+      });
     }
-  }, [menuOpen, registry]);
-
-  // ── mic (Web Speech API — free, client-based; Chrome/Edge/Safari) ──
-  const srSupported = mounted && typeof window !== "undefined" &&
-    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-
-  const toggleMic = useCallback(() => {
-    if (!srSupported) return;
-    type SR = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void; onresult: ((e: { results?: ArrayLike<ArrayLike<{ transcript?: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
-    const w = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
-    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) return;
-    if (listening) {
-      (recogRef.current as SR | null)?.stop();
-      return;
-    }
-    const rec = new Ctor();
-    rec.lang = lang === "ar" ? "ar-EG" : "en-US";
-    rec.interimResults = false;
-    rec.continuous = false;
-    rec.onresult = (e) => {
-      const t = e.results?.[0]?.[0]?.transcript ?? "";
-      if (t) setInput((prev) => (prev ? `${prev} ${t}` : t));
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recogRef.current = rec;
-    setListening(true);
-    try {
-      rec.start();
-    } catch {
-      setListening(false);
-    }
-  }, [srSupported, listening, lang]);
+  }, [menuOpen, catalog]);
 
   const canSend = !busy && input.trim().length > 0;
   const ringOn = focused || busy != null;
   const chipLabel = modelChipLabel(modelId);
-  const registryFiltered = (registry ?? []).filter((m) =>
-    !modelQuery || m.id.toLowerCase().includes(modelQuery.toLowerCase())
-  );
-
-  // one progress row shared by featured + registry views
-  const progressFor = (id: string): { progress: number; text: string } | null => {
-    if (engineStatus.phase === "loading" && engineStatus.model === id) {
-      return { progress: engineStatus.progress, text: engineStatus.text };
-    }
-    return null;
-  };
+  const catalogFiltered = (catalog ?? []).filter((m) => {
+    if (!modelQuery) return true;
+    const q = modelQuery.toLowerCase();
+    return m.name.toLowerCase().includes(q) || m.puterId.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q);
+  });
 
   return (
     <>
@@ -494,7 +491,7 @@ export function AiAssistant() {
                   {busy === "think" && tt(T.aiThinking, lang)}
                   {busy === "run" && tt(T.aiRunning, lang)}
                   {busy === "answer" && tt(T.aiThinking, lang)}
-                  {!busy && (engineStatus.phase === "loading" ? `${tt(T.aiModelLoad, lang)} ${Math.round(engineStatus.progress * 100)}%` : chipLabel)}
+                  {!busy && chipLabel}
                 </div>
               </div>
               <button
@@ -564,6 +561,17 @@ export function AiAssistant() {
                           <motion.span animate={{ opacity: [0.25, 1, 0.25] }} transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}>·</motion.span>
                           <motion.span animate={{ opacity: [0.25, 1, 0.25] }} transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}>·</motion.span>
                         </span>
+                      )}
+                      {m.signin && (
+                        <button
+                          type="button"
+                          onClick={() => void doPuterSignIn()}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-secondary"
+                          style={{ color: "var(--chat-accent)" }}
+                        >
+                          <LogIn className="h-3.5 w-3.5" aria-hidden />
+                          {tt(T.aiPuterSignIn, lang)}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -650,45 +658,30 @@ export function AiAssistant() {
                       <PopoverTrigger asChild>
                         <button type="button" aria-label={tt(T.aiModelLabel, lang)} title={tt(T.aiModelLabel, lang)}
                           className="inline-flex h-7.5 items-center gap-1.5 rounded-full border bg-secondary/50 px-2.5 text-[11.5px] font-medium transition-colors hover:bg-secondary">
-                          {modelId === MODEL_INSTANT ? <Zap className="h-3 w-3" aria-hidden /> : modelId === MODEL_CLOUD ? <Languages className="h-3 w-3" aria-hidden /> : <HardDriveDownload className="h-3 w-3" aria-hidden />}
+                          {modelId === MODEL_INSTANT ? <Zap className="h-3 w-3" aria-hidden /> : modelId === MODEL_CLOUD ? <Languages className="h-3 w-3" aria-hidden /> : <Cloud className="h-3 w-3" aria-hidden />}
                           <span className="num max-w-32 truncate">{chipLabel}</span>
                           <ChevronDown className="h-3 w-3 opacity-60" aria-hidden />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent align="start" className="w-[300px] p-0" sideOffset={8}>
+                      <PopoverContent align="start" className="w-[318px] p-0" sideOffset={8}>
                         <ModelMenu
                           lang={lang}
                           modelId={modelId}
-                          webgpuOk={webgpuOk}
-                          engineStatus={engineStatus}
-                          registry={registryFiltered}
-                          registryTotal={registry?.length ?? null}
+                          puterUser={puterUser}
+                          catalog={catalogFiltered}
+                          catalogTotal={catalog?.length ?? null}
                           showAll={showAll}
                           onToggleAll={() => setShowAll((s) => !s)}
                           modelQuery={modelQuery}
                           onQuery={setModelQuery}
                           onSelect={selectModel}
-                          progressFor={progressFor}
-                          onCancelLoad={() => void unloadEngine().catch(() => {})}
+                          onSignIn={() => void doPuterSignIn()}
+                          onSignOut={() => void doPuterSignOut()}
                         />
                       </PopoverContent>
                     </Popover>
 
                     <span className="num ms-auto hidden select-none text-[10px] text-muted-foreground sm:inline">⏎</span>
-
-                    {srSupported && (
-                      <button
-                        type="button"
-                        onClick={toggleMic}
-                        aria-label={listening ? tt(T.aiMicLive, lang) : tt(T.aiMicLabel, lang)}
-                        title={listening ? tt(T.aiMicLive, lang) : tt(T.aiMicLabel, lang)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-                          listening ? "ai-mic-live bg-down-soft text-down" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        }`}
-                      >
-                        <Mic className="h-4 w-4" aria-hidden />
-                      </button>
-                    )}
 
                     {busy ? (
                       <button type="button" onClick={stop} aria-label={tt(T.aiInputStop, lang)} title={tt(T.aiInputStop, lang)}
@@ -714,28 +707,26 @@ export function AiAssistant() {
   );
 }
 
-// ── the model selector menu (Instant / Cloud / 16 featured / all 163) ──
+// ── the model selector menu (Instant / Cloud GLM-4-Plus / featured cloud
+//    catalog + searchable all-models list + Puter sign-in state) ──
 
 function ModelMenu({
-  lang, modelId, webgpuOk, engineStatus, registry, registryTotal, showAll,
-  onToggleAll, modelQuery, onQuery, onSelect, progressFor, onCancelLoad,
+  lang, modelId, puterUser, catalog, catalogTotal, showAll,
+  onToggleAll, modelQuery, onQuery, onSelect, onSignIn, onSignOut,
 }: {
   lang: Lang;
   modelId: string;
-  webgpuOk: boolean | null;
-  engineStatus: EngineStatus;
-  registry: RegistryModel[];
-  registryTotal: number | null;
+  puterUser: string | null;
+  catalog: CatalogModel[];
+  catalogTotal: number | null;
   showAll: boolean;
   onToggleAll: () => void;
   modelQuery: string;
   onQuery: (q: string) => void;
   onSelect: (id: string) => void;
-  progressFor: (id: string) => { progress: number; text: string } | null;
-  onCancelLoad: () => void;
+  onSignIn: () => void;
+  onSignOut: () => void;
 }) {
-  const ready = engineStatus.phase === "ready" ? engineStatus.model : null;
-
   return (
     <div className="max-h-[420px] overflow-y-auto thin-scroll p-1">
       {/* instant */}
@@ -747,7 +738,7 @@ function ModelMenu({
         sub={tt(T.aiModelInstantDesc, lang)}
         badge={null}
       />
-      {/* cloud */}
+      {/* cloud GLM-4-Plus (app's own server — no sign-in) */}
       <ModelRow
         active={modelId === MODEL_CLOUD}
         onClick={() => onSelect(MODEL_CLOUD)}
@@ -758,35 +749,56 @@ function ModelMenu({
       />
 
       <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {tt(T.aiModelOnDevice, lang)}
+        {tt(T.aiModelCloudCat, lang)}
       </div>
-      {webgpuOk === false && (
-        <div className="mx-1.5 mb-2 rounded-md border border-down/25 bg-down-soft px-2.5 py-2 text-[11px] leading-relaxed text-down">
-          {tt(T.aiNoWebGPU, lang)}
-        </div>
-      )}
 
-      {FEATURED_MODELS.map((m) => (
+      {/* Puter account row */}
+      <div className="mx-1.5 mb-2 rounded-md border bg-secondary/30 px-2.5 py-2">
+        {puterUser ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="num min-w-0 truncate text-[11.5px]">
+              <Check className="me-1 inline h-3 w-3 text-up" aria-hidden />
+              {tt(T.aiPuterSignedIn, lang)} · {puterUser}
+            </span>
+            <button type="button" onClick={onSignOut}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+              <LogOut className="h-2.5 w-2.5" aria-hidden />
+              {tt(T.aiPuterSignOut, lang)}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <div className="text-[11px] leading-relaxed text-muted-foreground">{tt(T.aiPuterNote, lang)}</div>
+            <button type="button" onClick={onSignIn}
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:bg-secondary"
+              style={{ color: "var(--chat-accent)" }}>
+              <LogIn className="h-3 w-3" aria-hidden />
+              {tt(T.aiPuterSignIn, lang)}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* featured cloud flagships — GLM first */}
+      {FEATURED_CLOUD.map((m) => (
         <ModelRow
-          key={m.id}
-          active={modelId === m.id}
-          onClick={() => onSelect(m.id)}
-          icon={<HardDriveDownload className="h-3.5 w-3.5" aria-hidden />}
-          title={m.label}
-          sub={`${m.sizeGb.toFixed(1)} GB · ${tt(m.desc, lang)}`}
-          badge={ready === m.id ? tt(T.aiModelReady, lang) : null}
-          disabled={webgpuOk === false}
-          progress={progressFor(m.id)}
-          onCancel={onCancelLoad}
+          key={m.puterId}
+          active={modelId === puterModelId(m.puterId)}
+          onClick={() => onSelect(puterModelId(m.puterId))}
+          icon={<Cloud className="h-3.5 w-3.5" aria-hidden />}
+          title={m.name}
+          sub={`${tt(m.desc, lang)} · ${Math.round(m.ctx / 1000)}k`}
+          badge={m.newest ? tt(T.aiNewestBadge, lang) : null}
         />
       ))}
 
+      {/* the full searchable catalog */}
       <div className="px-1.5 pt-2 pb-1">
         <button type="button" onClick={onToggleAll}
           className="flex w-full items-center justify-center gap-1.5 rounded-md border bg-secondary/40 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-secondary">
           <Search className="h-3 w-3" aria-hidden />
           {tt(T.aiModelAll, lang)}
-          {registryTotal != null && <span className="num text-muted-foreground">({registryTotal})</span>}
+          {catalogTotal != null && <span className="num text-muted-foreground">({catalogTotal})</span>}
         </button>
       </div>
 
@@ -801,35 +813,39 @@ function ModelMenu({
               className="w-full rounded-md border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:ring-1 focus:ring-primary/40"
             />
           </div>
-          {registryTotal === null && (
+          {catalogTotal === null && (
             <div className="px-2.5 py-2 text-[11px] text-muted-foreground">{tt(T.aiThinking, lang)}…</div>
           )}
-          {registry.map((m) => (
+          {catalog.map((m) => (
             <ModelRow
-              key={m.id}
-              active={modelId === m.id}
-              onClick={() => onSelect(m.id)}
-              icon={<HardDriveDownload className="h-3.5 w-3.5" aria-hidden />}
-              title={m.id.replace(/-MLC(-1k)?$/, "")}
-              sub={`${m.sizeGb.toFixed(1)} GB${m.lowResource ? ` · ${tt(T.aiModelLow, lang)}` : ""}${m.ctx ? ` · ${Math.round(m.ctx / 1024)}k` : ""}`}
-              badge={ready === m.id ? tt(T.aiModelReady, lang) : null}
-              disabled={webgpuOk === false}
+              key={m.puterId}
+              active={modelId === puterModelId(m.puterId)}
+              onClick={() => onSelect(puterModelId(m.puterId))}
+              icon={<Cloud className="h-3.5 w-3.5" aria-hidden />}
+              title={m.name}
+              sub={`${m.provider}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
+              badge={null}
               small
-              progress={progressFor(m.id)}
-              onCancel={onCancelLoad}
             />
           ))}
-          {registry.length === 0 && registryTotal != null && (
+          {catalog.length === 0 && catalogTotal != null && (
             <div className="px-2.5 py-2 text-[11px] text-muted-foreground">—</div>
           )}
         </div>
       )}
+
+      <div className="px-2.5 py-2 text-center">
+        <a href="https://developer.puter.com" target="_blank" rel="noopener noreferrer"
+          className="num text-[10px] text-muted-foreground underline-offset-2 hover:underline">
+          Powered by Puter
+        </a>
+      </div>
     </div>
   );
 }
 
 function ModelRow({
-  active, onClick, icon, title, sub, badge, disabled, small, progress, onCancel,
+  active, onClick, icon, title, sub, badge, small,
 }: {
   active: boolean;
   onClick: () => void;
@@ -837,54 +853,22 @@ function ModelRow({
   title: string;
   sub: string;
   badge: string | null;
-  disabled?: boolean;
   small?: boolean;
-  progress?: { progress: number; text: string } | null;
-  onCancel?: () => void;
 }) {
   return (
-    <div className={`relative rounded-md transition-colors ${active ? "bg-primary/10" : "hover:bg-secondary/70"} ${disabled ? "opacity-50" : ""}`}>
+    <div className={`relative rounded-md transition-colors ${active ? "bg-primary/10" : "hover:bg-secondary/70"}`}>
       <button
         type="button"
-        onClick={disabled ? undefined : onClick}
-        disabled={disabled}
+        onClick={onClick}
         className="flex w-full items-start gap-2 px-2 py-1.5 text-start"
       >
         <span className={`mt-0.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`}>{icon}</span>
         <span className="min-w-0 flex-1">
           <span className={`block truncate ${small ? "text-[11.5px]" : "text-[12.5px]"} font-medium leading-tight`} dir="auto">{title}</span>
           <span className="num block truncate text-[10.5px] text-muted-foreground" dir="auto">{sub}</span>
-          {progress && (
-            <span className="mt-1 block">
-              <span className="ai-prog-track block">
-                <span className="ai-prog-bar block" style={{ width: `${Math.max(3, Math.round(progress.progress * 100))}%` }} />
-              </span>
-              <span className="num mt-0.5 block truncate text-[9.5px] text-muted-foreground" dir="auto">{progress.text}</span>
-              {onCancel && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCancel();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.stopPropagation();
-                      onCancel();
-                    }
-                  }}
-                  className="mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
-                >
-                  <X className="h-2.5 w-2.5" aria-hidden />
-                  cancel
-                </span>
-              )}
-            </span>
-          )}
         </span>
         {active && <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />}
-        {badge && !active && <span className="num mt-0.5 shrink-0 text-[10px] text-up">{badge}</span>}
+        {badge && !active && <span className="num mt-0.5 shrink-0 rounded-full bg-up-soft px-1.5 py-0.5 text-[9px] font-semibold text-up">{badge}</span>}
       </button>
     </div>
   );

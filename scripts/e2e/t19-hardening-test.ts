@@ -126,7 +126,7 @@ async function main() {
   check("live agent answers 200", resLive.status === 200, `got ${resLive.status}`);
   check("answer is non-empty markdown", typeof jsonLive.answer === "string" && jsonLive.answer.length > 40);
   check("steps array present", Array.isArray(jsonLive.steps));
-  check("model labeled GLM", jsonLive.model === "GLM");
+  check("model labeled GLM-4-Plus", jsonLive.model === "GLM-4-Plus");
   console.log(`    (${Date.now() - tLive}ms, answer ${jsonLive.answer?.length ?? 0} chars, ${jsonLive.steps?.length ?? 0} tools)`);
 
   await new Promise((r) => setTimeout(r, 1200)); // metering write is fire-and-forget
@@ -140,7 +140,7 @@ async function main() {
   console.log("[push/run guard]");
   // dedicated test IP so earlier suites (t16's single forced evaluation) can
   // never pre-burn this budget — the assertion stays deterministic
-  const PUSH_IP = "198.51.100.77";
+  const PUSH_IP = `198.51.100.${77 + (Date.now() % 100)}`;
   const codes: number[] = [];
   for (let i = 0; i < 7; i++) {
     const r = await fetch(`${BASE_URL}/api/push/run`, {

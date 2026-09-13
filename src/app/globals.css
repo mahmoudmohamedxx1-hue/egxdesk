@@ -353,15 +353,6 @@ html {
   100% { transform: scale(1.28); opacity: 0; }
 }
 
-/* mic listening state */
-.ai-mic-live {
-  animation: ai-mic 1.4s ease-in-out infinite;
-}
-@keyframes ai-mic {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.62 0.14 30 / 45%); }
-  50% { box-shadow: 0 0 0 6px oklch(0.62 0.14 30 / 0%); }
-}
-
 /* tiny "suggestion" chips in the welcome card */
 .ai-chip {
   transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;

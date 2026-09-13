@@ -20,7 +20,7 @@ import { ValuationPanel, snowflakeScores, dcfPerShare, type CompanyFund, type Se
 import { Snowflake } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Volume2, Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw, Zap, CalendarClock, FileSpreadsheet } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, ExternalLink, RefreshCw, Zap, CalendarClock, FileSpreadsheet } from "lucide-react";
 
 type CompanyData = {
   session: SessionMeta;
@@ -66,7 +66,6 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
   const { lang, navigate } = useApp();
   const { data, error, refresh } = useLiveData<CompanyData>(`/api/company/${encodeURIComponent(ticker)}`, 60_000);
   const [activePanel, setActivePanel] = useState(panel);
-  const [speaking, setSpeaking] = useState(false);
   const [prevPanel, setPrevPanel] = useState(panel);
   if (prevPanel !== panel) {
     // URL panel changed (e.g. navigating from a peer link) — adjust state during render
@@ -115,23 +114,6 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
 
   const c = data.company;
 
-  function speakQuote() {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
-    const dir = c.changePct >= 0
-      ? (lang === "ar" ? "مرتفع" : "up")
-      : (lang === "ar" ? "منخفض" : "down");
-    const text = lang === "ar"
-      ? `${c.ticker}. ${dn(c, lang)}. آخر سعر ${fmtNum(c.close)} جنيه، ${dir} بنسبة ${fmtNum(Math.abs(c.changePct))} بالمئة.`
-      : `${c.ticker}. ${c.name}. Last ${fmtNum(c.close)} Egyptian pounds, ${dir} ${fmtNum(Math.abs(c.changePct))} percent.`;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang === "ar" ? "ar-EG" : "en-US";
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    window.speechSynthesis.speak(u);
-    setSpeaking(true);
-  }
-
   const panels = [
     { key: "overview", t: T.panelOverview },
     { key: "valuation", t: { ar: "التقييم", en: "Valuation" } },
@@ -161,13 +143,6 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
       <div className="flex items-center flex-wrap gap-2">
         <span className="num text-lg font-bold">{c.ticker}</span>
         <WatchStar ticker={c.ticker} />
-        <button
-          onClick={speakQuote}
-          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors"
-        >
-          <Volume2 className={`h-3.5 w-3.5 ${speaking ? "animate-pulse" : ""}`} />
-          {tt(T.listenBrief, lang)}
-        </button>
         <button
           onClick={() => navigate("tools")}
           className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors"

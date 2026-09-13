@@ -12,8 +12,8 @@ import ZAI from "z-ai-web-dev-sdk";
  *  2. stage "answer": after the client executed the tool, the model writes
  *     the final bilingual markdown answer from the REAL tool result.
  *
- *  The z-ai-web-dev-sdk (GLM-4-Plus) stays server-side; on-device WebLLM
- *  models never touch this endpoint. The tool list mirrors the client
+ *  The z-ai-web-dev-sdk (GLM-4-Plus) stays server-side; free Puter cloud
+ *  models run client-side and never touch this endpoint. The tool list mirrors the client
  *  registry in src/lib/assistant-tools.ts (kept in sync by hand — it is a
  *  prompt constant, not shared code, so the client lib never loads here). */
 

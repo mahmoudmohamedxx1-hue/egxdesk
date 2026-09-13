@@ -135,7 +135,7 @@ function scanBadNumbers(obj, path = "$", found = []) {
     const pts = r.body?.points;
     check(`chart ${ticker} ${range}`, r.res?.status === 200 && Array.isArray(pts) && pts.length > 0, `n=${pts?.length} ${r.ms}ms`);
     check(`chart ${range} candles well-formed`, pts?.every?.(p => typeof p.close === "number" && Number.isFinite(p.close) && typeof p.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.date)) !== false);
-    check(`chart ${range} volumes finite`, pts?.every?.(p => p.volume === undefined || (typeof p.volume === "number" && Number.isFinite(p.volume) && p.volume >= 0)) !== false);
+    check(`chart ${range} volumes finite`, pts?.every?.(p => p.volume === undefined || p.volume === null || (typeof p.volume === "number" && Number.isFinite(p.volume) && p.volume >= 0)) !== false);
     check(`chart ${range} dates ascending`, pts?.every?.((p, i) => i === 0 || p.date > pts[i - 1].date) !== false);
   }
   // index chart

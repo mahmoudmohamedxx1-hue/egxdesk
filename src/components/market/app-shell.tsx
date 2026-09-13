@@ -151,7 +151,7 @@ export function AppShell() {
       {/* G14 — service-worker registration (app shell cache; API never cached) */}
       <PwaRegister />
       {/* T28 — the floating AI assistant popup (Ctrl+K): executes any site
-          action + free client-based model switcher (Instant/Cloud/WebLLM) */}
+          action + free model switcher (Instant / Cloud GLM / Puter cloud) */}
       <AiAssistant />
       {/* header */}
       <header className="border-b bg-card sticky top-0 z-40">
