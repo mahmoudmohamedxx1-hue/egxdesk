@@ -13,12 +13,16 @@ import { marketStatus } from "./market-status";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
-export type ChartRange = "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
+export type ChartRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
 
-export const CHART_RANGES: ChartRange[] = ["1W", "1M", "3M", "6M", "1Y", "5Y"];
+export const CHART_RANGES: ChartRange[] = ["1D", "1W", "1M", "3M", "6M", "1Y", "5Y"];
 
 const RANGE_MAP: Record<ChartRange, { yahoo: string; interval: string; maxDays: number }> = {
-  "1W": { yahoo: "5d", interval: "1d", maxDays: 9 },
+  // T26 — intraday timeframes: 1D = today's session in 5-minute bars,
+  // 1W = the last five sessions in 15-minute bars (the most visible
+  // charting gap vs TradingView/Yahoo, closed at zero data cost).
+  "1D": { yahoo: "1d", interval: "5m", maxDays: 1 },
+  "1W": { yahoo: "5d", interval: "15m", maxDays: 7 },
   "1M": { yahoo: "1mo", interval: "1d", maxDays: 31 },
   "3M": { yahoo: "3mo", interval: "1d", maxDays: 95 },
   "6M": { yahoo: "6mo", interval: "1d", maxDays: 190 },
@@ -84,6 +88,14 @@ function toDate(tsSec: number): string {
   return cairo.toISOString().slice(0, 10);
 }
 
+/** Intraday bar label: "YYYY-MM-DD HH:mm" in Cairo time — the date part
+ *  keeps the series sortable and dedup-able, the time part makes each
+ *  5m/15m bar its own point. */
+function toDateTime(tsSec: number): string {
+  const cairo = new Date((tsSec + 3 * 3600) * 1000);
+  return cairo.toISOString().slice(0, 16).replace("T", " ");
+}
+
 type YahooChart = {
   chart?: {
     result?: {
@@ -101,7 +113,10 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
   const t = ticker.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!t) throw new Error("history: empty ticker");
   const cfg = RANGE_MAP[range];
-  return cached(`chart:${t}:${range}`, 300_000, async () => {
+  const intraday = cfg.interval !== "1d" && cfg.interval !== "1wk";
+  // intraday windows move with the tape while the market is open — cache
+  // them for one minute instead of five
+  return cached(`chart:${t}:${range}`, intraday ? 60_000 : 300_000, async () => {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(`${t}.CA`)}?range=${cfg.yahoo}&interval=${cfg.interval}&includePrePost=false`;
     const res = await fetch(url, {
       headers: { "User-Agent": UA, Accept: "application/json" },
@@ -124,14 +139,15 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
       const h = highs[i];
       const l = lows[i];
       points.push({
-        date: toDate(r.timestamp[i]),
+        date: intraday ? toDateTime(r.timestamp[i]) : toDate(r.timestamp[i]),
         close: c,
         volume: typeof v === "number" && Number.isFinite(v) ? v : null,
         high: typeof h === "number" && Number.isFinite(h) && h >= c ? h : null,
         low: typeof l === "number" && Number.isFinite(l) && l <= c ? l : null,
       });
     }
-    // keep only the last point per date (guards against duplicate intraday rows)
+    // keep only the last point per date key (guards duplicate rows — for
+    // intraday the key carries the bar time so every bar survives)
     const byDate = new Map<string, ChartPoint>();
     for (const p of points) byDate.set(p.date, p);
     const final = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -143,12 +159,14 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
     // behind the live quote header. When the candle series lags the last
     // real session, splice the live TradingView close as a final "live"
     // candle: after close it IS the session's final print; intraday it moves
-    // with the tape. Implemented HERE so every consumer (chart route,
+    // with the tape. DAILY/WEEKLY only — the intraday series already updates
+    // in real time and a daily-style spliced point would collide with the
+    // last live bar. Implemented HERE so every consumer (chart route,
     // technical panel, signals scan, AI signals, hourly reports) inherits it.
     const status = marketStatus();
     const lastPt = final[final.length - 1];
     let spliced = false;
-    if (lastPt.date < status.lastSession) {
+    if (!intraday && lastPt.date < status.lastSession) {
       try {
         const universe = await fetchUniverse();
         const live = universe.find((s) => s.ticker === t);
@@ -182,7 +200,9 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
       changePct: first > 0 ? ((last - first) / first) * 100 : null,
       source: spliced
         ? "Yahoo Finance (EGX daily candles) + live TradingView close (latest session)"
-        : "Yahoo Finance (EGX daily candles)",
+        : intraday
+          ? `Yahoo Finance (EGX ${cfg.interval} intraday bars, Cairo time)`
+          : "Yahoo Finance (EGX daily candles)",
       asOf: final[final.length - 1].date,
     } satisfies StockChart;
   });

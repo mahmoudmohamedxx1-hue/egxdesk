@@ -1,5 +1,5 @@
 {
-  "asOf": "2026-09-11T02:22:04.771Z",
+  "asOf": "2026-09-13T17:43:37.515Z",
   "strategyRev": "egx-trend-v1",
   "method": "walk-forward, no lookahead: every 10 sessions rank the universe with the live scoring function over candles up to that date only; longs = top 5 with score >= 0.5; hold 10 sessions; costs 0.35% round trip; benchmark = equal-weight universe",
   "params": {
@@ -10,177 +10,659 @@
     "costPctRoundTrip": 0.35
   },
   "universe": {
-    "size": 35,
+    "size": 36,
     "selection": "today's 40 most-traded EGX names with 3y daily history"
   },
   "stats": {
     "windows": 53,
     "noPickWindows": 1,
-    "trades": 246,
-    "suspectExcluded": 2,
-    "hitRate": 0.581,
-    "avgNetPct": 3,
-    "avgWinPct": 8.67,
-    "avgLossPct": -4.87,
-    "profitFactor": 2.47,
-    "avgExcessPct": 1.03,
-    "beatBenchRate": 0.423,
-    "strategyCumPct": 340.4,
-    "benchCumPct": 175.3,
-    "maxDrawdownPct": -8,
-    "bestPct": 44.6,
-    "worstPct": -25,
-    "medianNetPct": 1.01
+    "trades": 252,
+    "suspectExcluded": 4,
+    "hitRate": 0.504,
+    "avgNetPct": 2.26,
+    "avgWinPct": 9.87,
+    "avgLossPct": -5.47,
+    "profitFactor": 1.83,
+    "avgExcessPct": -0.38,
+    "beatBenchRate": 0.397,
+    "strategyCumPct": 211,
+    "benchCumPct": 266.8,
+    "maxDrawdownPct": -10.8,
+    "bestPct": 43.5,
+    "worstPct": -41.7,
+    "medianNetPct": 0.17
   },
   "windows": [
     {
-      "date": "2026-03-12",
-      "picks": [
-        "EFIC",
-        "CCAP",
-        "AMOC",
-        "OIH",
-        "SWDY"
-      ],
-      "netPct": 0.05,
-      "benchPct": -2.73
+      "date": "2024-07-16",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": -3.8
     },
     {
-      "date": "2026-03-30",
-      "picks": [
-        "CCAP",
-        "GTWL",
-        "EMFD",
-        "POUL",
-        "SVCE"
-      ],
-      "netPct": 2.16,
-      "benchPct": 5.8
-    },
-    {
-      "date": "2026-04-15",
+      "date": "2024-07-31",
       "picks": [
         "COMI",
-        "EMFD",
-        "ZMID",
-        "PHDC",
-        "ISMA"
+        "KABO",
+        "OIH",
+        "SCEM",
+        "ZMID"
       ],
-      "netPct": 14.76,
-      "benchPct": 7.43
+      "netPct": 3.37,
+      "benchPct": -1.51
     },
     {
-      "date": "2026-04-29",
+      "date": "2024-08-14",
       "picks": [
-        "EGCH",
-        "ZMID",
-        "EPCO",
-        "NIPH",
-        "COMI"
+        "MPCO",
+        "COMI",
+        "TMGH",
+        "RMDA",
+        "EFIC"
       ],
-      "netPct": 9.6,
-      "benchPct": 6.16
+      "netPct": -4.52,
+      "benchPct": 10.47
     },
     {
-      "date": "2026-05-13",
+      "date": "2024-08-28",
       "picks": [
-        "ETEL",
-        "AMOC",
         "ORHD",
-        "EPCO",
-        "ARAB"
+        "OIH",
+        "EMFD",
+        "MPRC",
+        "ELEC"
       ],
-      "netPct": 0.09,
-      "benchPct": -1.88
+      "netPct": -0.76,
+      "benchPct": 1.28
     },
     {
-      "date": "2026-05-27",
+      "date": "2024-09-11",
       "picks": [
-        "CCAP",
-        "SVCE",
-        "EGCH",
-        "ETEL",
-        "SWDY"
+        "TMGH",
+        "EFIC",
+        "RMDA",
+        "MASR",
+        "ORHD"
       ],
-      "netPct": -3.18,
+      "netPct": 5.07,
+      "benchPct": 11.43
+    },
+    {
+      "date": "2024-09-26",
+      "picks": [
+        "RMDA",
+        "OIH",
+        "MASR",
+        "TMGH",
+        "ELEC"
+      ],
+      "netPct": -5.45,
+      "benchPct": -1.79
+    },
+    {
+      "date": "2024-10-13",
+      "picks": [
+        "RMDA",
+        "POUL",
+        "SVCE",
+        "MPRC",
+        "EFIC"
+      ],
+      "netPct": 14.56,
+      "benchPct": 5.82
+    },
+    {
+      "date": "2024-10-27",
+      "picks": [
+        "KABO",
+        "EMFD",
+        "EPCO",
+        "OIH",
+        "ZMID"
+      ],
+      "netPct": 3.18,
+      "benchPct": 6.45
+    },
+    {
+      "date": "2024-11-10",
+      "picks": [
+        "OIH",
+        "TMGH",
+        "MASR",
+        "ELEC",
+        "KABO"
+      ],
+      "netPct": -4.45,
+      "benchPct": -3.55
+    },
+    {
+      "date": "2024-11-24",
+      "picks": [
+        "MPCO",
+        "ORHD",
+        "OIH",
+        "EPCO",
+        "POUL"
+      ],
+      "netPct": 1.89,
+      "benchPct": 3.66
+    },
+    {
+      "date": "2024-12-08",
+      "picks": [
+        "MASR",
+        "PHDC",
+        "EMFD",
+        "ELEC",
+        "ETEL"
+      ],
+      "netPct": -4.1,
+      "benchPct": -2.25
+    },
+    {
+      "date": "2024-12-22",
+      "picks": [
+        "PHDC",
+        "ORHD",
+        "OIH",
+        "GTWL",
+        "MPCO"
+      ],
+      "netPct": -0.34,
+      "benchPct": -0.52
+    },
+    {
+      "date": "2025-01-06",
+      "picks": [
+        "SIPC",
+        "SVCE",
+        "SCEM",
+        "RMDA",
+        "INEG"
+      ],
+      "netPct": -1.13,
+      "benchPct": 1.68
+    },
+    {
+      "date": "2025-01-21",
+      "picks": [
+        "SVCE",
+        "INEG",
+        "EFIC",
+        "CCAP",
+        "MPRC"
+      ],
+      "netPct": 2.76,
+      "benchPct": 1.89
+    },
+    {
+      "date": "2025-02-04",
+      "picks": [
+        "RMDA",
+        "POUL",
+        "GTWL",
+        "MPCO",
+        "HELI"
+      ],
+      "netPct": -0.89,
+      "benchPct": -0.31
+    },
+    {
+      "date": "2025-02-18",
+      "picks": [
+        "OIH",
+        "CCAP",
+        "EMFD",
+        "ORHD",
+        "ETEL"
+      ],
+      "netPct": 5.89,
+      "benchPct": 3.15
+    },
+    {
+      "date": "2025-03-04",
+      "picks": [
+        "INEG",
+        "EPCO",
+        "GTWL",
+        "LUTS",
+        "MPCO"
+      ],
+      "netPct": 5.83,
+      "benchPct": 4.27
+    },
+    {
+      "date": "2025-03-18",
+      "picks": [
+        "EPCO",
+        "RMDA",
+        "EMFD",
+        "SVCE",
+        "MASR"
+      ],
+      "netPct": -4.28,
+      "benchPct": -4.18
+    },
+    {
+      "date": "2025-04-07",
+      "picks": [
+        "OIH",
+        "MASR",
+        "RMDA",
+        "DTPP",
+        "HELI"
+      ],
+      "netPct": 3.74,
+      "benchPct": 8.54
+    },
+    {
+      "date": "2025-04-23",
+      "picks": [
+        "EPCO",
+        "AFMC",
+        "POUL",
+        "MPCO",
+        "SVCE"
+      ],
+      "netPct": 7.71,
+      "benchPct": 1.78
+    },
+    {
+      "date": "2025-05-11",
+      "picks": [
+        "SVCE",
+        "MPCO",
+        "SIPC",
+        "EMFD",
+        "AFMC"
+      ],
+      "netPct": -1.05,
+      "benchPct": 0.49
+    },
+    {
+      "date": "2025-05-25",
+      "picks": [
+        "SVCE",
+        "ETEL",
+        "PHDC",
+        "HELI",
+        "NCCW"
+      ],
+      "netPct": 8.27,
+      "benchPct": 4.49
+    },
+    {
+      "date": "2025-06-11",
+      "picks": [
+        "AMES",
+        "CCAP",
+        "MASR",
+        "MCRO",
+        "SIPC"
+      ],
+      "netPct": 1.25,
       "benchPct": 1.17
     },
     {
-      "date": "2026-06-10",
-      "picks": [
-        "EMFD",
-        "ZMID",
-        "ORHD",
-        "LUTS",
-        "PHDC"
-      ],
-      "netPct": 6.58,
-      "benchPct": 2.09
-    },
-    {
-      "date": "2026-06-24",
-      "picks": [
-        "SVCE",
-        "GIHD",
-        "LUTS",
-        "NIPH",
-        "ETEL"
-      ],
-      "netPct": 0.38,
-      "benchPct": 3.62
-    },
-    {
-      "date": "2026-07-08",
+      "date": "2025-06-25",
       "picks": [
         "CCAP",
-        "ARAB",
-        "HELI",
-        "SVCE",
-        "GIHD"
+        "GTWL",
+        "RMDA",
+        "MASR",
+        "EMFD"
       ],
-      "netPct": 12.26,
-      "benchPct": 8.07
+      "netPct": 5.35,
+      "benchPct": 4.85
     },
     {
-      "date": "2026-07-22",
+      "date": "2025-07-14",
       "picks": [
-        "CCAP",
-        "COMI",
-        "AMOC",
+        "AFMC",
+        "GTWL",
         "ETEL",
-        "EPCO"
-      ],
-      "netPct": 2.15,
-      "benchPct": 4.03
-    },
-    {
-      "date": "2026-08-05",
-      "picks": [
-        "EMFD",
-        "EGCH",
-        "PHDC",
         "COMI",
-        "LUTS"
+        "MCRO"
       ],
-      "netPct": -2.32,
-      "benchPct": 12.29
+      "netPct": 5.06,
+      "benchPct": 2.69
     },
     {
-      "date": "2026-08-19",
+      "date": "2025-07-29",
+      "picks": [
+        "NCCW",
+        "ORHD",
+        "EGCH",
+        "OIH",
+        "INEG"
+      ],
+      "netPct": 7.12,
+      "benchPct": 5.37
+    },
+    {
+      "date": "2025-08-12",
+      "picks": [
+        "POUL",
+        "RMDA",
+        "ORHD",
+        "AFMC",
+        "MPCO"
+      ],
+      "netPct": -1.06,
+      "benchPct": 3.21
+    },
+    {
+      "date": "2025-08-26",
       "picks": [
         "MPCO",
-        "SWDY",
-        "ATQA",
-        "MFPC",
+        "POUL",
+        "DTPP",
+        "ORHD",
+        "EPCO"
+      ],
+      "netPct": 0.02,
+      "benchPct": 3.49
+    },
+    {
+      "date": "2025-09-10",
+      "picks": [
+        "BTFH",
+        "OIH",
+        "KABO",
+        "CERA",
+        "MCRO"
+      ],
+      "netPct": -3.7,
+      "benchPct": -4.52
+    },
+    {
+      "date": "2025-09-24",
+      "picks": [
+        "MPCO",
+        "POUL",
+        "TMGH",
+        "BTFH",
+        "AMES"
+      ],
+      "netPct": 3.89,
+      "benchPct": 5.59
+    },
+    {
+      "date": "2025-10-08",
+      "picks": [
+        "SCEM",
+        "TMGH",
+        "GTWL",
+        "KABO",
         "SVCE"
       ],
-      "netPct": 10.85,
-      "benchPct": 2.96
+      "netPct": 10.69,
+      "benchPct": 4.62
+    },
+    {
+      "date": "2025-10-23",
+      "picks": [
+        "SVCE",
+        "OIH",
+        "ELEC",
+        "KABO",
+        "DTPP"
+      ],
+      "netPct": -0.92,
+      "benchPct": -0.32
+    },
+    {
+      "date": "2025-11-06",
+      "picks": [
+        "MCRO",
+        "PHDC",
+        "EFIC",
+        "INEG",
+        "COMI"
+      ],
+      "netPct": 6.61,
+      "benchPct": -0.8
+    },
+    {
+      "date": "2025-11-20",
+      "picks": [
+        "DTPP",
+        "ZMID",
+        "INEG",
+        "TMGH",
+        "EFIC"
+      ],
+      "netPct": 5.66,
+      "benchPct": -0.57
+    },
+    {
+      "date": "2025-12-04",
+      "picks": [
+        "OIH",
+        "BTFH",
+        "SIPC",
+        "ETEL",
+        "LUTS"
+      ],
+      "netPct": 2.12,
+      "benchPct": 3.2
+    },
+    {
+      "date": "2025-12-18",
+      "picks": [
+        "EGCH",
+        "SVCE",
+        "EFIC",
+        "OIH",
+        "BTFH"
+      ],
+      "netPct": 3.37,
+      "benchPct": 1.42
+    },
+    {
+      "date": "2026-01-04",
+      "picks": [
+        "TMGH",
+        "EPCO",
+        "ELEC",
+        "EGCH",
+        "SIPC"
+      ],
+      "netPct": -7.93,
+      "benchPct": -3.59
+    },
+    {
+      "date": "2026-01-19",
+      "picks": [
+        "KABO",
+        "POUL",
+        "MASR",
+        "PHDC",
+        "ETEL"
+      ],
+      "netPct": 7.65,
+      "benchPct": 4.21
+    },
+    {
+      "date": "2026-02-03",
+      "picks": [
+        "PHDC",
+        "EGCH",
+        "SCEM",
+        "AFMC",
+        "POUL"
+      ],
+      "netPct": 4.34,
+      "benchPct": 4.57
+    },
+    {
+      "date": "2026-02-17",
+      "picks": [
+        "EMFD",
+        "MPCI",
+        "INEG",
+        "ETEL",
+        "GTWL"
+      ],
+      "netPct": -10.79,
+      "benchPct": -7.76
+    },
+    {
+      "date": "2026-03-03",
+      "picks": [
+        "POUL"
+      ],
+      "netPct": 6.5,
+      "benchPct": 3.28
+    },
+    {
+      "date": "2026-03-17",
+      "picks": [
+        "MPCI",
+        "DTPP",
+        "CCAP",
+        "EFIC",
+        "OIH"
+      ],
+      "netPct": 3.15,
+      "benchPct": 0.96
+    },
+    {
+      "date": "2026-04-02",
+      "picks": [
+        "GTWL",
+        "CCAP",
+        "AMES",
+        "MASR",
+        "AFMC"
+      ],
+      "netPct": -5,
+      "benchPct": 3.56
+    },
+    {
+      "date": "2026-04-20",
+      "picks": [
+        "RMDA",
+        "ZMID",
+        "SIPC",
+        "GTWL",
+        "EMFD"
+      ],
+      "netPct": 6.56,
+      "benchPct": 9.83
+    },
+    {
+      "date": "2026-05-04",
+      "picks": [
+        "AMOC",
+        "EGCH",
+        "KABO",
+        "ORHD",
+        "ZMID"
+      ],
+      "netPct": 6.87,
+      "benchPct": 3.47
+    },
+    {
+      "date": "2026-05-19",
+      "picks": [
+        "ZMID",
+        "SCEM",
+        "CCAP",
+        "MASR",
+        "AMOC"
+      ],
+      "netPct": -0.98,
+      "benchPct": 0.48
+    },
+    {
+      "date": "2026-06-03",
+      "picks": [
+        "MPRC",
+        "POUL",
+        "KABO",
+        "ZMID",
+        "EPCO"
+      ],
+      "netPct": -0.83,
+      "benchPct": 0.45
+    },
+    {
+      "date": "2026-06-17",
+      "picks": [
+        "EPCO",
+        "COMI",
+        "ORHD",
+        "ZMID",
+        "MPRC"
+      ],
+      "netPct": 2.67,
+      "benchPct": 4.32
+    },
+    {
+      "date": "2026-07-01",
+      "picks": [
+        "POUL",
+        "KABO",
+        "SCEM",
+        "AMES",
+        "SVCE"
+      ],
+      "netPct": 4.64,
+      "benchPct": 10.15
+    },
+    {
+      "date": "2026-07-15",
+      "picks": [
+        "AFMC",
+        "EGCH",
+        "SIPC",
+        "POUL",
+        "CCAP"
+      ],
+      "netPct": 0.08,
+      "benchPct": 5.91
+    },
+    {
+      "date": "2026-07-29",
+      "picks": [
+        "KABO",
+        "EPCO",
+        "COMI",
+        "AMOC",
+        "OIH"
+      ],
+      "netPct": 10.19,
+      "benchPct": 10.74
+    },
+    {
+      "date": "2026-08-12",
+      "picks": [
+        "MPRC",
+        "ETEL",
+        "SVCE",
+        "PHDC",
+        "EGCH"
+      ],
+      "netPct": -2.64,
+      "benchPct": 2.86
+    },
+    {
+      "date": "2026-08-26",
+      "picks": [
+        "INEG",
+        "EMFD",
+        "AMOC",
+        "KABO",
+        "MPCO"
+      ],
+      "netPct": 16.77,
+      "benchPct": 5.62
     }
   ],
   "notes": [
     "Past performance is NOT a guarantee — the backtest validates the RULES on history, it cannot validate the LLM's future judgment.",
-    "Trades with |gross return| > 45% inside a 10-session hold (2 found) are excluded as likely rights-issue/split print artifacts.",
+    "Trades with |gross return| > 45% inside a 10-session hold (4 found) are excluded as likely rights-issue/split print artifacts.",
     "Universe is today's most-traded names — mild survivorship/selection bias is possible.",
     "Quotes are ~15-min delayed daily candles; fills at next available close, no intraday stops modeled (EGX circuit breakers make stop fills uncertain)."
   ]

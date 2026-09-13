@@ -83,6 +83,10 @@ export type NewsRow = {
   snippet: string | null;
   source: string;
   categories: string[];
+  /** T26: rule-based lexicon chip — "bullish" | "bearish" | "neutral". */
+  sentiment?: "bullish" | "bearish" | "neutral";
+  /** T26: EGX tickers plausibly mentioned (clickable). */
+  tickers?: string[];
 };
 
 export type SectorCard = {

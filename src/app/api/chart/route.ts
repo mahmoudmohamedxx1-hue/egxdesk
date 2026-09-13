@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, type Stock } from "@/lib/market";
 import { fetchStockChart, CHART_RANGES, type ChartRange } from "@/lib/history";
 import { ensureHistory, indexHistory } from "@/lib/flows";
+import { sampleIfDue, intradayPoints } from "@/lib/intraday";
 
 export const dynamic = "force-dynamic";
 
 /** GET /api/chart?symbol=COMI&range=6M — REAL price history:
  *    - stocks (any EGX-listed ticker): daily/weekly candles from Yahoo Finance
+ *    - intraday ranges (1D / 1W): self-collected ~5-minute ticks sampled from
+ *      the live TradingView universe while the session is open (T26) — no
+ *      free source serves true EGX intraday candles; until the first sessions
+ *      are collected the route serves daily candles with an honest label
  *    - indices (EGX30 | EGX70 | EGX100): real daily closes persisted from
  *      EGXBot session reports (Sun–Thu sessions; the series starts ~3 months
  *      back and grows every day — no free source serves multi-year EGX
@@ -98,8 +103,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(body);
   }
 
-  // ── stocks: Yahoo Finance candles, validated against the live universe ──
-  // (the candle series itself is completed with the live TradingView close
+  // ── stocks: real candles/ticks, validated against the live universe ──
+  // (the daily candle series is completed with the live TradingView close
   //  inside fetchStockChart when Yahoo lags the last session — Task 23 fix —
   //  so charts, technical panels and signals never end a session behind the
   //  live quote header)
@@ -114,6 +119,75 @@ export async function GET(req: NextRequest) {
   } catch {
     // universe fetch hiccup — still allow the chart if Yahoo has the symbol
   }
+
+  // T26 — intraday timeframes: self-collected ticks. sampleIfDue() keeps the
+  // store fresh while the session is open (lazy, debounced, one scanner call).
+  if (range === "1D" || range === "1W") {
+    sampleIfDue();
+    try {
+      const sessions = range === "1D" ? 1 : 5;
+      const ticks = await intradayPoints(symbol, sessions);
+      if (ticks.length >= 2) {
+        const closes = ticks.map((p) => p.close);
+        const first = closes[0];
+        const last = closes[closes.length - 1];
+        const body: ChartResponse = {
+          symbol,
+          name: symbol,
+          kind: "stock",
+          range,
+          currency: "EGP",
+          points: ticks.map((p) => ({ date: p.date, close: p.close, volume: p.volume })),
+          first,
+          last,
+          high: Math.max(...closes),
+          low: Math.min(...closes),
+          changePct: first > 0 ? ((last - first) / first) * 100 : null,
+          asOf: ticks[ticks.length - 1].date,
+          source:
+            "EGX Desk self-collected ticks (~5 min, delayed ~15 min, TradingView quote stream)",
+          availableRanges: CHART_RANGES,
+        };
+        return NextResponse.json(body);
+      }
+    } catch (err) {
+      console.error("chart: intraday read failed", err);
+    }
+    // no ticks yet (weekend / cold start) — serve the last five daily
+    // sessions as an honest, clearly-labeled fallback
+    try {
+      const daily = await fetchStockChart(symbol, "1M");
+      const dates = Array.from(new Set(daily.points.map((p) => p.date)));
+      const keep = new Set(dates.slice(-5));
+      const points = daily.points.filter((p) => keep.has(p.date));
+      const closes = points.map((p) => p.close);
+      const first = closes[0] ?? null;
+      const last = closes[closes.length - 1] ?? null;
+      const body: ChartResponse = {
+        symbol: daily.symbol,
+        name: daily.yahooSymbol,
+        kind: "stock",
+        range,
+        currency: daily.currency,
+        points,
+        first,
+        last,
+        high: closes.length ? Math.max(...closes) : null,
+        low: closes.length ? Math.min(...closes) : null,
+        changePct: first && first > 0 && last !== null ? ((last - first) / first) * 100 : null,
+        asOf: daily.asOf,
+        source:
+          "Intraday ticks accumulate while the market is open — showing the last five daily sessions until the first session is sampled",
+        warming: true,
+        availableRanges: CHART_RANGES,
+      };
+      return NextResponse.json(body);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "chart unavailable";
+      return NextResponse.json({ error: msg }, { status: 404 });
+    }
+  }
+
   try {
     const chart = await fetchStockChart(symbol, range);
     const body: ChartResponse = {

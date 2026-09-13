@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchUniverse, fetchIndices, fetchNews, sectorRows, companyRow, sessionMeta } from "@/lib/market";
+import { sampleIfDue } from "@/lib/intraday";
 import { fetchFlows, breadthHistory, persistBreadthLive } from "@/lib/flows";
 import { marketStatus } from "@/lib/market-status";
 
@@ -8,6 +9,7 @@ import { marketStatus } from "@/lib/market-status";
  *  and an investor-flows summary ("who moved the market today"). */
 export async function GET() {
   try {
+    sampleIfDue(); // T26 — keep the intraday tick store fresh while anyone browses
     const [stocks, indices, news] = await Promise.all([fetchUniverse(), fetchIndices(), fetchNews()]);
     const sectors = sectorRows(stocks);
 

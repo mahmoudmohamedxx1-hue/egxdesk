@@ -95,6 +95,29 @@ model BreadthDay {
   capturedAt DateTime @default(now())
 }
 
+// ── Self-collected intraday ticks (T26: 1D/1W chart timeframes) ──
+
+/** One quote sample for one ticker, taken while the EGX session is open.
+ *  No free source serves true EGX intraday candles (Yahoo stamps ONE bar per
+ *  day), so the desk samples the live TradingView universe quote itself
+ *  every ~5 minutes and stores the ticks here — honest, delayed ~15 min,
+ *  accumulating session by session. `minuteKey` is the Cairo-time
+ *  "YYYY-MM-DD HH:MM" bucket used for dedupe; `volume` is the cumulative
+ *  session volume at sample time (diffed into per-bar volume on read). */
+model IntradayTick {
+  id        Int      @id @default(autoincrement())
+  ticker    String
+  minuteKey String // Cairo "YYYY-MM-DD HH:MM"
+  ts        DateTime @default(now())
+  close     Float
+  volume    Float? // cumulative session volume at sample time
+  changePct Float?
+
+  @@unique([ticker, minuteKey])
+  @@index([ticker])
+  @@index([ts])
+}
+
 // ── Web-push devices (G1 mobile: iOS/Android installed-PWA notifications) ──
 
 /** One installed app instance that opted into phone notifications.

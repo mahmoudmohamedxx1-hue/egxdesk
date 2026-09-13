@@ -8,7 +8,7 @@ import { T, tt } from "@/lib/i18n";
 import { fmtDateAr, fmtTimeAr, fmtInt } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Volume2, ExternalLink, Newspaper, History, ChevronUp } from "lucide-react";
+import { Volume2, ExternalLink, Newspaper, History, ChevronUp, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 type NewsPage = {
   session: SessionMeta;
@@ -25,6 +25,7 @@ type NewsEnItem = {
   link: string;
   publishedAt: string;
   source: string;
+  sentiment?: "bullish" | "bearish" | "neutral";
 };
 
 type NewsEnData = {
@@ -33,10 +34,58 @@ type NewsEnData = {
   fetchedAt: string;
 };
 
+const SENTIMENT_CLS: Record<string, string> = {
+  bullish: "bg-up-soft text-up",
+  bearish: "bg-down-soft text-down",
+  neutral: "bg-secondary text-muted-foreground",
+};
+
+/** T26 — one sentiment chip + ticker chips, shared by the AR archive rows
+ *  and the EN feed rows. */
+function SentimentChips({
+  sentiment,
+  tickers,
+  lang,
+  navigate,
+}: {
+  sentiment?: "bullish" | "bearish" | "neutral";
+  tickers?: string[];
+  lang: "ar" | "en";
+  navigate: (v: string, extra?: { ticker?: string }) => void;
+}) {
+  if (!sentiment && !(tickers && tickers.length)) return null;
+  const Icon = sentiment === "bullish" ? TrendingUp : sentiment === "bearish" ? TrendingDown : Minus;
+  const label =
+    sentiment === "bullish" ? tt(T.sentBullish, lang) : sentiment === "bearish" ? tt(T.sentBearish, lang) : tt(T.sentNeutral, lang);
+  return (
+    <>
+      {sentiment && (
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${SENTIMENT_CLS[sentiment]}`}
+          title={tt(T.sentNote, lang)}
+        >
+          <Icon className="h-3 w-3" aria-hidden />
+          {label}
+        </span>
+      )}
+      {(tickers ?? []).map((t) => (
+        <button
+          key={t}
+          onClick={() => navigate("company", { ticker: t })}
+          className="num rounded-full border border-ring/40 bg-secondary/60 px-2 py-0.5 text-[10px] font-semibold hover:bg-accent transition-colors"
+          title={`${t} — ${tt(T.sentTickerHint, lang)}`}
+        >
+          {t}
+        </button>
+      ))}
+    </>
+  );
+}
+
 const PAGE_SIZE = 40;
 
 export function NewsView() {
-  const { lang } = useApp();
+  const { lang, navigate } = useApp();
   const [items, setItems] = useState<NewsRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -215,6 +264,7 @@ export function NewsView() {
             <article key={`${n.link}-${i}`} className="rounded-lg border bg-card p-4">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
+                <SentimentChips sentiment={n.sentiment} lang={lang} navigate={navigate} />
                 <span className="num text-[11px] text-muted-foreground">
                   {fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}
                 </span>
@@ -272,6 +322,7 @@ export function NewsView() {
                 {n.categories.map((c) => (
                   <span key={c} className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium">{c}</span>
                 ))}
+                <SentimentChips sentiment={n.sentiment} tickers={n.tickers} lang={lang} navigate={navigate} />
                 <span className="num text-[11px] text-muted-foreground">
                   {fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}
                 </span>

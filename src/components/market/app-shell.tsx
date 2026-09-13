@@ -22,6 +22,8 @@ import { CalendarView } from "@/components/views/calendar-view";
 import { CompareView } from "@/components/views/compare-view";
 import { ApiDocsView } from "@/components/views/api-docs-view";
 import { SignalsView } from "@/components/views/signals-view";
+import { StrategyLabView } from "@/components/views/strategy-lab-view";
+import { FundsView } from "@/components/views/funds-view";
 import { AgentView } from "@/components/views/agent-view";
 import { ReportsView } from "@/components/views/reports-view";
 import { APP_VERSION, BUILD_DATE } from "@/lib/version";
@@ -47,6 +49,7 @@ const NAV = [
   { view: "market", t: T.market },
   { view: "screener", t: { ar: "الفرز", en: "Screener" } },
   { view: "signals", t: T.signalsNav },
+  { view: "lab", t: T.labNav },
   { view: "reports", t: T.reportsNav },
   { view: "heat", t: T.map },
   { view: "sectors", t: T.sectors },
@@ -54,6 +57,7 @@ const NAV = [
   { view: "activity", t: T.activity },
   { view: "calendar", t: { ar: "التقويم", en: "Calendar" } },
   { view: "compare", t: { ar: "المقارنة", en: "Compare" } },
+  { view: "funds", t: T.fundsNav },
   { view: "today", t: T.news },
   { view: "agent", t: T.agentNav },
   { view: "watchlist", t: T.watchlist },
@@ -246,6 +250,8 @@ export function AppShell() {
           {view.name === "calendar" && <CalendarView />}
           {view.name === "compare" && <CompareView />}
           {view.name === "signals" && <SignalsView />}
+          {view.name === "lab" && <StrategyLabView />}
+          {view.name === "funds" && <FundsView />}
           {view.name === "reports" && <ReportsView />}
           {view.name === "agent" && <AgentView />}
           {view.name === "api" && <ApiDocsView />}

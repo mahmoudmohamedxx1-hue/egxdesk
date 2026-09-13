@@ -27,14 +27,33 @@ import {
   bullBearSeries,
   classicPivots,
   aggregateSignals,
+  atrSeries,
+  adxSeries,
+  obvSeries,
+  mfiSeries,
+  stochRsiSeries,
+  psarSeries,
+  superTrendSeries,
+  donchianSeries,
+  awesomeSeries,
+  trixSeries,
+  cmoSeries,
+  rocSeries,
+  ultimateOscSeries,
+  aroonSeries,
+  ichimokuSeries,
+  bollingerSeries,
   type Signal,
 } from "@/lib/indicators";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** Investing.com-style technical analysis for one stock, computed entirely
  *  client-side from the last year of daily candles (/api/chart). Shows a
- *  summary rating gauge (Strong Sell → Strong Buy) over 13 rated indicators
- *  (moving averages + oscillators), classic pivot levels from the last
+ *  summary rating gauge (Strong Sell → Strong Buy) over 30+ rated indicators
+ *  (moving averages + oscillators, including the T26 advanced set: Ichimoku
+ *  lines, ADX, Stoch RSI, CMO, ROC, MFI, OBV, Awesome, TRIX, Ultimate
+ *  Oscillator), a volatility & trend-strength strip (ATR, ADX, SuperTrend,
+ *  PSAR, Donchian/Keltner position), classic pivot levels from the last
  *  session's real H/L/C, and a rebased stock-vs-EGX30 comparison chart. */
 
 type ChartPoint = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
@@ -223,14 +242,18 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
     const closes = pts.map((p) => p.close);
     const highs = pts.map((p) => p.high ?? null);
     const lows = pts.map((p) => p.low ?? null);
+    const vols = pts.map((p) => (typeof p.volume === "number" ? p.volume : null));
     const price = closes[closes.length - 1];
+    const hasVolume = vols.some((v) => v !== null && v !== undefined && Number.isFinite(v));
 
     const sma20 = lastOf(smaSeries(closes, 20));
     const sma50 = lastOf(smaSeries(closes, 50));
+    const sma100 = lastOf(smaSeries(closes, 100));
     const sma200 = lastOf(smaSeries(closes, 200));
     const ema20 = lastOf(emaFull(closes, 20));
     const ema50 = lastOf(emaFull(closes, 50));
     const ema100 = lastOf(emaFull(closes, 100));
+    const ema200 = lastOf(emaFull(closes, 200));
     const rsi = lastOf(rsiSeries(closes, 14));
     const stoch = stochasticSeries(highs, lows, closes, 14, 3, 3);
     const stochK = lastOf(stoch.k);
@@ -243,6 +266,54 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
     const wr = lastOf(williamsRSeries(highs, lows, closes, 14));
     const bbp = lastOf(bullBearSeries(closes, 13));
 
+    // T26 advanced set
+    const ich = ichimokuSeries(highs, lows, closes, 9, 26, 52, 26);
+    const tenkan = lastOf(ich.tenkan);
+    const kijun = lastOf(ich.kijun);
+    const stochRsi = stochRsiSeries(closes, 14, 14, 3, 3);
+    const stochRsiK = lastOf(stochRsi.k);
+    const adx = adxSeries(highs, lows, closes, 14);
+    const adxLast = lastOf(adx.adx);
+    const pdi = lastOf(adx.pdi);
+    const mdi = lastOf(adx.mdi);
+    const cmo = lastOf(cmoSeries(closes, 14));
+    const roc = lastOf(rocSeries(closes, 12));
+    const uo = lastOf(ultimateOscSeries(highs, lows, closes));
+    const ao = lastOf(awesomeSeries(highs, lows, closes));
+    const trix = trixSeries(closes, 15, 9);
+    const trixLast = lastOf(trix.trix);
+    const trixSig = lastOf(trix.signal);
+    const mfi = hasVolume ? lastOf(mfiSeries(highs, lows, closes, vols, 14)) : null;
+    const obv = hasVolume ? obvSeries(closes, vols) : null;
+    // OBV signal = direction vs 10 bars ago
+    let obvSlope: number | null = null;
+    if (obv) {
+      const o = obv[obv.length - 1];
+      const p10 = obv[Math.max(0, obv.length - 11)];
+      if (o !== null && p10 !== null) obvSlope = o - p10;
+    }
+
+    // volatility & trend-strength strip (informational, not rated)
+    const atr = lastOf(atrSeries(highs, lows, closes, 14));
+    const atrPct = atr !== null && price > 0 ? (atr / price) * 100 : null;
+    const bb = bollingerSeries(closes, 20, 2);
+    const bbUp = lastOf(bb.up);
+    const bbLo = lastOf(bb.lo);
+    const bbWidthPct =
+      bbUp !== null && bbLo !== null && bbUp + bbLo > 0 ? ((bbUp - bbLo) / ((bbUp + bbLo) / 2)) * 100 : null;
+    const dc = donchianSeries(highs, lows, closes, 20);
+    const dcPos =
+      dc.up.length && dc.up[dc.up.length - 1] !== null && dc.lo[dc.lo.length - 1] !== null && price > 0
+        ? (price - (dc.lo[dc.lo.length - 1] as number)) /
+          Math.max(1e-9, (dc.up[dc.up.length - 1] as number) - (dc.lo[dc.lo.length - 1] as number))
+        : null;
+    const psar = lastOf(psarSeries(highs, lows, closes));
+    const st = superTrendSeries(highs, lows, closes, 10, 3);
+    const stTrend = lastOf(st.trend);
+    const ar = aroonSeries(highs, lows, closes, 14);
+    const aroonUp = lastOf(ar.up);
+    const aroonDn = lastOf(ar.down);
+
     // last session's real H/L/C for pivots
     const lastCandle = pts[pts.length - 1];
     const hasHL = lastCandle.high != null && lastCandle.low != null;
@@ -253,10 +324,14 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
     const maRows: IndicatorRow[] = [
       { name: { ar: "متوسط ٢٠ جلسة SMA", en: "SMA 20" }, value: sma20, fmt: (v) => fmtNum(v), signal: maSignal(sma20) },
       { name: { ar: "متوسط ٥٠ جلسة SMA", en: "SMA 50" }, value: sma50, fmt: (v) => fmtNum(v), signal: maSignal(sma50) },
+      { name: { ar: "متوسط ١٠٠ جلسة SMA", en: "SMA 100" }, value: sma100, fmt: (v) => fmtNum(v), signal: maSignal(sma100) },
       { name: { ar: "متوسط ٢٠٠ جلسة SMA", en: "SMA 200" }, value: sma200, fmt: (v) => fmtNum(v), signal: maSignal(sma200) },
       { name: { ar: "متوسط ٢٠ جلسة EMA", en: "EMA 20" }, value: ema20, fmt: (v) => fmtNum(v), signal: maSignal(ema20) },
       { name: { ar: "متوسط ٥٠ جلسة EMA", en: "EMA 50" }, value: ema50, fmt: (v) => fmtNum(v), signal: maSignal(ema50) },
       { name: { ar: "متوسط ١٠٠ جلسة EMA", en: "EMA 100" }, value: ema100, fmt: (v) => fmtNum(v), signal: maSignal(ema100) },
+      { name: { ar: "متوسط ٢٠٠ جلسة EMA", en: "EMA 200" }, value: ema200, fmt: (v) => fmtNum(v), signal: maSignal(ema200) },
+      { name: T.ichTenkan, value: tenkan, fmt: (v) => fmtNum(v), signal: maSignal(tenkan) },
+      { name: T.ichKijun, value: kijun, fmt: (v) => fmtNum(v), signal: maSignal(kijun) },
     ];
 
     const oscRows: IndicatorRow[] = [
@@ -279,6 +354,12 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
         signal: stochD === null ? "neutral" : stochD < 20 ? "buy" : stochD > 80 ? "sell" : "neutral",
       },
       {
+        name: T.stochRsiName,
+        value: stochRsiK,
+        fmt: (v) => fmtNum(v, 1),
+        signal: stochRsiK === null ? "neutral" : stochRsiK < 20 ? "buy" : stochRsiK > 80 ? "sell" : "neutral",
+      },
+      {
         name: { ar: "ماكد MACD (١٢، ٢٦، ٩)", en: "MACD (12, 26, 9)" },
         value: macdLine,
         fmt: (v) => fmtNum(v, 2),
@@ -291,10 +372,41 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
         signal: cci === null ? "neutral" : cci < -100 ? "buy" : cci > 100 ? "sell" : "neutral",
       },
       {
+        name: T.adxName,
+        value: adxLast,
+        fmt: (v) => fmtNum(v, 1),
+        signal:
+          adxLast === null || pdi === null || mdi === null
+            ? "neutral"
+            : adxLast >= 20
+              ? pdi > mdi
+                ? "buy"
+                : "sell"
+              : "neutral",
+      },
+      {
+        name: T.cmoName,
+        value: cmo,
+        fmt: (v) => fmtNum(v, 1),
+        signal: cmo === null ? "neutral" : cmo < -50 ? "buy" : cmo > 50 ? "sell" : "neutral",
+      },
+      {
+        name: T.rocName,
+        value: roc,
+        fmt: (v) => fmtNum(v, 1),
+        signal: roc === null ? "neutral" : roc > 0 ? "buy" : roc < 0 ? "sell" : "neutral",
+      },
+      {
         name: T.momentumName,
         value: mom,
         fmt: (v) => fmtNum(v),
         signal: mom === null ? "neutral" : mom > 0 ? "buy" : mom < 0 ? "sell" : "neutral",
+      },
+      {
+        name: T.uoName,
+        value: uo,
+        fmt: (v) => fmtNum(v, 1),
+        signal: uo === null ? "neutral" : uo < 30 ? "buy" : uo > 70 ? "sell" : "neutral",
       },
       {
         name: T.williamsR,
@@ -303,10 +415,35 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
         signal: wr === null ? "neutral" : wr < -80 ? "buy" : wr > -20 ? "sell" : "neutral",
       },
       {
+        name: T.aoName,
+        value: ao,
+        fmt: (v) => fmtNum(v, 2),
+        signal: ao === null ? "neutral" : ao > 0 ? "buy" : ao < 0 ? "sell" : "neutral",
+      },
+      {
+        name: T.trixName,
+        value: trixLast,
+        fmt: (v) => fmtNum(v, 3),
+        signal:
+          trixLast === null || trixSig === null ? "neutral" : trixLast > trixSig ? "buy" : trixLast < trixSig ? "sell" : "neutral",
+      },
+      {
         name: { ar: "قوة الثيران/الدببة (١٣)", en: "Bull Bear Power (13)" },
         value: bbp,
         fmt: (v) => fmtNum(v, 2),
         signal: bbp === null ? "neutral" : bbp > 0 ? "buy" : "sell",
+      },
+      {
+        name: T.mfiName,
+        value: mfi,
+        fmt: (v) => fmtNum(v, 1),
+        signal: mfi === null ? "neutral" : mfi < 20 ? "buy" : mfi > 80 ? "sell" : "neutral",
+      },
+      {
+        name: T.obvName,
+        value: obvSlope,
+        fmt: (v) => fmtNum(v, 0),
+        signal: obvSlope === null ? "neutral" : obvSlope > 0 ? "buy" : obvSlope < 0 ? "sell" : "neutral",
       },
     ];
 
@@ -320,7 +457,29 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
       ? classicPivots(lastCandle.high as number, lastCandle.low as number, lastCandle.close)
       : null;
 
-    return { price, maRows, oscRows, summary, pivots, lastCandle, count: signals.length };
+    return {
+      price,
+      maRows,
+      oscRows,
+      summary,
+      pivots,
+      lastCandle,
+      count: signals.length,
+      vol: {
+        atr,
+        atrPct,
+        adx: adxLast,
+        pdi,
+        mdi,
+        bbWidthPct,
+        dcPos,
+        psar,
+        psarSide: psar !== null ? (price > psar ? ("above" as const) : ("below" as const)) : null,
+        stTrend,
+        aroonUp,
+        aroonDn,
+      },
+    };
   }, [stock]);
 
   // ── stock vs EGX30 rebased series ──
@@ -427,6 +586,67 @@ export function TechnicalPanel({ ticker }: { ticker: string }) {
           <div className="grid gap-3 sm:grid-cols-2">
             <IndicatorTable title={tt(T.techMaGroup, lang)} rows={analysis.maRows} lang={lang} />
             <IndicatorTable title={tt(T.techOscGroup, lang)} rows={analysis.oscRows} lang={lang} />
+          </div>
+        </div>
+      </section>
+
+      {/* T26 — volatility & trend-strength strip (informational, not rated) */}
+      <section aria-label="volatility and trend strength" className="rounded-lg border bg-card p-4">
+        <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+          <h2 className="text-lg font-bold">{tt(T.volStripTitle, lang)}</h2>
+          <span className="num text-[11px] text-muted-foreground">{ticker} · 1Y</span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3 max-w-3xl leading-relaxed">{tt(T.volStripNote, lang)}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="rounded-md bg-secondary/40 p-2.5">
+            <p className="text-[10px] text-muted-foreground leading-tight">{tt(T.atrName, lang)}</p>
+            <p className="num text-base font-bold">{analysis.vol.atr !== null ? fmtNum(analysis.vol.atr) : "—"}</p>
+            <p className="num text-[10px] text-muted-foreground">
+              {analysis.vol.atrPct !== null ? `${fmtNum(analysis.vol.atrPct, 1)}% ${tt(T.ofPrice, lang)}` : ""}
+            </p>
+          </div>
+          <div className="rounded-md bg-secondary/40 p-2.5">
+            <p className="text-[10px] text-muted-foreground leading-tight">{tt(T.adxName, lang)}</p>
+            <p className="num text-base font-bold">{analysis.vol.adx !== null ? fmtNum(analysis.vol.adx, 1) : "—"}</p>
+            <p className="num text-[10px] text-muted-foreground">
+              {analysis.vol.pdi !== null && analysis.vol.mdi !== null
+                ? `+DI ${fmtNum(analysis.vol.pdi, 0)} / −DI ${fmtNum(analysis.vol.mdi, 0)}`
+                : ""}
+            </p>
+          </div>
+          <div className="rounded-md bg-secondary/40 p-2.5">
+            <p className="text-[10px] text-muted-foreground leading-tight">{tt(T.superTrendName, lang)}</p>
+            <p
+              className={`num text-base font-bold ${
+                analysis.vol.stTrend === 1 ? "text-up" : analysis.vol.stTrend === -1 ? "text-down" : ""
+              }`}
+            >
+              {analysis.vol.stTrend === 1 ? tt(T.trendUp, lang) : analysis.vol.stTrend === -1 ? tt(T.trendDown, lang) : "—"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{tt(T.superTrendNote, lang)}</p>
+          </div>
+          <div className="rounded-md bg-secondary/40 p-2.5">
+            <p className="text-[10px] text-muted-foreground leading-tight">PSAR</p>
+            <p className="num text-base font-bold">{analysis.vol.psar !== null ? fmtNum(analysis.vol.psar) : "—"}</p>
+            <p className="num text-[10px] text-muted-foreground">
+              {analysis.vol.psarSide === "above"
+                ? tt(T.priceAboveSar, lang)
+                : analysis.vol.psarSide === "below"
+                  ? tt(T.priceBelowSar, lang)
+                  : ""}
+            </p>
+          </div>
+          <div className="rounded-md bg-secondary/40 p-2.5">
+            <p className="text-[10px] text-muted-foreground leading-tight">{tt(T.bbWidthName, lang)}</p>
+            <p className="num text-base font-bold">{analysis.vol.bbWidthPct !== null ? `${fmtNum(analysis.vol.bbWidthPct, 1)}%` : "—"}</p>
+            <p className="text-[10px] text-muted-foreground">{tt(T.bbWidthNote, lang)}</p>
+          </div>
+          <div className="rounded-md bg-secondary/40 p-2.5">
+            <p className="text-[10px] text-muted-foreground leading-tight">{tt(T.donchianPosName, lang)}</p>
+            <p className="num text-base font-bold">
+              {analysis.vol.dcPos !== null ? `${fmtNum(analysis.vol.dcPos * 100, 0)}%` : "—"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{tt(T.donchianPosNote, lang)}</p>
           </div>
         </div>
       </section>

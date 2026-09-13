@@ -17,13 +17,16 @@ import {
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtInt, fmtValue, directionClass } from "@/lib/format";
-import { smaSeries, emaFull, emaSparse, bollingerSeries, rsiSeries, macdSeries } from "@/lib/indicators";
+import { smaSeries, emaFull, emaSparse, bollingerSeries, rsiSeries, macdSeries, stochasticSeries, vwapSeries, psarSeries, ichimokuSeries } from "@/lib/indicators";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** Real price chart for one stock or index, with range switching and
  *  client-computed technical indicators (SMA/EMA/Bollinger overlays,
- *  RSI and MACD panels, volume MA). Data comes from /api/chart (Yahoo
- *  candles for stocks, persisted EGX session closes for indices).
+ *  RSI, MACD and Stochastic panels, volume MA, plus the T26 advanced set:
+ *  Ichimoku cloud with forward projection, VWAP and Parabolic SAR).
+ *  Data comes from /api/chart (Yahoo daily/weekly candles for stocks,
+ *  self-collected intraday ticks for 1D/1W, persisted EGX session closes
+ *  for indices).
  *  G8: log-scale toggle + rebased index comparison overlay. G19: persistent
  *  click-to-draw trendlines. Chart canvas is LTR; labels are bilingual.
  *  Remount per symbol. */
@@ -49,6 +52,7 @@ type ChartResponse = {
 };
 
 const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
+  "1D": { ar: "اليوم", en: "1D" },
   "1W": { ar: "أسبوع", en: "1W" },
   "1M": { ar: "شهر", en: "1M" },
   "3M": { ar: "٣ أشهر", en: "3M" },
@@ -63,15 +67,19 @@ const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
 
 // ── indicator toggle config ──
 
-type IndKey = "sma20" | "sma50" | "ema20" | "bb" | "volma" | "rsi" | "macd";
+type IndKey = "sma20" | "sma50" | "ema20" | "bb" | "ichimoku" | "vwap" | "psar" | "volma" | "rsi" | "macd" | "stoch";
 
 const INDICATORS: { key: IndKey; t: { ar: string; en: string }; color: string; kind: "overlay" | "sub" }[] = [
   { key: "sma20", t: T.indSma20, color: "var(--c1)", kind: "overlay" },
   { key: "sma50", t: T.indSma50, color: "var(--c2)", kind: "overlay" },
   { key: "ema20", t: T.indEma20, color: "var(--c5)", kind: "overlay" },
   { key: "bb", t: T.indBb, color: "var(--c4)", kind: "overlay" },
+  { key: "ichimoku", t: T.indIchimoku, color: "var(--c8)", kind: "overlay" },
+  { key: "vwap", t: T.indVwap, color: "var(--c6)", kind: "overlay" },
+  { key: "psar", t: T.indPsar, color: "var(--c5)", kind: "overlay" },
   { key: "rsi", t: T.indRsi, color: "var(--c7)", kind: "sub" },
   { key: "macd", t: T.indMacd, color: "var(--c3)", kind: "sub" },
+  { key: "stoch", t: T.indStoch, color: "var(--c3)", kind: "sub" },
 ];
 
 /** G8 — comparison overlay options: the three headline indices, rebased to
@@ -121,9 +129,13 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     sma50: false,
     ema20: false,
     bb: false,
+    ichimoku: false,
+    vwap: false,
+    psar: false,
     volma: false,
     rsi: false,
     macd: false,
+    stoch: false,
   });
   // G8: chart modes
   const [logScale, setLogScale] = useState(false);
@@ -162,6 +174,32 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
       mounted.current = false;
     };
   }, [symbol, range]);
+
+  // T26 — intraday ranges move with the tape: quietly refetch every minute
+  // while an intraday timeframe is selected and the tab is visible (the
+  // server sampler runs on every chart request, so a watching user keeps
+  // the tick store fresh too).
+  useEffect(() => {
+    if (range !== "1D" && range !== "1W") return;
+    const t = setInterval(async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as ChartResponse;
+        if (json.error || !json.points || json.points.length < 2) return;
+        if (mounted.current && json.points.length >= (data?.points.length ?? 0)) {
+          setData(json);
+          setError(null);
+        }
+      } catch {
+        /* keep the last good frame */
+      }
+    }, 60_000);
+    return () => clearInterval(t);
+  }, [symbol, range, data?.points.length]);
 
   // while the index archive warms up, keep polling until real rows appear
   useEffect(() => {
@@ -251,14 +289,24 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   const canRsi = n >= 15;
   const canMacd = n >= 36;
   const canVolMa = showVolume && n >= 21;
+  // Ichimoku needs spanB(52) + displacement(26) ≈ 78 bars before the cloud
+  // is more than a fragment; VWAP needs volume; PSAR needs 3 bars.
+  const canIchimoku = n >= 80;
+  const canVwap = showVolume && n >= 2;
+  const canPsar = n >= 3;
+  const canStoch = n >= 16;
   const avail: Record<IndKey, boolean> = {
     sma20: canOverlay,
     sma50: canOverlay,
     ema20: canOverlay,
     bb: canOverlay,
+    ichimoku: canIchimoku,
+    vwap: canVwap,
+    psar: canPsar,
     volma: canVolMa,
     rsi: canRsi,
     macd: canMacd,
+    stoch: canStoch,
   };
   const anyAvail = Object.values(avail).some(Boolean);
   const activeInds = INDICATORS.filter((d) => inds[d.key] && avail[d.key]);
@@ -267,12 +315,20 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
 
   // compute series
   const closes = points.map((p) => p.close);
+  const highsArr = points.map((p) => p.high ?? null);
+  const lowsArr = points.map((p) => p.low ?? null);
+  const volsArr = points.map((p) => (typeof p.volume === "number" ? p.volume : null));
   const sSma20 = inds.sma20 && canOverlay ? smaSeries(closes, 20) : null;
   const sSma50 = inds.sma50 && canOverlay ? smaSeries(closes, 50) : null;
   const sEma20 = inds.ema20 && canOverlay ? emaFull(closes, 20) : null;
   const sBb = inds.bb && canOverlay ? bollingerSeries(closes, 20, 2) : null;
   const sRsi = inds.rsi && canRsi ? rsiSeries(closes, 14) : null;
   const sMacd = inds.macd && canMacd ? macdSeries(closes) : null;
+  const sStoch = inds.stoch && canStoch ? stochasticSeries(highsArr, lowsArr, closes, 14, 3, 3) : null;
+  const sVwap = inds.vwap && canVwap ? vwapSeries(highsArr, lowsArr, closes, volsArr) : null;
+  const sPsar = inds.psar && canPsar ? psarSeries(highsArr, lowsArr, closes) : null;
+  const useIch = inds.ichimoku && canIchimoku && compare === "none";
+  const sIch = useIch ? ichimokuSeries(highsArr, lowsArr, closes, 9, 26, 52, 26) : null;
   const sVolMa = useVolMa
     ? smaSeries(
         points.map((p) => (typeof p.volume === "number" ? p.volume : 0)),
@@ -280,22 +336,75 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
       )
     : null;
 
-  const chartData = points.map((p, i) => ({
-    date: p.date.slice(2), // YY-MM-DD compact tick label
-    close: p.close,
-    volume: p.volume ?? undefined,
-    sma20: sSma20?.[i] ?? undefined,
-    sma50: sSma50?.[i] ?? undefined,
-    ema20: sEma20?.[i] ?? undefined,
-    bbUp: sBb?.up[i] ?? undefined,
-    bbMid: sBb?.mid[i] ?? undefined,
-    bbLo: sBb?.lo[i] ?? undefined,
-    volMa: sVolMa?.[i] ?? undefined,
-    rsi: sRsi?.[i] ?? undefined,
-    macd: sMacd?.macd[i] ?? undefined,
-    macdSignal: sMacd?.signal[i] ?? undefined,
-    macdHist: sMacd?.hist[i] ?? undefined,
-  }));
+  // T26 — label formats: intraday tick rows carry "YYYY-MM-DD HH:mm";
+  // 1D shows the time, 1W shows day+time, daily keeps the compact date.
+  const isIntradayData = points.length > 0 && points[0].date.length > 10;
+  const tickLabel = (d: string) =>
+    isIntradayData ? (range === "1D" ? d.slice(11, 16) : d.slice(5, 16)) : d.slice(2);
+
+  const chartData = points.map((p, i) => {
+    const row: Record<string, string | number | undefined> = {
+      date: tickLabel(p.date),
+      close: p.close,
+      volume: p.volume ?? undefined,
+      sma20: sSma20?.[i] ?? undefined,
+      sma50: sSma50?.[i] ?? undefined,
+      ema20: sEma20?.[i] ?? undefined,
+      bbUp: sBb?.up[i] ?? undefined,
+      bbMid: sBb?.mid[i] ?? undefined,
+      bbLo: sBb?.lo[i] ?? undefined,
+      volMa: sVolMa?.[i] ?? undefined,
+      rsi: sRsi?.[i] ?? undefined,
+      macd: sMacd?.macd[i] ?? undefined,
+      macdSignal: sMacd?.signal[i] ?? undefined,
+      macdHist: sMacd?.hist[i] ?? undefined,
+      stochK: sStoch?.k[i] ?? undefined,
+      stochD: sStoch?.d[i] ?? undefined,
+      vwap: sVwap?.[i] ?? undefined,
+      psar: sPsar?.[i] ?? undefined,
+    };
+    if (sIch) {
+      const a = sIch.spanA[i] ?? undefined;
+      const b = sIch.spanB[i] ?? undefined;
+      row.spanA = a;
+      row.spanB = b;
+      row.cloudUp = a !== undefined && b !== undefined && (a as number) >= (b as number) ? (a as number) - (b as number) : undefined;
+      row.cloudDn = a !== undefined && b !== undefined && (a as number) < (b as number) ? (a as number) - (b as number) : undefined;
+      row.tenkan = sIch.tenkan[i] ?? undefined;
+      row.kijun = sIch.kijun[i] ?? undefined;
+      row.chikou = sIch.chikou[i] ?? undefined;
+    }
+    return row;
+  });
+
+  // T26 — Ichimoku forward projection: append the next 26 trading days
+  // (Sun–Thu sessions; Fri/Sat are the EGX weekend) so the cloud leads the
+  // price exactly like TradingView's classic Ichimoku rendering.
+  const ichData = (() => {
+    if (!sIch || !useIch) return chartData;
+    const lastDate = points[points.length - 1].date.slice(0, 10);
+    const future: string[] = [];
+    const d = new Date(`${lastDate}T00:00:00Z`);
+    while (future.length < 26) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      const day = d.getUTCDay(); // 5=Fri, 6=Sat — EGX weekend
+      if (day === 5 || day === 6) continue;
+      future.push(d.toISOString().slice(0, 10));
+    }
+    const rows = future.map((fd, j) => {
+      const a = sIch.projA[j] ?? undefined;
+      const b = sIch.projB[j] ?? undefined;
+      const row: Record<string, string | number | undefined> = {
+        date: fd.slice(2), // daily-style label on projected slots
+        spanA: a,
+        spanB: b,
+        cloudUp: a !== undefined && b !== undefined && (a as number) >= (b as number) ? (a as number) - (b as number) : undefined,
+        cloudDn: a !== undefined && b !== undefined && (a as number) < (b as number) ? (a as number) - (b as number) : undefined,
+      };
+      return row;
+    });
+    return [...chartData, ...rows];
+  })();
 
   // G8 compare mode: rebase both series to 100 at the window start and merge
   // onto the main date axis (union of dates, forward-filled). Plain function
@@ -334,7 +443,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     const row = chartData[idx];
     const y = row.close;
     if (typeof y !== "number" || !Number.isFinite(y)) return;
-    const point = { x: row.date, y };
+    const point = { x: String(row.date), y };
     if (!pending) {
       setPending(point);
     } else {
@@ -350,6 +459,8 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   const lastIdx = n - 1;
   const lastRsi = sRsi ? sRsi[lastIdx] : null;
   const lastMacd = sMacd ? sMacd.macd[lastIdx] : null;
+  const lastStochK = sStoch ? sStoch.k[lastIdx] : null;
+  const lastStochD = sStoch ? sStoch.d[lastIdx] : null;
 
   // tooltip overlay rows for enabled indicators
   const tipExtras: { key: string; label: string; color: string; fmt: (v: number) => string }[] = [];
@@ -359,6 +470,14 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   if (sBb) {
     tipExtras.push({ key: "bbUp", label: `BB ↑`, color: "var(--c4)", fmt: (v) => fmtNum(v) });
     tipExtras.push({ key: "bbLo", label: `BB ↓`, color: "var(--c4)", fmt: (v) => fmtNum(v) });
+  }
+  if (sVwap) tipExtras.push({ key: "vwap", label: tt(T.indVwap, lang), color: "var(--c6)", fmt: (v) => fmtNum(v) });
+  if (sPsar) tipExtras.push({ key: "psar", label: "PSAR", color: "var(--c5)", fmt: (v) => fmtNum(v) });
+  if (sIch) {
+    tipExtras.push({ key: "tenkan", label: tt(T.ichTenkan, lang), color: "var(--c8)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "kijun", label: tt(T.ichKijun, lang), color: "var(--c4)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "spanA", label: tt(T.ichSpanA, lang), color: "var(--up)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "spanB", label: tt(T.ichSpanB, lang), color: "var(--down)", fmt: (v) => fmtNum(v) });
   }
   if (sVolMa)
     tipExtras.push({ key: "volMa", label: tt(T.volMaLine, lang), color: "var(--c1)", fmt: (v) => fmtInt(v) });
@@ -394,7 +513,10 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               key={r}
               role="tab"
               aria-selected={active}
-              onClick={() => setRange(r)}
+              onClick={() => {
+                setRange(r);
+                if ((r === "1D" || r === "1W") && compare !== "none") setCompare("none");
+              }}
               className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
                 active ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
               }`}
@@ -416,9 +538,12 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
         <select
           value={compare}
           onChange={(e) => setCompare(e.target.value)}
+          disabled={range === "1D" || range === "1W"}
           aria-label={tt(T.compareChartLabel, lang)}
-          title={tt(T.compareChartNote, lang)}
-          className="h-7 rounded-md border bg-card px-1.5 text-[11px] text-foreground"
+          title={range === "1D" || range === "1W" ? tt(T.intradayCompareOff, lang) : tt(T.compareChartNote, lang)}
+          className={`h-7 rounded-md border bg-card px-1.5 text-[11px] text-foreground ${
+            range === "1D" || range === "1W" ? "opacity-40" : ""
+          }`}
         >
           <option value="none">{tt(T.compareAddIndex, lang)}</option>
           {COMPARE_OPTIONS.map((o) => (
@@ -518,7 +643,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
           <div style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
-                data={(compareData as unknown as object[] | null) ?? chartData}
+                data={(compareData as unknown as object[] | null) ?? (useIch ? (ichData as unknown as object[]) : (chartData as unknown as object[]))}
                 margin={{ top: 8, right: 8, bottom: 0, left: -6 }}
                 syncId={syncId}
                 onClick={(state) => handleChartClick(state as { activeLabel?: string; activeTooltipIndex?: number })}
@@ -668,6 +793,128 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                   />
                 )}
 
+                {/* T26 — Ichimoku Kinko Hyo: the cloud is drawn with the
+                    stacked-area band trick (base = Senkou B, transparent;
+                    cloudUp/cloudDn = signed A−B deltas stacked on top, tinted
+                    green when Span A leads and red when it lags), then the
+                    Span A / Tenkan / Kijun / Chikou lines over it. The data
+                    array carries 26 forward-projected slots so the cloud
+                    leads price like TradingView's classic rendering. */}
+                {sIch && !compareOn && (
+                  <Area
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="spanB"
+                    stackId="ichCloud"
+                    stroke="var(--down)"
+                    strokeWidth={1}
+                    fill="transparent"
+                    fillOpacity={0}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+                {sIch && !compareOn && (
+                  <Area
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="cloudUp"
+                    stackId="ichCloud"
+                    stroke="none"
+                    fill="var(--up)"
+                    fillOpacity={0.14}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+                {sIch && !compareOn && (
+                  <Area
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="cloudDn"
+                    stackId="ichCloud"
+                    stroke="none"
+                    fill="var(--down)"
+                    fillOpacity={0.14}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+                {sIch && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="spanA"
+                    stroke="var(--up)"
+                    strokeWidth={1.2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+                {sIch && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="tenkan"
+                    stroke="var(--c8)"
+                    strokeWidth={1.4}
+                    dot={false}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                )}
+                {sIch && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="kijun"
+                    stroke="var(--c4)"
+                    strokeWidth={1.4}
+                    dot={false}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                )}
+                {sIch && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="chikou"
+                    stroke="var(--c7)"
+                    strokeWidth={1.2}
+                    strokeDasharray="5 3"
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+
+                {/* T26 — VWAP (window-anchored, needs volume) */}
+                {sVwap && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="vwap"
+                    stroke="var(--c6)"
+                    strokeWidth={1.5}
+                    strokeDasharray="6 3"
+                    dot={false}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                )}
+
+                {/* T26 — Parabolic SAR: dot trail under/over price */}
+                {sPsar && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    dataKey="psar"
+                    stroke="none"
+                    dot={{ r: 1.6, fill: "var(--c5)", strokeWidth: 0 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                )}
+
                 {/* G8 — compare mode: rebased performance lines (rendered as
                     direct children — recharts does not traverse Fragments) */}
                 {compareData && (
@@ -793,6 +1040,22 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                     {tt(d.t, lang)}
                   </span>
                 ))}
+              {sIch && (
+                <>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2 w-3 rounded-sm" style={{ background: "var(--up)", opacity: 0.25 }} aria-hidden />
+                    {tt(T.ichCloud, lang)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-1.5 w-3 rounded-full" style={{ background: "var(--down)" }} aria-hidden />
+                    {tt(T.ichSpanB, lang)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-1.5 w-3 rounded-full border-t border-dashed" style={{ borderColor: "var(--c7)" }} aria-hidden />
+                    {tt(T.ichChikou, lang)}
+                  </span>
+                </>
+              )}
               {useVolMa && (
                 <span className="inline-flex items-center gap-1">
                   <span className="h-1.5 w-3 rounded-full" style={{ background: "var(--c1)" }} aria-hidden />
@@ -943,7 +1206,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                     />
                     <Bar yAxisId="macd" dataKey="macdHist" isAnimationActive={false} opacity={0.45}>
                       {chartData.map((d, i) => (
-                        <Cell key={i} fill={(d.macdHist ?? 0) >= 0 ? "var(--up)" : "var(--down)"} />
+                        <Cell key={i} fill={Number(d.macdHist ?? 0) >= 0 ? "var(--up)" : "var(--down)"} />
                       ))}
                     </Bar>
                     <Line
@@ -958,6 +1221,93 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                     <Line
                       yAxisId="macd"
                       dataKey="macdSignal"
+                      stroke="var(--c6)"
+                      strokeWidth={1.5}
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* T26 — Stochastic %K/%D panel */}
+          {sStoch && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1 flex-wrap">
+                <p className="text-[11px] font-medium text-foreground/80">{tt(T.stochTitle, lang)}</p>
+                <p className="num text-[11px] text-muted-foreground">
+                  %K {lastStochK !== null && lastStochK !== undefined ? fmtNum(lastStochK, 1) : "—"} · %D{" "}
+                  {lastStochD !== null && lastStochD !== undefined ? fmtNum(lastStochD, 1) : "—"}
+                  {lastStochK != null && (
+                    <span
+                      className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                        lastStochK > 80 ? "bg-down-soft text-down" : lastStochK < 20 ? "bg-up-soft text-up" : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {lastStochK > 80 ? tt(T.rsiOverbought, lang) : lastStochK < 20 ? tt(T.rsiOversold, lang) : tt(T.rsiNeutral, lang)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div style={{ height: 110 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis
+                      yAxisId="stoch"
+                      domain={[0, 100]}
+                      ticks={[20, 50, 80]}
+                      tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={30}
+                    />
+                    <ReferenceLine yAxisId="stoch" y={80} stroke="var(--down)" strokeDasharray="3 3" opacity={0.6} />
+                    <ReferenceLine yAxisId="stoch" y={50} stroke="var(--border)" opacity={0.5} />
+                    <ReferenceLine yAxisId="stoch" y={20} stroke="var(--up)" strokeDasharray="3 3" opacity={0.6} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        const get = (k: string) => {
+                          const v = payload.find((p) => p.dataKey === k)?.value as number | undefined;
+                          return v !== undefined && Number.isFinite(v) ? v : null;
+                        };
+                        const k = get("stochK");
+                        const d = get("stochD");
+                        if (k === null && d === null) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            {k !== null && (
+                              <p className="num text-muted-foreground">
+                                %K: <b style={{ color: "var(--c3)" }}>{fmtNum(k, 1)}</b>
+                              </p>
+                            )}
+                            {d !== null && (
+                              <p className="num text-muted-foreground">
+                                %D: <b style={{ color: "var(--c6)" }}>{fmtNum(d, 1)}</b>
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line
+                      yAxisId="stoch"
+                      dataKey="stochK"
+                      stroke="var(--c3)"
+                      strokeWidth={1.5}
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      yAxisId="stoch"
+                      dataKey="stochD"
                       stroke="var(--c6)"
                       strokeWidth={1.5}
                       dot={false}

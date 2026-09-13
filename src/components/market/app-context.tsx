@@ -70,6 +70,8 @@ const KNOWN_VIEWS = new Set([
   "home", "market", "screener", "sectors", "heat", "activity",
   "investors", "today", "watchlist", "tools", "exchange", "company",
   "calendar", "compare", "api", "signals", "agent", "reports",
+  // T26 — funds & ETF pages + public Strategy Lab
+  "funds", "lab",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview
@@ -77,6 +79,10 @@ const KNOWN_VIEWS = new Set([
 const VIEW_ALIASES: Record<string, string> = {
   news: "today",
   overview: "home",
+  // T26 friendlier public spellings
+  etf: "funds",
+  strategy: "lab",
+  backtest: "lab",
 };
 
 function normalizeView(v: string | null): string {

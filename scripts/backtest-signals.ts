@@ -218,7 +218,9 @@ async function main() {
     params: { warmupSessions: WARMUP, holdSessions: HOLD, topN: TOPN, scoreMin: SCORE_MIN, costPctRoundTrip: COST_PCT },
     universe: { size: series.length, selection: `today's ${UNIVERSE_N} most-traded EGX names with 3y daily history` },
     stats,
-    windows: windows.slice(-12),
+    // T26 — keep ALL windows: the public Strategy Lab view builds its equity
+    // curve from the full walk-forward sequence (53 rows is still tiny).
+    windows,
     notes: [
       "Past performance is NOT a guarantee — the backtest validates the RULES on history, it cannot validate the LLM's future judgment.",
       `Trades with |gross return| > ${SUSPECT_PCT}% inside a 10-session hold (${suspects.length} found) are excluded as likely rights-issue/split print artifacts.`,
