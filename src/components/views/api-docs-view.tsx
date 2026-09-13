@@ -183,6 +183,14 @@ const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "GET",
+    path: "/api/gcc",
+    params: ["index — TASI|MT30|DFMGI|ADI (لسلسلة الرسم)", "range — 1M|3M|6M|1Y"],
+    returnsAr: "الأسواق الخليجية: مؤشرات السعودية (تاسي وإم تي ٣٠) ودبي وأبوظبي مع الأداء، أكثر الأسهم نشاطًا بقيمة التداول في السوقين، وسلسلة تاريخية لمؤشرات الرسم (تاسي متعدد السنوات، دبي حوالي سنة، أبوظبي سعر فقط — كل مصدر مكتوب بصدق).",
+    returnsEn: "GCC markets: Saudi indices (TASI, MT30) plus Dubai and Abu Dhabi with performance, the most-active names by traded value on both boards, and chart history series (TASI multi-year, DFM ~1y, ADX quote-only — every source labeled honestly).",
+    source: "TradingView ksa/uae scanners + Yahoo Finance index quotes",
+  },
+  {
+    method: "GET",
     path: "/api/push/key",
     returnsAr: "مفتاح VAPID العام للاشتراك في إشعارات الهاتف (Web Push) — خادم الإشعارات يستخدم المفتاح الخاص.",
     returnsEn: "The public VAPID key for subscribing to phone notifications (web push) — the server keeps the private half.",
@@ -212,6 +220,8 @@ const ROUTES: { pageAr: string; pageEn: string; pattern: string; stateAr: string
   { pageAr: "التقارير", pageEn: "Reports", pattern: "/?view=reports", stateAr: "id=معرّف تقرير محدد (خط اليوم أو الأرشيف)", stateEn: "id=a specific report id (today's timeline or the archive)" },
   { pageAr: "مختبر الاستراتيجية", pageEn: "Strategy Lab", pattern: "/?view=lab", stateAr: "— (أو ?view=strategy / ?view=backtest كأسماء بديلة)", stateEn: "— (or ?view=strategy / ?view=backtest as aliases)" },
   { pageAr: "الصناديق", pageEn: "Funds", pattern: "/?view=funds", stateAr: "— (أو ?view=etf كاسم بديل)", stateEn: "— (or ?view=etf as an alias)" },
+  { pageAr: "الخليج", pageEn: "GCC markets", pattern: "/?view=gcc", stateAr: "— (أو ?view=regional / ?view=gulf كأسماء بديلة)", stateEn: "— (or ?view=regional / ?view=gulf as aliases)" },
+  { pageAr: "التداول التجريبي", pageEn: "Paper trading", pattern: "/?view=paper", stateAr: "— (أو ?view=simulator كاسم بديل) — كل الحالة على الجهاز", stateEn: "— (or ?view=simulator as an alias) — all state on-device" },
   { pageAr: "الخريطة الحرارية", pageEn: "Heatmap", pattern: "/?view=heat", stateAr: "scope=all|top30", stateEn: "scope=all|top30" },
   { pageAr: "القطاعات", pageEn: "Sectors", pattern: "/?view=sectors", stateAr: "—", stateEn: "—" },
   { pageAr: "المستثمرون", pageEn: "Investors", pattern: "/?view=investors", stateAr: "—", stateEn: "—" },

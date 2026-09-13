@@ -1,12 +1,13 @@
 "use client";
 
-/** Alerts & reminders UI (G1): the header bell + manager popover, and the
- *  reusable create form (also mounted on company pages pre-filled with the
- *  ticker). Alerts live on the device; the app-context engine evaluates
- *  price conditions against the 60-second delayed-quote refresh and date
- *  reminders against the local calendar day, firing toasts + browser
- *  notifications. The create form sits at the TOP of the bell popover so a
- *  reminder is always one bell-click away — no navigation needed. */
+/** Alerts & reminders UI (G1, upgraded T27 to multi-condition technical
+ *  alerts — P1-4). The header bell + manager popover, and the reusable
+ *  create form (also mounted on company pages pre-filled with the ticker).
+ *  The builder stacks conditions (price / day-change / RSI / MACD / MA
+ *  cross / volume surge) with AND semantics — "COMI above 90 AND RSI below
+ *  30". Alerts live on the device; the app-context engine evaluates them
+ *  every minute (quotes + /api/chart candles), and the server push loop
+ *  mirrors the same math for closed-app notifications. */
 
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "./app-context";
@@ -14,19 +15,20 @@ import { useLiveData } from "./use-live-data";
 import type { CompanyRow } from "./types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum } from "@/lib/format";
-import { alertText, requestNotifyPermission, todayStr, type AlertCond, type PriceAlert } from "@/lib/alerts";
+import {
+  alertText,
+  requestNotifyPermission,
+  todayStr,
+  kindLabel,
+  BUILDABLE_KINDS,
+  isReminder,
+  type CondKind,
+  type PriceAlert,
+} from "@/lib/alerts";
 import { enablePush, disablePush, sendTestPush, isPushEnabled } from "@/lib/push-client";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, BellPlus, BellRing, CalendarClock, Check, Smartphone, Trash2 } from "lucide-react";
-
-const CONDS: { key: AlertCond; t: { ar: string; en: string } }[] = [
-  { key: "above", t: T.alertCondAbove },
-  { key: "below", t: T.alertCondBelow },
-  { key: "risePct", t: T.alertCondRise },
-  { key: "fallPct", t: T.alertCondFall },
-  { key: "onDate", t: T.alertCondOnDate },
-];
+import { Bell, BellPlus, BellRing, CalendarClock, Check, Smartphone, Trash2, Plus, X } from "lucide-react";
 
 /** Suggest tickers from the live table as the user types. */
 function useTickerSuggestions(q: string): CompanyRow[] {
@@ -45,7 +47,11 @@ function useTickerSuggestions(q: string): CompanyRow[] {
   }, [data, q]);
 }
 
-/** Create-alert/reminder form. `fixedTicker` (company page) locks the symbol. */
+/** One editable condition row in the builder. */
+type DraftCond = { kind: CondKind; value: string };
+
+/** Create-alert/reminder form. `fixedTicker` (company page) locks the symbol.
+ *  T27: multi-condition builder — every row is (kind, value); ALL must hold. */
 export function AlertCreateForm({
   fixedTicker,
   close,
@@ -57,8 +63,7 @@ export function AlertCreateForm({
 }) {
   const { lang, addAlert, toast } = useApp();
   const [ticker, setTicker] = useState(fixedTicker ?? "");
-  const [cond, setCond] = useState<AlertCond>("above");
-  const [value, setValue] = useState("");
+  const [rows, setRows] = useState<DraftCond[]>([{ kind: "priceAbove", value: "" }]);
   const [date, setDate] = useState("");
   const suggestions = useTickerSuggestions(fixedTicker ? "" : ticker);
 
@@ -70,21 +75,26 @@ export function AlertCreateForm({
     setTicker(fixedTicker ?? "");
   }
 
+  const reminderOnly = rows.length === 1 && rows[0].kind === "onDate";
+
   const save = async () => {
     const t = (fixedTicker ?? ticker).toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (!t) return;
-    if (cond === "onDate") {
+    if (!t || rows.length === 0) return;
+    if (reminderOnly) {
       if (!date) return;
-      addAlert(t, "onDate", 0, date);
+      addAlert(t, [{ kind: "onDate", value: 0 }], date);
     } else {
-      const v = Number(value);
-      if (!Number.isFinite(v)) return;
-      addAlert(t, cond, v);
+      const conds = rows
+        .filter((r) => r.kind !== "onDate")
+        .map((r) => ({ kind: r.kind, value: Number(r.value) }))
+        .filter((c) => Number.isFinite(c.value));
+      if (conds.length === 0) return;
+      addAlert(t, conds);
     }
     // ask for browser notifications on first alert (grants persist)
     const perm = await requestNotifyPermission();
     if (perm === "denied") toast(tt(T.notifyBlocked, lang));
-    setValue("");
+    setRows([{ kind: "priceAbove", value: "" }]);
     setDate("");
     onSaved?.();
   };
@@ -109,7 +119,7 @@ export function AlertCreateForm({
                     className="w-full text-start px-2 py-1.5 text-[11px] hover:bg-accent/50 flex items-baseline justify-between gap-2"
                     onClick={() => {
                       setTicker(r.ticker);
-                      setValue((v) => v || (r.close != null ? String(r.close) : v));
+                      setRows((rs) => rs.map((x, i) => (i === 0 && !x.value && r.close != null ? { ...x, value: String(r.close) } : x)));
                     }}
                   >
                     <span className="num font-bold">{r.ticker}</span>
@@ -123,48 +133,101 @@ export function AlertCreateForm({
         </div>
       )}
 
+      {/* condition rows — AND semantics */}
+      <div className="space-y-1.5">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <select
+              value={r.kind}
+              onChange={(e) => {
+                const kind = e.target.value as CondKind;
+                setRows((rs) => rs.map((x, j) => (j === i ? { ...x, kind } : x)));
+              }}
+              className="h-8 flex-1 min-w-0 rounded-md border bg-card px-1 text-[11px]"
+              aria-label={tt(T.alertCondAbove, lang)}
+            >
+              <option value={r.kind}>{kindLabel(r.kind, lang)}</option>
+              {BUILDABLE_KINDS.filter((k) => k !== r.kind).map((k) => (
+                <option key={k} value={k}>
+                  {kindLabel(k, lang)}
+                </option>
+              ))}
+              <option value="onDate">{kindLabel("onDate", lang)}</option>
+            </select>
+            {r.kind === "onDate" ? (
+              <input
+                dir="ltr"
+                type="date"
+                min={todayStr()}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                aria-label={tt(T.reminderDateLabel, lang)}
+                title={tt(T.reminderDateLabel, lang)}
+                className="h-8 w-32 rounded-md border bg-card px-2 text-xs num"
+              />
+            ) : r.kind === "maCrossUp" || r.kind === "maCrossDown" ? (
+              <span className="h-8 flex items-center text-[10px] text-muted-foreground px-1 shrink-0">
+                {tt({ ar: "تلقائي", en: "auto" }, lang)}
+              </span>
+            ) : (
+              <input
+                dir="ltr"
+                inputMode="decimal"
+                value={r.value}
+                onChange={(e) => setRows((rs) => rs.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}
+                placeholder={
+                  r.kind === "priceAbove" || r.kind === "priceBelow"
+                    ? close != null
+                      ? String(close)
+                      : "0.00"
+                    : r.kind === "rsiAbove" || r.kind === "rsiBelow"
+                      ? "30"
+                      : r.kind === "volRatioAbove"
+                        ? "2"
+                        : r.kind === "chgAbove" || r.kind === "chgBelow"
+                          ? "5"
+                          : "0"
+                }
+                aria-label={tt(T.alertValueLabel, lang)}
+                className="h-8 w-20 rounded-md border bg-card px-2 text-xs num"
+              />
+            )}
+            {rows.length > 1 && (
+              <button
+                onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
+                aria-label={tt(T.alertRemove, lang)}
+                className="text-muted-foreground hover:text-down shrink-0 h-8 w-6 flex items-center justify-center"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
       <div className="flex items-center gap-1.5">
-        <select
-          value={cond}
-          onChange={(e) => setCond(e.target.value as AlertCond)}
-          className="h-8 flex-1 rounded-md border bg-card px-1.5 text-xs"
-          aria-label={tt(T.alertCondAbove, lang)}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-2 text-[11px] gap-1"
+          onClick={() => setRows((rs) => [...rs.filter((r) => r.kind !== "onDate"), { kind: "rsiBelow", value: "" }])}
+          title={tt({ ar: "أضف شرطًا آخر (يجب تحقق جميع الشروط)", en: "Add another condition (ALL must hold)" }, lang)}
         >
-          {CONDS.map((c) => (
-            <option key={c.key} value={c.key}>
-              {tt(c.t, lang)}
-            </option>
-          ))}
-        </select>
-        {cond === "onDate" ? (
-          <input
-            dir="ltr"
-            type="date"
-            min={todayStr()}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label={tt(T.reminderDateLabel, lang)}
-            title={tt(T.reminderDateLabel, lang)}
-            className="h-8 w-32 rounded-md border bg-card px-2 text-xs num"
-          />
-        ) : (
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={cond === "above" || cond === "below" ? (close != null ? String(close) : "0.00") : "5"}
-            aria-label={tt(T.alertValueLabel, lang)}
-            className="h-8 w-24 rounded-md border bg-card px-2 text-xs num"
-          />
-        )}
-        <Button size="sm" className="h-8 px-2.5 text-[11px] gap-1 shrink-0" onClick={save}>
-          {cond === "onDate" ? <CalendarClock className="h-3 w-3" /> : <BellPlus className="h-3 w-3" />}
-          {tt(cond === "onDate" ? T.reminderSave : T.alertSave, lang)}
+          <Plus className="h-3 w-3" />
+          {tt({ ar: "شرط", en: "Condition" }, lang)}
+        </Button>
+        <Button size="sm" className="h-8 px-2.5 text-[11px] gap-1 shrink-0 ms-auto" onClick={save}>
+          {reminderOnly ? <CalendarClock className="h-3 w-3" /> : <BellPlus className="h-3 w-3" />}
+          {tt(reminderOnly ? T.reminderSave : T.alertSave, lang)}
         </Button>
       </div>
 
-      {fixedTicker && close != null && cond !== "onDate" && (
+      {rows.length > 1 && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          {tt({ ar: "كل الشروط يجب أن تتحقق في نفس اللحظة (و).", en: "ALL conditions must hold at the same moment (AND)." }, lang)}
+        </p>
+      )}
+      {fixedTicker && close != null && rows.some((r) => r.kind === "priceAbove" || r.kind === "priceBelow") && (
         <p className="num text-[10px] text-muted-foreground">
           {tt(T.alertCurrentPrice, lang)}: {fmtNum(close)}
         </p>
@@ -185,16 +248,14 @@ function AlertRow({ a }: { a: PriceAlert }) {
         {a.ticker}
       </button>
       <p className="text-[11px] text-muted-foreground flex-1 min-w-0 truncate">
-        {a.cond === "onDate" && <CalendarClock className="h-3 w-3 inline me-1 -mt-0.5 text-primary" aria-hidden />}
+        {isReminder(a) && <CalendarClock className="h-3 w-3 inline me-1 -mt-0.5 text-primary" aria-hidden />}
         {alertText(a, lang)}
       </p>
       {a.triggeredAt ? (
         <span className="inline-flex items-center gap-1 text-[10px] text-up font-semibold shrink-0">
           <Check className="h-3 w-3" />
           {tt(T.alertTriggered, lang)}
-          {a.cond !== "onDate" && a.triggeredValue != null && (
-            <span className="num">{a.cond === "above" || a.cond === "below" ? fmtNum(a.triggeredValue) : `${fmtNum(a.triggeredValue, 2)}%`}</span>
-          )}
+          {a.triggeredValue != null && !isReminder(a) && <span className="num">{fmtNum(a.triggeredValue)}</span>}
         </span>
       ) : null}
       <button

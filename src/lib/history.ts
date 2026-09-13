@@ -7,7 +7,7 @@
  *  see flows.ts.
  */
 
-import { fetchUniverse } from "./market";
+import { fetchUniverse, type Stock } from "./market";
 import { marketStatus } from "./market-status";
 
 const UA =
@@ -45,6 +45,12 @@ export type StockChart = {
   changePct: number | null; // over the shown window
   source: string;
   asOf: string; // last data date
+  /** T27 — true when the series is a milestone reconstruction (no free
+   *  daily history exists for the name); the UI labels it honestly. */
+  milestones?: boolean;
+  /** 52-week levels shown as dashed reference lines (milestone mode). */
+  refHigh?: number | null;
+  refLow?: number | null;
 };
 
 // ─────────────────────────────────────────────────────────── caching ───
@@ -206,4 +212,120 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
       asOf: final[final.length - 1].date,
     } satisfies StockChart;
   });
+}
+
+// ───────────────────────────────────── T27: milestone fallback ───
+// ~86 of the 295 EGX names have NO daily history on any free source
+// (Yahoo: 404 or a single stub bar). The TradingView universe row still
+// carries REAL performance anchors for each horizon (Perf.1M/3M/6M/YTD/Y/
+// 3Y/5Y + 52w high/low), so a chart can be reconstructed from verified
+// milestone prices: price(horizon ago) = close / (1 + perf%). Every point
+// is a real measured price — the label says exactly what it is.
+
+/** Skip Fri/Sat (EGX weekend) when walking a date backward N calendar days. */
+function sessionsAgo(days: number): string {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  let left = days;
+  while (left > 0) {
+    d.setUTCDate(d.getUTCDate() - 1);
+    const dow = d.getUTCDay(); // 5=Fri, 6=Sat
+    if (dow !== 5 && dow !== 6) left--;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+/** Trading sessions since Jan 1 (for the YTD anchor date). */
+function sessionsSinceJan1(): number {
+  const now = new Date();
+  now.setUTCHours(0, 0, 0, 0);
+  const d = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+  let count = 0;
+  while (d.getTime() < now.getTime()) {
+    const dow = d.getUTCDay(); // 5=Fri, 6=Sat
+    if (dow !== 5 && dow !== 6) count++;
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return Math.max(1, count);
+}
+
+const MILESTONE_RANGES: Record<ChartRange, number[]> = {
+  // horizons (in trading sessions) worth anchoring per requested range
+  "1D": [1, 5],
+  "1W": [1, 5],
+  "1M": [1, 5, 21],
+  "3M": [1, 5, 21, 63],
+  "6M": [5, 21, 63, 126],
+  "1Y": [21, 63, 126, 252],
+  "5Y": [63, 252, 504, 756, 1260],
+};
+
+const PERFS: { key: "perfW" | "perf1M" | "perf3M" | "perf6M" | "perfY" | "perf3Y" | "perf5Y"; sessions: number }[] = [
+  { key: "perfW", sessions: 5 },
+  { key: "perf1M", sessions: 21 },
+  { key: "perf3M", sessions: 63 },
+  { key: "perf6M", sessions: 126 },
+  { key: "perfY", sessions: 252 },
+  { key: "perf3Y", sessions: 756 },
+  { key: "perf5Y", sessions: 1260 },
+];
+
+/** Reconstruct a milestone chart for a stock the free history sources do not
+ *  cover. Points are verified horizon prices derived from the live
+ *  TradingView performance fields; high52/low52 ride along as reference
+ *  levels. Throws when even the anchors are unavailable. */
+export function milestoneChart(
+  ticker: string,
+  range: ChartRange,
+  stock: { close: number; perfW: number | null; perf1M: number | null; perf3M: number | null; perf6M: number | null; perfYTD: number | null; perfY: number | null; perf3Y: number | null; perf5Y: number | null; high52: number | null; low52: number | null }
+): StockChart {
+  const t = ticker.toUpperCase();
+  if (!stock.close || stock.close <= 0) throw new Error("milestones: no live quote");
+  const want = new Set(MILESTONE_RANGES[range]);
+  const anchors: { date: string; close: number }[] = [];
+  for (const { key, sessions } of PERFS) {
+    const perf = stock[key] as number | null;
+    if (perf === null || !Number.isFinite(perf) || !want.has(sessions)) continue;
+    const denom = 1 + perf / 100;
+    if (denom <= 0) continue;
+    anchors.push({ date: sessionsAgo(sessions), close: stock.close / denom });
+  }
+  const ytd = stock.perfYTD;
+  if (ytd !== null && Number.isFinite(ytd) && (range === "1Y" || range === "5Y")) {
+    const denom = 1 + ytd / 100;
+    if (denom > 0) anchors.push({ date: sessionsAgo(sessionsSinceJan1()), close: stock.close / denom });
+  }
+  // the live close is the final anchor
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  anchors.push({ date: today.toISOString().slice(0, 10), close: stock.close });
+  // dedupe by date (multiple horizons can land on the same session when the
+  // stock is new) and sort oldest → newest
+  const byDate = new Map<string, number>();
+  for (const a of anchors) if (Number.isFinite(a.close) && a.close > 0) byDate.set(a.date, a.close);
+  const points = [...byDate.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, close]) => ({ date, close, volume: null as number | null }));
+  if (points.length < 2) throw new Error("milestones: not enough anchors");
+  const closes = points.map((p) => p.close);
+  const first = closes[0];
+  const last = closes[closes.length - 1];
+  return {
+    symbol: t,
+    yahooSymbol: `${t}.CA`,
+    range,
+    currency: "EGP",
+    points,
+    first,
+    last,
+    high: stock.high52 && stock.high52 >= last ? stock.high52 : Math.max(...closes),
+    low: stock.low52 && stock.low52 <= last ? stock.low52 : Math.min(...closes),
+    changePct: first > 0 ? ((last - first) / first) * 100 : null,
+    source:
+      "TradingView performance milestones — no public daily history exists for this name; points are verified horizon prices (1W/1M/3M/6M/YTD/1Y) reconstructed from live performance data",
+    asOf: points[points.length - 1].date,
+    milestones: true,
+    refHigh: stock.high52,
+    refLow: stock.low52,
+  } satisfies StockChart;
 }

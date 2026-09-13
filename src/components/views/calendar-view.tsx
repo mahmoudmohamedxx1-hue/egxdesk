@@ -130,10 +130,12 @@ export function CalendarView() {
       {!data ? (
         <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16" />)}</div>
       ) : (
-        <>
-          {/* month grid */}
-          <div className="rounded-lg border bg-card p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
+        <div className="lg:grid lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start lg:gap-4 lg:space-y-0 space-y-4">
+          {/* month grid — T27: capped at 420px so it is always SMALLER than
+           *  the window (the old full-width grid grew huge on desktop) and
+           *  sits beside the agenda on large screens */}
+          <div className="rounded-lg border bg-card p-2.5 sm:p-3 mx-auto w-full max-w-[420px] lg:mx-0 lg:max-w-none">
+            <div className="flex items-center justify-between mb-2">
               <Button variant="ghost" size="sm" onClick={() => setMonthOffset((m) => m - 1)} aria-label="previous month">
                 <ChevronRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
               </Button>
@@ -144,7 +146,7 @@ export function CalendarView() {
             </div>
             <div className="grid grid-cols-7 gap-1" dir="rtl">
               {WEEKDAYS.map((w) => (
-                <div key={w.en} className={`text-center text-[10px] py-1 ${w.weekend ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
+                <div key={w.en} className={`text-center text-[10px] py-0.5 ${w.weekend ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
                   {lang === "ar" ? w.ar : w.en}
                 </div>
               ))}
@@ -159,7 +161,7 @@ export function CalendarView() {
                   <button
                     key={iso}
                     onClick={() => setSelected(isSelected ? null : iso)}
-                    className={`aspect-square rounded-md flex flex-col items-center justify-center gap-1 text-xs num transition-colors border ${
+                    className={`aspect-square rounded-md flex flex-col items-center justify-center gap-0.5 text-[11px] num transition-colors border ${
                       isSelected
                         ? "border-primary bg-primary/10 font-bold"
                         : isToday
@@ -171,9 +173,9 @@ export function CalendarView() {
                     title={evs.length ? `${evs.length} ${lang === "ar" ? "أحداث" : "events"}` : undefined}
                   >
                     <span>{Number(iso.slice(8))}</span>
-                    <span className="flex items-center gap-0.5 h-1.5">
+                    <span className="flex items-center gap-0.5 h-1">
                       {evs.slice(0, 3).map((e, j) => (
-                        <span key={j} className={`h-1.5 w-1.5 rounded-full ${TYPE_STYLE[e.type].dot}`} aria-hidden />
+                        <span key={j} className={`h-1 w-1 rounded-full ${TYPE_STYLE[e.type].dot}`} aria-hidden />
                       ))}
                       {evs.length > 3 && <span className="text-[8px] text-muted-foreground">+{evs.length - 3}</span>}
                     </span>
@@ -182,7 +184,7 @@ export function CalendarView() {
               })}
             </div>
             {/* legend */}
-            <div className="flex items-center flex-wrap gap-3 mt-3 pt-2 border-t text-[10px] text-muted-foreground">
+            <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2 pt-2 border-t text-[10px] text-muted-foreground">
               {(["earnings", "dividend", "assembly", "rights"] as const).map((t) => (
                 <span key={t} className="inline-flex items-center gap-1">
                   <span className={`h-2 w-2 rounded-full ${TYPE_STYLE[t].dot}`} aria-hidden />
@@ -256,7 +258,7 @@ export function CalendarView() {
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

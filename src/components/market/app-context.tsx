@@ -15,16 +15,24 @@ import { marketStatus, type MarketStatus } from "@/lib/market-status";
 import {
   loadAlerts,
   saveAlerts,
-  conditionHolds,
+  conditionsHold,
   observedValue,
   alertText,
   notify,
   dateArrived,
-  type AlertCond,
+  indicatorSnapshot,
+  isReminder,
+  INDICATOR_KINDS,
+  type AlertCondition,
+  type IndSnapshot,
   type PriceAlert,
 } from "@/lib/alerts";
 import type { CompanyRow } from "./types";
 import { syncPushAlerts } from "@/lib/push-client";
+
+/** T27 — indicator-snapshot cache for the alert engine (per ticker, 60s
+ *  TTL — the /api/chart 6M fetch is shared across alerts on the same name). */
+const snapCache = new Map<string, { snap: import("@/lib/alerts").IndSnapshot; at: number }>();
 
 type WatchState = {
   tickers: string[];
@@ -58,7 +66,7 @@ type Ctx = {
   /** G1 price alerts — stored on-device, evaluated here against the
    *  60-second quote refresh, each firing exactly once. */
   alerts: AlertsState;
-  addAlert: (ticker: string, cond: AlertCond, value: number, date?: string) => void;
+  addAlert: (ticker: string, conditions: AlertCondition[], date?: string) => void;
   removeAlert: (id: string) => void;
 };
 
@@ -72,6 +80,8 @@ const KNOWN_VIEWS = new Set([
   "calendar", "compare", "api", "signals", "agent", "reports",
   // T26 — funds & ETF pages + public Strategy Lab
   "funds", "lab",
+  // T27 — GCC regional markets + paper trading
+  "gcc", "paper",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview
@@ -83,6 +93,10 @@ const VIEW_ALIASES: Record<string, string> = {
   etf: "funds",
   strategy: "lab",
   backtest: "lab",
+  // T27 friendlier public spellings
+  regional: "gcc",
+  gulf: "gcc",
+  simulator: "paper",
 };
 
 function normalizeView(v: string | null): string {
@@ -304,16 +318,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addAlert = useCallback(
-    (ticker: string, cond: AlertCond, value: number, date?: string) => {
+    (ticker: string, conditions: AlertCondition[], date?: string) => {
       const t = ticker.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const isReminder = cond === "onDate";
-      if (!t || (!isReminder && !Number.isFinite(value)) || (isReminder && !date)) return;
+      const clean = conditions.filter(
+        (c) => c && typeof c.kind === "string" && Number.isFinite(c.value) && (c.kind !== "onDate" || c.value === 0),
+      );
+      const reminder = clean.length === 1 && clean[0].kind === "onDate";
+      if (!t || clean.length === 0 || (reminder && !date)) return;
       const a: PriceAlert = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         ticker: t,
-        cond,
-        value: isReminder ? 0 : value,
-        ...(isReminder ? { date } : {}),
+        conditions: clean,
+        ...(reminder && date ? { date } : {}),
         createdAt: new Date().toISOString(),
         triggeredAt: null,
         triggeredValue: null,
@@ -333,9 +349,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /** Evaluation engine: once a minute while untriggered alerts exist.
    *  Date reminders are checked against the local calendar day (no network);
-   *  price conditions poll /api/companies and flip each alert to triggered
-   *  exactly once, firing an in-app toast + browser notification. Quotes are
-   *  ~15-min delayed — honest by design. */
+   *  quote conditions poll /api/companies and indicator conditions
+   *  (RSI/MACD/MA-cross/volume-surge — T27) poll /api/chart candles and use
+   *  the same client-side math the chart uses. ALL conditions must hold at
+   *  once; each alert flips to triggered exactly once. Quotes are ~15-min
+   *  delayed — honest by design. */
   useEffect(() => {
     const tick = async () => {
       const current = alertsRef.current;
@@ -362,8 +380,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // 2) price conditions — fetch quotes only when at least one is pending
-      const pricePending = next.filter((a) => !a.triggeredAt && a.cond !== "onDate");
+      // 2) quote + indicator conditions — fetch only when at least one is pending
+      const pricePending = next.filter((a) => !a.triggeredAt && !isReminder(a));
       if (pricePending.length === 0) return;
       try {
         const res = await fetch("/api/companies", { cache: "no-store" });
@@ -371,11 +389,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const json = (await res.json()) as { rows?: CompanyRow[] };
         const rows = json.rows ?? [];
         const byTicker = new Map(rows.map((r) => [r.ticker, r] as const));
+
+        // T27 — indicator conditions need candles: fetch /api/chart 6M per
+        // distinct ticker (module-level 60s cache shared across ticks)
+        const needSnap = new Set<string>();
+        for (const a of pricePending) {
+          if (a.conditions.some((c) => INDICATOR_KINDS.has(c.kind) || c.kind === "volRatioAbove")) {
+            needSnap.add(a.ticker);
+          }
+        }
+        const snaps = new Map<string, IndSnapshot>();
+        await Promise.all(
+          [...needSnap].map(async (t) => {
+            const hit = snapCache.get(t);
+            if (hit && Date.now() - hit.at < 60_000) {
+              snaps.set(t, hit.snap);
+              return;
+            }
+            try {
+              const r = await fetch(`/api/chart?symbol=${encodeURIComponent(t)}&range=6M`, { cache: "no-store" });
+              if (!r.ok) return;
+              const j = (await r.json()) as { points?: { close: number; volume: number | null }[]; error?: string };
+              if (j.error || !Array.isArray(j.points) || j.points.length < 2) return;
+              const snap = indicatorSnapshot(j.points);
+              snapCache.set(t, { snap, at: Date.now() });
+              snaps.set(t, snap);
+            } catch {
+              // network hiccup — the condition just stays unevaluated this tick
+            }
+          }),
+        );
+
         const fired: PriceAlert[] = [];
         const after = next.map((a) => {
-          if (a.triggeredAt || a.cond === "onDate") return a;
-          const row = byTicker.get(a.ticker);
-          if (!row || !conditionHolds(a, row)) return a;
+          if (a.triggeredAt || isReminder(a)) return a;
+          const row = byTicker.get(a.ticker) ?? null;
+          const snap = snaps.get(a.ticker) ?? null;
+          if (!conditionsHold(a, row, snap)) return a;
           fired.push(a);
           return {
             ...a,
@@ -387,15 +437,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           applyAlerts(after);
           const lang = langRef.current;
           for (const a of fired) {
-            const seen = a.triggeredValue ?? a.value;
-            const valText =
-              a.cond === "above" || a.cond === "below"
-                ? String(seen)
-                : `${Number.isFinite(seen) ? (seen as number).toFixed(2) : ""}%`;
+            const seen = a.triggeredValue ?? 0;
+            const valText = Number.isFinite(seen) && seen !== 0 ? String(seen) : "—";
             toast(
               lang === "ar"
-                ? `تنبيه: ${a.ticker} — تحقّق الشرط عند ${valText}`
-                : `Alert: ${a.ticker} — condition met at ${valText}`
+                ? `تنبيه: ${a.ticker} — تحقّقت الشروط ${valText !== "—" ? `عند ${valText}` : ""}`.trim()
+                : `Alert: ${a.ticker} — conditions met${valText !== "—" ? ` at ${valText}` : ""}`.trim()
             );
             notify(`EGX Desk — ${a.ticker}`, alertText(a, lang));
           }

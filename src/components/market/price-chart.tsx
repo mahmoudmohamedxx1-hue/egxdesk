@@ -17,8 +17,30 @@ import {
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtInt, fmtValue, directionClass } from "@/lib/format";
-import { smaSeries, emaFull, emaSparse, bollingerSeries, rsiSeries, macdSeries, stochasticSeries, vwapSeries, psarSeries, ichimokuSeries } from "@/lib/indicators";
+import {
+  smaSeries,
+  emaFull,
+  emaSparse,
+  bollingerSeries,
+  rsiSeries,
+  macdSeries,
+  stochasticSeries,
+  vwapSeries,
+  psarSeries,
+  ichimokuSeries,
+  donchianSeries,
+  keltnerSeries,
+  superTrendSeries,
+  obvSeries,
+  mfiSeries,
+  atrSeries,
+  adxSeries,
+  cciSeries,
+  williamsRSeries,
+} from "@/lib/indicators";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Settings2, TrendingUp, Minus, ListPlus, X } from "lucide-react";
 
 /** Real price chart for one stock or index, with range switching and
  *  client-computed technical indicators (SMA/EMA/Bollinger overlays,
@@ -49,6 +71,10 @@ type ChartResponse = {
   warming?: boolean;
   availableRanges: string[];
   error?: string;
+  /** T27 — milestone reconstruction (no free daily history for the name). */
+  milestones?: boolean;
+  refHigh?: number | null;
+  refLow?: number | null;
 };
 
 const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
@@ -67,7 +93,10 @@ const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
 
 // ── indicator toggle config ──
 
-type IndKey = "sma20" | "sma50" | "ema20" | "bb" | "ichimoku" | "vwap" | "psar" | "volma" | "rsi" | "macd" | "stoch";
+type IndKey =
+  | "sma20" | "sma50" | "ema20" | "bb" | "ichimoku" | "vwap" | "psar" | "volma"
+  | "donchian" | "keltner" | "supertrend" | "fib"
+  | "rsi" | "macd" | "stoch" | "obv" | "mfi" | "atr" | "adx" | "wpr" | "cci";
 
 const INDICATORS: { key: IndKey; t: { ar: string; en: string }; color: string; kind: "overlay" | "sub" }[] = [
   { key: "sma20", t: T.indSma20, color: "var(--c1)", kind: "overlay" },
@@ -77,10 +106,67 @@ const INDICATORS: { key: IndKey; t: { ar: string; en: string }; color: string; k
   { key: "ichimoku", t: T.indIchimoku, color: "var(--c8)", kind: "overlay" },
   { key: "vwap", t: T.indVwap, color: "var(--c6)", kind: "overlay" },
   { key: "psar", t: T.indPsar, color: "var(--c5)", kind: "overlay" },
+  { key: "donchian", t: { ar: "دونتشيان", en: "Donchian" }, color: "var(--c2)", kind: "overlay" },
+  { key: "keltner", t: { ar: "كيلتنر", en: "Keltner" }, color: "var(--c6)", kind: "overlay" },
+  { key: "supertrend", t: { ar: "سوبرترند", en: "SuperTrend" }, color: "var(--c8)", kind: "overlay" },
+  { key: "fib", t: { ar: "فيبوناتشي", en: "Fibonacci" }, color: "var(--c4)", kind: "overlay" },
   { key: "rsi", t: T.indRsi, color: "var(--c7)", kind: "sub" },
   { key: "macd", t: T.indMacd, color: "var(--c3)", kind: "sub" },
   { key: "stoch", t: T.indStoch, color: "var(--c3)", kind: "sub" },
+  { key: "obv", t: { ar: "أو بي في", en: "OBV" }, color: "var(--c1)", kind: "sub" },
+  { key: "mfi", t: { ar: "إم إف آي", en: "MFI" }, color: "var(--c6)", kind: "sub" },
+  { key: "atr", t: { ar: "إيه تي آر", en: "ATR" }, color: "var(--c5)", kind: "sub" },
+  { key: "adx", t: { ar: "إيه دي إكس", en: "ADX" }, color: "var(--c3)", kind: "sub" },
+  { key: "wpr", t: { ar: "وليامز ٪R", en: "Williams %R" }, color: "var(--c4)", kind: "sub" },
+  { key: "cci", t: { ar: "سي سي آي", en: "CCI" }, color: "var(--c2)", kind: "sub" },
 ];
+
+/** T27 — per-user indicator parameters (TradingView-style settings),
+ *  persisted on the device. */
+type IndSettings = {
+  ma1N: number;
+  ma2N: number;
+  rsiN: number;
+  macdF: number;
+  macdS: number;
+  macdSig: number;
+  stochK: number;
+  stochD: number;
+  bbN: number;
+  bbK: number;
+};
+const DEFAULT_SETTINGS: IndSettings = { ma1N: 20, ma2N: 50, rsiN: 14, macdF: 12, macdS: 26, macdSig: 9, stochK: 14, stochD: 3, bbN: 20, bbK: 2 };
+const SETTINGS_KEY = "egx-ind-settings";
+
+function loadSettings(): IndSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const p = JSON.parse(raw) as Partial<IndSettings>;
+    const clamp = (v: unknown, lo: number, hi: number, d: number) =>
+      typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d;
+    return {
+      ma1N: clamp(p.ma1N, 2, 400, 20),
+      ma2N: clamp(p.ma2N, 2, 400, 50),
+      rsiN: clamp(p.rsiN, 2, 100, 14),
+      macdF: clamp(p.macdF, 2, 100, 12),
+      macdS: clamp(p.macdS, 3, 200, 26),
+      macdSig: clamp(p.macdSig, 2, 100, 9),
+      stochK: clamp(p.stochK, 2, 100, 14),
+      stochD: clamp(p.stochD, 1, 30, 3),
+      bbN: clamp(p.bbN, 5, 200, 20),
+      bbK: typeof p.bbK === "number" && Number.isFinite(p.bbK) ? Math.min(5, Math.max(0.5, p.bbK)) : 2,
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(s: IndSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {}
+}
 
 /** G8 — comparison overlay options: the three headline indices, rebased to
  *  100 at the window start (stock-vs-stock lives in the Compare view). */
@@ -90,30 +176,55 @@ const COMPARE_OPTIONS: { key: string; ar: string; en: string }[] = [
   { key: "EGX100", ar: "إيجي إكس ١٠٠", en: "EGX 100" },
 ];
 
-/** G19 — trendline segments persisted per symbol on the device. */
-type Seg = { a: { x: string; y: number }; b: { x: string; y: number } };
+/** G19 — persisted drawings per symbol on the device. T27 upgrades the
+ *  model from trendline-only to { type: "trend" | "hlevel" } with
+ *  backward-compatible loading (old segments are trendlines). */
+type Drawing =
+  | { id: string; type: "trend"; a: { x: string; y: number }; b: { x: string; y: number } }
+  | { id: string; type: "hlevel"; y: number; x: string };
 const LINES_KEY = "egx-trendlines";
 
-function loadLines(symbol: string): Seg[] {
+type LegacySeg = { a: { x: string; y: number }; b: { x: string; y: number } };
+
+function loadLines(symbol: string): Drawing[] {
   try {
     const raw = localStorage.getItem(LINES_KEY);
     if (!raw) return [];
-    const map = JSON.parse(raw) as Record<string, Seg[] | undefined>;
+    const map = JSON.parse(raw) as Record<string, Drawing[] | LegacySeg[] | undefined>;
     const arr = map?.[symbol];
     if (!Array.isArray(arr)) return [];
-    return arr.filter(
-      (s) => s && s.a && s.b && typeof s.a.x === "string" && Number.isFinite(s.a.y) && typeof s.b.x === "string" && Number.isFinite(s.b.y)
-    );
+    return arr
+      .map((s, i): Drawing | null => {
+        if (!s) return null;
+        if ((s as Drawing).type === "hlevel") {
+          const h = s as Drawing & { y: number };
+          return Number.isFinite(h.y) ? { id: (s as Drawing).id ?? `h-${i}`, type: "hlevel", y: h.y, x: "" } : null;
+        }
+        const seg = s as LegacySeg;
+        if (
+          seg &&
+          seg.a &&
+          seg.b &&
+          typeof seg.a.x === "string" &&
+          Number.isFinite(seg.a.y) &&
+          typeof seg.b.x === "string" &&
+          Number.isFinite(seg.b.y)
+        ) {
+          return { id: (s as Drawing).id ?? `t-${i}`, type: "trend", a: seg.a, b: seg.b };
+        }
+        return null;
+      })
+      .filter((d): d is Drawing => d !== null);
   } catch {
     return [];
   }
 }
 
-function saveLines(symbol: string, segs: Seg[]): void {
+function saveLines(symbol: string, drawings: Drawing[]): void {
   try {
     const raw = localStorage.getItem(LINES_KEY);
-    const map = raw ? (JSON.parse(raw) as Record<string, Seg[]>) : {};
-    map[symbol] = segs;
+    const map = raw ? (JSON.parse(raw) as Record<string, Drawing[]>) : {};
+    map[symbol] = drawings;
     localStorage.setItem(LINES_KEY, JSON.stringify(map));
   } catch {}
 }
@@ -124,6 +235,15 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   const [data, setData] = useState<ChartResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // T27 — indicator parameters (restored after mount; SSR-safe)
+  const [settings, setSettings] = useState<IndSettings>(DEFAULT_SETTINGS);
+  useEffect(() => {
+    setSettings(loadSettings());
+  }, []);
+  const applySettings = (next: IndSettings) => {
+    setSettings(next);
+    saveSettings(next);
+  };
   const [inds, setInds] = useState<Record<IndKey, boolean>>({
     sma20: true,
     sma50: false,
@@ -132,20 +252,32 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     ichimoku: false,
     vwap: false,
     psar: false,
+    donchian: false,
+    keltner: false,
+    supertrend: false,
+    fib: false,
     volma: false,
     rsi: false,
     macd: false,
     stoch: false,
+    obv: false,
+    mfi: false,
+    atr: false,
+    adx: false,
+    wpr: false,
+    cci: false,
   });
   // G8: chart modes
   const [logScale, setLogScale] = useState(false);
   const [compare, setCompare] = useState<string>("none");
   const [cmpData, setCmpData] = useState<ChartResponse | null>(null);
   const [cmpNote, setCmpNote] = useState<string | null>(null);
-  // G19: trendline drawing
-  const [drawMode, setDrawMode] = useState(false);
+  // G19 + T27 — drawing tools: mode (off / trendline / horizontal level),
+  // pending first click, persisted drawings, settings popover open state
+  const [drawMode, setDrawMode] = useState<"off" | "trend" | "hlevel">("off");
   const [pending, setPending] = useState<{ x: string; y: number } | null>(null);
-  const [segments, setSegments] = useState<Seg[]>([]);
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -223,11 +355,11 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     return () => clearInterval(t);
   }, [data?.warming, symbol, range]);
 
-  // G19 — restore this symbol's trendlines after mount (SSR-safe)
+  // G19 — restore this symbol's drawings after mount (SSR-safe)
   useEffect(() => {
-    setSegments(loadLines(symbol));
+    setDrawings(loadLines(symbol));
     setPending(null);
-    setDrawMode(false);
+    setDrawMode("off");
   }, [symbol]);
 
   // G8 — fetch the comparison series for the same range (indices only)
@@ -286,15 +418,25 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
 
   // indicator availability per range length
   const canOverlay = n >= 21;
-  const canRsi = n >= 15;
-  const canMacd = n >= 36;
+  const canRsi = n >= Math.max(15, settings.rsiN + 1);
+  const canMacd = n >= settings.macdS + settings.macdSig + 8;
   const canVolMa = showVolume && n >= 21;
   // Ichimoku needs spanB(52) + displacement(26) ≈ 78 bars before the cloud
   // is more than a fragment; VWAP needs volume; PSAR needs 3 bars.
   const canIchimoku = n >= 80;
   const canVwap = showVolume && n >= 2;
   const canPsar = n >= 3;
-  const canStoch = n >= 16;
+  const canStoch = n >= Math.max(16, settings.stochK + settings.stochD + 2);
+  const canDonchian = n >= 21;
+  const canKeltner = n >= 30;
+  const canSuperTrend = n >= 25;
+  const canFib = n >= 10;
+  const canObv = showVolume && n >= 2;
+  const canMfi = showVolume && n >= 15;
+  const canAtr = n >= 16;
+  const canAdx = n >= 30;
+  const canWpr = n >= 15;
+  const canCci = n >= 15;
   const avail: Record<IndKey, boolean> = {
     sma20: canOverlay,
     sma50: canOverlay,
@@ -303,32 +445,77 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     ichimoku: canIchimoku,
     vwap: canVwap,
     psar: canPsar,
+    donchian: canDonchian,
+    keltner: canKeltner,
+    supertrend: canSuperTrend,
+    fib: canFib,
     volma: canVolMa,
     rsi: canRsi,
     macd: canMacd,
     stoch: canStoch,
+    obv: canObv,
+    mfi: canMfi,
+    atr: canAtr,
+    adx: canAdx,
+    wpr: canWpr,
+    cci: canCci,
   };
   const anyAvail = Object.values(avail).some(Boolean);
   const activeInds = INDICATORS.filter((d) => inds[d.key] && avail[d.key]);
   const useVolMa = inds.volma && canVolMa;
   const showVolMaToggle = showVolume && n >= 21; // toggle visible whenever volume + length allow
+  const isMilestones = !!data.milestones;
 
-  // compute series
+  // compute series — T27: parameters come from the persisted settings
   const closes = points.map((p) => p.close);
   const highsArr = points.map((p) => p.high ?? null);
   const lowsArr = points.map((p) => p.low ?? null);
   const volsArr = points.map((p) => (typeof p.volume === "number" ? p.volume : null));
-  const sSma20 = inds.sma20 && canOverlay ? smaSeries(closes, 20) : null;
-  const sSma50 = inds.sma50 && canOverlay ? smaSeries(closes, 50) : null;
+  const sSma20 = inds.sma20 && canOverlay ? smaSeries(closes, settings.ma1N) : null;
+  const sSma50 = inds.sma50 && canOverlay ? smaSeries(closes, settings.ma2N) : null;
   const sEma20 = inds.ema20 && canOverlay ? emaFull(closes, 20) : null;
-  const sBb = inds.bb && canOverlay ? bollingerSeries(closes, 20, 2) : null;
-  const sRsi = inds.rsi && canRsi ? rsiSeries(closes, 14) : null;
-  const sMacd = inds.macd && canMacd ? macdSeries(closes) : null;
-  const sStoch = inds.stoch && canStoch ? stochasticSeries(highsArr, lowsArr, closes, 14, 3, 3) : null;
+  const sBb = inds.bb && canOverlay ? bollingerSeries(closes, settings.bbN, settings.bbK) : null;
+  const sRsi = inds.rsi && canRsi ? rsiSeries(closes, settings.rsiN) : null;
+  const sMacd = inds.macd && canMacd ? macdSeries(closes, settings.macdF, settings.macdS, settings.macdSig) : null;
+  const sStoch = inds.stoch && canStoch ? stochasticSeries(highsArr, lowsArr, closes, settings.stochK, settings.stochD, 3) : null;
   const sVwap = inds.vwap && canVwap ? vwapSeries(highsArr, lowsArr, closes, volsArr) : null;
   const sPsar = inds.psar && canPsar ? psarSeries(highsArr, lowsArr, closes) : null;
   const useIch = inds.ichimoku && canIchimoku && compare === "none";
   const sIch = useIch ? ichimokuSeries(highsArr, lowsArr, closes, 9, 26, 52, 26) : null;
+  const sDon = inds.donchian && canDonchian ? donchianSeries(highsArr, lowsArr, closes, 20) : null;
+  const sKelt = inds.keltner && canKeltner ? keltnerSeries(highsArr, lowsArr, closes, 20, 10, 2) : null;
+  const sSt = inds.supertrend && canSuperTrend ? superTrendSeries(highsArr, lowsArr, closes, 10, 3) : null;
+  const sObv = inds.obv && canObv ? obvSeries(closes, volsArr) : null;
+  const sMfi = inds.mfi && canMfi ? mfiSeries(highsArr, lowsArr, closes, volsArr, 14) : null;
+  const sAtr = inds.atr && canAtr ? atrSeries(highsArr, lowsArr, closes, 14) : null;
+  const sAdx = inds.adx && canAdx ? adxSeries(highsArr, lowsArr, closes, 14) : null;
+  const sWpr = inds.wpr && canWpr ? williamsRSeries(highsArr, lowsArr, closes, 14) : null;
+  const sCci = inds.cci && canCci ? cciSeries(highsArr, lowsArr, closes, 20) : null;
+
+  // T27 — auto Fibonacci retracement: from the visible window's extreme
+  // swing (lowest low → highest high when the window trends up, the reverse
+  // when it trends down), classic ratios projected as dashed levels.
+  const fibLevels = (() => {
+    if (!inds.fib || !canFib || compare !== "none") return null;
+    let loIdx = 0;
+    let hiIdx = 0;
+    for (let i = 1; i < n; i++) {
+      if (points[i].close < points[loIdx].close) loIdx = i;
+      if (points[i].close > points[hiIdx].close) hiIdx = i;
+    }
+    const trendingUp = hiIdx > loIdx;
+    const lo = points[loIdx].close;
+    const hi = points[hiIdx].close;
+    if (!(hi > lo)) return null;
+    const ratios = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+    return {
+      lo,
+      hi,
+      trendingUp,
+      levels: ratios.map((r) => ({ r, price: trendingUp ? hi - r * (hi - lo) : lo + r * (hi - lo) })),
+    };
+  })();
+
   const sVolMa = useVolMa
     ? smaSeries(
         points.map((p) => (typeof p.volume === "number" ? p.volume : 0)),
@@ -362,6 +549,21 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
       stochD: sStoch?.d[i] ?? undefined,
       vwap: sVwap?.[i] ?? undefined,
       psar: sPsar?.[i] ?? undefined,
+      donUp: sDon?.up[i] ?? undefined,
+      donMid: sDon?.mid[i] ?? undefined,
+      donLo: sDon?.lo[i] ?? undefined,
+      keltUp: sKelt?.up[i] ?? undefined,
+      keltMid: sKelt?.mid[i] ?? undefined,
+      keltLo: sKelt?.lo[i] ?? undefined,
+      stLine: sSt?.line[i] ?? undefined,
+      obv: sObv?.[i] ?? undefined,
+      mfi: sMfi?.[i] ?? undefined,
+      atr: sAtr?.[i] ?? undefined,
+      adx: sAdx?.adx[i] ?? undefined,
+      adxPdi: sAdx?.pdi[i] ?? undefined,
+      adxMdi: sAdx?.mdi[i] ?? undefined,
+      wpr: sWpr?.[i] ?? undefined,
+      cci: sCci?.[i] ?? undefined,
     };
     if (sIch) {
       const a = sIch.spanA[i] ?? undefined;
@@ -435,24 +637,39 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     return rows;
   })();
 
-  // trendline click capture (G19): snaps to the session under the cursor
+  // drawing click capture (G19 + T27): trendlines take two clicks
+  // (start → end); a horizontal level takes one. Snaps to the session under
+  // the cursor; the y comes from the clicked close (levels snap to price).
   const handleChartClick = (state: { activeLabel?: string; activeTooltipIndex?: number }) => {
-    if (!drawMode || compareOn) return;
+    if (drawMode === "off" || compareOn) return;
     const idx = state.activeTooltipIndex;
     if (idx == null || idx < 0 || idx >= chartData.length) return;
     const row = chartData[idx];
     const y = row.close;
     if (typeof y !== "number" || !Number.isFinite(y)) return;
     const point = { x: String(row.date), y };
+    if (drawMode === "hlevel") {
+      const next = [...drawings, { id: `h-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type: "hlevel" as const, y, x: point.x }];
+      setDrawings(next);
+      saveLines(symbol, next);
+      setDrawMode("off");
+      return;
+    }
     if (!pending) {
       setPending(point);
     } else {
-      const next = [...segments, { a: pending, b: point }];
-      setSegments(next);
+      const next = [...drawings, { id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type: "trend" as const, a: pending, b: point }];
+      setDrawings(next);
       saveLines(symbol, next);
       setPending(null);
-      setDrawMode(false);
+      setDrawMode("off");
     }
+  };
+
+  const removeDrawing = (id: string) => {
+    const next = drawings.filter((d) => d.id !== id);
+    setDrawings(next);
+    saveLines(symbol, next);
   };
 
   const syncId = `pc-${data.symbol}-${data.range}`;
@@ -461,6 +678,12 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   const lastMacd = sMacd ? sMacd.macd[lastIdx] : null;
   const lastStochK = sStoch ? sStoch.k[lastIdx] : null;
   const lastStochD = sStoch ? sStoch.d[lastIdx] : null;
+  const lastObv = sObv ? sObv[lastIdx] : null;
+  const lastMfi = sMfi ? sMfi[lastIdx] : null;
+  const lastAtr = sAtr ? sAtr[lastIdx] : null;
+  const lastAdx = sAdx ? sAdx.adx[lastIdx] : null;
+  const lastWpr = sWpr ? sWpr[lastIdx] : null;
+  const lastCci = sCci ? sCci[lastIdx] : null;
 
   // tooltip overlay rows for enabled indicators
   const tipExtras: { key: string; label: string; color: string; fmt: (v: number) => string }[] = [];
@@ -481,6 +704,15 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   }
   if (sVolMa)
     tipExtras.push({ key: "volMa", label: tt(T.volMaLine, lang), color: "var(--c1)", fmt: (v) => fmtInt(v) });
+  if (sDon) {
+    tipExtras.push({ key: "donUp", label: "Donchian ↑", color: "var(--c2)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "donLo", label: "Donchian ↓", color: "var(--c2)", fmt: (v) => fmtNum(v) });
+  }
+  if (sKelt) {
+    tipExtras.push({ key: "keltUp", label: "Keltner ↑", color: "var(--c6)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "keltLo", label: "Keltner ↓", color: "var(--c6)", fmt: (v) => fmtNum(v) });
+  }
+  if (sSt) tipExtras.push({ key: "stLine", label: "SuperTrend", color: "var(--c8)", fmt: (v) => fmtNum(v) });
 
   const rsiState =
     lastRsi === null ? null : lastRsi >= 70 ? "overbought" : lastRsi <= 30 ? "oversold" : "neutral";
@@ -556,7 +788,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
         {data.asOf && <span className="num ms-auto text-[10px] text-muted-foreground">{data.asOf}</span>}
       </div>
 
-      {/* indicator toggles + trendline tools (G19) */}
+      {/* indicator toggles + drawing tools (G19 + T27) */}
       {points.length >= 2 && (
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] font-medium text-muted-foreground me-1">{tt(T.indicatorsLabel, lang)}:</span>
@@ -597,40 +829,185 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               {tt(T.indVolMa, lang)}
             </button>
           )}
+
+          {/* T27 — indicator settings (TradingView-style parameters) */}
+          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <PopoverTrigger asChild>
+              <button
+                aria-label={tt({ ar: "إعدادات المؤشرات", en: "Indicator settings" }, lang)}
+                title={tt({ ar: "إعدادات المؤشرات (فترات ومعاملات)", en: "Indicator settings (periods and parameters)" }, lang)}
+                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent/50 transition-colors"
+              >
+                <Settings2 className="h-3 w-3" />
+                {tt({ ar: "إعدادات", en: "Settings" }, lang)}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 p-3" dir={lang === "ar" ? "rtl" : "ltr"}>
+              <p className="text-xs font-semibold mb-2">{tt({ ar: "معاملات المؤشرات", en: "Indicator parameters" }, lang)}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ["ma1N", { ar: "فترة المتوسط ١", en: "MA 1 period" }, 2, 400],
+                    ["ma2N", { ar: "فترة المتوسط ٢", en: "MA 2 period" }, 2, 400],
+                    ["rsiN", { ar: "فترة RSI", en: "RSI period" }, 2, 100],
+                    ["bbN", { ar: "فترة بولنجر", en: "BB period" }, 5, 200],
+                    ["macdF", { ar: "MACD سريع", en: "MACD fast" }, 2, 100],
+                    ["macdS", { ar: "MACD بطيء", en: "MACD slow" }, 3, 200],
+                    ["macdSig", { ar: "MACD إشارة", en: "MACD signal" }, 2, 100],
+                    ["stochK", { ar: "فترة ستوكاستك %K", en: "Stoch %K" }, 2, 100],
+                    ["stochD", { ar: "فترة ستوكاستك %D", en: "Stoch %D" }, 1, 30],
+                  ] as [keyof IndSettings, { ar: string; en: string }, number, number][]
+                ).map(([k, label, lo, hi]) => (
+                  <label key={k} className="flex flex-col gap-1">
+                    <span className="text-[10px] text-muted-foreground">{tt(label, lang)}</span>
+                    <input
+                      dir="ltr"
+                      type="number"
+                      min={lo}
+                      max={hi}
+                      value={settings[k]}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        applySettings({ ...settings, [k]: Number.isFinite(v) ? v : settings[k] });
+                      }}
+                      className="h-7 rounded-md border bg-card px-2 text-xs num"
+                    />
+                  </label>
+                ))}
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] text-muted-foreground">{tt({ ar: "مضاعف بولنجر", en: "BB multiplier" }, lang)}</span>
+                  <input
+                    dir="ltr"
+                    type="number"
+                    min={0.5}
+                    max={5}
+                    step={0.1}
+                    value={settings.bbK}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      applySettings({ ...settings, bbK: Number.isFinite(v) ? v : settings.bbK });
+                    }}
+                    className="h-7 rounded-md border bg-card px-2 text-xs num"
+                  />
+                </label>
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <button
+                  onClick={() => applySettings(DEFAULT_SETTINGS)}
+                  className="text-[10px] text-muted-foreground hover:text-primary underline"
+                >
+                  {tt({ ar: "استعادة الافتراضي", en: "Reset defaults" }, lang)}
+                </button>
+                <span className="text-[10px] text-muted-foreground">{tt({ ar: "تُحفظ على جهازك", en: "Saved on your device" }, lang)}</span>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* T27 — drawing tools: trendline / horizontal level / list */}
           <button
             onClick={() => {
-              setDrawMode((v) => !v);
+              setDrawMode(drawMode === "trend" ? "off" : "trend");
               setPending(null);
             }}
-            aria-pressed={drawMode}
+            aria-pressed={drawMode === "trend"}
             disabled={compareOn}
             title={compareOn ? tt(T.compareChartNote, lang) : tt(T.drawModeHint, lang)}
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
-              drawMode
+              drawMode === "trend"
                 ? "bg-primary/15 font-semibold border-primary/40 text-primary"
                 : "text-muted-foreground hover:bg-accent/50"
             } ${compareOn ? "opacity-40 cursor-not-allowed" : ""}`}
           >
+            <TrendingUp className="h-3 w-3" />
             {tt(T.drawTrendline, lang)}
-            {pending && <span className="num text-[9px] text-primary">·١</span>}
+            {pending && drawMode === "trend" && <span className="num text-[9px] text-primary">·١</span>}
           </button>
-          {segments.length > 0 && (
-            <button
-              onClick={() => {
-                setSegments([]);
-                saveLines(symbol, []);
-              }}
-              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent/50"
-              title={tt(T.clearDrawings, lang)}
-            >
-              {tt(T.clearDrawings, lang)} ({segments.length})
-            </button>
+          <button
+            onClick={() => setDrawMode(drawMode === "hlevel" ? "off" : "hlevel")}
+            aria-pressed={drawMode === "hlevel"}
+            disabled={compareOn}
+            title={compareOn ? tt(T.compareChartNote, lang) : tt({ ar: "اضغط على الرسم لرسم خط أفقي عند هذا السعر", en: "Click the chart to drop a horizontal level at that price" }, lang)}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+              drawMode === "hlevel"
+                ? "bg-primary/15 font-semibold border-primary/40 text-primary"
+                : "text-muted-foreground hover:bg-accent/50"
+            } ${compareOn ? "opacity-40 cursor-not-allowed" : ""}`}
+          >
+            <Minus className="h-3 w-3" />
+            {tt({ ar: "مستوى أفقي", en: "Level" }, lang)}
+          </button>
+          {drawings.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent/50"
+                  title={tt({ ar: "إدارة الرسمات", en: "Manage drawings" }, lang)}
+                >
+                  <ListPlus className="h-3 w-3" />
+                  {tt({ ar: "رسمات", en: "Drawings" }, lang)} ({drawings.length})
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 p-2" dir={lang === "ar" ? "rtl" : "ltr"}>
+                <div className="max-h-48 overflow-auto thin-scroll space-y-1">
+                  {drawings.map((d) => (
+                    <div key={d.id} className="flex items-center gap-2 text-[11px] py-1 border-b last:border-0">
+                      {d.type === "trend" ? (
+                        <span className="num text-muted-foreground flex-1 min-w-0 truncate">
+                          <TrendingUp className="h-3 w-3 inline me-1" aria-hidden />
+                          {fmtNum(d.a.y)} → {fmtNum(d.b.y)}
+                        </span>
+                      ) : (
+                        <span className="num text-muted-foreground flex-1 min-w-0 truncate">
+                          <Minus className="h-3 w-3 inline me-1" aria-hidden />
+                          {tt({ ar: "مستوى", en: "Level" }, lang)} {fmtNum(d.y)}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => removeDrawing(d.id)}
+                        aria-label={tt(T.alertRemove, lang)}
+                        className="text-muted-foreground hover:text-down shrink-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    setDrawings([]);
+                    saveLines(symbol, []);
+                  }}
+                  className="mt-1 w-full text-[10px] text-muted-foreground hover:text-down border rounded-md py-1"
+                >
+                  {tt(T.clearDrawings, lang)}
+                </button>
+              </PopoverContent>
+            </Popover>
           )}
-          {drawMode && <span className="text-[10px] text-primary">{tt(T.drawModeHint, lang)}</span>}
+          {drawMode !== "off" && (
+            <span className="text-[10px] text-primary">
+              {drawMode === "hlevel"
+                ? tt({ ar: "اضغط على الشارت لرسم المستوى", en: "Click the chart to drop the level" }, lang)
+                : tt(T.drawModeHint, lang)}
+            </span>
+          )}
           {!anyAvail && !compareOn && (
             <span className="text-[10px] text-muted-foreground">{tt(T.indNotEnough, lang)}</span>
           )}
         </div>
+      )}
+
+      {/* T27 — milestone notice: this name has no free daily history */}
+      {isMilestones && (
+        <p className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-[10px] text-muted-foreground leading-relaxed">
+          {tt(
+            {
+              ar: "لا يوجد تاريخ يومي عام لهذه الورقة على أي مصدر مجاني — تُعرض محطات سعرية موثّقة (أسبوع/شهر/٣ أشهر/٦ أشهر/بداية السنة/سنة) محسوبة من بيانات الأداء الحية، مع نطاق ٥٢ أسبوعًا كخطوط مرجعية.",
+              en: "No public daily history exists for this name on any free source — showing verified horizon prices (1W/1M/3M/6M/YTD/1Y) computed from live performance data, with the 52-week range as reference lines.",
+            },
+            lang,
+          )}
+        </p>
       )}
 
       {/* chart canvas */}
@@ -647,7 +1024,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                 margin={{ top: 8, right: 8, bottom: 0, left: -6 }}
                 syncId={syncId}
                 onClick={(state) => handleChartClick(state as { activeLabel?: string; activeTooltipIndex?: number })}
-                style={drawMode ? { cursor: "crosshair" } : undefined}
+                style={drawMode !== "off" ? { cursor: "crosshair" } : undefined}
               >
                 <defs>
                   <linearGradient id={`pcg-${data.symbol}`} x1="0" y1="0" x2="0" y2="1">
@@ -915,6 +1292,43 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                   />
                 )}
 
+                {/* T27 — Donchian channel (20) — direct children (recharts
+                    *  does not traverse Fragments) */}
+                {sDon && !compareOn && (
+                  <Line yAxisId="price" type="monotone" dataKey="donUp" stroke="var(--c2)" strokeWidth={1} strokeDasharray="5 2" dot={false} connectNulls isAnimationActive={false} />
+                )}
+                {sDon && !compareOn && (
+                  <Line yAxisId="price" type="monotone" dataKey="donMid" stroke="var(--c2)" strokeWidth={0.8} opacity={0.5} dot={false} connectNulls isAnimationActive={false} />
+                )}
+                {sDon && !compareOn && (
+                  <Line yAxisId="price" type="monotone" dataKey="donLo" stroke="var(--c2)" strokeWidth={1} strokeDasharray="5 2" dot={false} connectNulls isAnimationActive={false} />
+                )}
+
+                {/* T27 — Keltner channel (EMA20 ± 2×ATR10) */}
+                {sKelt && !compareOn && (
+                  <Line yAxisId="price" type="monotone" dataKey="keltUp" stroke="var(--c6)" strokeWidth={1} strokeDasharray="2 4" dot={false} connectNulls isAnimationActive={false} />
+                )}
+                {sKelt && !compareOn && (
+                  <Line yAxisId="price" type="monotone" dataKey="keltMid" stroke="var(--c6)" strokeWidth={0.8} opacity={0.5} dot={false} connectNulls isAnimationActive={false} />
+                )}
+                {sKelt && !compareOn && (
+                  <Line yAxisId="price" type="monotone" dataKey="keltLo" stroke="var(--c6)" strokeWidth={1} strokeDasharray="2 4" dot={false} connectNulls isAnimationActive={false} />
+                )}
+
+                {/* T27 — SuperTrend (10, 3): green while long, red while short */}
+                {sSt && !compareOn && (
+                  <Line
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey="stLine"
+                    stroke="var(--c8)"
+                    strokeWidth={1.6}
+                    dot={false}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                )}
+
                 {/* G8 — compare mode: rebased performance lines (rendered as
                     direct children — recharts does not traverse Fragments) */}
                 {compareData && (
@@ -945,18 +1359,32 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                   />
                 )}
 
-                {/* G19 — persistent trendlines (price mode only) */}
+                {/* G19 + T27 — persisted drawings: trendlines + horizontal
+                    *  levels (price mode only) */}
                 {!compareData &&
-                  segments.map((s, i) => (
-                    <ReferenceLine
-                      key={`seg-${i}`}
-                      yAxisId="price"
-                      segment={[{ x: s.a.x, y: s.a.y }, { x: s.b.x, y: s.b.y }]}
-                      stroke="var(--c5)"
-                      strokeWidth={1.5}
-                      ifOverflow="extendDomain"
-                    />
-                  ))}
+                  drawings.map((d) =>
+                    d.type === "trend" ? (
+                      <ReferenceLine
+                        key={d.id}
+                        yAxisId="price"
+                        segment={[{ x: d.a.x, y: d.a.y }, { x: d.b.x, y: d.b.y }]}
+                        stroke="var(--c5)"
+                        strokeWidth={1.5}
+                        ifOverflow="extendDomain"
+                      />
+                    ) : (
+                      <ReferenceLine
+                        key={d.id}
+                        yAxisId="price"
+                        y={d.y}
+                        stroke="var(--c6)"
+                        strokeWidth={1.2}
+                        strokeDasharray="6 3"
+                        ifOverflow="extendDomain"
+                        label={{ value: fmtNum(d.y), position: "insideTopRight", fontSize: 9, fill: "var(--c6)" }}
+                      />
+                    )
+                  )}
                 {!compareData && pending && (
                   <ReferenceLine
                     yAxisId="price"
@@ -965,6 +1393,31 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                     strokeWidth={1}
                     strokeDasharray="2 2"
                   />
+                )}
+
+                {/* T27 — auto Fibonacci retracement levels from the visible
+                    *  window's swing (0 / 23.6 / 38.2 / 50 / 61.8 / 78.6 / 100%) */}
+                {fibLevels && !compareOn &&
+                  fibLevels.levels.map((l, i) => (
+                    <ReferenceLine
+                      key={`fib-${l.r}`}
+                      yAxisId="price"
+                      y={l.price}
+                      stroke={l.r === 0.5 || l.r === 0.618 ? "var(--c4)" : "var(--border)"}
+                      strokeWidth={l.r === 0.5 || l.r === 0.618 ? 1.1 : 0.8}
+                      strokeDasharray={i % 2 ? "3 4" : "1 0"}
+                      opacity={0.75}
+                      ifOverflow="extendDomain"
+                      label={{ value: `${(l.r * 100).toFixed(1)}% ${fmtNum(l.price, 1)}`, position: "insideTopLeft", fontSize: 8, fill: "var(--muted-foreground)" }}
+                    />
+                  ))}
+
+                {/* T27 — milestone mode: 52-week high/low reference levels */}
+                {isMilestones && !compareOn && data.refHigh != null && (
+                  <ReferenceLine yAxisId="price" y={data.refHigh} stroke="var(--up)" strokeDasharray="4 4" opacity={0.55} label={{ value: `52w ↑ ${fmtNum(data.refHigh, 1)}`, position: "insideTopRight", fontSize: 9, fill: "var(--up)" }} />
+                )}
+                {isMilestones && !compareOn && data.refLow != null && (
+                  <ReferenceLine yAxisId="price" y={data.refLow} stroke="var(--down)" strokeDasharray="4 4" opacity={0.55} label={{ value: `52w ↓ ${fmtNum(data.refLow, 1)}`, position: "insideBottomRight", fontSize: 9, fill: "var(--down)" }} />
                 )}
 
                 {!compareData && (
@@ -1314,6 +1767,239 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                       connectNulls
                       isAnimationActive={false}
                     />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* T27 — generic oscillator/volume sub-panels. Each shares the same
+              shell: header (title + last values + state chip) and a compact
+              96px synced chart. Bounded ones draw their own reference lines. */}
+          {sObv && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1">
+                <p className="text-[11px] font-medium text-foreground/80">OBV {tt({ ar: "(التدفق التراكمي)", en: "(cumulative flow)" }, lang)}</p>
+                <p className="num text-[11px] text-muted-foreground">{lastObv !== null && lastObv !== undefined ? fmtInt(lastObv) : "—"}</p>
+              </div>
+              <div style={{ height: 96 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="obv" domain={["auto", "auto"]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => fmtValue(v)} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        const v = payload?.find((p) => p.dataKey === "obv")?.value as number | undefined;
+                        if (!active || v === undefined || !Number.isFinite(v)) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            <p className="num text-muted-foreground">OBV: <b>{fmtInt(v)}</b></p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line yAxisId="obv" dataKey="obv" stroke="var(--c1)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {sMfi && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1 flex-wrap">
+                <p className="text-[11px] font-medium text-foreground/80">MFI (14)</p>
+                <p className="num text-[11px] text-muted-foreground">
+                  {lastMfi !== null && lastMfi !== undefined ? fmtNum(lastMfi, 1) : "—"}
+                  {lastMfi != null && (
+                    <span className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${lastMfi > 80 ? "bg-down-soft text-down" : lastMfi < 20 ? "bg-up-soft text-up" : "bg-secondary text-muted-foreground"}`}>
+                      {lastMfi > 80 ? tt(T.rsiOverbought, lang) : lastMfi < 20 ? tt(T.rsiOversold, lang) : tt(T.rsiNeutral, lang)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div style={{ height: 96 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="mfi" domain={[0, 100]} ticks={[20, 50, 80]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={30} />
+                    <ReferenceLine yAxisId="mfi" y={80} stroke="var(--down)" strokeDasharray="3 3" opacity={0.6} />
+                    <ReferenceLine yAxisId="mfi" y={20} stroke="var(--up)" strokeDasharray="3 3" opacity={0.6} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        const v = payload?.find((p) => p.dataKey === "mfi")?.value as number | undefined;
+                        if (!active || v === undefined || !Number.isFinite(v)) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            <p className="num text-muted-foreground">MFI: <b>{fmtNum(v, 1)}</b></p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line yAxisId="mfi" dataKey="mfi" stroke="var(--c6)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {sAtr && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1">
+                <p className="text-[11px] font-medium text-foreground/80">ATR (14) — {tt({ ar: "التقلب بالجنيه", en: "volatility in EGP" }, lang)}</p>
+                <p className="num text-[11px] text-muted-foreground">
+                  {lastAtr !== null && lastAtr !== undefined ? fmtNum(lastAtr, 2) : "—"}
+                  {lastAtr != null && data.last != null && data.last > 0 && (
+                    <span className="ms-1 text-muted-foreground">({fmtNum((lastAtr / data.last) * 100, 1)}%)</span>
+                  )}
+                </p>
+              </div>
+              <div style={{ height: 96 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="atr" domain={["auto", "auto"]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => fmtNum(v, 1)} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        const v = payload?.find((p) => p.dataKey === "atr")?.value as number | undefined;
+                        if (!active || v === undefined || !Number.isFinite(v)) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            <p className="num text-muted-foreground">ATR: <b>{fmtNum(v, 2)}</b></p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line yAxisId="atr" dataKey="atr" stroke="var(--c5)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {sAdx && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1 flex-wrap">
+                <p className="text-[11px] font-medium text-foreground/80">ADX (14) {tt({ ar: "— قوة الاتجاه", en: "— trend strength" }, lang)}</p>
+                <p className="num text-[11px] text-muted-foreground">
+                  {lastAdx !== null && lastAdx !== undefined ? fmtNum(lastAdx, 1) : "—"}
+                  {lastAdx != null && (
+                    <span className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${lastAdx >= 25 ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {lastAdx >= 25 ? tt({ ar: "اتجاه قوي", en: "strong trend" }, lang) : tt({ ar: "ضعيف/عرضي", en: "weak/ranging" }, lang)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div style={{ height: 96 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="adx" domain={[0, "auto"]} ticks={[20, 40]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={30} />
+                    <ReferenceLine yAxisId="adx" y={25} stroke="var(--primary)" strokeDasharray="3 3" opacity={0.5} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        const get = (k: string) => {
+                          const v = payload?.find((p) => p.dataKey === k)?.value as number | undefined;
+                          return v !== undefined && Number.isFinite(v) ? v : null;
+                        };
+                        const a = get("adx");
+                        const p = get("adxPdi");
+                        const m = get("adxMdi");
+                        if (!active || (a === null && p === null && m === null)) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            {a !== null && <p className="num text-muted-foreground">ADX: <b style={{ color: "var(--c3)" }}>{fmtNum(a, 1)}</b></p>}
+                            {p !== null && <p className="num text-muted-foreground">+DI: <b className="text-up">{fmtNum(p, 1)}</b></p>}
+                            {m !== null && <p className="num text-muted-foreground">−DI: <b className="text-down">{fmtNum(m, 1)}</b></p>}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line yAxisId="adx" dataKey="adx" stroke="var(--c3)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+                    <Line yAxisId="adx" dataKey="adxPdi" stroke="var(--up)" strokeWidth={1} dot={false} connectNulls isAnimationActive={false} />
+                    <Line yAxisId="adx" dataKey="adxMdi" stroke="var(--down)" strokeWidth={1} dot={false} connectNulls isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {sWpr && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1">
+                <p className="text-[11px] font-medium text-foreground/80">Williams %R (14)</p>
+                <p className="num text-[11px] text-muted-foreground">{lastWpr !== null && lastWpr !== undefined ? fmtNum(lastWpr, 1) : "—"}</p>
+              </div>
+              <div style={{ height: 96 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="wpr" domain={[-100, 0]} ticks={[-80, -50, -20]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={30} />
+                    <ReferenceLine yAxisId="wpr" y={-80} stroke="var(--up)" strokeDasharray="3 3" opacity={0.6} />
+                    <ReferenceLine yAxisId="wpr" y={-20} stroke="var(--down)" strokeDasharray="3 3" opacity={0.6} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        const v = payload?.find((p) => p.dataKey === "wpr")?.value as number | undefined;
+                        if (!active || v === undefined || !Number.isFinite(v)) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            <p className="num text-muted-foreground">%R: <b>{fmtNum(v, 1)}</b></p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line yAxisId="wpr" dataKey="wpr" stroke="var(--c4)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {sCci && (
+            <div className="rounded-md border bg-card/50 p-2">
+              <div className="flex items-center justify-between gap-2 px-1 pb-1">
+                <p className="text-[11px] font-medium text-foreground/80">CCI (20)</p>
+                <p className="num text-[11px] text-muted-foreground">
+                  {lastCci !== null && lastCci !== undefined ? fmtNum(lastCci, 1) : "—"}
+                  {lastCci != null && (
+                    <span className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${lastCci > 100 ? "bg-down-soft text-down" : lastCci < -100 ? "bg-up-soft text-up" : "bg-secondary text-muted-foreground"}`}>
+                      {lastCci > 100 ? tt({ ar: "تشبع شرائي", en: "overbought" }, lang) : lastCci < -100 ? tt({ ar: "تشبع بيعي", en: "oversold" }, lang) : tt(T.rsiNeutral, lang)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div style={{ height: 96 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="cci" domain={["auto", "auto"]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={40} tickFormatter={(v: number) => fmtNum(v, 0)} />
+                    <ReferenceLine yAxisId="cci" y={0} stroke="var(--border)" />
+                    <ReferenceLine yAxisId="cci" y={100} stroke="var(--down)" strokeDasharray="3 3" opacity={0.5} />
+                    <ReferenceLine yAxisId="cci" y={-100} stroke="var(--up)" strokeDasharray="3 3" opacity={0.5} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        const v = payload?.find((p) => p.dataKey === "cci")?.value as number | undefined;
+                        if (!active || v === undefined || !Number.isFinite(v)) return null;
+                        return (
+                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+                            <p className="num font-semibold">{label}</p>
+                            <p className="num text-muted-foreground">CCI: <b>{fmtNum(v, 1)}</b></p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line yAxisId="cci" dataKey="cci" stroke="var(--c2)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>

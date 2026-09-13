@@ -26,6 +26,8 @@ import { StrategyLabView } from "@/components/views/strategy-lab-view";
 import { FundsView } from "@/components/views/funds-view";
 import { AgentView } from "@/components/views/agent-view";
 import { ReportsView } from "@/components/views/reports-view";
+import { GccView } from "@/components/views/gcc-view";
+import { PaperView } from "@/components/views/paper-view";
 import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,39 +38,80 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Languages, Moon, Sun, ChevronDown } from "lucide-react";
+import {
+  Languages, Moon, Sun, ChevronDown, ChevronRight,
+  LayoutDashboard, CandlestickChart, SlidersHorizontal, Radar,
+  Flame, Layers, Users, Zap, CalendarDays, Scale, PiggyBank,
+  Newspaper, NotebookPen, ListChecks, Wrench, Bot, Globe2, LineChart,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
-/** ONE navigation row — every view of the app in a single header line
- *  (the old two-layer primary-nav + section-tabs duplicated "Market" and
- *  "Investors" and pushed the analytical views into a second row users
- *  had to notice; now there is exactly one header and one nav). */
-const NAV = [
-  { view: "home", t: T.overview },
-  { view: "market", t: T.market },
-  { view: "screener", t: { ar: "الفرز", en: "Screener" } },
-  { view: "signals", t: T.signalsNav },
-  { view: "lab", t: T.labNav },
-  { view: "reports", t: T.reportsNav },
-  { view: "heat", t: T.map },
-  { view: "sectors", t: T.sectors },
-  { view: "investors", t: { ar: "المستثمرون", en: "Investors" } },
-  { view: "activity", t: T.activity },
-  { view: "calendar", t: { ar: "التقويم", en: "Calendar" } },
-  { view: "compare", t: { ar: "المقارنة", en: "Compare" } },
-  { view: "funds", t: T.fundsNav },
-  { view: "today", t: T.news },
-  { view: "agent", t: T.agentNav },
-  { view: "watchlist", t: T.watchlist },
-  { view: "tools", t: T.tools },
+/** T27 — the header tabs, rebuilt as a compact grouped navigation
+ *  (TradingView-style): direct tabs for the daily drivers + grouped
+ *  dropdowns for the analytical surfaces, every item with an icon. One row,
+ *  scales with new features (GCC + Paper arrived in this task), keyboard
+ *  accessible, active-group highlighting, and the "current page" underline
+ *  survives inside groups. Mobile keeps the horizontal scroll with the
+ *  same groups collapsed into the dropdowns. */
+type NavItem = { view: string; t: { ar: string; en: string }; icon: typeof LayoutDashboard };
+type NavGroup = { key: string; t: { ar: string; en: string }; icon: typeof LayoutDashboard; items: NavItem[] };
+
+const DIRECT_NAV: NavItem[] = [
+  { view: "home", t: T.overview, icon: LayoutDashboard },
+  { view: "market", t: T.market, icon: CandlestickChart },
+  { view: "screener", t: { ar: "الفرز", en: "Screener" }, icon: SlidersHorizontal },
+  { view: "signals", t: T.signalsNav, icon: Radar },
+  { view: "today", t: T.news, icon: Newspaper },
+  { view: "agent", t: T.agentNav, icon: Bot },
 ];
 
-/** Which nav item is highlighted for a given view (families stay grouped). */
+const NAV_GROUPS: NavGroup[] = [
+  {
+    key: "markets",
+    t: { ar: "الأسواق", en: "Markets" },
+    icon: Layers,
+    items: [
+      { view: "heat", t: T.map, icon: Flame },
+      { view: "sectors", t: T.sectors, icon: Layers },
+      { view: "investors", t: { ar: "المستثمرون", en: "Investors" }, icon: Users },
+      { view: "activity", t: T.activity, icon: Zap },
+      { view: "calendar", t: { ar: "التقويم", en: "Calendar" }, icon: CalendarDays },
+      { view: "funds", t: T.fundsNav, icon: PiggyBank },
+      { view: "compare", t: { ar: "المقارنة", en: "Compare" }, icon: Scale },
+      { view: "gcc", t: { ar: "الخليج", en: "GCC" }, icon: Globe2 },
+    ],
+  },
+  {
+    key: "intel",
+    t: { ar: "التحليلات", en: "Intelligence" },
+    icon: LineChart,
+    items: [
+      { view: "lab", t: T.labNav, icon: LineChart },
+      { view: "reports", t: T.reportsNav, icon: NotebookPen },
+    ],
+  },
+  {
+    key: "tools",
+    t: { ar: "أدواتي", en: "My tools" },
+    icon: ListChecks,
+    items: [
+      { view: "watchlist", t: T.watchlist, icon: ListChecks },
+      { view: "paper", t: { ar: "تجريبي", en: "Paper" }, icon: Wrench },
+      { view: "tools", t: T.tools, icon: Wrench },
+    ],
+  },
+];
+
+/** Which nav surface (direct tab or group) is highlighted for a view. */
 function navActive(navView: string, current: string): boolean {
   if (navView === "home") return current === "home" || current === "exchange";
-  if (navView === "market") return current === "market" || current === "screener" || current === "company";
+  if (navView === "market") return current === "market" || current === "company";
   return navView === current;
+}
+
+function groupActive(group: NavGroup, current: string): boolean {
+  return group.items.some((it) => navActive(it.view, current));
 }
 
 export function AppShell() {
@@ -204,22 +247,76 @@ export function AppShell() {
             </div>
           </div>
 
-          {/* the one and only nav row */}
-          <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} className="flex items-center gap-0.5 overflow-x-auto thin-scroll pb-px -mx-1 px-1">
-            {NAV.map((item) => {
+          {/* the one and only nav row — T27 grouped navigation */}
+          <nav
+            aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
+            className="flex items-center gap-0.5 overflow-x-auto thin-scroll pb-px -mx-1 px-1"
+          >
+            {DIRECT_NAV.map((item) => {
               const active = navActive(item.view, view.name);
+              const Icon = item.icon;
               return (
                 <button
                   key={item.view}
                   onClick={() => navigate(item.view)}
-                  className={`relative whitespace-nowrap px-2.5 py-2 text-[13px] transition-colors hover:text-foreground ${
+                  className={`relative whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-2 text-[13px] transition-colors hover:text-foreground ${
                     active ? "font-semibold text-foreground" : "text-muted-foreground"
                   }`}
                   aria-current={active ? "page" : undefined}
                 >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
                   {tt(item.t, lang)}
                   {active && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden />}
                 </button>
+              );
+            })}
+            {NAV_GROUPS.map((group) => {
+              const active = groupActive(group, view.name);
+              const GroupIcon = group.icon;
+              const activeItem = group.items.find((it) => navActive(it.view, view.name));
+              return (
+                <DropdownMenu key={group.key}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`relative whitespace-nowrap inline-flex items-center gap-1 px-2 py-2 text-[13px] transition-colors hover:text-foreground ${
+                        active ? "font-semibold text-foreground" : "text-muted-foreground"
+                      }`}
+                      aria-current={active ? "page" : undefined}
+                      aria-haspopup="menu"
+                    >
+                      <GroupIcon className="h-3.5 w-3.5" aria-hidden />
+                      {tt(group.t, lang)}
+                      <ChevronDown className="h-3 w-3 opacity-60" aria-hidden />
+                      {active && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden />}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-44">
+                    {group.items.map((it) => {
+                      const ItemIcon = it.icon;
+                      const itemActive = navActive(it.view, view.name);
+                      return (
+                        <DropdownMenuItem
+                          key={it.view}
+                          onClick={() => navigate(it.view)}
+                          className={`gap-2 ${itemActive ? "font-semibold" : ""}`}
+                          aria-current={itemActive ? "page" : undefined}
+                        >
+                          <ItemIcon className="h-3.5 w-3.5" aria-hidden />
+                          {tt(it.t, lang)}
+                          {itemActive && <ChevronRight className="h-3 w-3 ms-auto text-primary rtl:rotate-180" aria-hidden />}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    {activeItem && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1 text-[10px] text-muted-foreground">
+                          {tt({ ar: "أنت في", en: "You are on" }, lang)}: {tt(activeItem.t, lang)}
+                        </div>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               );
             })}
           </nav>
@@ -252,6 +349,8 @@ export function AppShell() {
           {view.name === "signals" && <SignalsView />}
           {view.name === "lab" && <StrategyLabView />}
           {view.name === "funds" && <FundsView />}
+          {view.name === "gcc" && <GccView />}
+          {view.name === "paper" && <PaperView />}
           {view.name === "reports" && <ReportsView />}
           {view.name === "agent" && <AgentView />}
           {view.name === "api" && <ApiDocsView />}

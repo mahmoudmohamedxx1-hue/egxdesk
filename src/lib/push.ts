@@ -95,14 +95,28 @@ export async function sendPush(
 }
 
 // ── alert evaluation (mirror of the client engine — see file header) ──
+// T27: multi-condition format. An alert is either the legacy single-cond
+// shape (cond/value) or the modern shape (conditions: [{kind, value}] with
+// AND semantics). Indicator conditions are evaluated from the same cached
+// Yahoo candles /api/chart uses, with the shared indicators math.
+
+type CondKindServer =
+  | "priceAbove" | "priceBelow" | "chgAbove" | "chgBelow"
+  | "rsiAbove" | "rsiBelow" | "macdAbove" | "macdBelow"
+  | "maCrossUp" | "maCrossDown" | "volRatioAbove" | "onDate";
 
 type ServerAlert = {
   id: string;
   ticker: string;
-  cond: "above" | "below" | "risePct" | "fallPct" | "onDate";
-  value: number;
+  /** modern format */
+  conditions?: { kind: CondKindServer; value: number }[];
+  /** legacy format (migrated on read) */
+  cond?: "above" | "below" | "risePct" | "fallPct" | "onDate";
+  value?: number;
   date?: string;
 };
+
+type NormCond = { kind: CondKindServer; value: number };
 
 /** Today's date in Africa/Cairo as YYYY-MM-DD (server runs in UTC). */
 export function cairoTodayStr(): string {
@@ -113,55 +127,167 @@ export function cairoTodayStr(): string {
   }
 }
 
-function holdsServer(a: ServerAlert, s: Stock | undefined): boolean {
-  switch (a.cond) {
-    case "above":
-      return s !== undefined && s.close >= a.value;
-    case "below":
-      return s !== undefined && s.close <= a.value;
-    case "risePct":
-      return s !== undefined && s.changePct >= a.value;
-    case "fallPct":
-      return s !== undefined && s.changePct <= -a.value;
-    case "onDate":
-      return typeof a.date === "string" && a.date <= cairoTodayStr();
+const LEGACY_SERVER: Record<string, NormCond[]> = {
+  above: [{ kind: "priceAbove", value: 0 }],
+  below: [{ kind: "priceBelow", value: 0 }],
+  risePct: [{ kind: "chgAbove", value: 0 }],
+  fallPct: [{ kind: "chgBelow", value: 0 }],
+  onDate: [{ kind: "onDate", value: 0 }],
+};
+
+function normalizeAlert(a: ServerAlert): { ticker: string; date?: string; conds: NormCond[] } | null {
+  if (!a || typeof a.ticker !== "string" || !a.ticker) return null;
+  let conds: NormCond[] = Array.isArray(a.conditions)
+    ? a.conditions.filter((c) => c && typeof c.kind === "string" && typeof c.value === "number" && Number.isFinite(c.value))
+    : [];
+  if (conds.length === 0 && typeof a.cond === "string") {
+    const mapped = LEGACY_SERVER[a.cond] ?? [];
+    const value = typeof a.value === "number" ? a.value : 0;
+    conds = mapped.map((c) => ({ ...c, value: a.cond === "fallPct" ? -Math.abs(value) : value }));
   }
+  if (conds.length === 0) return null;
+  return { ticker: a.ticker, date: a.date, conds };
 }
 
-function observedServer(a: ServerAlert, s: Stock | undefined): number | null {
-  if (a.cond === "above" || a.cond === "below") return s?.close ?? null;
-  if (a.cond === "onDate") return null;
-  return s?.changePct ?? null;
-}
+const IND_KINDS_SERVER = new Set<CondKindServer>(["rsiAbove", "rsiBelow", "macdAbove", "macdBelow", "maCrossUp", "maCrossDown", "volRatioAbove"]);
 
-function alertBodyServer(a: ServerAlert, observed: number | null | undefined, lang: string): string {
-  const t = a.ticker;
-  if (lang === "en") {
-    switch (a.cond) {
-      case "above":
-        return `${t} crossed above ${a.value} — now ${observed ?? "?"} EGP`;
-      case "below":
-        return `${t} crossed below ${a.value} — now ${observed ?? "?"} EGP`;
-      case "risePct":
-        return `${t} is up ${observed?.toFixed(2) ?? "?"}% today`;
-      case "fallPct":
-        return `${t} is down ${Math.abs(observed ?? 0).toFixed(2)}% today`;
-      case "onDate":
-        return `Reminder for ${t} — ${a.date ?? ""}`;
+/** Indicator snapshot cache (mirrors client indicatorSnapshot) — keyed by
+ *  ticker, 10-minute TTL because the 5-min loop re-reads the same set. */
+const snapCacheServer = new Map<string, { snap: SnapServer; at: number }>();
+type SnapServer = {
+  rsi: number | null;
+  macd: number | null;
+  maShort: number | null;
+  maLong: number | null;
+  maShortPrev: number | null;
+  maLongPrev: number | null;
+  volRatio: number | null;
+};
+
+async function snapshotServer(ticker: string): Promise<SnapServer | null> {
+  const hit = snapCacheServer.get(ticker);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.snap;
+  try {
+    const { fetchStockChart } = await import("./history");
+    const chart = await fetchStockChart(ticker, "6M");
+    const pts = chart.points;
+    const n = pts.length;
+    if (n < 2) return null;
+    const closes = pts.map((p) => p.close);
+    const last = n - 1;
+    const { rsiSeries, macdSeries, smaSeries } = await import("./indicators");
+    const snap: SnapServer = {
+      rsi: null,
+      macd: null,
+      maShort: null,
+      maLong: null,
+      maShortPrev: null,
+      maLongPrev: null,
+      volRatio: null,
+    };
+    if (n >= 15) snap.rsi = rsiSeries(closes, 14)[last] ?? null;
+    if (n >= 36) {
+      const m = macdSeries(closes);
+      snap.macd = m.macd[last] ?? null;
     }
+    if (n >= 21) {
+      const s = smaSeries(closes, 20);
+      snap.maShort = s[last] ?? null;
+      snap.maShortPrev = s[last - 1] ?? null;
+    }
+    if (n >= 51) {
+      const l = smaSeries(closes, 50);
+      snap.maLong = l[last] ?? null;
+      snap.maLongPrev = l[last - 1] ?? null;
+    }
+    const vols = pts.map((p) => p.volume);
+    const lastVol = vols[last];
+    if (lastVol != null && lastVol > 0) {
+      const vals = vols.slice(Math.max(0, last - 19), last + 1).filter((v): v is number => v != null && v > 0);
+      if (vals.length >= 5) {
+        const mean = vals.reduce((x, v) => x + v, 0) / vals.length;
+        if (mean > 0) snap.volRatio = lastVol / mean;
+      }
+    }
+    snapCacheServer.set(ticker, { snap, at: Date.now() });
+    return snap;
+  } catch {
+    return null;
   }
-  switch (a.cond) {
-    case "above":
-      return `${t} عبر أعلى ${a.value} — السعر الآن ${observed ?? "?"} جنيه`;
-    case "below":
-      return `${t} عبر أدنى ${a.value} — السعر الآن ${observed ?? "?"} جنيه`;
-    case "risePct":
-      return `${t} يصعد ${observed?.toFixed(2) ?? "?"}% في الجلسة`;
-    case "fallPct":
-      return `${t} يهبط ${Math.abs(observed ?? 0).toFixed(2)}% في الجلسة`;
+}
+
+function condHoldsServer(c: NormCond, s: Stock | undefined, snap: SnapServer | null, date: string | undefined): boolean {
+  switch (c.kind) {
+    case "priceAbove":
+      return s !== undefined && s.close >= c.value;
+    case "priceBelow":
+      return s !== undefined && s.close <= c.value;
+    case "chgAbove":
+      return s !== undefined && s.changePct >= c.value;
+    case "chgBelow":
+      return s !== undefined && s.changePct <= c.value;
+    case "rsiAbove":
+      return snap?.rsi != null && snap.rsi >= c.value;
+    case "rsiBelow":
+      return snap?.rsi != null && snap.rsi <= c.value;
+    case "macdAbove":
+      return snap?.macd != null && snap.macd >= c.value;
+    case "macdBelow":
+      return snap?.macd != null && snap.macd <= c.value;
+    case "maCrossUp":
+      return (
+        snap?.maShort != null && snap?.maLong != null && snap?.maShortPrev != null && snap?.maLongPrev != null &&
+        snap.maShortPrev <= snap.maLongPrev && snap.maShort > snap.maLong
+      );
+    case "maCrossDown":
+      return (
+        snap?.maShort != null && snap?.maLong != null && snap?.maShortPrev != null && snap?.maLongPrev != null &&
+        snap.maShortPrev >= snap.maLongPrev && snap.maShort < snap.maLong
+      );
+    case "volRatioAbove":
+      return snap?.volRatio != null && snap.volRatio >= c.value;
     case "onDate":
-      return `تذكير اليوم بـ${t} — ${a.date ?? ""}`;
+      return typeof date === "string" && date <= cairoTodayStr();
   }
+}
+
+const COND_LABELS_SERVER: Record<CondKindServer, { ar: string; en: string }> = {
+  priceAbove: { ar: "السعر أعلى من", en: "price above" },
+  priceBelow: { ar: "السعر أدنى من", en: "price below" },
+  chgAbove: { ar: "الصعود أكثر من", en: "up more than" },
+  chgBelow: { ar: "الهبوط أكثر من", en: "down more than" },
+  rsiAbove: { ar: "‏RSI أعلى من", en: "RSI above" },
+  rsiBelow: { ar: "‏RSI أدنى من", en: "RSI below" },
+  macdAbove: { ar: "‏MACD أعلى من", en: "MACD above" },
+  macdBelow: { ar: "‏MACD أدنى من", en: "MACD below" },
+  maCrossUp: { ar: "‏MA20 يعبر صاعدًا فوق MA50", en: "MA20 crossed above MA50" },
+  maCrossDown: { ar: "‏MA20 يعبر هابطًا تحت MA50", en: "MA20 crossed below MA50" },
+  volRatioAbove: { ar: "الحجم أعلى من", en: "volume above" },
+  onDate: { ar: "في تاريخ", en: "on date" },
+};
+
+function alertBodyServer(a: ServerAlert, observed: number | null | undefined, lang: string, conds: NormCond[]): string {
+  const t = a.ticker;
+  const isReminder = conds.length === 1 && conds[0].kind === "onDate";
+  if (isReminder) {
+    return lang === "en" ? `Reminder for ${t} — ${a.date ?? ""}` : `تذكير اليوم بـ${t} — ${a.date ?? ""}`;
+  }
+  const parts = conds.map((c) => {
+    const v =
+      c.kind === "chgAbove" || c.kind === "chgBelow"
+        ? `${Math.abs(c.value)}%`
+        : c.kind === "rsiAbove" || c.kind === "rsiBelow"
+          ? `${c.value}`
+          : c.kind === "volRatioAbove"
+            ? `${c.value}× avg`
+            : c.kind === "maCrossUp" || c.kind === "maCrossDown"
+              ? ""
+              : String(c.value);
+    const label = lang === "en" ? COND_LABELS_SERVER[c.kind].en : COND_LABELS_SERVER[c.kind].ar;
+    return v ? `${label} ${v}` : label;
+  });
+  const priceNote = observed != null ? (lang === "en" ? ` — now ${observed} EGP` : ` — الآن ${observed} جنيه`) : "";
+  return `${t}: ${parts.join(lang === "en" ? " and " : " و")}${priceNote}`;
 }
 
 // ── the loop body: evaluate every subscribed device ──
@@ -190,23 +316,34 @@ export async function evaluateDevices(): Promise<EvalSummary> {
 
   // the set of tickers any device is watching — one shared universe fetch
   const tickers = new Set<string>();
+  const indTickers = new Set<string>();
   for (const d of devices) {
     try {
-      for (const a of JSON.parse(d.alertsJson) as ServerAlert[]) tickers.add(a.ticker);
+      for (const a of JSON.parse(d.alertsJson) as ServerAlert[]) {
+        const norm = normalizeAlert(a);
+        if (!norm) continue;
+        tickers.add(norm.ticker);
+        if (norm.conds.some((c) => IND_KINDS_SERVER.has(c.kind))) indTickers.add(norm.ticker);
+      }
     } catch {}
   }
   if (tickers.size === 0) return summary;
 
   const universe = await fetchUniverse();
   const byTicker = new Map(universe.map((s) => [s.ticker, s] as const));
+  // indicator conditions: shared snapshot fetch per distinct ticker
+  const snaps = new Map<string, SnapServer | null>();
+  await Promise.all(
+    [...indTickers].map(async (t) => {
+      snaps.set(t, await snapshotServer(t));
+    }),
+  );
 
   for (const d of devices) {
     let alerts: ServerAlert[] = [];
     let notifiedIds: string[] = [];
     try {
-      alerts = (JSON.parse(d.alertsJson) as ServerAlert[]).filter(
-        (a) => a && typeof a.ticker === "string" && typeof a.value === "number"
-      );
+      alerts = (JSON.parse(d.alertsJson) as ServerAlert[]).filter((a) => normalizeAlert(a) !== null);
     } catch {}
     try {
       notifiedIds = JSON.parse(d.notifiedJson) as string[];
@@ -217,9 +354,12 @@ export async function evaluateDevices(): Promise<EvalSummary> {
     for (const a of alerts) {
       if (notifiedSet.has(a.id)) continue; // already pushed — never repeat
       summary.checkedAlerts++;
-      const s = byTicker.get(a.ticker);
+      const norm = normalizeAlert(a);
+      if (!norm) continue;
+      const s = byTicker.get(norm.ticker);
+      const snap = snaps.get(norm.ticker) ?? null;
       // date reminders need no quote (s may be undefined); price alerts need it
-      if (holdsServer(a, s)) {
+      if (norm.conds.every((c) => condHoldsServer(c, s, snap, norm.date))) {
         fired.push(a);
       }
     }
@@ -232,8 +372,16 @@ export async function evaluateDevices(): Promise<EvalSummary> {
             fired.length === 1 ? `EGX Desk — ${fired[0].ticker}` : `EGX Desk — ${fired.length} تنبيهات`,
           body:
             fired.length === 1
-              ? alertBodyServer(fired[0], observedServer(fired[0], byTicker.get(fired[0].ticker)), d.lang)
-              : fired.map((a) => alertBodyServer(a, undefined, d.lang)).join(" • ").slice(0, 180),
+              ? alertBodyServer(
+                  fired[0],
+                  byTicker.get(fired[0].ticker)?.close ?? null,
+                  d.lang,
+                  normalizeAlert(fired[0])?.conds ?? [],
+                )
+              : fired
+                  .map((a) => alertBodyServer(a, undefined, d.lang, normalizeAlert(a)?.conds ?? []))
+                  .join(" • ")
+                  .slice(0, 180),
           url: `/?view=company&ticker=${fired[0].ticker}&panel=overview`,
           tag: `egx-${fired[0].id}`,
           lang: d.lang,

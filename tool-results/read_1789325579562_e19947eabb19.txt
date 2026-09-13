@@ -1,0 +1,1334 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useRef, useState } from "react";
+     4→import {
+     5→  ResponsiveContainer,
+     6→  ComposedChart,
+     7→  Area,
+     8→  Bar,
+     9→  Cell,
+    10→  Line,
+    11→  XAxis,
+    12→  YAxis,
+    13→  CartesianGrid,
+    14→  Tooltip,
+    15→  ReferenceLine,
+    16→} from "recharts";
+    17→import { useApp } from "./app-context";
+    18→import { T, tt } from "@/lib/i18n";
+    19→import { fmtNum, fmtPct, fmtInt, fmtValue, directionClass } from "@/lib/format";
+    20→import { smaSeries, emaFull, emaSparse, bollingerSeries, rsiSeries, macdSeries, stochasticSeries, vwapSeries, psarSeries, ichimokuSeries } from "@/lib/indicators";
+    21→import { Skeleton } from "@/components/ui/skeleton";
+    22→
+    23→/** Real price chart for one stock or index, with range switching and
+    24→ *  client-computed technical indicators (SMA/EMA/Bollinger overlays,
+    25→ *  RSI, MACD and Stochastic panels, volume MA, plus the T26 advanced set:
+    26→ *  Ichimoku cloud with forward projection, VWAP and Parabolic SAR).
+    27→ *  Data comes from /api/chart (Yahoo daily/weekly candles for stocks,
+    28→ *  self-collected intraday ticks for 1D/1W, persisted EGX session closes
+    29→ *  for indices).
+    30→ *  G8: log-scale toggle + rebased index comparison overlay. G19: persistent
+    31→ *  click-to-draw trendlines. Chart canvas is LTR; labels are bilingual.
+    32→ *  Remount per symbol. */
+    33→
+    34→type ChartPoint = { date: string; close: number; volume: number | null; high?: number | null; low?: number | null };
+    35→
+    36→type ChartResponse = {
+    37→  symbol: string;
+    38→  kind: "stock" | "index";
+    39→  range: string;
+    40→  currency: string;
+    41→  points: ChartPoint[];
+    42→  first: number | null;
+    43→  last: number | null;
+    44→  high: number | null;
+    45→  low: number | null;
+    46→  changePct: number | null;
+    47→  asOf: string | null;
+    48→  source: string;
+    49→  warming?: boolean;
+    50→  availableRanges: string[];
+    51→  error?: string;
+    52→};
+    53→
+    54→const RANGE_LABELS: Record<string, { ar: string; en: string }> = {
+    55→  "1D": { ar: "اليوم", en: "1D" },
+    56→  "1W": { ar: "أسبوع", en: "1W" },
+    57→  "1M": { ar: "شهر", en: "1M" },
+    58→  "3M": { ar: "٣ أشهر", en: "3M" },
+    59→  "6M": { ar: "٦ أشهر", en: "6M" },
+    60→  "1Y": { ar: "سنة", en: "1Y" },
+    61→  "5Y": { ar: "٥ سنوات", en: "5Y" },
+    62→  ALL: { ar: "الكل", en: "All" },
+    63→};
+    64→
+    65→// ── indicator math lives in @/lib/indicators (shared with the technical
+    66→//    analysis panel) — imported above. ──
+    67→
+    68→// ── indicator toggle config ──
+    69→
+    70→type IndKey = "sma20" | "sma50" | "ema20" | "bb" | "ichimoku" | "vwap" | "psar" | "volma" | "rsi" | "macd" | "stoch";
+    71→
+    72→const INDICATORS: { key: IndKey; t: { ar: string; en: string }; color: string; kind: "overlay" | "sub" }[] = [
+    73→  { key: "sma20", t: T.indSma20, color: "var(--c1)", kind: "overlay" },
+    74→  { key: "sma50", t: T.indSma50, color: "var(--c2)", kind: "overlay" },
+    75→  { key: "ema20", t: T.indEma20, color: "var(--c5)", kind: "overlay" },
+    76→  { key: "bb", t: T.indBb, color: "var(--c4)", kind: "overlay" },
+    77→  { key: "ichimoku", t: T.indIchimoku, color: "var(--c8)", kind: "overlay" },
+    78→  { key: "vwap", t: T.indVwap, color: "var(--c6)", kind: "overlay" },
+    79→  { key: "psar", t: T.indPsar, color: "var(--c5)", kind: "overlay" },
+    80→  { key: "rsi", t: T.indRsi, color: "var(--c7)", kind: "sub" },
+    81→  { key: "macd", t: T.indMacd, color: "var(--c3)", kind: "sub" },
+    82→  { key: "stoch", t: T.indStoch, color: "var(--c3)", kind: "sub" },
+    83→];
+    84→
+    85→/** G8 — comparison overlay options: the three headline indices, rebased to
+    86→ *  100 at the window start (stock-vs-stock lives in the Compare view). */
+    87→const COMPARE_OPTIONS: { key: string; ar: string; en: string }[] = [
+    88→  { key: "EGX30", ar: "إيجي إكس ٣٠", en: "EGX 30" },
+    89→  { key: "EGX70", ar: "إيجي إكس ٧٠", en: "EGX 70" },
+    90→  { key: "EGX100", ar: "إيجي إكس ١٠٠", en: "EGX 100" },
+    91→];
+    92→
+    93→/** G19 — trendline segments persisted per symbol on the device. */
+    94→type Seg = { a: { x: string; y: number }; b: { x: string; y: number } };
+    95→const LINES_KEY = "egx-trendlines";
+    96→
+    97→function loadLines(symbol: string): Seg[] {
+    98→  try {
+    99→    const raw = localStorage.getItem(LINES_KEY);
+   100→    if (!raw) return [];
+   101→    const map = JSON.parse(raw) as Record<string, Seg[] | undefined>;
+   102→    const arr = map?.[symbol];
+   103→    if (!Array.isArray(arr)) return [];
+   104→    return arr.filter(
+   105→      (s) => s && s.a && s.b && typeof s.a.x === "string" && Number.isFinite(s.a.y) && typeof s.b.x === "string" && Number.isFinite(s.b.y)
+   106→    );
+   107→  } catch {
+   108→    return [];
+   109→  }
+   110→}
+   111→
+   112→function saveLines(symbol: string, segs: Seg[]): void {
+   113→  try {
+   114→    const raw = localStorage.getItem(LINES_KEY);
+   115→    const map = raw ? (JSON.parse(raw) as Record<string, Seg[]>) : {};
+   116→    map[symbol] = segs;
+   117→    localStorage.setItem(LINES_KEY, JSON.stringify(map));
+   118→  } catch {}
+   119→}
+   120→
+   121→export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; defaultRange?: string }) {
+   122→  const { lang } = useApp();
+   123→  const [range, setRange] = useState(defaultRange);
+   124→  const [data, setData] = useState<ChartResponse | null>(null);
+   125→  const [error, setError] = useState<string | null>(null);
+   126→  const [loading, setLoading] = useState(true);
+   127→  const [inds, setInds] = useState<Record<IndKey, boolean>>({
+   128→    sma20: true,
+   129→    sma50: false,
+   130→    ema20: false,
+   131→    bb: false,
+   132→    ichimoku: false,
+   133→    vwap: false,
+   134→    psar: false,
+   135→    volma: false,
+   136→    rsi: false,
+   137→    macd: false,
+   138→    stoch: false,
+   139→  });
+   140→  // G8: chart modes
+   141→  const [logScale, setLogScale] = useState(false);
+   142→  const [compare, setCompare] = useState<string>("none");
+   143→  const [cmpData, setCmpData] = useState<ChartResponse | null>(null);
+   144→  const [cmpNote, setCmpNote] = useState<string | null>(null);
+   145→  // G19: trendline drawing
+   146→  const [drawMode, setDrawMode] = useState(false);
+   147→  const [pending, setPending] = useState<{ x: string; y: number } | null>(null);
+   148→  const [segments, setSegments] = useState<Seg[]>([]);
+   149→  const mounted = useRef(true);
+   150→
+   151→  useEffect(() => {
+   152→    mounted.current = true;
+   153→    let cancelled = false;
+   154→    const load = async () => {
+   155→      try {
+   156→        const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`, {
+   157→          cache: "no-store",
+   158→        });
+   159→        const json = (await res.json()) as ChartResponse;
+   160→        if (!res.ok || json.error) throw new Error(json.error ?? `chart ${res.status}`);
+   161→        if (!cancelled) {
+   162→          setData(json);
+   163→          setError(null);
+   164→        }
+   165→      } catch (e: unknown) {
+   166→        if (!cancelled) setError(e instanceof Error ? e.message : "chart unavailable");
+   167→      } finally {
+   168→        if (!cancelled) setLoading(false);
+   169→      }
+   170→    };
+   171→    load();
+   172→    return () => {
+   173→      cancelled = true;
+   174→      mounted.current = false;
+   175→    };
+   176→  }, [symbol, range]);
+   177→
+   178→  // T26 — intraday ranges move with the tape: quietly refetch every minute
+   179→  // while an intraday timeframe is selected and the tab is visible (the
+   180→  // server sampler runs on every chart request, so a watching user keeps
+   181→  // the tick store fresh too).
+   182→  useEffect(() => {
+   183→    if (range !== "1D" && range !== "1W") return;
+   184→    const t = setInterval(async () => {
+   185→      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+   186→      try {
+   187→        const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`, {
+   188→          cache: "no-store",
+   189→        });
+   190→        if (!res.ok) return;
+   191→        const json = (await res.json()) as ChartResponse;
+   192→        if (json.error || !json.points || json.points.length < 2) return;
+   193→        if (mounted.current && json.points.length >= (data?.points.length ?? 0)) {
+   194→          setData(json);
+   195→          setError(null);
+   196→        }
+   197→      } catch {
+   198→        /* keep the last good frame */
+   199→      }
+   200→    }, 60_000);
+   201→    return () => clearInterval(t);
+   202→  }, [symbol, range, data?.points.length]);
+   203→
+   204→  // while the index archive warms up, keep polling until real rows appear
+   205→  useEffect(() => {
+   206→    if (!data?.warming) return;
+   207→    const t = setInterval(async () => {
+   208→      try {
+   209→        const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`, {
+   210→          cache: "no-store",
+   211→        });
+   212→        if (!res.ok) return;
+   213→        const json = (await res.json()) as ChartResponse;
+   214→        if (json.error || json.points.length < 2) return;
+   215→        if (mounted.current) {
+   216→          setData(json);
+   217→          setError(null);
+   218→        }
+   219→      } catch {
+   220→        /* keep polling */
+   221→      }
+   222→    }, 8_000);
+   223→    return () => clearInterval(t);
+   224→  }, [data?.warming, symbol, range]);
+   225→
+   226→  // G19 — restore this symbol's trendlines after mount (SSR-safe)
+   227→  useEffect(() => {
+   228→    setSegments(loadLines(symbol));
+   229→    setPending(null);
+   230→    setDrawMode(false);
+   231→  }, [symbol]);
+   232→
+   233→  // G8 — fetch the comparison series for the same range (indices only)
+   234→  useEffect(() => {
+   235→    if (compare === "none") {
+   236→      setCmpData(null);
+   237→      setCmpNote(null);
+   238→      return;
+   239→    }
+   240→    let cancelled = false;
+   241→    (async () => {
+   242→      setCmpNote(null);
+   243→      try {
+   244→        const res = await fetch(`/api/chart?symbol=${compare}&range=${range}`, { cache: "no-store" });
+   245→        const json = (await res.json()) as ChartResponse;
+   246→        if (!res.ok || json.error || json.points.length < 2) throw new Error("unavailable");
+   247→        if (!cancelled) {
+   248→          setCmpData(json);
+   249→          setCmpNote(null);
+   250→        }
+   251→      } catch {
+   252→        if (!cancelled) {
+   253→          setCmpData(null);
+   254→          setCmpNote(lang === "ar" ? "سلسلة المقارنة غير متاحة لهذا النطاق" : "Comparison series unavailable for this range");
+   255→        }
+   256→      }
+   257→    })();
+   258→    return () => {
+   259→      cancelled = true;
+   260→    };
+   261→  }, [compare, range, lang]);
+   262→
+   263→  if (loading && !data) {
+   264→    return (
+   265→      <div className="space-y-2">
+   266→        <div className="flex gap-1.5">
+   267→          {[0, 1, 2, 3, 4].map((i) => (
+   268→            <Skeleton key={i} className="h-7 w-14" />
+   269→          ))}
+   270→        </div>
+   271→        <Skeleton className="h-64 w-full" />
+   272→      </div>
+   273→    );
+   274→  }
+   275→
+   276→  if (error && !data) {
+   277→    return <p className="py-8 text-center text-sm text-muted-foreground">{tt(T.chartUnavailable, lang)}</p>;
+   278→  }
+   279→  if (!data) return null;
+   280→
+   281→  const points = data.points;
+   282→  const up = (data.changePct ?? 0) >= 0;
+   283→  const stroke = up ? "var(--up)" : "var(--down)";
+   284→  const showVolume = points.some((p) => typeof p.volume === "number");
+   285→  const n = points.length;
+   286→
+   287→  // indicator availability per range length
+   288→  const canOverlay = n >= 21;
+   289→  const canRsi = n >= 15;
+   290→  const canMacd = n >= 36;
+   291→  const canVolMa = showVolume && n >= 21;
+   292→  // Ichimoku needs spanB(52) + displacement(26) ≈ 78 bars before the cloud
+   293→  // is more than a fragment; VWAP needs volume; PSAR needs 3 bars.
+   294→  const canIchimoku = n >= 80;
+   295→  const canVwap = showVolume && n >= 2;
+   296→  const canPsar = n >= 3;
+   297→  const canStoch = n >= 16;
+   298→  const avail: Record<IndKey, boolean> = {
+   299→    sma20: canOverlay,
+   300→    sma50: canOverlay,
+   301→    ema20: canOverlay,
+   302→    bb: canOverlay,
+   303→    ichimoku: canIchimoku,
+   304→    vwap: canVwap,
+   305→    psar: canPsar,
+   306→    volma: canVolMa,
+   307→    rsi: canRsi,
+   308→    macd: canMacd,
+   309→    stoch: canStoch,
+   310→  };
+   311→  const anyAvail = Object.values(avail).some(Boolean);
+   312→  const activeInds = INDICATORS.filter((d) => inds[d.key] && avail[d.key]);
+   313→  const useVolMa = inds.volma && canVolMa;
+   314→  const showVolMaToggle = showVolume && n >= 21; // toggle visible whenever volume + length allow
+   315→
+   316→  // compute series
+   317→  const closes = points.map((p) => p.close);
+   318→  const highsArr = points.map((p) => p.high ?? null);
+   319→  const lowsArr = points.map((p) => p.low ?? null);
+   320→  const volsArr = points.map((p) => (typeof p.volume === "number" ? p.volume : null));
+   321→  const sSma20 = inds.sma20 && canOverlay ? smaSeries(closes, 20) : null;
+   322→  const sSma50 = inds.sma50 && canOverlay ? smaSeries(closes, 50) : null;
+   323→  const sEma20 = inds.ema20 && canOverlay ? emaFull(closes, 20) : null;
+   324→  const sBb = inds.bb && canOverlay ? bollingerSeries(closes, 20, 2) : null;
+   325→  const sRsi = inds.rsi && canRsi ? rsiSeries(closes, 14) : null;
+   326→  const sMacd = inds.macd && canMacd ? macdSeries(closes) : null;
+   327→  const sStoch = inds.stoch && canStoch ? stochasticSeries(highsArr, lowsArr, closes, 14, 3, 3) : null;
+   328→  const sVwap = inds.vwap && canVwap ? vwapSeries(highsArr, lowsArr, closes, volsArr) : null;
+   329→  const sPsar = inds.psar && canPsar ? psarSeries(highsArr, lowsArr, closes) : null;
+   330→  const useIch = inds.ichimoku && canIchimoku && compare === "none";
+   331→  const sIch = useIch ? ichimokuSeries(highsArr, lowsArr, closes, 9, 26, 52, 26) : null;
+   332→  const sVolMa = useVolMa
+   333→    ? smaSeries(
+   334→        points.map((p) => (typeof p.volume === "number" ? p.volume : 0)),
+   335→        20,
+   336→      )
+   337→    : null;
+   338→
+   339→  // T26 — label formats: intraday tick rows carry "YYYY-MM-DD HH:mm";
+   340→  // 1D shows the time, 1W shows day+time, daily keeps the compact date.
+   341→  const isIntradayData = points.length > 0 && points[0].date.length > 10;
+   342→  const tickLabel = (d: string) =>
+   343→    isIntradayData ? (range === "1D" ? d.slice(11, 16) : d.slice(5, 16)) : d.slice(2);
+   344→
+   345→  const chartData = points.map((p, i) => {
+   346→    const row: Record<string, string | number | undefined> = {
+   347→      date: tickLabel(p.date),
+   348→      close: p.close,
+   349→      volume: p.volume ?? undefined,
+   350→      sma20: sSma20?.[i] ?? undefined,
+   351→      sma50: sSma50?.[i] ?? undefined,
+   352→      ema20: sEma20?.[i] ?? undefined,
+   353→      bbUp: sBb?.up[i] ?? undefined,
+   354→      bbMid: sBb?.mid[i] ?? undefined,
+   355→      bbLo: sBb?.lo[i] ?? undefined,
+   356→      volMa: sVolMa?.[i] ?? undefined,
+   357→      rsi: sRsi?.[i] ?? undefined,
+   358→      macd: sMacd?.macd[i] ?? undefined,
+   359→      macdSignal: sMacd?.signal[i] ?? undefined,
+   360→      macdHist: sMacd?.hist[i] ?? undefined,
+   361→      stochK: sStoch?.k[i] ?? undefined,
+   362→      stochD: sStoch?.d[i] ?? undefined,
+   363→      vwap: sVwap?.[i] ?? undefined,
+   364→      psar: sPsar?.[i] ?? undefined,
+   365→    };
+   366→    if (sIch) {
+   367→      const a = sIch.spanA[i] ?? undefined;
+   368→      const b = sIch.spanB[i] ?? undefined;
+   369→      row.spanA = a;
+   370→      row.spanB = b;
+   371→      row.cloudUp = a !== undefined && b !== undefined && (a as number) >= (b as number) ? (a as number) - (b as number) : undefined;
+   372→      row.cloudDn = a !== undefined && b !== undefined && (a as number) < (b as number) ? (a as number) - (b as number) : undefined;
+   373→      row.tenkan = sIch.tenkan[i] ?? undefined;
+   374→      row.kijun = sIch.kijun[i] ?? undefined;
+   375→      row.chikou = sIch.chikou[i] ?? undefined;
+   376→    }
+   377→    return row;
+   378→  });
+   379→
+   380→  // T26 — Ichimoku forward projection: append the next 26 trading days
+   381→  // (Sun–Thu sessions; Fri/Sat are the EGX weekend) so the cloud leads the
+   382→  // price exactly like TradingView's classic Ichimoku rendering.
+   383→  const ichData = (() => {
+   384→    if (!sIch || !useIch) return chartData;
+   385→    const lastDate = points[points.length - 1].date.slice(0, 10);
+   386→    const future: string[] = [];
+   387→    const d = new Date(`${lastDate}T00:00:00Z`);
+   388→    while (future.length < 26) {
+   389→      d.setUTCDate(d.getUTCDate() + 1);
+   390→      const day = d.getUTCDay(); // 5=Fri, 6=Sat — EGX weekend
+   391→      if (day === 5 || day === 6) continue;
+   392→      future.push(d.toISOString().slice(0, 10));
+   393→    }
+   394→    const rows = future.map((fd, j) => {
+   395→      const a = sIch.projA[j] ?? undefined;
+   396→      const b = sIch.projB[j] ?? undefined;
+   397→      const row: Record<string, string | number | undefined> = {
+   398→        date: fd.slice(2), // daily-style label on projected slots
+   399→        spanA: a,
+   400→        spanB: b,
+   401→        cloudUp: a !== undefined && b !== undefined && (a as number) >= (b as number) ? (a as number) - (b as number) : undefined,
+   402→        cloudDn: a !== undefined && b !== undefined && (a as number) < (b as number) ? (a as number) - (b as number) : undefined,
+   403→      };
+   404→      return row;
+   405→    });
+   406→    return [...chartData, ...rows];
+   407→  })();
+   408→
+   409→  // G8 compare mode: rebase both series to 100 at the window start and merge
+   410→  // onto the main date axis (union of dates, forward-filled). Plain function
+   411→  // (not a hook): this sits after the early returns above.
+   412→  const compareOn = compare !== "none" && !!cmpData && cmpData!.points.length >= 2;
+   413→  const cmpLabel = compareOn
+   414→    ? tt(COMPARE_OPTIONS.find((o) => o.key === compare) ?? { ar: compare, en: compare }, lang)
+   415→    : "";
+   416→  const compareData = (() => {
+   417→    if (!compareOn || !cmpData) return null;
+   418→    const cmpMap = new Map(cmpData.points.map((p) => [p.date, p.close]));
+   419→    const mainMap = new Map(points.map((p) => [p.date, p.close]));
+   420→    const dates = Array.from(new Set([...mainMap.keys(), ...cmpMap.keys()])).sort();
+   421→    let m0: number | null = null;
+   422→    let c0: number | null = null;
+   423→    let mLast = 100;
+   424→    let cLast = 100;
+   425→    const rows: { date: string; main100: number; cmp100: number; close?: number }[] = [];
+   426→    for (const d of dates) {
+   427→      const m = mainMap.get(d);
+   428→      const c = cmpMap.get(d);
+   429→      if (m != null && m0 === null) m0 = m;
+   430→      if (c != null && c0 === null) c0 = c;
+   431→      if (m != null && m0) mLast = (m / m0) * 100;
+   432→      if (c != null && c0) cLast = (c / c0) * 100;
+   433→      rows.push({ date: d.slice(2), main100: mLast, cmp100: cLast, close: m });
+   434→    }
+   435→    return rows;
+   436→  })();
+   437→
+   438→  // trendline click capture (G19): snaps to the session under the cursor
+   439→  const handleChartClick = (state: { activeLabel?: string; activeTooltipIndex?: number }) => {
+   440→    if (!drawMode || compareOn) return;
+   441→    const idx = state.activeTooltipIndex;
+   442→    if (idx == null || idx < 0 || idx >= chartData.length) return;
+   443→    const row = chartData[idx];
+   444→    const y = row.close;
+   445→    if (typeof y !== "number" || !Number.isFinite(y)) return;
+   446→    const point = { x: String(row.date), y };
+   447→    if (!pending) {
+   448→      setPending(point);
+   449→    } else {
+   450→      const next = [...segments, { a: pending, b: point }];
+   451→      setSegments(next);
+   452→      saveLines(symbol, next);
+   453→      setPending(null);
+   454→      setDrawMode(false);
+   455→    }
+   456→  };
+   457→
+   458→  const syncId = `pc-${data.symbol}-${data.range}`;
+   459→  const lastIdx = n - 1;
+   460→  const lastRsi = sRsi ? sRsi[lastIdx] : null;
+   461→  const lastMacd = sMacd ? sMacd.macd[lastIdx] : null;
+   462→  const lastStochK = sStoch ? sStoch.k[lastIdx] : null;
+   463→  const lastStochD = sStoch ? sStoch.d[lastIdx] : null;
+   464→
+   465→  // tooltip overlay rows for enabled indicators
+   466→  const tipExtras: { key: string; label: string; color: string; fmt: (v: number) => string }[] = [];
+   467→  if (sSma20) tipExtras.push({ key: "sma20", label: tt(T.indSma20, lang), color: "var(--c1)", fmt: (v) => fmtNum(v) });
+   468→  if (sSma50) tipExtras.push({ key: "sma50", label: tt(T.indSma50, lang), color: "var(--c2)", fmt: (v) => fmtNum(v) });
+   469→  if (sEma20) tipExtras.push({ key: "ema20", label: tt(T.indEma20, lang), color: "var(--c5)", fmt: (v) => fmtNum(v) });
+   470→  if (sBb) {
+   471→    tipExtras.push({ key: "bbUp", label: `BB ↑`, color: "var(--c4)", fmt: (v) => fmtNum(v) });
+   472→    tipExtras.push({ key: "bbLo", label: `BB ↓`, color: "var(--c4)", fmt: (v) => fmtNum(v) });
+   473→  }
+   474→  if (sVwap) tipExtras.push({ key: "vwap", label: tt(T.indVwap, lang), color: "var(--c6)", fmt: (v) => fmtNum(v) });
+   475→  if (sPsar) tipExtras.push({ key: "psar", label: "PSAR", color: "var(--c5)", fmt: (v) => fmtNum(v) });
+   476→  if (sIch) {
+   477→    tipExtras.push({ key: "tenkan", label: tt(T.ichTenkan, lang), color: "var(--c8)", fmt: (v) => fmtNum(v) });
+   478→    tipExtras.push({ key: "kijun", label: tt(T.ichKijun, lang), color: "var(--c4)", fmt: (v) => fmtNum(v) });
+   479→    tipExtras.push({ key: "spanA", label: tt(T.ichSpanA, lang), color: "var(--up)", fmt: (v) => fmtNum(v) });
+   480→    tipExtras.push({ key: "spanB", label: tt(T.ichSpanB, lang), color: "var(--down)", fmt: (v) => fmtNum(v) });
+   481→  }
+   482→  if (sVolMa)
+   483→    tipExtras.push({ key: "volMa", label: tt(T.volMaLine, lang), color: "var(--c1)", fmt: (v) => fmtInt(v) });
+   484→
+   485→  const rsiState =
+   486→    lastRsi === null ? null : lastRsi >= 70 ? "overbought" : lastRsi <= 30 ? "oversold" : "neutral";
+   487→
+   488→  return (
+   489→    <div dir="ltr" className="space-y-3">
+   490→      {/* header stats */}
+   491→      <div className="flex items-end justify-between flex-wrap gap-2">
+   492→        <div className="flex items-baseline gap-3 flex-wrap">
+   493→          {data.last !== null && <span className="num text-2xl font-bold tracking-tight">{fmtNum(data.last)}</span>}
+   494→          {data.changePct !== null && (
+   495→            <span className={`num text-sm font-semibold ${directionClass(data.changePct)}`}>
+   496→              {fmtPct(data.changePct)} <span className="text-muted-foreground font-normal">({tt(T.rangeChange, lang)})</span>
+   497→            </span>
+   498→          )}
+   499→          {data.currency === "EGP" && <span className="text-[10px] text-muted-foreground">EGP</span>}
+   500→          {data.kind === "index" && <span className="text-[10px] text-muted-foreground">{tt(T.indexPoints, lang)}</span>}
+   501→        </div>
+   502→        <div className="num text-[11px] text-muted-foreground">
+   503→          {tt(T.chartHigh, lang)} {fmtNum(data.high, 1)} · {tt(T.chartLow, lang)} {fmtNum(data.low, 1)}
+   504→        </div>
+   505→      </div>
+   506→
+   507→      {/* range buttons + chart modes (G8) */}
+   508→      <div className="flex items-center gap-1.5 flex-wrap" role="tablist" aria-label={tt(T.chartRange, lang)}>
+   509→        {data.availableRanges.map((r) => {
+   510→          const active = r === data.range;
+   511→          return (
+   512→            <button
+   513→              key={r}
+   514→              role="tab"
+   515→              aria-selected={active}
+   516→              onClick={() => {
+   517→                setRange(r);
+   518→                if ((r === "1D" || r === "1W") && compare !== "none") setCompare("none");
+   519→              }}
+   520→              className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+   521→                active ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
+   522→              }`}
+   523→            >
+   524→              {tt(RANGE_LABELS[r] ?? { ar: r, en: r }, lang)}
+   525→            </button>
+   526→          );
+   527→        })}
+   528→        <button
+   529→          onClick={() => setLogScale((v) => !v)}
+   530→          aria-pressed={logScale}
+   531→          title={tt(T.logScaleLabel, lang)}
+   532→          className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+   533→            logScale ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
+   534→          }`}
+   535→        >
+   536→          {tt(T.logScaleLabel, lang)}
+   537→        </button>
+   538→        <select
+   539→          value={compare}
+   540→          onChange={(e) => setCompare(e.target.value)}
+   541→          disabled={range === "1D" || range === "1W"}
+   542→          aria-label={tt(T.compareChartLabel, lang)}
+   543→          title={range === "1D" || range === "1W" ? tt(T.intradayCompareOff, lang) : tt(T.compareChartNote, lang)}
+   544→          className={`h-7 rounded-md border bg-card px-1.5 text-[11px] text-foreground ${
+   545→            range === "1D" || range === "1W" ? "opacity-40" : ""
+   546→          }`}
+   547→        >
+   548→          <option value="none">{tt(T.compareAddIndex, lang)}</option>
+   549→          {COMPARE_OPTIONS.map((o) => (
+   550→            <option key={o.key} value={o.key}>
+   551→              {lang === "ar" ? o.ar : o.en}
+   552→            </option>
+   553→          ))}
+   554→        </select>
+   555→        {cmpNote && <span className="text-[10px] text-muted-foreground">{cmpNote}</span>}
+   556→        {data.asOf && <span className="num ms-auto text-[10px] text-muted-foreground">{data.asOf}</span>}
+   557→      </div>
+   558→
+   559→      {/* indicator toggles + trendline tools (G19) */}
+   560→      {points.length >= 2 && (
+   561→        <div className="flex items-center gap-1.5 flex-wrap">
+   562→          <span className="text-[10px] font-medium text-muted-foreground me-1">{tt(T.indicatorsLabel, lang)}:</span>
+   563→          {INDICATORS.map((d) => {
+   564→            const on = inds[d.key];
+   565→            const ok = avail[d.key] && !compareOn; // overlays are absolute-price — hidden in compare mode
+   566→            return (
+   567→              <button
+   568→                key={d.key}
+   569→                onClick={() => ok && setInds((s) => ({ ...s, [d.key]: !s[d.key] }))}
+   570→                disabled={!ok}
+   571→                title={ok ? undefined : compareOn ? tt(T.compareChartNote, lang) : tt(T.indNotEnough, lang)}
+   572→                aria-pressed={on}
+   573→                className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+   574→                  !ok
+   575→                    ? "opacity-40 cursor-not-allowed text-muted-foreground"
+   576→                    : on
+   577→                      ? "bg-secondary font-semibold border-ring"
+   578→                      : "text-muted-foreground hover:bg-accent/50"
+   579→                }`}
+   580→              >
+   581→                <span className="h-2 w-2 rounded-full" style={{ background: d.color }} aria-hidden />
+   582→                {tt(d.t, lang)}
+   583→              </button>
+   584→            );
+   585→          })}
+   586→          {showVolMaToggle && !compareOn && (
+   587→            <button
+   588→              onClick={() => setInds((s) => ({ ...s, volma: !s.volma }))}
+   589→              aria-pressed={inds.volma}
+   590→              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+   591→                inds.volma
+   592→                  ? "bg-secondary font-semibold border-ring"
+   593→                  : "text-muted-foreground hover:bg-accent/50"
+   594→              }`}
+   595→            >
+   596→              <span className="h-2 w-2 rounded-full" style={{ background: "var(--c1)" }} aria-hidden />
+   597→              {tt(T.indVolMa, lang)}
+   598→            </button>
+   599→          )}
+   600→          <button
+   601→            onClick={() => {
+   602→              setDrawMode((v) => !v);
+   603→              setPending(null);
+   604→            }}
+   605→            aria-pressed={drawMode}
+   606→            disabled={compareOn}
+   607→            title={compareOn ? tt(T.compareChartNote, lang) : tt(T.drawModeHint, lang)}
+   608→            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+   609→              drawMode
+   610→                ? "bg-primary/15 font-semibold border-primary/40 text-primary"
+   611→                : "text-muted-foreground hover:bg-accent/50"
+   612→            } ${compareOn ? "opacity-40 cursor-not-allowed" : ""}`}
+   613→          >
+   614→            {tt(T.drawTrendline, lang)}
+   615→            {pending && <span className="num text-[9px] text-primary">·١</span>}
+   616→          </button>
+   617→          {segments.length > 0 && (
+   618→            <button
+   619→              onClick={() => {
+   620→                setSegments([]);
+   621→                saveLines(symbol, []);
+   622→              }}
+   623→              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent/50"
+   624→              title={tt(T.clearDrawings, lang)}
+   625→            >
+   626→              {tt(T.clearDrawings, lang)} ({segments.length})
+   627→            </button>
+   628→          )}
+   629→          {drawMode && <span className="text-[10px] text-primary">{tt(T.drawModeHint, lang)}</span>}
+   630→          {!anyAvail && !compareOn && (
+   631→            <span className="text-[10px] text-muted-foreground">{tt(T.indNotEnough, lang)}</span>
+   632→          )}
+   633→        </div>
+   634→      )}
+   635→
+   636→      {/* chart canvas */}
+   637→      {points.length < 2 ? (
+   638→        <p className="py-10 text-center text-sm text-muted-foreground">
+   639→          {data.warming ? tt(T.chartWarming, lang) : tt(T.chartUnavailable, lang)}
+   640→        </p>
+   641→      ) : (
+   642→        <>
+   643→          <div style={{ height: 280 }}>
+   644→            <ResponsiveContainer width="100%" height="100%">
+   645→              <ComposedChart
+   646→                data={(compareData as unknown as object[] | null) ?? (useIch ? (ichData as unknown as object[]) : (chartData as unknown as object[]))}
+   647→                margin={{ top: 8, right: 8, bottom: 0, left: -6 }}
+   648→                syncId={syncId}
+   649→                onClick={(state) => handleChartClick(state as { activeLabel?: string; activeTooltipIndex?: number })}
+   650→                style={drawMode ? { cursor: "crosshair" } : undefined}
+   651→              >
+   652→                <defs>
+   653→                  <linearGradient id={`pcg-${data.symbol}`} x1="0" y1="0" x2="0" y2="1">
+   654→                    <stop offset="0%" stopColor={stroke} stopOpacity={0.28} />
+   655→                    <stop offset="100%" stopColor={stroke} stopOpacity={0.02} />
+   656→                  </linearGradient>
+   657→                </defs>
+   658→                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+   659→                <XAxis
+   660→                  dataKey="date"
+   661→                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+   662→                  tickLine={false}
+   663→                  axisLine={{ stroke: "var(--border)" }}
+   664→                  interval="preserveStartEnd"
+   665→                  minTickGap={28}
+   666→                />
+   667→                <YAxis
+   668→                  yAxisId="price"
+   669→                  domain={["auto", "auto"]}
+   670→                  scale={logScale && !compareOn ? "log" : "auto"}
+   671→                  allowDataOverflow={false}
+   672→                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+   673→                  tickLine={false}
+   674→                  axisLine={false}
+   675→                  width={56}
+   676→                  tickFormatter={(v: number) => fmtNum(v, 1)}
+   677→                />
+   678→                {showVolume && !compareOn && (
+   679→                  <YAxis
+   680→                    yAxisId="vol"
+   681→                    orientation="right"
+   682→                    tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+   683→                    tickLine={false}
+   684→                    axisLine={false}
+   685→                    width={44}
+   686→                    tickFormatter={(v: number) => fmtValue(v)}
+   687→                  />
+   688→                )}
+   689→                <Tooltip
+   690→                  content={({ active, payload, label }) => {
+   691→                    if (!active || !payload?.length) return null;
+   692→                    const get = (k: string) => {
+   693→                      const v = payload.find((p) => p.dataKey === k)?.value as number | undefined;
+   694→                      return v !== undefined && Number.isFinite(v) ? v : null;
+   695→                    };
+   696→                    const close = get("close");
+   697→                    const vol = get("volume");
+   698→                    const main100 = get("main100");
+   699→                    const cmp100 = get("cmp100");
+   700→                    if (close === null && vol === null && main100 === null) return null;
+   701→                    return (
+   702→                      <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md max-w-[220px]">
+   703→                        <p className="num font-semibold">{label}</p>
+   704→                        {compareData && main100 !== null && (
+   705→                          <>
+   706→                            <p className="num text-muted-foreground">
+   707→                              {symbol}: <b className={main100 >= 100 ? "text-up" : "text-down"}>{fmtNum(main100, 1)}</b>
+   708→                            </p>
+   709→                            <p className="num text-muted-foreground">
+   710→                              {cmpLabel}: <b className={cmp100 !== null && cmp100 >= 100 ? "text-up" : "text-down"}>{cmp100 !== null ? fmtNum(cmp100, 1) : "—"}</b>
+   711→                            </p>
+   712→                            {close !== null && (
+   713→                              <p className="num text-muted-foreground">
+   714→                                {tt(T.close, lang)}: <b>{fmtNum(close)}</b>
+   715→                              </p>
+   716→                            )}
+   717→                          </>
+   718→                        )}
+   719→                        {!compareData && close !== null && (
+   720→                          <p className="num text-muted-foreground">
+   721→                            {tt(T.close, lang)}: <b className={up ? "text-up" : "text-down"}>{fmtNum(close)}</b>
+   722→                            {data.currency === "EGP" && " EGP"}
+   723→                          </p>
+   724→                        )}
+   725→                        {!compareData && vol !== null && (
+   726→                          <p className="num text-muted-foreground">
+   727→                            {tt(T.volume, lang)}: {fmtInt(vol)}
+   728→                          </p>
+   729→                        )}
+   730→                        {!compareData &&
+   731→                          tipExtras.map((e) => {
+   732→                            const v = get(e.key);
+   733→                            return v === null ? null : (
+   734→                              <p key={e.key} className="num text-muted-foreground flex items-center gap-1.5">
+   735→                                <span className="h-1.5 w-1.5 rounded-full inline-block" style={{ background: e.color }} />
+   736→                                {e.label}: {e.fmt(v)}
+   737→                              </p>
+   738→                            );
+   739→                          })}
+   740→                      </div>
+   741→                    );
+   742→                  }}
+   743→                />
+   744→                {showVolume && !compareOn && (
+   745→                  <Bar yAxisId="vol" dataKey="volume" fill="var(--muted-foreground)" opacity={0.25} isAnimationActive={false} />
+   746→                )}
+   747→                {useVolMa && !compareOn && (
+   748→                  <Line
+   749→                    yAxisId="vol"
+   750→                    dataKey="volMa"
+   751→                    stroke="var(--c1)"
+   752→                    strokeWidth={1.5}
+   753→                    dot={false}
+   754→                    connectNulls
+   755→                    isAnimationActive={false}
+   756→                  />
+   757→                )}
+   758→                {sBb && !compareOn && (
+   759→                  <Line
+   760→                    yAxisId="price"
+   761→                    dataKey="bbUp"
+   762→                    stroke="var(--c4)"
+   763→                    strokeWidth={1}
+   764→                    strokeDasharray="4 2"
+   765→                    dot={false}
+   766→                    connectNulls
+   767→                    isAnimationActive={false}
+   768→                  />
+   769→                )}
+   770→                {sBb && !compareOn && (
+   771→                  <Line
+   772→                    yAxisId="price"
+   773→                    dataKey="bbMid"
+   774→                    stroke="var(--c4)"
+   775→                    strokeWidth={1}
+   776→                    strokeDasharray="2 3"
+   777→                    opacity={0.7}
+   778→                    dot={false}
+   779→                    connectNulls
+   780→                    isAnimationActive={false}
+   781→                  />
+   782→                )}
+   783→                {sBb && !compareOn && (
+   784→                  <Line
+   785→                    yAxisId="price"
+   786→                    dataKey="bbLo"
+   787→                    stroke="var(--c4)"
+   788→                    strokeWidth={1}
+   789→                    strokeDasharray="4 2"
+   790→                    dot={false}
+   791→                    connectNulls
+   792→                    isAnimationActive={false}
+   793→                  />
+   794→                )}
+   795→
+   796→                {/* T26 — Ichimoku Kinko Hyo: the cloud is drawn with the
+   797→                    stacked-area band trick (base = Senkou B, transparent;
+   798→                    cloudUp/cloudDn = signed A−B deltas stacked on top, tinted
+   799→                    green when Span A leads and red when it lags), then the
+   800→                    Span A / Tenkan / Kijun / Chikou lines over it. The data
+   801→                    array carries 26 forward-projected slots so the cloud
+   802→                    leads price like TradingView's classic rendering. */}
+   803→                {sIch && !compareOn && (
+   804→                  <Area
+   805→                    yAxisId="price"
+   806→                    type="monotone"
+   807→                    dataKey="spanB"
+   808→                    stackId="ichCloud"
+   809→                    stroke="var(--down)"
+   810→                    strokeWidth={1}
+   811→                    fill="transparent"
+   812→                    fillOpacity={0}
+   813→                    dot={false}
+   814→                    isAnimationActive={false}
+   815→                  />
+   816→                )}
+   817→                {sIch && !compareOn && (
+   818→                  <Area
+   819→                    yAxisId="price"
+   820→                    type="monotone"
+   821→                    dataKey="cloudUp"
+   822→                    stackId="ichCloud"
+   823→                    stroke="none"
+   824→                    fill="var(--up)"
+   825→                    fillOpacity={0.14}
+   826→                    dot={false}
+   827→                    isAnimationActive={false}
+   828→                  />
+   829→                )}
+   830→                {sIch && !compareOn && (
+   831→                  <Area
+   832→                    yAxisId="price"
+   833→                    type="monotone"
+   834→                    dataKey="cloudDn"
+   835→                    stackId="ichCloud"
+   836→                    stroke="none"
+   837→                    fill="var(--down)"
+   838→                    fillOpacity={0.14}
+   839→                    dot={false}
+   840→                    isAnimationActive={false}
+   841→                  />
+   842→                )}
+   843→                {sIch && !compareOn && (
+   844→                  <Line
+   845→                    yAxisId="price"
+   846→                    type="monotone"
+   847→                    dataKey="spanA"
+   848→                    stroke="var(--up)"
+   849→                    strokeWidth={1.2}
+   850→                    dot={false}
+   851→                    isAnimationActive={false}
+   852→                  />
+   853→                )}
+   854→                {sIch && !compareOn && (
+   855→                  <Line
+   856→                    yAxisId="price"
+   857→                    type="monotone"
+   858→                    dataKey="tenkan"
+   859→                    stroke="var(--c8)"
+   860→                    strokeWidth={1.4}
+   861→                    dot={false}
+   862→                    connectNulls
+   863→                    isAnimationActive={false}
+   864→                  />
+   865→                )}
+   866→                {sIch && !compareOn && (
+   867→                  <Line
+   868→                    yAxisId="price"
+   869→                    type="monotone"
+   870→                    dataKey="kijun"
+   871→                    stroke="var(--c4)"
+   872→                    strokeWidth={1.4}
+   873→                    dot={false}
+   874→                    connectNulls
+   875→                    isAnimationActive={false}
+   876→                  />
+   877→                )}
+   878→                {sIch && !compareOn && (
+   879→                  <Line
+   880→                    yAxisId="price"
+   881→                    type="monotone"
+   882→                    dataKey="chikou"
+   883→                    stroke="var(--c7)"
+   884→                    strokeWidth={1.2}
+   885→                    strokeDasharray="5 3"
+   886→                    dot={false}
+   887→                    isAnimationActive={false}
+   888→                  />
+   889→                )}
+   890→
+   891→                {/* T26 — VWAP (window-anchored, needs volume) */}
+   892→                {sVwap && !compareOn && (
+   893→                  <Line
+   894→                    yAxisId="price"
+   895→                    type="monotone"
+   896→                    dataKey="vwap"
+   897→                    stroke="var(--c6)"
+   898→                    strokeWidth={1.5}
+   899→                    strokeDasharray="6 3"
+   900→                    dot={false}
+   901→                    connectNulls
+   902→                    isAnimationActive={false}
+   903→                  />
+   904→                )}
+   905→
+   906→                {/* T26 — Parabolic SAR: dot trail under/over price */}
+   907→                {sPsar && !compareOn && (
+   908→                  <Line
+   909→                    yAxisId="price"
+   910→                    dataKey="psar"
+   911→                    stroke="none"
+   912→                    dot={{ r: 1.6, fill: "var(--c5)", strokeWidth: 0 }}
+   913→                    connectNulls
+   914→                    isAnimationActive={false}
+   915→                  />
+   916→                )}
+   917→
+   918→                {/* G8 — compare mode: rebased performance lines (rendered as
+   919→                    direct children — recharts does not traverse Fragments) */}
+   920→                {compareData && (
+   921→                  <ReferenceLine yAxisId="price" y={100} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+   922→                )}
+   923→                {compareData && (
+   924→                  <Line
+   925→                    yAxisId="price"
+   926→                    type="monotone"
+   927→                    dataKey="cmp100"
+   928→                    name={cmpLabel}
+   929→                    stroke="var(--c4)"
+   930→                    strokeWidth={1.8}
+   931→                    dot={false}
+   932→                    isAnimationActive={false}
+   933→                  />
+   934→                )}
+   935→                {compareData && (
+   936→                  <Line
+   937→                    yAxisId="price"
+   938→                    type="monotone"
+   939→                    dataKey="main100"
+   940→                    name={`${symbol} (100)`}
+   941→                    stroke={stroke}
+   942→                    strokeWidth={2.2}
+   943→                    dot={false}
+   944→                    isAnimationActive={false}
+   945→                  />
+   946→                )}
+   947→
+   948→                {/* G19 — persistent trendlines (price mode only) */}
+   949→                {!compareData &&
+   950→                  segments.map((s, i) => (
+   951→                    <ReferenceLine
+   952→                      key={`seg-${i}`}
+   953→                      yAxisId="price"
+   954→                      segment={[{ x: s.a.x, y: s.a.y }, { x: s.b.x, y: s.b.y }]}
+   955→                      stroke="var(--c5)"
+   956→                      strokeWidth={1.5}
+   957→                      ifOverflow="extendDomain"
+   958→                    />
+   959→                  ))}
+   960→                {!compareData && pending && (
+   961→                  <ReferenceLine
+   962→                    yAxisId="price"
+   963→                    x={pending.x}
+   964→                    stroke="var(--c5)"
+   965→                    strokeWidth={1}
+   966→                    strokeDasharray="2 2"
+   967→                  />
+   968→                )}
+   969→
+   970→                {!compareData && (
+   971→                <Area
+   972→                  yAxisId="price"
+   973→                  type="monotone"
+   974→                  dataKey="close"
+   975→                  stroke={stroke}
+   976→                  strokeWidth={2}
+   977→                  fill={`url(#pcg-${data.symbol})`}
+   978→                  isAnimationActive={false}
+   979→                  activeDot={{ r: 3.5, strokeWidth: 0 }}
+   980→                />
+   981→                )}
+   982→                {sSma50 && !compareOn && (
+   983→                  <Line
+   984→                    yAxisId="price"
+   985→                    dataKey="sma50"
+   986→                    stroke="var(--c2)"
+   987→                    strokeWidth={1.5}
+   988→                    dot={false}
+   989→                    connectNulls
+   990→                    isAnimationActive={false}
+   991→                  />
+   992→                )}
+   993→                {sSma20 && (
+   994→                  <Line
+   995→                    yAxisId="price"
+   996→                    dataKey="sma20"
+   997→                    stroke="var(--c1)"
+   998→                    strokeWidth={1.5}
+   999→                    dot={false}
+  1000→                    connectNulls
+  1001→                    isAnimationActive={false}
+  1002→                  />
+  1003→                )}
+  1004→                {sEma20 && !compareOn && (
+  1005→                  <Line
+  1006→                    yAxisId="price"
+  1007→                    dataKey="ema20"
+  1008→                    stroke="var(--c5)"
+  1009→                    strokeWidth={1.5}
+  1010→                    dot={false}
+  1011→                    connectNulls
+  1012→                    isAnimationActive={false}
+  1013→                  />
+  1014→                )}
+  1015→              </ComposedChart>
+  1016→            </ResponsiveContainer>
+  1017→          </div>
+  1018→
+  1019→          {/* overlay legend */}
+  1020→          {compareData && (
+  1021→            <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground">
+  1022→              <span className="inline-flex items-center gap-1">
+  1023→                <span className="h-1.5 w-3 rounded-full" style={{ background: stroke }} aria-hidden />
+  1024→                <span className="num font-semibold">{symbol}</span> (100)
+  1025→              </span>
+  1026→              <span className="inline-flex items-center gap-1">
+  1027→                <span className="h-1.5 w-3 rounded-full" style={{ background: "var(--c4)" }} aria-hidden />
+  1028→                {cmpLabel} (100)
+  1029→              </span>
+  1030→              <span>{tt(T.compareChartNote, lang)}</span>
+  1031→            </div>
+  1032→          )}
+  1033→          {!compareData && activeInds.filter((d) => d.kind === "overlay").length > 0 && (
+  1034→            <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground">
+  1035→              {activeInds
+  1036→                .filter((d) => d.kind === "overlay")
+  1037→                .map((d) => (
+  1038→                  <span key={d.key} className="inline-flex items-center gap-1">
+  1039→                    <span className="h-1.5 w-3 rounded-full" style={{ background: d.color }} aria-hidden />
+  1040→                    {tt(d.t, lang)}
+  1041→                  </span>
+  1042→                ))}
+  1043→              {sIch && (
+  1044→                <>
+  1045→                  <span className="inline-flex items-center gap-1">
+  1046→                    <span className="h-2 w-3 rounded-sm" style={{ background: "var(--up)", opacity: 0.25 }} aria-hidden />
+  1047→                    {tt(T.ichCloud, lang)}
+  1048→                  </span>
+  1049→                  <span className="inline-flex items-center gap-1">
+  1050→                    <span className="h-1.5 w-3 rounded-full" style={{ background: "var(--down)" }} aria-hidden />
+  1051→                    {tt(T.ichSpanB, lang)}
+  1052→                  </span>
+  1053→                  <span className="inline-flex items-center gap-1">
+  1054→                    <span className="h-1.5 w-3 rounded-full border-t border-dashed" style={{ borderColor: "var(--c7)" }} aria-hidden />
+  1055→                    {tt(T.ichChikou, lang)}
+  1056→                  </span>
+  1057→                </>
+  1058→              )}
+  1059→              {useVolMa && (
+  1060→                <span className="inline-flex items-center gap-1">
+  1061→                  <span className="h-1.5 w-3 rounded-full" style={{ background: "var(--c1)" }} aria-hidden />
+  1062→                  {tt(T.volMaLine, lang)}
+  1063→                </span>
+  1064→              )}
+  1065→            </div>
+  1066→          )}
+  1067→
+  1068→          {/* RSI panel */}
+  1069→          {sRsi && (
+  1070→            <div className="rounded-md border bg-card/50 p-2">
+  1071→              <div className="flex items-center justify-between gap-2 px-1 pb-1">
+  1072→                <p className="text-[11px] font-medium text-foreground/80">{tt(T.rsiTitle, lang)}</p>
+  1073→                <p className="num text-[11px] text-muted-foreground">
+  1074→                  {lastRsi !== null ? fmtNum(lastRsi, 1) : "—"}
+  1075→                  {rsiState && (
+  1076→                    <span
+  1077→                      className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+  1078→                        rsiState === "overbought"
+  1079→                          ? "bg-down-soft text-down"
+  1080→                          : rsiState === "oversold"
+  1081→                            ? "bg-up-soft text-up"
+  1082→                            : "bg-secondary text-muted-foreground"
+  1083→                      }`}
+  1084→                    >
+  1085→                      {tt(
+  1086→                        rsiState === "overbought"
+  1087→                          ? T.rsiOverbought
+  1088→                          : rsiState === "oversold"
+  1089→                            ? T.rsiOversold
+  1090→                            : T.rsiNeutral,
+  1091→                        lang,
+  1092→                      )}
+  1093→                    </span>
+  1094→                  )}
+  1095→                </p>
+  1096→              </div>
+  1097→              <div style={{ height: 110 }}>
+  1098→                <ResponsiveContainer width="100%" height="100%">
+  1099→                  <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+  1100→                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+  1101→                    <XAxis dataKey="date" hide />
+  1102→                    <YAxis
+  1103→                      yAxisId="rsi"
+  1104→                      domain={[0, 100]}
+  1105→                      ticks={[30, 50, 70]}
+  1106→                      tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+  1107→                      tickLine={false}
+  1108→                      axisLine={false}
+  1109→                      width={30}
+  1110→                    />
+  1111→                    <ReferenceLine yAxisId="rsi" y={70} stroke="var(--down)" strokeDasharray="3 3" opacity={0.6} />
+  1112→                    <ReferenceLine yAxisId="rsi" y={50} stroke="var(--border)" opacity={0.5} />
+  1113→                    <ReferenceLine yAxisId="rsi" y={30} stroke="var(--up)" strokeDasharray="3 3" opacity={0.6} />
+  1114→                    <Tooltip
+  1115→                      content={({ active, payload, label }) => {
+  1116→                        if (!active || !payload?.length) return null;
+  1117→                        const v = payload.find((p) => p.dataKey === "rsi")?.value as number | undefined;
+  1118→                        if (v === undefined || !Number.isFinite(v)) return null;
+  1119→                        return (
+  1120→                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+  1121→                            <p className="num font-semibold">{label}</p>
+  1122→                            <p className="num text-muted-foreground">
+  1123→                              {tt(T.rsiTitle, lang)}: <b>{fmtNum(v, 1)}</b>
+  1124→                            </p>
+  1125→                          </div>
+  1126→                        );
+  1127→                      }}
+  1128→                    />
+  1129→                    <Line
+  1130→                      yAxisId="rsi"
+  1131→                      dataKey="rsi"
+  1132→                      stroke="var(--c7)"
+  1133→                      strokeWidth={1.5}
+  1134→                      dot={false}
+  1135→                      connectNulls
+  1136→                      isAnimationActive={false}
+  1137→                    />
+  1138→                  </ComposedChart>
+  1139→                </ResponsiveContainer>
+  1140→              </div>
+  1141→            </div>
+  1142→          )}
+  1143→
+  1144→          {/* MACD panel */}
+  1145→          {sMacd && (
+  1146→            <div className="rounded-md border bg-card/50 p-2">
+  1147→              <div className="flex items-center justify-between gap-2 px-1 pb-1 flex-wrap">
+  1148→                <p className="text-[11px] font-medium text-foreground/80">{tt(T.macdTitle, lang)}</p>
+  1149→                <p className="num text-[11px] text-muted-foreground">
+  1150→                  {tt(T.macdLine, lang)} {lastMacd !== null ? fmtNum(lastMacd, 3) : "—"} · {tt(T.macdSignal, lang)}{" "}
+  1151→                  {sMacd.signal[lastIdx] !== null && sMacd.signal[lastIdx] !== undefined
+  1152→                    ? fmtNum(sMacd.signal[lastIdx], 3)
+  1153→                    : "—"}
+  1154→                  {sMacd.hist[lastIdx] !== null && sMacd.hist[lastIdx] !== undefined && (
+  1155→                    <span className={directionClass(sMacd.hist[lastIdx]!)}> · {fmtNum(sMacd.hist[lastIdx]!, 3)}</span>
+  1156→                  )}
+  1157→                </p>
+  1158→              </div>
+  1159→              <div style={{ height: 110 }}>
+  1160→                <ResponsiveContainer width="100%" height="100%">
+  1161→                  <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+  1162→                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+  1163→                    <XAxis dataKey="date" hide />
+  1164→                    <YAxis
+  1165→                      yAxisId="macd"
+  1166→                      domain={["auto", "auto"]}
+  1167→                      tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+  1168→                      tickLine={false}
+  1169→                      axisLine={false}
+  1170→                      width={56}
+  1171→                      tickFormatter={(v: number) => fmtNum(v, 1)}
+  1172→                    />
+  1173→                    <ReferenceLine yAxisId="macd" y={0} stroke="var(--border)" />
+  1174→                    <Tooltip
+  1175→                      content={({ active, payload, label }) => {
+  1176→                        if (!active || !payload?.length) return null;
+  1177→                        const get = (k: string) => {
+  1178→                          const v = payload.find((p) => p.dataKey === k)?.value as number | undefined;
+  1179→                          return v !== undefined && Number.isFinite(v) ? v : null;
+  1180→                        };
+  1181→                        const m = get("macd");
+  1182→                        const s = get("macdSignal");
+  1183→                        const h = get("macdHist");
+  1184→                        if (m === null && s === null && h === null) return null;
+  1185→                        return (
+  1186→                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+  1187→                            <p className="num font-semibold">{label}</p>
+  1188→                            {m !== null && (
+  1189→                              <p className="num text-muted-foreground">
+  1190→                                {tt(T.macdLine, lang)}: <b style={{ color: "var(--c3)" }}>{fmtNum(m, 3)}</b>
+  1191→                              </p>
+  1192→                            )}
+  1193→                            {s !== null && (
+  1194→                              <p className="num text-muted-foreground">
+  1195→                                {tt(T.macdSignal, lang)}: <b style={{ color: "var(--c6)" }}>{fmtNum(s, 3)}</b>
+  1196→                              </p>
+  1197→                            )}
+  1198→                            {h !== null && (
+  1199→                              <p className={`num ${directionClass(h)}`}>
+  1200→                                {tt(T.macdHist, lang)}: {fmtNum(h, 3)}
+  1201→                              </p>
+  1202→                            )}
+  1203→                          </div>
+  1204→                        );
+  1205→                      }}
+  1206→                    />
+  1207→                    <Bar yAxisId="macd" dataKey="macdHist" isAnimationActive={false} opacity={0.45}>
+  1208→                      {chartData.map((d, i) => (
+  1209→                        <Cell key={i} fill={Number(d.macdHist ?? 0) >= 0 ? "var(--up)" : "var(--down)"} />
+  1210→                      ))}
+  1211→                    </Bar>
+  1212→                    <Line
+  1213→                      yAxisId="macd"
+  1214→                      dataKey="macd"
+  1215→                      stroke="var(--c3)"
+  1216→                      strokeWidth={1.5}
+  1217→                      dot={false}
+  1218→                      connectNulls
+  1219→                      isAnimationActive={false}
+  1220→                    />
+  1221→                    <Line
+  1222→                      yAxisId="macd"
+  1223→                      dataKey="macdSignal"
+  1224→                      stroke="var(--c6)"
+  1225→                      strokeWidth={1.5}
+  1226→                      dot={false}
+  1227→                      connectNulls
+  1228→                      isAnimationActive={false}
+  1229→                    />
+  1230→                  </ComposedChart>
+  1231→                </ResponsiveContainer>
+  1232→              </div>
+  1233→            </div>
+  1234→          )}
+  1235→
+  1236→          {/* T26 — Stochastic %K/%D panel */}
+  1237→          {sStoch && (
+  1238→            <div className="rounded-md border bg-card/50 p-2">
+  1239→              <div className="flex items-center justify-between gap-2 px-1 pb-1 flex-wrap">
+  1240→                <p className="text-[11px] font-medium text-foreground/80">{tt(T.stochTitle, lang)}</p>
+  1241→                <p className="num text-[11px] text-muted-foreground">
+  1242→                  %K {lastStochK !== null && lastStochK !== undefined ? fmtNum(lastStochK, 1) : "—"} · %D{" "}
+  1243→                  {lastStochD !== null && lastStochD !== undefined ? fmtNum(lastStochD, 1) : "—"}
+  1244→                  {lastStochK != null && (
+  1245→                    <span
+  1246→                      className={`ms-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+  1247→                        lastStochK > 80 ? "bg-down-soft text-down" : lastStochK < 20 ? "bg-up-soft text-up" : "bg-secondary text-muted-foreground"
+  1248→                      }`}
+  1249→                    >
+  1250→                      {lastStochK > 80 ? tt(T.rsiOverbought, lang) : lastStochK < 20 ? tt(T.rsiOversold, lang) : tt(T.rsiNeutral, lang)}
+  1251→                    </span>
+  1252→                  )}
+  1253→                </p>
+  1254→              </div>
+  1255→              <div style={{ height: 110 }}>
+  1256→                <ResponsiveContainer width="100%" height="100%">
+  1257→                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+  1258→                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+  1259→                    <XAxis dataKey="date" hide />
+  1260→                    <YAxis
+  1261→                      yAxisId="stoch"
+  1262→                      domain={[0, 100]}
+  1263→                      ticks={[20, 50, 80]}
+  1264→                      tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+  1265→                      tickLine={false}
+  1266→                      axisLine={false}
+  1267→                      width={30}
+  1268→                    />
+  1269→                    <ReferenceLine yAxisId="stoch" y={80} stroke="var(--down)" strokeDasharray="3 3" opacity={0.6} />
+  1270→                    <ReferenceLine yAxisId="stoch" y={50} stroke="var(--border)" opacity={0.5} />
+  1271→                    <ReferenceLine yAxisId="stoch" y={20} stroke="var(--up)" strokeDasharray="3 3" opacity={0.6} />
+  1272→                    <Tooltip
+  1273→                      content={({ active, payload, label }) => {
+  1274→                        if (!active || !payload?.length) return null;
+  1275→                        const get = (k: string) => {
+  1276→                          const v = payload.find((p) => p.dataKey === k)?.value as number | undefined;
+  1277→                          return v !== undefined && Number.isFinite(v) ? v : null;
+  1278→                        };
+  1279→                        const k = get("stochK");
+  1280→                        const d = get("stochD");
+  1281→                        if (k === null && d === null) return null;
+  1282→                        return (
+  1283→                          <div className="rounded-md border bg-card px-3 py-1.5 text-xs shadow-md">
+  1284→                            <p className="num font-semibold">{label}</p>
+  1285→                            {k !== null && (
+  1286→                              <p className="num text-muted-foreground">
+  1287→                                %K: <b style={{ color: "var(--c3)" }}>{fmtNum(k, 1)}</b>
+  1288→                              </p>
+  1289→                            )}
+  1290→                            {d !== null && (
+  1291→                              <p className="num text-muted-foreground">
+  1292→                                %D: <b style={{ color: "var(--c6)" }}>{fmtNum(d, 1)}</b>
+  1293→                              </p>
+  1294→                            )}
+  1295→                          </div>
+  1296→                        );
+  1297→                      }}
+  1298→                    />
+  1299→                    <Line
+  1300→                      yAxisId="stoch"
+  1301→                      dataKey="stochK"
+  1302→                      stroke="var(--c3)"
+  1303→                      strokeWidth={1.5}
+  1304→                      dot={false}
+  1305→                      connectNulls
+  1306→                      isAnimationActive={false}
+  1307→                    />
+  1308→                    <Line
+  1309→                      yAxisId="stoch"
+  1310→                      dataKey="stochD"
+  1311→                      stroke="var(--c6)"
+  1312→                      strokeWidth={1.5}
+  1313→                      dot={false}
+  1314→                      connectNulls
+  1315→                      isAnimationActive={false}
+  1316→                    />
+  1317→                  </ComposedChart>
+  1318→                </ResponsiveContainer>
+  1319→              </div>
+  1320→            </div>
+  1321→          )}
+  1322→        </>
+  1323→      )}
+  1324→
+  1325→      {/* provenance */}
+  1326→      <p className="text-[10px] text-muted-foreground leading-relaxed">
+  1327→        {data.warming ? `${tt(T.chartWarming, lang)} ` : ""}
+  1328→        {tt(T.priceChartNote, lang)} — {data.source}
+  1329→        {(activeInds.length > 0 || useVolMa) && ` · ${tt(T.indNote, lang)}`}
+  1330→      </p>
+  1331→    </div>
+  1332→  );
+  1333→}
+  1334→

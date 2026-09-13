@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, type Stock } from "@/lib/market";
-import { fetchStockChart, CHART_RANGES, type ChartRange } from "@/lib/history";
+import { fetchStockChart, milestoneChart, CHART_RANGES, type ChartRange } from "@/lib/history";
 import { ensureHistory, indexHistory } from "@/lib/flows";
 import { sampleIfDue, intradayPoints } from "@/lib/intraday";
 
@@ -45,6 +45,10 @@ type ChartResponse = {
   source: string;
   warming?: boolean;
   availableRanges: string[];
+  /** T27 — milestone reconstruction marker + 52w reference levels. */
+  milestones?: boolean;
+  refHigh?: number | null;
+  refLow?: number | null;
 };
 
 function stats(points: { date: string; close: number; volume: number | null }[]) {
@@ -109,11 +113,11 @@ export async function GET(req: NextRequest) {
   //  so charts, technical panels and signals never end a session behind the
   //  live quote header)
   const range: ChartRange = (CHART_RANGES as string[]).includes(rangeParam) ? (rangeParam as ChartRange) : "6M";
-  let universe: Stock[] | null = null;
+  let stockRow: Stock | null = null;
   try {
-    universe = await fetchUniverse();
-    const stock = universe.find((s) => s.ticker === symbol);
-    if (!stock) {
+    const universe = await fetchUniverse();
+    stockRow = universe.find((s) => s.ticker === symbol) ?? null;
+    if (!stockRow) {
       return NextResponse.json({ error: "no such symbol" }, { status: 404 });
     }
   } catch {
@@ -154,7 +158,8 @@ export async function GET(req: NextRequest) {
       console.error("chart: intraday read failed", err);
     }
     // no ticks yet (weekend / cold start) — serve the last five daily
-    // sessions as an honest, clearly-labeled fallback
+    // sessions as an honest, clearly-labeled fallback; for names with no
+    // Yahoo history at all, serve milestone anchors (1W/1M perf) instead
     try {
       const daily = await fetchStockChart(symbol, "1M");
       const dates = Array.from(new Set(daily.points.map((p) => p.date)));
@@ -182,9 +187,36 @@ export async function GET(req: NextRequest) {
         availableRanges: CHART_RANGES,
       };
       return NextResponse.json(body);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "chart unavailable";
-      return NextResponse.json({ error: msg }, { status: 404 });
+    } catch {
+      if (stockRow) {
+        try {
+          const ms = milestoneChart(symbol, "1M", stockRow);
+          const body: ChartResponse = {
+            symbol: ms.symbol,
+            name: ms.yahooSymbol,
+            kind: "stock",
+            range,
+            currency: ms.currency,
+            points: ms.points,
+            first: ms.first,
+            last: ms.last,
+            high: ms.high,
+            low: ms.low,
+            changePct: ms.changePct,
+            asOf: ms.asOf,
+            source: `${ms.source} — intraday ticks accumulate while the market is open`,
+            warming: true,
+            availableRanges: CHART_RANGES,
+            milestones: true,
+            refHigh: ms.refHigh ?? null,
+            refLow: ms.refLow ?? null,
+          };
+          return NextResponse.json(body);
+        } catch {
+          // anchors unavailable too — 404 below
+        }
+      }
+      return NextResponse.json({ error: "chart unavailable" }, { status: 404 });
     }
   }
 
@@ -205,10 +237,42 @@ export async function GET(req: NextRequest) {
       asOf: chart.asOf,
       source: chart.source,
       availableRanges: CHART_RANGES,
+      ...(chart.milestones ? { milestones: true } : {}),
+      refHigh: chart.refHigh ?? null,
+      refLow: chart.refLow ?? null,
     };
     return NextResponse.json(body);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "chart unavailable";
-    return NextResponse.json({ error: msg }, { status: 404 });
+  } catch {
+    // T27 — no Yahoo history for this name (404 / stub bar): serve a real
+    // milestone chart reconstructed from the TradingView universe row's
+    // verified performance anchors so every listed stock has a chart.
+    if (stockRow) {
+      try {
+        const ms = milestoneChart(symbol, range, stockRow);
+        const body: ChartResponse = {
+          symbol: ms.symbol,
+          name: ms.yahooSymbol,
+          kind: "stock",
+          range: ms.range,
+          currency: ms.currency,
+          points: ms.points,
+          first: ms.first,
+          last: ms.last,
+          high: ms.high,
+          low: ms.low,
+          changePct: ms.changePct,
+          asOf: ms.asOf,
+          source: ms.source,
+          availableRanges: CHART_RANGES,
+          milestones: true,
+          refHigh: ms.refHigh ?? null,
+          refLow: ms.refLow ?? null,
+        };
+        return NextResponse.json(body);
+      } catch {
+        // anchors unavailable too (fresh listing with no perf fields) — 404
+      }
+    }
+    return NextResponse.json({ error: "chart unavailable" }, { status: 404 });
   }
 }

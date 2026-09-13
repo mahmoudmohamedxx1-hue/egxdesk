@@ -1,18 +1,74 @@
 {
   "name": "EGX Desk — بيانات البورصة المصرية",
   "short_name": "EGX Desk",
-  "description": "Live Egyptian Exchange data: quotes, insider log, investor flows, statements, dividends, calendar and tools — Arabic-first, bilingual.",
+  "description": "Live Egyptian Exchange data: quotes, insider log, investor flows, statements, dividends, calendar, signals and tools — Arabic-first, bilingual. GCC markets and paper trading included.",
   "lang": "ar",
   "dir": "rtl",
+  "id": "/?view=home",
   "start_url": "/?view=home",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "categories": ["finance", "business", "productivity", "news"],
   "background_color": "#2c2c2e",
   "theme_color": "#2c2c2e",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "السوق — Market",
+      "short_name": "Market",
+      "description": "Live EGX quotes board",
+      "url": "/?view=market&lang=ar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "الفرز — Screener",
+      "short_name": "Screener",
+      "description": "Filter all EGX stocks",
+      "url": "/?view=screener&lang=ar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "الأخبار — News",
+      "short_name": "News",
+      "description": "Latest EGX market news",
+      "url": "/?view=today&lang=ar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "المساعد — AI Agent",
+      "short_name": "Agent",
+      "description": "Ask the EGX Desk AI agent",
+      "url": "/?view=agent&lang=ar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "التداول التجريبي — Paper Trading",
+      "short_name": "Paper",
+      "description": "Practice with a virtual EGP 100k account",
+      "url": "/?view=paper&lang=ar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "EGX Desk — market intelligence workspace"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "EGX Desk — live quotes on the go"
+    }
   ]
 }
