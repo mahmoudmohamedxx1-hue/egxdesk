@@ -11,13 +11,15 @@
  *     from the stream metadata). Runs through the /api/agent SSE loop.
  *
  *  2. Puter cloud models (provider puter) — 1,008 real cloud models
- *     (GPT-OSS 20B, GLM-5.3, GPT-5.6, Claude, Gemini, Grok, DeepSeek…)
+ *     (GPT-OSS 20B & 120B, GLM-5.3, GPT-5.6, Claude, Gemini, Grok,
+ *     DeepSeek, Kimi, Qwen, Llama, Mistral, Command A, Phi-4, Nemotron…)
  *     through the free Puter.js layer, one free Puter sign-in away
- *     (no card, no API keys). The agent loop for these runs CLIENT-side
- *     (plan + answer in the browser) with tools executed by
- *     POST /api/agent/tools. The former Pollinations GPT-OSS route was
- *     REMOVED: probes showed its anonymous tier budget-gates every
- *     real-sized prompt (only ~20-token prompts pass), so it could
+ *     (no card, no API keys). Every featured id below was re-verified
+ *     against the LIVE catalog (T35, Sept 2026). The agent loop for
+ *     these runs CLIENT-side (plan + answer in the browser) with tools
+ *     executed by POST /api/agent/tools. The former Pollinations GPT-OSS
+ *     route was REMOVED: probes showed its anonymous tier budget-gates
+ *     every real-sized prompt (only ~20-token prompts pass), so it could
  *     never serve an actual agent question.
  *
  *  This registry stays dependency-free (pure data) so BOTH the server
@@ -187,6 +189,66 @@ export const AI_MODELS: AiModel[] = [
     ctx: 204_800,
     note: "The new MiniMax — free via Puter",
     noteAr: "ميني ماكس الجديدة — مجانًا عبر Puter",
+  },
+  {
+    id: "puter:openrouter:openai/gpt-oss-120b",
+    provider: "puter",
+    providerModel: "openrouter:openai/gpt-oss-120b",
+    label: "GPT-OSS 120B",
+    labelAr: "GPT-OSS 120B",
+    ctx: 131_072,
+    note: "OpenAI's biggest open-weights model — free via Puter",
+    noteAr: "أكبر نموذج مفتوح الأوزان من OpenAI — مجانًا عبر Puter",
+  },
+  {
+    id: "puter:infron:z-ai/glm-5.2",
+    provider: "puter",
+    providerModel: "infron:z-ai/glm-5.2",
+    label: "GLM-5.2",
+    labelAr: "GLM-5.2",
+    ctx: 1_000_000,
+    note: "Previous-gen GLM flagship — fast, free via Puter",
+    noteAr: "الجيل السابق من GLM — سريع، مجانًا عبر Puter",
+  },
+  {
+    id: "puter:openrouter:meta-llama/llama-4-scout",
+    provider: "puter",
+    providerModel: "openrouter:meta-llama/llama-4-scout",
+    label: "Llama 4 Scout",
+    labelAr: "Llama 4 Scout",
+    ctx: 1_312_720,
+    note: "Meta's compact Llama — huge context, free via Puter",
+    noteAr: "لاما المدمجة من ميتا — سياق ضخم، مجانًا عبر Puter",
+  },
+  {
+    id: "puter:infron:cohere/command-a-03-2025",
+    provider: "puter",
+    providerModel: "infron:cohere/command-a-03-2025",
+    label: "Command A",
+    labelAr: "Command A",
+    ctx: 256_000,
+    note: "Cohere's efficient flagship — free via Puter",
+    noteAr: "نموذج Cohere الكفء — مجانًا عبر Puter",
+  },
+  {
+    id: "puter:openrouter:microsoft/phi-4",
+    provider: "puter",
+    providerModel: "openrouter:microsoft/phi-4",
+    label: "Phi-4",
+    labelAr: "Phi-4",
+    ctx: 16_384,
+    note: "Microsoft's small-but-sharp model — free via Puter",
+    noteAr: "نموذج مايكروسوفت الصغير الذكي — مجانًا عبر Puter",
+  },
+  {
+    id: "puter:infron:nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    provider: "puter",
+    providerModel: "infron:nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    label: "Nemotron Super 49B",
+    labelAr: "Nemotron Super 49B",
+    ctx: 131_072,
+    note: "NVIDIA's tuned reasoning model — free via Puter",
+    noteAr: "نموذج NVIDIA المضبوط للاستدلال — مجانًا عبر Puter",
   },
 ];
 

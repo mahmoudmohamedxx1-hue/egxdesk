@@ -843,3 +843,24 @@ Work Log:
 Stage Summary:
 - FIRST LOAD SLIMMED: ~3MB of logos → 12KB, all-views monolith → active-view-only lazy chunks with idle prefetch, assistant + markdown + framer-motion off the critical path, font preloads 10+→1, SW install 240KB lighter. Dev-measured initial chunk set halved; prod first load ≈ 1.4MB uncompressed for shell+home.
 - All 11 suites green (390+ checks), build green, 19-view render sweep + assistant lifecycle + company composite card + mobile QA passed; v2.24 / SW v20 shipped; pushed to GitHub.
+
+---
+Task ID: 35
+Agent: Super Z (main)
+Task: User: "CHATGPT OSS 20B DOESNT WORK AS THERE IS NO OTHER MODELS EXCEPT IT AND GLM 4 PLUS SO FIX THAT ISSUE" — plus the standing request to report gaps in chat.
+
+Work Log:
+- DIAGNOSIS (gaps reported in chat): the LIVE v2.24 app already rendered 14 models + the 1,008 catalog (verified in-browser), and every featured Puter id was re-verified against the live catalog — but the user saw exactly 2 models (GLM-4-Plus + GPT-OSS 20B), which matches the v2.21-era registry, whose GPT-OSS 20B routed through the now-dead Pollinations. ROOT CAUSE: the user's browser was running a STALE cached shell with no self-heal path. Supporting probes: z-ai gateway serves glm-4-plus for EVERY model id (9 ids probed — no honest extra server models); Pollinations budget-gates even anonymous real prompts (and its catalog shrank to a single model); Puter anonymous ai.chat calls hang (sign-in genuinely required); HackClub AI 404s; Gaia endpoints dead.
+- ANTI-STALENESS VERSION GUARD (the root-cause fix): new src/lib/version-guard.ts — every app boot compares the embedded APP_VERSION against /api/health (SW never caches /api/*); when the page is older, it dispatches an egx-stale-shell event (toast "Updating the app…"), unregisters every service worker, wipes all Cache Storage entries and reloads ONCE (sessionStorage flag kills loops; unreachable health or garbage version no-ops). Wired into AppShell's mount effect. LIVE-VERIFIED both paths: mocked health=9.99 → flag set + one reload + SW unregistered; equal versions → clean no-op, SW re-controlled.
+- MODEL LADDER EXPANDED 14→20 (both registries — ai-models.ts agent tab + assistant-models.ts popup): added GPT-OSS 120B, GLM-5.2, Llama 4 Scout (1.3M ctx), Command A, Phi-4, Nemotron Super 49B — every id + ctx pulled from the LIVE Puter catalog (1,008 models) and re-verified present.
+- SIGN-IN CARD improved (AR+EN): the body now names the free families (GPT-OSS 20B & 120B, GLM-5.3, Claude, Gemini, Grok…) and adds the one-tap fallback line — the server model GLM-4-Plus always works without any sign-in; the menu note now says the sign-in unlocks "1,008 free cloud models".
+- STALE-ID MIGRATION hardened: loadAiModelId() already migrated dead v2.21 ids (e.g. "gpt-oss-20b", "pollinations:…") to the default — locked by unit test.
+- VERSION 2.24→2.25 (version.ts), sw.js egx-desk-v20→v21; dev daemon restarted (health v2.25).
+- TESTS: new scripts/t35-test-models.ts — 30/30 (registry shape 20 models, id<->providerModel consistency, bilingual fields, GPT-OSS 20B + the six additions, honest lookups/fallbacks, localStorage migration incl. dead-provider prefixes, numeric isServerNewer incl. 2.9<2.24 and loop-safety). FULL SUITE: api-test 100/100, new-endpoints 36/36, t16 21/21, t18 12/12, t19 18/18, t20 24/24, t21 62/62, t22 61/61, t31 29/29, t32 27/27, t28 parser ALL PASS; tsc 0 errors; eslint clean; production build EXIT 0.
+- LIVE QA (agent-browser): model menu renders all 20 entries AR+EN (GPT-OSS 120B/GLM-5.2/Llama 4 Scout/Command A/Phi-4/Nemotron visible with ctx badges); selecting GPT-OSS 120B persists puter:openrouter:openai/gpt-oss-120b in localStorage; the assistant popup (Ctrl+K) shows the same expanded ladder; a live server-model agent round-trip answered "COMI 133.32 EGP −2.01%" with the Stock-quote tool chip; mobile 390px zero overflow with the menu open, zero console/page errors; screenshots t35-model-menu-en.png / t35-assistant-models.png / t35-model-menu-mobile.png.
+- README.md: model section rewritten (19 curated families listed by name + 1,008 catalog + the never-stale guard), tests badge 11→12 suites, version badge 2.25.
+
+Stage Summary:
+- The user's "only 2 models + dead GPT-OSS 20B" was a STALE SHELL, not the shipped code: a boot-time version guard now self-heals any browser/PWA running an older build (SW unregistered, caches wiped, one reload), so this class of complaint cannot recur.
+- The ladder is now 20 curated free cloud models (all ids live-verified) + the searchable 1,008-model catalog, in BOTH the agent tab and the assistant popup, with a clearer sign-in card that always offers the keyless GLM-4-Plus fallback.
+- All 12 suites green (420+ checks), build green, AR+EN+mobile QA passed; v2.25 / SW v21 shipped; pushed to GitHub.

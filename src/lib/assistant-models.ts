@@ -63,6 +63,12 @@ export const FEATURED_CLOUD: CloudModel[] = [
   { puterId: "openrouter:meta-llama/llama-4-maverick", name: "Llama 4 Maverick", provider: "openrouter", ctx: 1_048_576, desc: { ar: "أحدث لاما مفتوحة المصدر من ميتا", en: "Meta's newest open Llama" } },
   { puterId: "mistralai:mistralai/mistral-large-2512", name: "Mistral Large 3", provider: "mistralai", ctx: 262_144, desc: { ar: "ميسترال الكبيرة", en: "Mistral's large flagship" } },
   { puterId: "infron:minimax/minimax-m2.5", name: "MiniMax M2.5", provider: "infron", ctx: 204_800, desc: { ar: "ميني ماكس الجديدة", en: "The new MiniMax" } },
+  { puterId: "openrouter:openai/gpt-oss-120b", name: "GPT-OSS 120B", provider: "openrouter", ctx: 131_072, desc: { ar: "أكبر نموذج مفتوح من OpenAI", en: "OpenAI's biggest open-weights model" } },
+  { puterId: "infron:z-ai/glm-5.2", name: "GLM-5.2", provider: "infron", ctx: 1_000_000, desc: { ar: "الجيل السابق — سريع", en: "Previous-gen GLM — fast" } },
+  { puterId: "openrouter:meta-llama/llama-4-scout", name: "Llama 4 Scout", provider: "openrouter", ctx: 1_312_720, desc: { ar: "لاما المدمجة — سياق ضخم", en: "Meta's compact Llama — huge context" } },
+  { puterId: "infron:cohere/command-a-03-2025", name: "Command A", provider: "infron", ctx: 256_000, desc: { ar: "نموذج Cohere الكفء", en: "Cohere's efficient flagship" } },
+  { puterId: "openrouter:microsoft/phi-4", name: "Phi-4", provider: "openrouter", ctx: 16_384, desc: { ar: "نموذج مايكروسوفت الصغير الذكي", en: "Microsoft's small-but-sharp model" } },
+  { puterId: "infron:nvidia/llama-3.3-nemotron-super-49b-v1.5", name: "Nemotron Super 49B", provider: "infron", ctx: 131_072, desc: { ar: "نموذج NVIDIA للاستدلال", en: "NVIDIA's tuned reasoning model" } },
 ];
 
 /** Pretty label for the model chip (static lookup first so it works before

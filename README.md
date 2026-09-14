@@ -9,9 +9,9 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.24-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.25-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
-[![Tests](https://img.shields.io/badge/tests-11%20suites-green)](#testing)
+[![Tests](https://img.shields.io/badge/tests-12%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
 
@@ -77,9 +77,10 @@ paper buy/sell/portfolio, language switching.
 
 **Model switching across free online models (agent tab + assistant popup):**
 - **GLM-4-Plus** via the app's own gateway — always on, no sign-in (agent-tab default)
-- **GPT-OSS 20B** — OpenAI's open-weights model, free via the Puter cloud (the agent loop runs client-side, tools stay server-side)
-- **1,000+ real cloud models** (GLM-5.3 — the newest free GLM, GPT-5.6, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4, Kimi K3, Qwen3-235B…) one free Puter sign-in away, with a searchable catalog
+- **19 curated flagship families, free via the Puter cloud** — GPT-OSS 20B & 120B, GLM-5.3 / 5.3-Flash / 5.2, GPT-5.6 Luna, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4 Pro, Kimi K3, Qwen3-235B, Llama 4 Maverick & Scout, Mistral Large 3, MiniMax M2.5, Command A, Phi-4, Nemotron Super 49B (every id verified against the live catalog; the agent loop runs client-side, tools stay server-side)
+- **1,008 real cloud models** in a searchable catalog, one free Puter sign-in away (no card, no API keys)
 - An offline **Instant** regex router in the assistant popup
+- **Never a stale app again:** a boot-time version guard compares the loaded shell against `/api/health` — if the browser (or an installed PWA) is running an older build, it unregisters the service worker, wipes the caches and self-heals with one reload
 
 ---
 
@@ -155,7 +156,7 @@ else works with zero configuration and zero API keys.
 
 ## Testing
 
-11 end-to-end/API suites cover the whole surface — run against a live dev server:
+12 end-to-end/API suites cover the whole surface — run against a live dev server:
 
 ```bash
 bun scripts/e2e/api-test.js          # 100 checks — every route, NaN/consistency guards
@@ -166,6 +167,7 @@ bun scripts/e2e/t16-endpoints-test.js # 17 chat/endpoint checks
 bun scripts/e2e/new-endpoints-test.js # 36 checks — newest routes
 bun scripts/t31-test-fundamentals.ts  # 29 unit checks — composite engine math
 bun scripts/t32-test-news.ts            # 27 unit checks — the news pillar
+bun scripts/t35-test-models.ts           # 30 unit checks — model registry + version guard
 bunx tsc --noEmit && bunx eslint src/
 ```
 
@@ -181,7 +183,7 @@ src/
                   # signals-scan, ai-signals, strategy, paper, alerts, flows, i18n…
   data/           # backtest results backing the AI-signal charter
 scripts/
-  e2e/            # the 11 test suites
+  e2e/            # the 12 test suites
   research/       # source-verification logs + competitive research
 docs/             # COMPETITIVE-ANALYSIS.md — deep research & roadmap
 ```

@@ -10,6 +10,7 @@ import { AiAssistantLazy } from "./ai-assistant-lazy";
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { APP_VERSION, BUILD_DATE } from "@/lib/version";
+import { runVersionGuard } from "@/lib/version-guard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -187,10 +188,28 @@ function groupActive(group: NavGroup, current: string): boolean {
 }
 
 export function AppShell() {
-  const { lang, setLang, view, navigate, status } = useApp();
+  const { lang, setLang, view, navigate, status, toast } = useApp();
   const { theme, setTheme } = useTheme();
   // T34 — warm the other view chunks in idle time (after first paint)
   useIdleViewPrefetch(view.name);
+
+  // T35 — anti-staleness version guard: if this cached shell is older than
+  // the server (installed PWA / long-lived tab / proxy cache holding an old
+  // build), unregister the SW, wipe the caches and self-heal with one reload
+  // — the user can never be stuck on yesterday's model list again.
+  useEffect(() => {
+    const onStale = (e: Event) => {
+      const d = (e as CustomEvent<{ page?: string; server?: string }>).detail ?? {};
+      toast(
+        lang === "ar"
+          ? `تحديث التطبيق إلى الإصدار ${d.server ?? "الأحدث"}…`
+          : `Updating the app to ${d.server ?? "the latest"} version…`,
+      );
+    };
+    window.addEventListener("egx-stale-shell", onStale);
+    void runVersionGuard();
+    return () => window.removeEventListener("egx-stale-shell", onStale);
+  }, []);
 
   // One-time theme migration: the old default was LIGHT and next-themes
   // auto-stored it for visitors who never explicitly chose a theme. Dark is

@@ -1217,8 +1217,8 @@ export const T = {
   aiModelSearchPh: { ar: "ابحث في النماذج…", en: "Search models…" },
   aiNewestBadge: { ar: "الأحدث", en: "Newest" },
   aiPuterNote: {
-    ar: "أدخل بحساب Puter مجاني — بدون بطاقة، وبدون مفاتيح API — لاستخدام حصتك الشهرية المجانية من نماذج الذكاء الاصطناعي السحابية.",
-    en: "Sign in with a free Puter account — no card, no API keys — to use your own free monthly allowance of cloud AI models.",
+    ar: "أدخل بحساب Puter مجاني — بدون بطاقة، وبدون مفاتيح API — لتفتح 1008 نموذج سحابي مجاني (GPT-OSS، GLM-5.3، Claude، Gemini، Grok…) من حصتك الشهرية.",
+    en: "Sign in with a free Puter account — no card, no API keys — to unlock 1,008 free cloud models (GPT-OSS, GLM-5.3, Claude, Gemini, Grok…) on your own monthly allowance.",
   },
   aiPuterSignIn: { ar: "دخول مجاني عبر Puter", en: "Sign in free with Puter" },
   aiPuterSignOut: { ar: "خروج", en: "Sign out" },
@@ -1228,8 +1228,8 @@ export const T = {
   aiPuterSigninCancelled: { ar: "لم يكتمل الدخول — حاول مجددًا.", en: "Sign-in didn't complete — try again." },
   aiPuterSigninCardTitle: { ar: "نماذج سحابية مجانية — يلزم دخول Puter", en: "Free cloud models — Puter sign-in needed" },
   aiPuterSigninCardBody: {
-    ar: "النماذج السحابية (GLM-5.3، GPT، Claude، Gemini…) تعمل عبر Puter مجانًا وبدون بطاقة وبدون مفاتيح — مقابل حصة شهرية مجانية خاصتك. اضغط الزر بالأسفل لدخول Puter مرة واحدة، ثم أعد إرسال رسالتك.",
-    en: "The cloud models (GLM-5.3, GPT, Claude, Gemini…) run through Puter for free — no card, no API keys — against your own free monthly allowance. Tap the button below for a one-time Puter sign-in, then resend your message.",
+    ar: "نماذج Puter السحابية (GPT-OSS 20B و120B، GLM-5.3، Claude، Gemini، Grok…) مجانية تمامًا — بدون بطاقة وبدون مفاتيح — مقابل حصة شهرية خاصتك. اضغط زر الدخول مرة واحدة ثم أعد إرسال رسالتك.\n\nلا تريد التسجيل الآن؟ نموذج الخادم **GLM-4-Plus** يعمل فورًا بلا تسجيل — اختره من قائمة النماذج.",
+    en: "The Puter cloud models (GPT-OSS 20B & 120B, GLM-5.3, Claude, Gemini, Grok…) are fully free — no card, no API keys — against your own monthly allowance. Tap the sign-in button once, then resend your message.\n\nDon't want to sign in? The server model **GLM-4-Plus** always works without any sign-in — pick it from the model menu.",
   },
   aiClearChat: { ar: "مسح المحادثة", en: "Clear chat" },
   aiWhatCanDo: { ar: "ماذا تستطيع أن تفعل؟", en: "What can you do?" },
