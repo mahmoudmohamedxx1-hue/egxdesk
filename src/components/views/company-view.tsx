@@ -60,6 +60,37 @@ type CompanyData = {
     near52Low: boolean;
     computedFrom: string;
   } | null;
+  /** T32 composite signal — the SAME three-pillar engine as the Signals tab
+   *  (technical + fundamental + news, 45/30/25 with honest renorm). */
+  composite: CompositeSignal | null;
+};
+
+type CompositeRating = "strongBuy" | "buy" | "neutral" | "sell" | "strongSell";
+
+type CompositeSignal = {
+  ticker: string;
+  composite: number;
+  compositeRating: CompositeRating;
+  score: number; // technical −1…+1
+  rating: CompositeRating;
+  count: number; // active technical indicators
+  fundScore: number | null;
+  fundRating: CompositeRating;
+  fundCoverage: number;
+  valuation: number | null;
+  quality: number | null;
+  income: number | null;
+  fundReasons: string[];
+  fundReasonsAr: string[];
+  newsScore: number | null;
+  newsRating: CompositeRating;
+  newsCount: number;
+  newsBull: number;
+  newsBear: number;
+  newsReasons: string[];
+  newsReasonsAr: string[];
+  rsi: number | null;
+  lastDate: string;
 };
 
 export function CompanyView({ ticker, panel }: { ticker: string; panel: string }) {
@@ -230,6 +261,10 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
 
           {/* valuation teaser — surfaces the G10 panel from the overview */}
           <ValuationTeaser company={c} sectorAgg={data.sectorAgg} onOpen={() => selectPanel("valuation")} />
+
+          {/* T32 composite signal — technical + fundamental + news, the SAME
+           *  three-pillar engine as the Signals tab, one card per stock */}
+          {data.composite && <CompositeSignalCard comp={data.composite} lang={lang} onOpenTechnical={() => selectPanel("technical")} />}
 
           {data.signals && <SignalsCard signals={data.signals} lang={lang} />}
 
@@ -512,6 +547,147 @@ function SignalsCard({
         </ul>
       )}
       <p className="mt-2 text-[10px] text-muted-foreground">{tt(T.signalsNote, lang)}</p>
+    </section>
+  );
+}
+
+// ── T32: the composite three-pillar signal card (same engine as the
+//  Signals tab): technical + fundamental + news with honest renorm. ──
+
+const COMP_RATING_LABEL: Record<CompositeRating, { ar: string; en: string }> = {
+  strongBuy: T.techStrongBuy,
+  buy: T.techBuy,
+  neutral: T.techNeutral,
+  sell: T.techSell,
+  strongSell: T.techStrongSell,
+};
+
+const COMP_RATING_CLS: Record<CompositeRating, string> = {
+  strongBuy: "bg-up-soft text-up border-up/30",
+  buy: "bg-up-soft/60 text-up border-up/20",
+  neutral: "bg-secondary text-muted-foreground border",
+  sell: "bg-down-soft/60 text-down border-down/20",
+  strongSell: "bg-down-soft text-down border-down/30",
+};
+
+function CompRatingBadge({ rating, lang }: { rating: CompositeRating; lang: "ar" | "en" }) {
+  const l = COMP_RATING_LABEL[rating];
+  return (
+    <span className={`num rounded-md border px-2 py-0.5 text-[11px] font-bold ${COMP_RATING_CLS[rating]}`}>
+      {tt(l, lang)}
+    </span>
+  );
+}
+
+/** −1…+1 score bar — center-anchored so the neutral point is visible. */
+function CompScoreBar({ score }: { score: number | null }) {
+  if (score === null) return <div className="h-1.5 w-full rounded-full bg-secondary" />;
+  const pct = Math.min(Math.abs(score), 1) * 50; // 0…50% each side
+  const left = score < 0 ? 50 - pct : 50;
+  return (
+    <div className="relative h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+      <div className="absolute inset-y-0 left-1/2 w-px bg-border" aria-hidden />
+      <div
+        className={`absolute inset-y-0 rounded-full ${score >= 0 ? "bg-up" : "bg-down"}`}
+        style={{ left: `${left}%`, width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function CompositeSignalCard({
+  comp,
+  lang,
+  onOpenTechnical,
+}: {
+  comp: CompositeSignal;
+  lang: "ar" | "en";
+  onOpenTechnical: () => void;
+}) {
+  const fundReasons = (lang === "ar" ? comp.fundReasonsAr : comp.fundReasons) ?? [];
+  const newsReasons = (lang === "ar" ? comp.newsReasonsAr : comp.newsReasons) ?? [];
+  const pillars: { label: string; score: number | null; rating: CompositeRating; detail: string }[] = [
+    {
+      label: tt(T.compPillarTech, lang),
+      score: comp.score,
+      rating: comp.rating,
+      detail:
+        comp.rsi !== null
+          ? `RSI ${fmtNum(comp.rsi, 1)} · ${comp.count} ${tt(T.techCountsNote, lang)}`
+          : `${comp.count} ${tt(T.techCountsNote, lang)}`,
+    },
+    {
+      label: tt(T.compPillarFund, lang),
+      score: comp.fundScore,
+      rating: comp.fundRating,
+      detail:
+        comp.fundScore !== null
+          ? `V ${comp.valuation !== null ? fmtNum(comp.valuation, 2) : "—"} · Q ${comp.quality !== null ? fmtNum(comp.quality, 2) : "—"} · I ${comp.income !== null ? fmtNum(comp.income, 2) : "—"}`
+          : tt(T.compPillarNoData, lang),
+    },
+    {
+      label: tt(T.compPillarNews, lang),
+      score: comp.newsScore,
+      rating: comp.newsRating,
+      detail:
+        comp.newsCount > 0
+          ? `${comp.newsCount} ${tt(T.compNewsCount, lang)} — ${comp.newsBull}↑ / ${comp.newsBear}↓`
+          : tt(T.compNewsNoCoverage, lang),
+    },
+  ];
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+        <h2 className="font-bold flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" aria-hidden />
+          {tt(T.compSignalTitle, lang)}
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="num text-xs text-muted-foreground">{fmtNum(comp.composite, 2)}</span>
+          <CompRatingBadge rating={comp.compositeRating} lang={lang} />
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        {pillars.map((p) => (
+          <div key={p.label} className="space-y-1">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-xs font-medium">{p.label}</span>
+              <span className="flex items-center gap-1.5">
+                <span className={`num text-xs font-bold ${p.score === null ? "text-muted-foreground" : directionClass(p.score)}`}>
+                  {p.score === null ? "—" : p.score > 0 ? "+" : ""}{fmtNum(p.score, 2)}
+                </span>
+                <CompRatingBadge rating={p.rating} lang={lang} />
+              </span>
+            </div>
+            <CompScoreBar score={p.score} />
+            <p className="num text-[10px] text-muted-foreground">{p.detail}</p>
+          </div>
+        ))}
+      </div>
+
+      {(fundReasons.length > 0 || newsReasons.length > 0) && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {fundReasons.slice(0, 3).map((r) => (
+            <span key={r} className="num rounded-sm bg-secondary/70 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              {r}
+            </span>
+          ))}
+          {newsReasons.slice(0, 2).map((r) => (
+            <span key={r} className="num rounded-sm bg-accent px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              {r}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
+        <button onClick={onOpenTechnical} className="text-[11px] text-primary hover:underline">
+          {tt(T.panelTechnical, lang)} →
+        </button>
+        <span className="num text-[10px] text-muted-foreground">{comp.lastDate}</span>
+      </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">{tt(T.compSignalNote, lang)}</p>
     </section>
   );
 }

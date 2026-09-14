@@ -304,7 +304,10 @@ async function runScan(): Promise<SignalsScan> {
   const market = marketStats(universe);
   // news pillar — one press-archive pass for the whole market (10-min TTL
   // inside; a DB hiccup degrades to "no news" and the blend renormalizes)
-  const newsMap = await newsScoresForUniverse(universe).catch(() => new Map<string, NewsScore>());
+  const newsMap = await newsScoresForUniverse(universe).catch((e) => {
+    console.warn("[signals] news pillar unavailable:", e instanceof Error ? e.message : e);
+    return new Map<string, NewsScore>();
+  });
   const rows: SignalRow[] = [];
   let failed = 0;
 
@@ -336,6 +339,46 @@ async function runScan(): Promise<SignalsScan> {
 
 export function scanSignals(): Promise<SignalsScan> {
   return cached("signals-scan", SCAN_TTL, runScan);
+}
+
+/** Serve-time NEWS refresh (T32): the scan cache holds technicals +
+ *  fundamentals for up to an hour (both are daily-candle / snapshot based,
+ *  so that is honest), but the news pillar is minute-level. This re-blends
+ *  every row's news fields + composite with a FRESH press pass (10-minute
+ *  TTL inside newsScoresForUniverse) — pure math, no chart refetches — and
+ *  re-ranks the rows. Called by /api/signals on every GET. */
+export async function reblendNews(
+  rows: SignalRow[],
+  universe: { ticker: string; name: string }[]
+): Promise<SignalRow[]> {
+  let newsMap: Map<string, NewsScore>;
+  try {
+    newsMap = await newsScoresForUniverse(universe);
+  } catch {
+    return rows; // a press-archive hiccup keeps the scan-time blend — honest
+  }
+  const out = rows.map((r) => {
+    const ns = newsMap.get(r.ticker) ?? null;
+    if (ns === null && r.newsCount === 0) return r; // nothing to update
+    const { composite } = compositeScores3(r.score, r.fundScore, ns?.score ?? null);
+    return {
+      ...r,
+      newsScore: ns ? ns.score : null,
+      newsRating: ns ? ns.rating : ratingFromScore(null),
+      newsCount: ns ? ns.count : 0,
+      newsBull: ns ? ns.bull : 0,
+      newsBear: ns ? ns.bear : 0,
+      newsReasons: ns ? ns.reasons : [],
+      newsReasonsAr: ns ? ns.reasonsAr : [],
+      composite,
+      compositeRating:
+        r.fundScore !== null || (ns !== null && ns.score !== null)
+          ? ratingFromScore(composite)
+          : r.rating,
+    };
+  });
+  out.sort((a, b) => b.composite - a.composite);
+  return out;
 }
 
 /** Single-stock rating for the AI agent's `technicals` tool and the

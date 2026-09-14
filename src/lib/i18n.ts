@@ -949,6 +949,18 @@ export const T = {
     en: "Pillars: technical (13 indicators over daily candles) · fundamental: Valuation (P/E & P/B vs sector medians), Quality (ROE, net margin, debt/equity), Income (dividend yield & payout) · news: a rule-based bullish/bearish lexicon over 14 days of headlines with decaying recency weight — the news pillar is a transparent lexicon, not AI.",
   },
   signalsNewsCovered: { ar: "له تغطية صحفية", en: "with press coverage" },
+  // company page composite signal card (T32)
+  compSignalTitle: { ar: "الإشارة المركّبة", en: "Composite signal" },
+  compSignalNote: {
+    ar: "ثلاث ركائز مستقلة تُمزج في درجة واحدة: الفنية (١٣ مؤشراً على شموع يومية) ٤٥٪، والأساسية (التقييم والجودة والدخل مقابل وسيط القطاع) ٣٠٪، والإخبارية (نبرة الصحافة خلال ١٤ يومًا) ٢٥٪ — تُعاد الموازنة بأمانة عند غياب ركيزة. وصف إحصائي وليس توصية.",
+    en: "Three independent pillars blended into one score: technical (13 indicators over daily candles) 45%, fundamental (valuation, quality and income vs sector medians) 30%, and news (14-day press tone) 25% — weights renormalize honestly when a pillar is missing. A statistical description, not advice.",
+  },
+  compPillarTech: { ar: "فني — ١٣ مؤشراً", en: "Technical — 13 indicators" },
+  compPillarFund: { ar: "أساسي — التقييم/الجودة/الدخل", en: "Fundamental — V/Q/I" },
+  compPillarNews: { ar: "إخباري — نبرة الصحافة", en: "News — press tone" },
+  compPillarNoData: { ar: "لا بيانات كافية", en: "not enough data" },
+  compNewsNoCoverage: { ar: "لا تغطية صحفية خلال ١٤ يومًا", en: "no press coverage in 14 days" },
+  compNewsCount: { ar: "مقالًا", en: "articles" },
   signalsBullTop: { ar: "الأعلى شراءً", en: "Top bullish" },
   signalsBearTop: { ar: "الأعلى بيعاً", en: "Top bearish" },
   signalsBias: { ar: "ميل السوق المركّب", en: "Composite market bias" },

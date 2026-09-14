@@ -19,8 +19,8 @@
 
 import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
-import { scanSignals, type SignalRow } from "@/lib/signals-scan";
-import { fetchIndices } from "@/lib/market";
+import { scanSignals, reblendNews, type SignalRow } from "@/lib/signals-scan";
+import { fetchIndices, fetchUniverse } from "@/lib/market";
 import { fetchStockChart } from "@/lib/history";
 import {
   STRATEGY_CHARTER,
@@ -267,16 +267,20 @@ const OUTPUT_SCHEMA = `{
 
 async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> {
   const t0 = Date.now();
-  const [scan, indices] = await Promise.all([scanSignals(), fetchIndices()]);
+  const [scan, indices, universe] = await Promise.all([scanSignals(), fetchIndices(), fetchUniverse()]);
   if (!scan.rows.length) throw new Error("signals scan unavailable");
+  // fresh news pillar before picking candidates — the pack quotes press tone
+  // alongside technicals/fundamentals (re-blend is pure math, ≤10-min news)
+  const freshRows = await reblendNews(scan.rows, universe);
+  const freshScan = { ...scan, rows: freshRows };
 
-  const candidates = await buildCandidates(scan);
+  const candidates = await buildCandidates(freshScan);
   const byTicker = new Map(candidates.map((c) => [c.row.ticker, c]));
 
-  const up = scan.rows.filter((r) => r.changePct > 0).length;
-  const down = scan.rows.filter((r) => r.changePct < 0).length;
-  const { best, worst } = sectorExtremes(scan.rows);
-  const movers = [...scan.rows]
+  const up = freshScan.rows.filter((r) => r.changePct > 0).length;
+  const down = freshScan.rows.filter((r) => r.changePct < 0).length;
+  const { best, worst } = sectorExtremes(freshScan.rows);
+  const movers = [...freshScan.rows]
     .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
     .slice(0, 5)
     .map((r) => ({ ticker: r.ticker, nameAr: r.nameAr, changePct: r.changePct }));
@@ -317,6 +321,14 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
       debtToEquity: row.debtToEquity,
       divYield: row.divYield,
       reasons: (row.fundReasons ?? []).slice(0, 4),
+    },
+    news: {
+      score: row.newsScore, // null = no attributed press in 14 days
+      rating: row.newsRating,
+      articles: row.newsCount,
+      bull: row.newsBull,
+      bear: row.newsBear,
+      reasons: (row.newsReasons ?? []).slice(0, 2),
     },
     perf: { m1: row.perf1M, m6: row.perf6M, ytd: row.perfYTD, y1: row.perfY },
     nextEarnings: row.nextEarnings,

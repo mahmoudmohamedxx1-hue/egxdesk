@@ -6,10 +6,10 @@
 
 **The free, Arabic-first, AI-native research desk for the Egyptian Exchange (EGX).**
 
-Signals from **Technical + Fundamental analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
+Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.22-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.23-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
 [![Tests](https://img.shields.io/badge/tests-11%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
@@ -37,14 +37,15 @@ thing runs without an account.
 
 ---
 
-## The Composite Signal Engine — Technical × Fundamental
+## The Composite Signal Engine — Technical × Fundamental × News
 
-The Signals tab ranks the **entire traded EGX universe** with a composite score built from two independent halves:
+The Signals tab ranks the **entire traded EGX universe** (and every company page carries the same three-pillar card) with a composite score built from three independent pillars:
 
-| Half | What it measures | Weight |
+| Pillar | What it measures | Weight |
 |---|---|---|
-| **Technical** | 13 indicators on 1-year daily candles — SMA 20/50/200, EMA 20/50/100, RSI-14, Stochastic %K/%D, MACD histogram, CCI-20, Momentum-10, Williams %R, BB Power (the same math as the in-app Technical Panel) | **55%** |
-| **Fundamental** | 7 components in 3 pillars from reported financials — see below | **45%** |
+| **Technical** | 13 indicators on 1-year daily candles — SMA 20/50/200, EMA 20/50/100, RSI-14, Stochastic %K/%D, MACD histogram, CCI-20, Momentum-10, Williams %R, BB Power (the same math as the in-app Technical Panel) | **45%** |
+| **Fundamental** | 7 components in 3 pillars from reported financials — see below | **30%** |
+| **News** | a transparent bilingual lexicon over the last **14 days** of the archived Egyptian business press (Alborsaanews + Amwal Alghad) — title double-weighted, recency-decayed (1.0 → 0.25), saturation-clamped so one headline never swings the pillar | **25%** |
 
 ### Fundamental pillars
 
@@ -55,9 +56,10 @@ The Signals tab ranks the **entire traded EGX universe** with a composite score 
 | **Income** (.25) | dividend yield, payout ratio | yield 10% = +1 / 0% = −0.4 · payout >100% = −0.8 (unsustainable) |
 
 **Honesty rules baked in:** every component is null-safe (weights renormalize — a bank without P/B is never
-punished); a stock with fewer than 2 fundamental components falls back to technical-only instead of a noisy
+punished, a stock with no press coverage in the window is neither punished nor rewarded); a stock with fewer than 2 fundamental components falls back to technical-only instead of a noisy
 half-score; sector medians need ≥5 names or the market-wide median is used; every reason line quotes the real
-numbers ("P/E 6.4 vs sector 7.6 · ROE 34.4%"). The engine feeds the ranked table, the CSV/XLSX exports, the
+numbers ("P/E 6.4 vs sector 7.6 · ROE 34.4%" / "2 press articles — 1 bullish, 0 bearish"). The news pillar is
+re-blended at SERVE TIME (≤10-min press pass) so it never lags the hourly technical scan cache. The engine feeds the ranked table, the per-stock composite card, the CSV/XLSX exports, the
 AI-signals evidence pack, and the agent's `technicals` tool — one math everywhere. See
 [`src/lib/fundamentals.ts`](src/lib/fundamentals.ts) and [`src/lib/signals-scan.ts`](src/lib/signals-scan.ts).
 
@@ -73,10 +75,11 @@ streaming answers — that **executes**, not just chats. 20 bilingual tools: nav
 live quotes, search, movers, technicals, news, GCC, watchlist add/remove, multi-condition alerts,
 paper buy/sell/portfolio, language switching.
 
-**Model switching across free online models:**
-- **GLM-5.3** (newest free GLM, 1M context) — default via Puter's anonymous cloud
-- **1,000+ real cloud models** (GPT-5.6, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4, Kimi K3, Qwen3-235B…) one free Puter sign-in away
-- **Cloud GLM-4-Plus** via the app's own gateway (no sign-in) and an offline **Instant** regex router
+**Model switching across free online models (agent tab + assistant popup):**
+- **GLM-4-Plus** via the app's own gateway — always on, no sign-in (agent-tab default)
+- **GPT-OSS 20B** — OpenAI's open-weights model, free via the Puter cloud (the agent loop runs client-side, tools stay server-side)
+- **1,000+ real cloud models** (GLM-5.3 — the newest free GLM, GPT-5.6, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4, Kimi K3, Qwen3-235B…) one free Puter sign-in away, with a searchable catalog
+- An offline **Instant** regex router in the assistant popup
 
 ---
 
@@ -85,7 +88,7 @@ paper buy/sell/portfolio, language switching.
 | | | |
 |---|---|---|
 | **Home** — market pulse, flows summary | **Market** — live table, 295 names | **Screener** — 40+ filters |
-| **Signals** — composite TA+FA ranking + AI mode | **Heatmap & Sectors** | **Investors** — official retail/institutional/foreign flows + history |
+| **Signals** — composite TA+FA+News ranking + AI mode | **Heatmap & Sectors** | **Investors** — official retail/institutional/foreign flows + history |
 | **Activity** — value/volume leaders | **Calendar** — earnings/dividends/events | **Funds** — money-market & ETF NAVs |
 | **Compare** — side-by-side companies | **GCC** — Tadawul/DFM/ADX indices & movers | **News** — ~9,900-item bilingual archive |
 | **Agent** — streaming AI analyst (16 tools) | **Strategy Lab** — back-test chartered rules | **Reports** — hourly AI desk reports |
@@ -147,6 +150,7 @@ bun scripts/e2e/t20-ai-signals-test.ts
 bun scripts/e2e/t16-endpoints-test.js # 17 chat/endpoint checks
 bun scripts/e2e/new-endpoints-test.js # 36 checks — newest routes
 bun scripts/t31-test-fundamentals.ts  # 29 unit checks — composite engine math
+bun scripts/t32-test-news.ts            # 27 unit checks — the news pillar
 bunx tsc --noEmit && bunx eslint src/
 ```
 

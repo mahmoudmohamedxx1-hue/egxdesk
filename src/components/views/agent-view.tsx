@@ -43,6 +43,9 @@ import {
 } from "lucide-react";
 import { getDeviceId } from "@/lib/push-client";
 import { useTheme } from "next-themes";
+import { puterChat, puterSignedIn, puterSignIn, PuterAuthRequiredError } from "@/lib/assistant-models";
+import { findAiModel, aiModelLabel, aiModelIdentity } from "@/lib/ai-models";
+import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer } from "@/lib/agent-protocol";
 
 type AgentStep = {
   tool: string;
@@ -222,6 +225,7 @@ export function AgentView() {
   const lastQueryRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const puterStopRef = useRef(false); // T33 — stop flag for the client-side Puter loop
 
   // restore the chat from the device (SSR-safe mount read); a shared
   // ?q=… link prefills the composer (never auto-sends — it would burn the
@@ -316,6 +320,195 @@ export function AgentView() {
     return () => window.removeEventListener("keydown", onKey);
   }, [historyOpen]);
 
+  // ── T33: the CLIENT-side agent loop for free Puter cloud models ──
+  // Same protocol as the server loop: plan (strict JSON) → execute tool
+  // server-side via POST /api/agent/tools → answer. The LLM rounds run in
+  // the browser through puter.js; the tools still return only real data.
+  const askViaPuter = async (history: AgentMsg[], q: string, modelIdStr: string) => {
+    const m = findAiModel(modelIdStr);
+    const label = aiModelLabel(modelIdStr);
+    const identity = m ? aiModelIdentity(m) : `a REAL large language model (${label} — served via the free Puter cloud)`;
+
+    // sign-in gate — one free Puter account unlocks the whole cloud ladder
+    if (!(await puterSignedIn().catch(() => false))) {
+      persist([
+        ...history,
+        {
+          role: "assistant",
+          content: `**${tt(T.aiPuterSigninCardTitle, lang)}**\n\n${tt(T.aiPuterSigninCardBody, lang)}`,
+          error: true,
+          ts: Date.now(),
+        },
+      ]);
+      // surface the Puter sign-in popup right away — the user asked a question
+      void puterSignIn().catch(() => {});
+      return;
+    }
+
+    puterStopRef.current = false;
+    const stepsAcc: AgentStep[] = [];
+    let streamSoFar = "";
+    setLiveNote(`${label} — thinking`);
+
+    const msgs: { role: "user" | "assistant"; content: string }[] = [
+      { role: "assistant", content: buildAgentSystemPrompt(lang, identity) },
+      ...history
+        .filter((x) => !x.error)
+        .slice(-24)
+        .map((x) => ({ role: x.role, content: x.content.slice(0, 8000) })),
+    ];
+
+    try {
+      let corrections = 0;
+      let answered = false;
+      for (let round = 0; round < 11 && stepsAcc.length < 10; round++) {
+        if (puterStopRef.current) break;
+        // live preview: decode the {"final": "… body as it streams
+        let prevLen = 0;
+        const preview = makeFinalPreviewer((text) => {
+          streamSoFar += text;
+          setStreamText(streamSoFar);
+        });
+        const out = await puterChat(modelIdStr, msgs, {
+          onDelta: (full) => {
+            preview(full.slice(prevLen));
+            prevLen = full.length;
+          },
+          stopped: () => puterStopRef.current,
+          timeoutMs: 240_000,
+        });
+        if (puterStopRef.current) break;
+
+        const parsed = extractJson(out);
+        if (!parsed || (!("tool" in parsed) && !("final" in parsed))) {
+          corrections++;
+          if (corrections > 2) break;
+          msgs.push({
+            role: "user",
+            content:
+              'Format error. Reply with exactly ONE JSON object, no fences: {"tool": "<name>", "args": {...}} to call a tool, or {"final": "<markdown answer>"} to answer.',
+          });
+          continue;
+        }
+
+        if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
+          const finalSteps = [...stepsAcc];
+          const answerMsg: AgentMsg = { role: "assistant", content: parsed.final.trim(), steps: finalSteps, ts: Date.now() };
+          persist([...history, answerMsg]);
+          saveChat([...history, answerMsg]); // server-side history (fire-and-forget)
+          answered = true;
+          break;
+        }
+
+        const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
+        const args = (parsed.args && typeof parsed.args === "object" ? parsed.args : {}) as Record<string, unknown>;
+        if (!toolName) {
+          corrections++;
+          if (corrections > 2) break;
+          continue;
+        }
+
+        // tool execution stays SERVER-side — real data, real rate limits
+        setLiveNote(`${label} · ${tt(TOOL_LABELS[toolName] ?? { ar: toolName, en: toolName }, lang)}`);
+        let result: unknown;
+        let ok = false;
+        try {
+          const res = await fetch("/api/agent/tools", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tool: toolName, args, lang, deviceId: getDeviceId() }),
+          });
+          const json = (await res.json().catch(() => ({}))) as { ok?: boolean; result?: unknown };
+          result = json.result ?? { error: "tool call failed" };
+          ok = res.ok && json.ok !== false;
+        } catch {
+          result = { error: "tool call failed" };
+        }
+        stepsAcc.push({ tool: toolName, args, ok });
+        setLiveSteps([...stepsAcc]);
+        msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
+      }
+
+      if (!answered && !puterStopRef.current && stepsAcc.length > 0) {
+        // loop exhausted — force one synthesis round from the collected data
+        msgs.push({
+          role: "user",
+          content:
+            'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools. Format: {"final": "<markdown answer>"}',
+        });
+        let prevLen = 0;
+        const preview = makeFinalPreviewer((text) => {
+          streamSoFar += text;
+          setStreamText(streamSoFar);
+        });
+        try {
+          const out = await puterChat(modelIdStr, msgs, {
+            onDelta: (full) => {
+              preview(full.slice(prevLen));
+              prevLen = full.length;
+            },
+            stopped: () => puterStopRef.current,
+            timeoutMs: 240_000,
+          });
+          const parsed = extractJson(out);
+          if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
+            persist([...history, { role: "assistant", content: parsed.final.trim(), steps: [...stepsAcc], ts: Date.now() }]);
+            answered = true;
+          }
+        } catch {
+          /* fall through to the honest fallback */
+        }
+      }
+
+      if (!answered) {
+        if (puterStopRef.current) {
+          persist([
+            ...history,
+            streamSoFar.trim()
+              ? { role: "assistant", content: streamSoFar, ts: Date.now() }
+              : { role: "assistant", content: tt(T.agentStopped, lang), error: true, ts: Date.now() },
+          ]);
+        } else {
+          persist([
+            ...history,
+            {
+              role: "assistant",
+              content:
+                lang === "ar"
+                  ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
+                  : "I ran out of tool budget without a complete answer. Try rephrasing (e.g. \"market overview\" or \"quote for COMI\").",
+              ts: Date.now(),
+            },
+          ]);
+        }
+      }
+    } catch (err) {
+      if (err instanceof PuterAuthRequiredError) {
+        persist([
+          ...history,
+          {
+            role: "assistant",
+            content: `**${tt(T.aiPuterSigninCardTitle, lang)}**\n\n${tt(T.aiPuterSigninCardBody, lang)}`,
+            error: true,
+            ts: Date.now(),
+          },
+        ]);
+        return;
+      }
+      persist([
+        ...history,
+        {
+          role: "assistant",
+          content: `${tt(T.agentError, lang)}${err instanceof Error ? ` (${err.message})` : ""}`,
+          error: true,
+          ts: Date.now(),
+        },
+      ]);
+    } finally {
+      puterStopRef.current = false;
+    }
+  };
+
   const ask = async (text: string) => {
     const q = text.trim();
     if (!q || busy) return;
@@ -331,6 +524,22 @@ export function AgentView() {
     const ac = new AbortController();
     abortRef.current = ac;
     let streamSoFar = "";
+
+    // T33 — free Puter cloud models run the loop CLIENT-side; the app's own
+    // server model keeps the SSE path
+    if (modelId.startsWith("puter:")) {
+      try {
+        await askViaPuter(history, q, modelId);
+      } finally {
+        abortRef.current = null;
+        setBusy(false);
+        setLiveSteps([]);
+        setLiveNote(null);
+        setStreamText("");
+      }
+      return;
+    }
+
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
@@ -434,6 +643,7 @@ export function AgentView() {
   };
 
   const stop = () => {
+    puterStopRef.current = true; // T33 — stops the client-side Puter loop
     abortRef.current?.abort();
   };
 

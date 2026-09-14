@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { scanSignals } from "@/lib/signals-scan";
+import { scanSignals, reblendNews } from "@/lib/signals-scan";
 import { fetchUniverse } from "@/lib/market";
 
 /** GET /api/signals — the cross-market COMPOSITE scan, ranked best-to-worst
@@ -7,15 +7,19 @@ import { fetchUniverse } from "@/lib/market";
  *  computed from daily candles (scan cached ~1h, pre-warmed at boot);
  *  fundamental fields from the TradingView scanner snapshot with sector
  *  medians; the news pillar from a rule-based lexicon over the last 14
- *  days of the archived Egyptian press; the quote block (close/change/
- *  volume) is merged FRESH from the universe snapshot so the tab never
- *  shows an hour-old price. */
+ *  days of the archived Egyptian press — re-blended at SERVE TIME with a
+ *  fresh press pass (≤10 min stale) so news never lags the scan cache;
+ *  the quote block (close/change/volume) is merged FRESH from the universe
+ *  snapshot so the tab never shows an hour-old price. */
 
 export async function GET() {
   try {
     const [scan, universe] = await Promise.all([scanSignals(), fetchUniverse()]);
+    // serve-time news re-blend — the press pillar stays minute-level even
+    // while technicals/fundamentals ride the hourly scan cache
+    const reblended = await reblendNews(scan.rows, universe);
     const fresh = new Map(universe.map((s) => [s.ticker, s] as const));
-    const rows = scan.rows.map((r) => {
+    const rows = reblended.map((r) => {
       const f = fresh.get(r.ticker);
       if (!f) return r;
       return {
