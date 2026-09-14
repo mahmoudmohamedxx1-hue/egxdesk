@@ -1,6 +1,6 @@
 /** Cross-market COMPOSITE SIGNALS scanner — the "best signals across the
  *  stocks" engine behind the Signals tab and the AI agent's `technicals`
- *  tool. For every traded EGX stock it combines TWO independent halves:
+ *  tool. For every traded EGX stock it combines THREE independent pillars:
  *
  *   TECHNICAL  — the SAME 13-indicator rating the company Technical Panel
  *                shows (6 moving averages + 8 oscillators over one year of
@@ -9,15 +9,21 @@
  *                TradingView scanner fields (P/E + P/B vs sector medians,
  *                ROE / net margin / debt-to-equity, dividend yield + payout
  *                sanity), score −1 … +1, null-safe per component.
+ *   NEWS       — the src/lib/news-score.ts press pillar: a rule-based
+ *                bilingual lexicon over the last 14 days of the archived
+ *                Egyptian business press (Alborsaanews + Amwal Alghad),
+ *                recency-weighted, score −1 … +1, null when no coverage.
  *
- *  COMPOSITE = 55% technical + 45% fundamental (falls back to pure
- *  technical when fewer than 2 fundamental components exist). Rows are
- *  ranked by the composite. Quotes/perf/valuation fields come from the
- *  TradingView universe snapshot.
+ *  COMPOSITE = 45% technical + 30% fundamental + 25% news (honest
+ *  renormalization: news missing → 55/45 TA+FA; fundamentals missing →
+ *  75/25 TA+news; both missing → pure technical). Rows are ranked by the
+ *  composite. Quotes/perf/valuation fields come from the TradingView
+ *  universe snapshot.
  *
- *  Cost: ~1 chart fetch per stock (shared cache with /api/chart). The scan
- *  result is cached for an hour and pre-warmed at server boot (see
- *  lib/push-loop.ts) so users never wait for the full sweep. */
+ *  Cost: ~1 chart fetch per stock (shared cache with /api/chart) + one
+ *  news-archive pass shared by the whole scan. The scan result is cached
+ *  for an hour and pre-warmed at server boot (see lib/push-loop.ts) so
+ *  users never wait for the full sweep. */
 
 import { fetchUniverse, companyRow, type Stock } from "@/lib/market";
 import { fetchStockChart, type StockChart } from "@/lib/history";
@@ -36,13 +42,14 @@ import {
 } from "@/lib/indicators";
 import {
   computeFundamentals,
-  compositeScores,
+  compositeScores3,
   sectorStatsMap,
   marketStats,
   statsFor,
   ratingFromScore,
   type SectorStats,
 } from "@/lib/fundamentals";
+import { newsScoreForTicker, newsScoresForUniverse, type NewsScore } from "@/lib/news-score";
 
 export type Rating = "strongBuy" | "buy" | "neutral" | "sell" | "strongSell";
 
@@ -73,7 +80,15 @@ export type SignalRow = {
   income: number | null;
   fundReasons: string[]; // short EN evidence lines
   fundReasonsAr: string[];
-  // composite rating block — THE ranking signal (55% TA + 45% FA)
+  // news pillar (T32 — 14-day press lexicon, rule-based, honestly labeled)
+  newsScore: number | null; // −1 … +1, null when no coverage in the window
+  newsRating: Rating;
+  newsCount: number; // attributed articles in the 14-day window
+  newsBull: number;
+  newsBear: number;
+  newsReasons: string[];
+  newsReasonsAr: string[];
+  // composite rating block — THE ranking signal (45% TA + 30% FA + 25% news)
   composite: number; // −1 … +1 (falls back to pure technical)
   compositeRating: Rating;
   // technical rating block
@@ -144,7 +159,8 @@ function lastOf(series: (number | null)[]): number | null {
 export function computeSignalRow(
   stock: Stock,
   chart: StockChart,
-  sector?: { bySector: Map<string, SectorStats>; market: SectorStats }
+  sector?: { bySector: Map<string, SectorStats>; market: SectorStats },
+  news?: NewsScore | null
 ): SignalRow | null {
   const pts = chart.points;
   if (pts.length < 60) return null; // not enough history for a meaningful rating
@@ -197,7 +213,8 @@ export function computeSignalRow(
   // has ≥5 names, else market-wide medians) ──
   const stats = sector ? statsFor(stock, sector.bySector, sector.market) : marketStats([stock]);
   const fund = computeFundamentals(stock, stats);
-  const { composite, fundWeight } = compositeScores(summary.score, fund.score);
+  const ns: NewsScore | null = news ?? null;
+  const { composite, fundWeight, newsWeight } = compositeScores3(summary.score, fund.score, ns?.score ?? null);
 
   const pos52 =
     stock.high52 !== null && stock.low52 !== null && stock.high52 > stock.low52 && price > 0
@@ -236,9 +253,18 @@ export function computeSignalRow(
     income: fund.income,
     fundReasons: fund.reasons,
     fundReasonsAr: fund.reasonsAr,
+    // news pillar
+    newsScore: ns ? ns.score : null,
+    newsRating: ns ? ns.rating : ratingFromScore(null),
+    newsCount: ns ? ns.count : 0,
+    newsBull: ns ? ns.bull : 0,
+    newsBear: ns ? ns.bear : 0,
+    newsReasons: ns ? ns.reasons : [],
+    newsReasonsAr: ns ? ns.reasonsAr : [],
     // composite block — the ranking signal
     composite,
-    compositeRating: fundWeight > 0 ? ratingFromScore(composite) : summary.rating,
+    compositeRating:
+      fundWeight > 0 || newsWeight > 0 ? ratingFromScore(composite) : summary.rating,
     rating: summary.rating,
     score: Number(summary.score.toFixed(3)),
     buy: summary.buy,
@@ -276,6 +302,9 @@ async function runScan(): Promise<SignalsScan> {
   // sector + market medians for the fundamental half (one pass, shared)
   const bySector = sectorStatsMap(universe);
   const market = marketStats(universe);
+  // news pillar — one press-archive pass for the whole market (10-min TTL
+  // inside; a DB hiccup degrades to "no news" and the blend renormalizes)
+  const newsMap = await newsScoresForUniverse(universe).catch(() => new Map<string, NewsScore>());
   const rows: SignalRow[] = [];
   let failed = 0;
 
@@ -285,7 +314,7 @@ async function runScan(): Promise<SignalsScan> {
       const stock = candidates[cursor++];
       try {
         const chart = await fetchStockChart(stock.ticker, "1Y");
-        const row = computeSignalRow(stock, chart, { bySector, market });
+        const row = computeSignalRow(stock, chart, { bySector, market }, newsMap.get(stock.ticker) ?? null);
         if (row) rows.push(row);
         else failed++;
       } catch {
@@ -309,7 +338,8 @@ export function scanSignals(): Promise<SignalsScan> {
   return cached("signals-scan", SCAN_TTL, runScan);
 }
 
-/** Single-stock rating for the AI agent's `technicals` tool. */
+/** Single-stock rating for the AI agent's `technicals` tool and the
+ *  company page composite signal card (TA + FA + news). */
 export async function signalForTicker(tickerRaw: string): Promise<SignalRow | null> {
   const t = tickerRaw.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const universe = await fetchUniverse();
@@ -317,10 +347,16 @@ export async function signalForTicker(tickerRaw: string): Promise<SignalRow | nu
   if (!stock) return null;
   try {
     const chart = await fetchStockChart(t, "1Y");
-    return computeSignalRow(stock, chart, {
-      bySector: sectorStatsMap(universe),
-      market: marketStats(universe),
-    });
+    const news = await newsScoreForTicker(stock.ticker, stock.name).catch(() => null);
+    return computeSignalRow(
+      stock,
+      chart,
+      {
+        bySector: sectorStatsMap(universe),
+        market: marketStats(universe),
+      },
+      news
+    );
   } catch {
     return null;
   }

@@ -256,8 +256,9 @@ export async function queryNews(page: number, limit: number): Promise<{ total: n
 
 /** Egyptian publishers write company names in Arabic — map the most
  *  talked-about EGX tickers to their common Arabic names/brands so
- *  related-news matching works across languages. Factual public names. */
-const AR_ALIASES: Record<string, string[]> = {
+ *  related-news matching works across languages. Factual public names.
+ *  (Exported for the T32 news-signal scorer, which reuses the same map.) */
+export const AR_ALIASES: Record<string, string[]> = {
   COMI: ["التجاري الدولي", "CIB"],
   TMGH: ["طلعت مصطفى"],
   HRHO: ["إي إف جي", "هيرميس", "EFG"],

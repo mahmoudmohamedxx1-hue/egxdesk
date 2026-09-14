@@ -3,11 +3,13 @@ import { scanSignals } from "@/lib/signals-scan";
 import { fetchUniverse } from "@/lib/market";
 
 /** GET /api/signals — the cross-market COMPOSITE scan, ranked best-to-worst
- *  by 55% technical + 45% fundamental. Technical fields are computed from
- *  daily candles (scan cached ~1h, pre-warmed at boot); fundamental fields
- *  from the TradingView scanner snapshot with sector medians; the quote
- *  block (close/change/volume) is merged FRESH from the universe snapshot so
- *  the tab never shows an hour-old price. */
+ *  by 45% technical + 30% fundamental + 25% news. Technical fields are
+ *  computed from daily candles (scan cached ~1h, pre-warmed at boot);
+ *  fundamental fields from the TradingView scanner snapshot with sector
+ *  medians; the news pillar from a rule-based lexicon over the last 14
+ *  days of the archived Egyptian press; the quote block (close/change/
+ *  volume) is merged FRESH from the universe snapshot so the tab never
+ *  shows an hour-old price. */
 
 export async function GET() {
   try {
@@ -36,8 +38,8 @@ export async function GET() {
         scanned: scan.scanned,
         failed: scan.failed,
         rows,
-        source: "Yahoo Finance 1Y daily candles + TradingView universe (delayed ~15 min)",
-        note: "Composite rating = 55% technical (13 indicators: SMA/EMA/RSI/Stoch/MACD/CCI/Momentum/Williams%R/BBPower) + 45% fundamental (P/E & P/B vs sector medians, ROE, net margin, debt/equity, dividend yield & payout). Statistical description of price action and reported financials, not investment advice.",
+        source: "Yahoo Finance 1Y daily candles + TradingView universe (delayed ~15 min) + Alborsaanews/Amwal Alghad press archive",
+        note: "Composite rating = 45% technical (13 indicators: SMA/EMA/RSI/Stoch/MACD/CCI/Momentum/Williams%R/BBPower) + 30% fundamental (P/E & P/B vs sector medians, ROE, net margin, debt/equity, dividend yield & payout) + 25% news (rule-based lexicon over 14 days of press, recency-weighted). Missing pillars renormalize honestly. Statistical description of price action, reported financials and press tone, not investment advice.",
       },
       { headers: { "Cache-Control": "no-store" } }
     );

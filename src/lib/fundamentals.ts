@@ -276,3 +276,37 @@ export function compositeScores(tech: number, fund: number | null): { composite:
   if (fund === null) return { composite: Number(tech.toFixed(3)), fundWeight: 0 };
   return { composite: Number((0.55 * tech + 0.45 * fund).toFixed(3)), fundWeight: 0.45 };
 }
+
+/** T32 — three-pillar composite: TECHNICAL + FUNDAMENTAL + NEWS.
+ *
+ *  Base blend 45% TA / 30% FA / 25% news. The news pillar is deliberately
+ *  capped at 25% (a rule-based lexicon over 14 days of press — real, but
+ *  noisier than price or reported financials) and its weight is NEVER
+ *  inflated by a missing fundamental pillar: when fundamentals are null
+ *  their 30% goes to the technical half (75/25), not to news. Missing news
+ *  falls back to the T31 55/45 blend; both missing = pure technical. */
+export function compositeScores3(
+  tech: number,
+  fund: number | null,
+  news: number | null
+): { composite: number; fundWeight: number; newsWeight: number } {
+  if (fund === null && news === null)
+    return { composite: Number(tech.toFixed(3)), fundWeight: 0, newsWeight: 0 };
+  if (news === null)
+    return {
+      composite: Number((0.55 * tech + 0.45 * (fund ?? 0)).toFixed(3)),
+      fundWeight: 0.45,
+      newsWeight: 0,
+    };
+  if (fund === null)
+    return {
+      composite: Number((0.75 * tech + 0.25 * news).toFixed(3)),
+      fundWeight: 0,
+      newsWeight: 0.25,
+    };
+  return {
+    composite: Number((0.45 * tech + 0.3 * fund + 0.25 * news).toFixed(3)),
+    fundWeight: 0.3,
+    newsWeight: 0.25,
+  };
+}

@@ -1,10 +1,10 @@
 "use client";
 
 /** Signals tab — "the best signals across the stocks": one ranked table of
- *  the whole EGX universe by the COMPOSITE rating (55% technical +
- *  45% fundamental), with a market-bias summary, the strongest
+ *  the whole EGX universe by the COMPOSITE rating (45% technical +
+ *  30% fundamental + 25% news), with a market-bias summary, the strongest
  *  bullish/bearish call-outs, lens switching (composite / technical /
- *  fundamental), rating filters, search and CSV.
+ *  fundamental / news), rating filters, search and CSV.
  *  Arabic-first, honest labeling, one tap into the stock's panels. */
 
 import { useEffect, useMemo, useState } from "react";
@@ -26,7 +26,7 @@ type SignalsResponse = SignalsScan & {
   note?: string;
 };
 
-type Lens = "composite" | "tech" | "fund";
+type Lens = "composite" | "tech" | "fund" | "news";
 
 const RATING_LABEL: Record<Rating, { ar: string; en: string }> = {
   strongBuy: T.techStrongBuy,
@@ -72,12 +72,28 @@ function RatingBadgeL({ rating, lang }: { rating: Rating; lang: "ar" | "en" }) {
   );
 }
 
-/** Compact colored T/F score cell. */
+/** Compact colored T/F/N score cell. */
 function ScoreCell({ score }: { score: number | null }) {
   if (score === null) return <span className="num text-[10px] text-muted-foreground">—</span>;
   return (
     <span className={`num text-[10px] font-semibold ${score > 0.1 ? "text-up" : score < -0.1 ? "text-down" : "text-muted-foreground"}`}>
       {fmtNum(score, 2)}
+    </span>
+  );
+}
+
+/** News count cell: bull/bear attributed articles in the 14-day window
+ *  (colored by the net direction; muted when no coverage). */
+function NewsCountCell({ r }: { r: SignalRow }) {
+  if (r.newsCount === 0) return <span className="num text-[10px] text-muted-foreground">—</span>;
+  const net = r.newsBull - r.newsBear;
+  const title = (r.newsReasons ?? []).slice(0, 2).join(" · ");
+  return (
+    <span
+      title={title}
+      className={`num text-[10px] font-semibold ${net > 0 ? "text-up" : net < 0 ? "text-down" : "text-muted-foreground"}`}
+    >
+      {r.newsBull}↑ {r.newsBear}↓
     </span>
   );
 }
@@ -132,6 +148,7 @@ function HighlightCard({
   onOpen: () => void;
 }) {
   const fundReasons = (lang === "ar" ? r.fundReasonsAr : r.fundReasons) ?? [];
+  const newsReasons = (lang === "ar" ? r.newsReasonsAr : r.newsReasons) ?? [];
   return (
     <button
       onClick={onOpen}
@@ -161,8 +178,13 @@ function HighlightCard({
       </div>
       <div className="flex flex-wrap gap-1.5 items-center">
         {pillarChips(r, lang)}
-        {fundReasons.slice(0, 3).map((c) => (
+        {fundReasons.slice(0, 2).map((c) => (
           <span key={c} className="num rounded-sm bg-secondary/70 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            {c}
+          </span>
+        ))}
+        {newsReasons.slice(0, 1).map((c) => (
+          <span key={c} className="num rounded-sm bg-accent px-1.5 py-0.5 text-[10px] text-muted-foreground">
             {c}
           </span>
         ))}
@@ -171,7 +193,8 @@ function HighlightCard({
         {fmtNum(r.close)} EGP · <span className={directionClass(r.changePct)}>{fmtPct(r.changePct)}</span> ·{" "}
         {tt(T.signalsColScore, lang)} {fmtNum(r.composite, 2)}{" "}
         <span className="text-muted-foreground/70">
-          (T {fmtNum(r.score, 2)} · F {r.fundScore !== null ? fmtNum(r.fundScore, 2) : "—"})
+          (T {fmtNum(r.score, 2)} · F {r.fundScore !== null ? fmtNum(r.fundScore, 2) : "—"} · N{" "}
+          {r.newsScore !== null ? fmtNum(r.newsScore, 2) : "—"})
         </span>
       </p>
     </button>
@@ -195,7 +218,7 @@ export function SignalsView() {
       setMode(m);
     }
     const l = bootParam("lens");
-    if (l === "composite" || l === "tech" || l === "fund") setLens(l);
+    if (l === "composite" || l === "tech" || l === "fund" || l === "news") setLens(l);
     const d = bootParam("dir");
     if (d === "bull" || d === "bear") setDir(d);
     const r = bootParam("rating");
@@ -215,15 +238,17 @@ export function SignalsView() {
     const counts: Record<Rating, number> = { strongBuy: 0, buy: 0, neutral: 0, sell: 0, strongSell: 0 };
     let sum = 0;
     let fundCovered = 0;
+    let newsCovered = 0;
     for (const r of data.rows) {
       counts[r.compositeRating]++;
       sum += r.composite;
       if (r.fundScore !== null) fundCovered++;
+      if (r.newsCount > 0) newsCovered++;
     }
     const avg = data.rows.length ? sum / data.rows.length : 0;
     const bull = counts.strongBuy + counts.buy;
     const bear = counts.strongSell + counts.sell;
-    return { counts, avg, bull, bear, total: data.rows.length, fundCovered };
+    return { counts, avg, bull, bear, total: data.rows.length, fundCovered, newsCovered };
   }, [data]);
 
   const rows = useMemo(() => {
@@ -240,7 +265,8 @@ export function SignalsView() {
           (ar && r.nameAr.includes(q.trim()))
       );
     }
-    const key = (r: SignalRow) => (lens === "tech" ? r.score : lens === "fund" ? (r.fundScore ?? -2) : r.composite);
+    const key = (r: SignalRow) =>
+      lens === "tech" ? r.score : lens === "fund" ? (r.fundScore ?? -2) : lens === "news" ? (r.newsScore ?? -2) : r.composite;
     return [...list].sort((a, b) => (dir === "bull" ? key(b) - key(a) : key(a) - key(b)));
   }, [data, filter, q, dir, lens]);
 
@@ -248,22 +274,25 @@ export function SignalsView() {
     if (!data?.rows.length) return;
     const headers = [
       "#", "ticker", "name (ar)", "sector (ar)", "close EGP", "day %",
-      "composite rating", "composite score", "technical score", "fundamental score",
+      "composite rating", "composite score", "technical score", "fundamental score", "news score",
+      "news articles 14d", "news bullish", "news bearish",
       "valuation", "quality", "income", "fundamental coverage",
       "P/E", "P/B", "ROE %", "net margin %", "D/E", "div yield %",
       "buy", "neutral", "sell", "RSI", "MACD hist", "SMA50", "SMA200",
       "above SMA50", "above SMA200", "52w position %", "vol x avg", "perf 1M %", "perf 6M %", "perf YTD %", "next earnings",
-      "fundamental reasons",
+      "fundamental reasons", "news reasons",
     ];
     downloadCsv(`egx-signals-${fileStamp()}`, headers, data.rows.map((r, i) => [
       i + 1, r.ticker, r.nameAr, r.sectorAr, r.close, r.changePct,
-      r.compositeRating, r.composite, r.score, r.fundScore ?? "",
+      r.compositeRating, r.composite, r.score, r.fundScore ?? "", r.newsScore ?? "",
+      r.newsCount, r.newsBull, r.newsBear,
       r.valuation ?? "", r.quality ?? "", r.income ?? "", r.fundCoverage,
       r.pe ?? "", r.pb ?? "", r.roe ?? "", r.netMarginTTM ?? "", r.debtToEquity ?? "", r.divYield ?? "",
       r.buy, r.neutral, r.sell, r.rsi, r.macdHist, r.sma50, r.sma200,
       r.sma50Sig === "buy" ? 1 : 0, r.sma200Sig === "buy" ? 1 : 0, r.pos52, r.volRatio,
       r.perf1M, r.perf6M, r.perfYTD, r.nextEarnings ?? "",
       (r.fundReasons ?? []).join(" | "),
+      (r.newsReasons ?? []).join(" | "),
     ]));
     toast(tt(T.signalsCsvDone, lang));
   };
@@ -290,7 +319,7 @@ export function SignalsView() {
   }
 
   const lensScore = (r: SignalRow): number | null =>
-    lens === "tech" ? r.score : lens === "fund" ? r.fundScore : r.composite;
+    lens === "tech" ? r.score : lens === "fund" ? r.fundScore : lens === "news" ? r.newsScore : r.composite;
 
   return (
     <div className="space-y-5">
@@ -416,7 +445,7 @@ export function SignalsView() {
                 </button>
               ))}
               <span className="num text-[10px] text-muted-foreground/80 ms-1">
-                {stats.fundCovered}/{stats.total} {tt(T.signalsColFund, lang)}
+                {stats.fundCovered}/{stats.total} {tt(T.signalsColFund, lang)} · {stats.newsCovered}/{stats.total} {tt(T.signalsNewsCovered, lang)}
               </span>
             </div>
           </section>
@@ -455,6 +484,7 @@ export function SignalsView() {
             ["composite", T.signalsLensComposite],
             ["tech", T.signalsLensTech],
             ["fund", T.signalsLensFund],
+            ["news", T.signalsLensNews],
           ] as const).map(([key, label]) => (
             <button
               key={key}
@@ -511,6 +541,8 @@ export function SignalsView() {
                 <th className="text-start font-medium px-2 py-2">{tt(T.signalsColScore, lang)}</th>
                 <th className="text-end font-medium px-2 py-2" title={tt(T.signalsLensTech, lang)}>T</th>
                 <th className="text-end font-medium px-2 py-2" title={tt(T.signalsLensFund, lang)}>F</th>
+                <th className="text-end font-medium px-2 py-2" title={tt(T.signalsLensNews, lang)}>N</th>
+                <th className="text-end font-medium px-2 py-2 hidden lg:table-cell">{tt(T.signalsColNews, lang)}<span className="text-[9px] text-muted-foreground"> 14d</span></th>
                 <th className="text-end font-medium px-2 py-2">{tt(T.signalsColPe, lang)}</th>
                 <th className="text-end font-medium px-2 py-2">{tt(T.signalsColRoe, lang)}</th>
                 <th className="text-end font-medium px-2 py-2 hidden lg:table-cell">{tt(T.signalsColDiv, lang)}</th>
@@ -551,6 +583,8 @@ export function SignalsView() {
                   </td>
                   <td className="px-2 py-2 text-end"><ScoreCell score={r.score} /></td>
                   <td className="px-2 py-2 text-end"><ScoreCell score={r.fundScore} /></td>
+                  <td className="px-2 py-2 text-end"><ScoreCell score={r.newsScore} /></td>
+                  <td className="px-2 py-2 text-end hidden lg:table-cell"><NewsCountCell r={r} /></td>
                   <td
                     className={`num px-2 py-2 text-end ${
                       r.pe === null ? "text-muted-foreground" : r.pe <= 0 ? "text-down" : ""
@@ -589,7 +623,7 @@ export function SignalsView() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={15} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={17} className="px-3 py-6 text-center text-muted-foreground">
                     {tt(T.signalsEmptyFilter, lang)}
                   </td>
                 </tr>

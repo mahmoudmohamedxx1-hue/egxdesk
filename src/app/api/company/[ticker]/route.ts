@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, fetchNews, relatedNews, sectorAr, sectorCode, companyRow, sessionMeta, type Stock } from "@/lib/market";
 import { ensureNewsArchive, relatedNewsArchive, companyDisclosures } from "@/lib/news-archive";
 import { computeSignals } from "@/lib/signals";
+import { signalForTicker } from "@/lib/signals-scan";
 import { arCompanySector } from "@/lib/ar-names";
 
 function median(vals: number[]): number | null {
@@ -14,7 +15,9 @@ function median(vals: number[]): number | null {
 /** GET /api/company/[ticker] — live company page payload:
  *  quote, real fundamentals, performance horizons, sector medians,
  *  same-sector peers, related news, computed signals, press-disclosure log,
- *  and whether per-period statements are published for this ticker. */
+ *  whether per-period statements are published for this ticker, and the
+ *  T32 COMPOSITE SIGNAL (technical + fundamental + news pillars blended
+ *  45/30/25 with honest renormalization). */
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ ticker: string }> }
@@ -53,10 +56,11 @@ export async function GET(
     };
 
     const c: Stock = company;
-    const [archived, disclosures, signals] = await Promise.all([
+    const [archived, disclosures, signals, composite] = await Promise.all([
       relatedNewsArchive(t, c.name, 6).catch(() => []),
       companyDisclosures(t, c.name, 12).catch(() => []),
       computeSignals(c),
+      signalForTicker(t).catch(() => null),
     ]);
     return NextResponse.json({
       session: sessionMeta(),
@@ -79,6 +83,7 @@ export async function GET(
       news: archived.length > 0 ? archived : relatedNews(c, news, 6),
       disclosures,
       signals,
+      composite,
     });
   } catch {
     return NextResponse.json({ error: "market data unavailable" }, { status: 502 });
