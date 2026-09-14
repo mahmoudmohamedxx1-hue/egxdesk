@@ -978,14 +978,14 @@ export function AgentView() {
           </Button>
           {/* the official EGXDesk mark+wordmark (logo for this theme) */}
           <img
-            src="/logo.png"
+            src="/logo.png?v=224"
             alt="EGX Desk"
             width={35}
             height={28}
             className="h-6 w-auto sm:h-[28px] dark:hidden"
           />
           <img
-            src="/logo-dark.png"
+            src="/logo-dark.png?v=224"
             alt="EGX Desk"
             width={35}
             height={28}

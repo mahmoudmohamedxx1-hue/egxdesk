@@ -25,17 +25,21 @@ const plexSans = IBM_Plex_Sans({
 /* Task 22-b — the serif voice of the AI answers (the Claude-look): Lora is
  * the Latin serif (closest open equivalent of Claude's Tiempos), Amiri is
  * the classic Naskh serif for Arabic answers. Font fallback is per-glyph,
- * so a mixed Arabic/Latin answer sets each script in its own serif. */
+ * so a mixed Arabic/Latin answer sets each script in its own serif.
+ * T34: preload:false — they only typeset AI chat answers (lazy-mounted now),
+ * so ~500KB of font preloads no longer compete with the first load. */
 const lora = Lora({
   variable: "--font-lora",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 
 const amiri = Amiri({
   variable: "--font-amiri",
   subsets: ["arabic"],
   weight: ["400", "700"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -60,12 +64,12 @@ export const metadata: Metadata = {
       // keep showing the old full-logo icon after the mark-only redesign.
       // favicon-32 + src/app/favicon.ico (auto-served at /favicon.ico) fix
       // the tab icon on browsers that specifically request the .ico file.
-      { url: "/favicon-32.png?v=218", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png?v=218", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png?v=218", sizes: "512x512", type: "image/png" },
+      { url: "/favicon-32.png?v=224", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png?v=224", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png?v=224", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: ["/favicon-32.png?v=218"],
-    apple: [{ url: "/apple-touch-icon.png?v=218" }],
+    shortcut: ["/favicon-32.png?v=224"],
+    apple: [{ url: "/apple-touch-icon.png?v=224" }],
   },
 };
 

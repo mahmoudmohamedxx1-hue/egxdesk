@@ -107,11 +107,12 @@ function answerSystemPrompt(lang: Lang, tool: string, args: Record<string, unkno
   ].join("\n");
 }
 
-export function AiAssistant() {
+export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   const { lang, setLang, view, navigate, toggleWatch, watch, alerts, addAlert, removeAlert, toast } = useApp();
   const { setTheme } = useTheme();
 
-  const [open, setOpen] = useState(false);
+  // T34 — open state is CONTROLLED by the lazy wrapper (ai-assistant-lazy.tsx)
+  // so the heavy panel + framer-motion only mount on first open.
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState<null | "think" | "run" | "answer">(null);
@@ -143,19 +144,17 @@ export function AiAssistant() {
     } catch {}
   }, []);
 
-  // ── keyboard: Ctrl/Cmd+K toggles, Escape closes ──
+  // ── keyboard: Escape closes (Ctrl/Cmd+K lives in the lazy wrapper — one
+  //  listener site, no double-toggle races between wrapper and panel) ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((o) => !o);
-      } else if (e.key === "Escape" && open) {
+      if (e.key === "Escape" && open) {
         setOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, setOpen]);
 
   // focus the composer when the panel opens
   useEffect(() => {

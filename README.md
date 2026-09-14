@@ -9,7 +9,7 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.23-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.24-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
 [![Tests](https://img.shields.io/badge/tests-11%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
@@ -117,6 +117,21 @@ disclosure archive), the UI says so instead of faking it.
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS + shadcn/ui · Prisma + SQLite ·
 z-ai-web-dev-sdk (GLM) · Puter.js (free cloud models) · PWA service worker (offline shell, install,
 web push) · Recharts + custom canvas charting · 841-key Arabic/English i18n with RTL-correct layouts.
+
+## Performance — fast first load (v2.24)
+
+The desk opens fast on any connection, by construction:
+
+- **Per-view code splitting** — all 22 views are lazy chunks; the first page load ships the shell + the
+  active view only (recharts, the markdown renderer and framer-motion used to ship with every load).
+- **Idle prefetch** — after first paint the remaining view chunks warm one-per-idle-slot (data-saver
+  users exempt), so navigation stays instant without paying the cost up front.
+- **Lazy AI assistant** — the 875-line agentic panel (+ animation + markdown stack) mounts on first
+  Ctrl+K / orb click instead of every page load.
+- **Asset diet** — header logo PNGs re-encoded from 1.5MB each to ~5KB (4× retina), PWA icons
+  optimized, AI-answer serif fonts (Lora/Amiri) no longer preloaded (~900KB off the critical path).
+- **Lighter service worker** — screenshots dropped from the install precache; versioned logo URLs
+  retire old caches on activate.
 
 ## Quick start
 

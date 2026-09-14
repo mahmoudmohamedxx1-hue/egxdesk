@@ -16,20 +16,21 @@
  *  - VERSION bump on every release so installed apps pick the new shell on
  *    their next launch (skipWaiting + clients.claim apply it immediately). */
 
-const VERSION = "egx-desk-v19";
+const VERSION = "egx-desk-v20";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 
 const SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
-  "/logo.png",
-  "/logo-dark.png",
+  // T34 — versioned URLs so installed apps drop the old 1.5MB logos from
+  // cache the moment this SW activates (new version prefix = new cache)
+  "/logo.png?v=224",
+  "/logo-dark.png?v=224",
   "/icon-192.png",
   "/icon-512.png",
-  "/icon-512-maskable.png",
-  "/screenshot-wide.png",
-  "/screenshot-narrow.png",
+  // screenshots dropped from precache (T34): they are only read by app
+  // stores from the manifest, never by the page — 240KB of install cost cut
 ];
 
 self.addEventListener("install", (event) => {
@@ -103,7 +104,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Icons & other static assets: cache-first (immutable)
-  if (url.pathname.startsWith("/icon-") || url.pathname.startsWith("/logo") || url.pathname.startsWith("/robots")) {
+  if (url.pathname.startsWith("/icon-") || url.pathname.startsWith("/logo") || url.pathname.startsWith("/favicon") || url.pathname.startsWith("/robots")) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(STATIC_CACHE);

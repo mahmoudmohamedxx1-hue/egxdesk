@@ -6,31 +6,12 @@ import { HeaderSearch } from "./header-search";
 import { AlertsBell } from "./alerts-panel";
 import { PwaRegister, InstallButton } from "./pwa-register";
 import { ShareButton } from "./share-button";
-import { OverviewView } from "@/components/views/overview-view";
-import { MarketView } from "@/components/views/market-view";
-import { ScreenerView } from "@/components/views/screener-view";
-import { SectorsView } from "@/components/views/sectors-view";
-import { HeatView } from "@/components/views/heat-view";
-import { ActivityView } from "@/components/views/activity-view";
-import { InvestorsView } from "@/components/views/investors-view";
-import { NewsView } from "@/components/views/news-view";
-import { WatchlistView } from "@/components/views/watchlist-view";
-import { ToolsView } from "@/components/views/tools-view";
-import { CompanyView } from "@/components/views/company-view";
-import { ExchangeView } from "@/components/views/exchange-view";
-import { CalendarView } from "@/components/views/calendar-view";
-import { CompareView } from "@/components/views/compare-view";
-import { ApiDocsView } from "@/components/views/api-docs-view";
-import { SignalsView } from "@/components/views/signals-view";
-import { StrategyLabView } from "@/components/views/strategy-lab-view";
-import { FundsView } from "@/components/views/funds-view";
-import { AgentView } from "@/components/views/agent-view";
-import { ReportsView } from "@/components/views/reports-view";
-import { GccView } from "@/components/views/gcc-view";
-import { PaperView } from "@/components/views/paper-view";
-import { AiAssistant } from "@/components/market/ai-assistant";
+import { AiAssistantLazy } from "./ai-assistant-lazy";
+import dynamic from "next/dynamic";
+import { useEffect } from "react";
 import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +27,97 @@ import {
   Newspaper, NotebookPen, ListChecks, Wrench, Bot, Globe2, LineChart,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect } from "react";
+
+/* T34 — FAST LOAD: the 22 views used to ship in ONE ~1.7MB chunk (every
+ * screen + recharts + markdown + framer-motion downloaded before anything
+ * painted). Every view is now its own lazy chunk: the first load ships only
+ * the shell + the ACTIVE view, and the rest are warmed in idle time after
+ * first paint (staggered, saveData-aware) so navigation stays instant —
+ * download later, never wait later. */
+
+const ViewBoot = () => (
+  <div className="space-y-4" aria-busy="true">
+    <Skeleton className="h-8 w-64" />
+    <div className="grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}</div>
+    <Skeleton className="h-40" />
+  </div>
+);
+
+const OverviewView = dynamic(() => import("@/components/views/overview-view").then((m) => ({ default: m.OverviewView })), { loading: ViewBoot });
+const MarketView = dynamic(() => import("@/components/views/market-view").then((m) => ({ default: m.MarketView })), { loading: ViewBoot });
+const ScreenerView = dynamic(() => import("@/components/views/screener-view").then((m) => ({ default: m.ScreenerView })), { loading: ViewBoot });
+const SectorsView = dynamic(() => import("@/components/views/sectors-view").then((m) => ({ default: m.SectorsView })), { loading: ViewBoot });
+const HeatView = dynamic(() => import("@/components/views/heat-view").then((m) => ({ default: m.HeatView })), { loading: ViewBoot });
+const ActivityView = dynamic(() => import("@/components/views/activity-view").then((m) => ({ default: m.ActivityView })), { loading: ViewBoot });
+const InvestorsView = dynamic(() => import("@/components/views/investors-view").then((m) => ({ default: m.InvestorsView })), { loading: ViewBoot });
+const NewsView = dynamic(() => import("@/components/views/news-view").then((m) => ({ default: m.NewsView })), { loading: ViewBoot });
+const WatchlistView = dynamic(() => import("@/components/views/watchlist-view").then((m) => ({ default: m.WatchlistView })), { loading: ViewBoot });
+const ToolsView = dynamic(() => import("@/components/views/tools-view").then((m) => ({ default: m.ToolsView })), { loading: ViewBoot });
+const CompanyView = dynamic(() => import("@/components/views/company-view").then((m) => ({ default: m.CompanyView })), { loading: ViewBoot });
+const ExchangeView = dynamic(() => import("@/components/views/exchange-view").then((m) => ({ default: m.ExchangeView })), { loading: ViewBoot });
+const CalendarView = dynamic(() => import("@/components/views/calendar-view").then((m) => ({ default: m.CalendarView })), { loading: ViewBoot });
+const CompareView = dynamic(() => import("@/components/views/compare-view").then((m) => ({ default: m.CompareView })), { loading: ViewBoot });
+const ApiDocsView = dynamic(() => import("@/components/views/api-docs-view").then((m) => ({ default: m.ApiDocsView })), { loading: ViewBoot });
+const SignalsView = dynamic(() => import("@/components/views/signals-view").then((m) => ({ default: m.SignalsView })), { loading: ViewBoot });
+const StrategyLabView = dynamic(() => import("@/components/views/strategy-lab-view").then((m) => ({ default: m.StrategyLabView })), { loading: ViewBoot });
+const FundsView = dynamic(() => import("@/components/views/funds-view").then((m) => ({ default: m.FundsView })), { loading: ViewBoot });
+const AgentView = dynamic(() => import("@/components/views/agent-view").then((m) => ({ default: m.AgentView })), { loading: () => <div className="h-dvh bg-background" aria-busy="true" /> });
+const ReportsView = dynamic(() => import("@/components/views/reports-view").then((m) => ({ default: m.ReportsView })), { loading: ViewBoot });
+const GccView = dynamic(() => import("@/components/views/gcc-view").then((m) => ({ default: m.GccView })), { loading: ViewBoot });
+const PaperView = dynamic(() => import("@/components/views/paper-view").then((m) => ({ default: m.PaperView })), { loading: ViewBoot });
+
+/* The same import specifiers the dynamic() loaders use — firing one in idle
+ * time warms exactly the chunk dynamic() will need, without rendering it. */
+const VIEW_IMPORTS: { name: string; load: () => Promise<unknown> }[] = [
+  { name: "market", load: () => import("@/components/views/market-view") },
+  { name: "screener", load: () => import("@/components/views/screener-view") },
+  { name: "signals", load: () => import("@/components/views/signals-view") },
+  { name: "today", load: () => import("@/components/views/news-view") },
+  { name: "company", load: () => import("@/components/views/company-view") },
+  { name: "agent", load: () => import("@/components/views/agent-view") },
+  { name: "watchlist", load: () => import("@/components/views/watchlist-view") },
+  { name: "heat", load: () => import("@/components/views/heat-view") },
+  { name: "sectors", load: () => import("@/components/views/sectors-view") },
+  { name: "calendar", load: () => import("@/components/views/calendar-view") },
+  { name: "tools", load: () => import("@/components/views/tools-view") },
+  { name: "compare", load: () => import("@/components/views/compare-view") },
+  { name: "exchange", load: () => import("@/components/views/exchange-view") },
+  { name: "activity", load: () => import("@/components/views/activity-view") },
+  { name: "investors", load: () => import("@/components/views/investors-view") },
+  { name: "funds", load: () => import("@/components/views/funds-view") },
+  { name: "gcc", load: () => import("@/components/views/gcc-view") },
+  { name: "lab", load: () => import("@/components/views/strategy-lab-view") },
+  { name: "reports", load: () => import("@/components/views/reports-view") },
+  { name: "paper", load: () => import("@/components/views/paper-view") },
+  { name: "api", load: () => import("@/components/views/api-docs-view") },
+];
+
+/** Warm the not-yet-loaded view chunks AFTER first paint, one per idle slot
+ *  (direct-nav surfaces first). Skipped entirely when the user has data-saver
+ *  on — their bytes are theirs. Identical imports dedupe with dynamic(), so
+ *  this only ever downloads each chunk once. */
+function useIdleViewPrefetch(activeView: string) {
+  useEffect(() => {
+    try {
+      const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
+      if (nav.connection?.saveData) return;
+    } catch {}
+    const ric =
+      (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback ??
+      ((cb: () => void) => window.setTimeout(cb, 250));
+    const order = VIEW_IMPORTS.filter((v) => v.name !== activeView);
+    let i = 0;
+    const step = () => {
+      const next = order[i++];
+      if (!next) return;
+      void next.load().catch(() => {});
+      if (i < order.length) ric(step, { timeout: 4000 });
+    };
+    ric(step, { timeout: 3000 });
+    // no cleanup on purpose: AppShell never unmounts, and a duplicated import
+    // just resolves to the same cached module promise
+  }, [activeView]);
+}
 
 /** T27 — the header tabs, rebuilt as a compact grouped navigation
  *  (TradingView-style): direct tabs for the daily drivers + grouped
@@ -118,6 +189,8 @@ function groupActive(group: NavGroup, current: string): boolean {
 export function AppShell() {
   const { lang, setLang, view, navigate, status } = useApp();
   const { theme, setTheme } = useTheme();
+  // T34 — warm the other view chunks in idle time (after first paint)
+  useIdleViewPrefetch(view.name);
 
   // One-time theme migration: the old default was LIGHT and next-themes
   // auto-stored it for visitors who never explicitly chose a theme. Dark is
@@ -151,8 +224,10 @@ export function AppShell() {
       {/* G14 — service-worker registration (app shell cache; API never cached) */}
       <PwaRegister />
       {/* T28 — the floating AI assistant popup (Ctrl+K): executes any site
-          action + free model switcher (Instant / Cloud GLM / Puter cloud) */}
-      <AiAssistant />
+          action + free model switcher (Instant / Cloud GLM / Puter cloud).
+          T34: mounted lazily on first open — framer-motion + the markdown
+          renderer no longer ship with every first page load. */}
+      <AiAssistantLazy />
       {/* header */}
       <header className="border-b bg-card sticky top-0 z-40">
         <div className="mx-auto max-w-6xl px-4">
@@ -162,8 +237,8 @@ export function AppShell() {
               <button onClick={() => navigate("home")} className="flex items-center shrink-0" aria-label="EGX Desk home">
                 {/* the official EGXDesk mark+wordmark (from the supplied artwork,
                     checkerboard removed, cropped to logo+text) — one file per theme */}
-                <img src="/logo.png" alt="EGX Desk" width={38} height={30} className="h-[30px] w-auto dark:hidden" />
-                <img src="/logo-dark.png" alt="EGX Desk" width={38} height={30} className="hidden h-[30px] w-auto dark:block" />
+                <img src="/logo.png?v=224" alt="EGX Desk" width={38} height={30} className="h-[30px] w-auto dark:hidden" />
+                <img src="/logo-dark.png?v=224" alt="EGX Desk" width={38} height={30} className="hidden h-[30px] w-auto dark:block" />
               </button>
               <span className="hidden sm:block text-[11px] text-muted-foreground border-s ps-3 leading-snug">
                 {tt(T.tagline, lang)}
@@ -365,8 +440,8 @@ export function AppShell() {
       <footer className="mt-auto border-t bg-card">
         <div className="mx-auto max-w-6xl px-4 py-5 text-xs text-muted-foreground leading-relaxed">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <img src="/logo.png" alt="EGX Desk" width={27} height={22} className="h-[22px] w-auto dark:hidden" />
-            <img src="/logo-dark.png" alt="EGX Desk" width={27} height={22} className="hidden h-[22px] w-auto dark:block" />
+            <img src="/logo.png?v=224" alt="EGX Desk" width={27} height={22} className="h-[22px] w-auto dark:hidden" />
+            <img src="/logo-dark.png?v=224" alt="EGX Desk" width={27} height={22} className="hidden h-[22px] w-auto dark:block" />
             <button
               onClick={() => navigate("api")}
               className="ms-auto text-[11px] hover:text-primary hover:underline"
