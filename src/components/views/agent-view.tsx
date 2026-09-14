@@ -361,6 +361,7 @@ export function AgentView() {
     try {
       let corrections = 0;
       let answered = false;
+      const seenCalls = new Set<string>(); // T36 — duplicate-tool-call guard
       for (let round = 0; round < 11 && stepsAcc.length < 10; round++) {
         if (puterStopRef.current) break;
         // live preview: decode the {"final": "… body as it streams
@@ -407,6 +408,19 @@ export function AgentView() {
           if (corrections > 2) break;
           continue;
         }
+
+        // T36 — duplicate-call guard: identical tool+args is a loop, not
+        // progress — nudge the model to synthesize from what it already has
+        const callKey = `${toolName}:${JSON.stringify(args)}`;
+        if (seenCalls.has(callKey)) {
+          msgs.push({
+            role: "user",
+            content:
+              'You already called this tool with these EXACT arguments and its result is above in the conversation. Do NOT call it again. Reply NOW with your final answer in the format {"final": "<markdown answer>"} using the data you already have.',
+          });
+          continue;
+        }
+        seenCalls.add(callKey);
 
         // tool execution stays SERVER-side — real data, real rate limits
         setLiveNote(`${label} · ${tt(TOOL_LABELS[toolName] ?? { ar: toolName, en: toolName }, lang)}`);

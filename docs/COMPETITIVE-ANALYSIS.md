@@ -240,3 +240,40 @@ EGX official app & statements (play.google.com 23 Nov 2025; egx.com.eg; business
 Stocktwits (apps; Wikipedia) · paper trading (tradingview.com; schwab.com; webull.com;
 stockbrokers.com) · internal verification logs: `scripts/research/RESEARCH.md`,
 `scripts/research/GAP-ANALYSIS.md`, `worklog.md` Tasks 1–30.
+
+## 11. T36 Addendum — Free-LLM Infrastructure Audit (Sept 2026)
+
+**Context:** the Puter sign-in popup (our 1,008-model gateway) can be blocked
+by popup blockers, Cloudflare Turnstile, or corporate networks. We audited the
+free-LLM-API landscape (awesome-freellm-apis' 31-provider directory, no-cost-ai,
+MetaAI-Hermes, freegenius, free-deep-research, trading-skills) and live-probed
+every keyless candidate to know exactly what works without any sign-in.
+
+**Live-probe results (agent-sized prompts, real stock questions):**
+
+| Provider | Keyless? | Result |
+|---|---|---|
+| **LLM7.io anonymous tier** | ✅ zero auth | **WORKS** — Codestral (~4.5s, exact numbers), Mistral Nemo (~3.6s, qualitative), MiniMax M2.7 (slower, strong Arabic). 10 RPM / 60 req/h shared pool, SSE streaming, 128K-262K contexts |
+| OVHcloud AI Endpoints | ✅ on paper | 429 on every probe — the anonymous 2 RPM pool is globally saturated |
+| Pollinations.ai | ✅ on paper | budget-gated even anonymously; catalog shrank to one model (dead for real prompts) |
+| z-ai gateway | ✅ (our server) | serves GLM-4-Plus only, regardless of requested id — one honest model |
+| g4f.dev / HackClub / Gaia | ✅ on paper | unreachable / 404 / dead |
+| Groq, Gemini, Mistral, Cerebras, HF, OpenRouter free tiers | ❌ need a free API key | strong but require sign-ups + key management — not "open the app and it works" |
+| Puter cloud | free sign-in | 1,008 real models (catalog verified live); the sign-in itself is the single point of failure |
+| MetaAI-Hermes / free2gpt / netfly scrapers | cookie/reverse-eng | fragile, unofficial, ToS-risk — rejected |
+
+**What we shipped (v2.26):** a third model family in the agent — **Keyless
+cloud (LLM7)**: Codestral, Mistral Nemo, MiniMax M2.7 routed server-side
+through the same SSE loop (no CORS constraints, same strict-JSON tool
+protocol, 429 backoff, honest served-model reporting). These work with ZERO
+sign-in — the answer to "Puter can't be signed in". Plus a duplicate-tool-call
+guard (small models used to loop the same tool 10× — now nudged to synthesize)
+and a numbers-are-exact rule in the shared system prompt.
+
+**Strategic read:** EGX Desk now has three resilience tiers for AI: (1) the
+app's own server model, (2) keyless third-party cloud, (3) the 1,008-model
+Puter catalog. No free EGX competitor ships an in-app AI agent at all, let
+alone with model choice. The next infrastructure upgrades worth considering:
+a free LLM7 API key (unlocks their 47-model premium ladder server-side),
+Groq/Gemini free-tier BYOK ("bring your own key" settings row), and a
+WebLLM WASM fallback for offline-only users (explicitly out of scope so far).

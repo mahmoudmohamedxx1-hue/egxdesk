@@ -25,7 +25,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown, Cloud, LogIn, LogOut, Search, Server, Sparkles } from "lucide-react";
+import { Check, ChevronsUpDown, Cloud, LogIn, LogOut, Search, Server, Sparkles, Zap } from "lucide-react";
 
 /** Featured puter ids resolved against the live catalog: if the hardcoded
  *  id is absent, fall back to the best name match (e.g. "gpt-oss-20b") so
@@ -129,6 +129,27 @@ export function ModelSwitcher({
               badge={null}
             />
           ))}
+
+          {/* ── T36 keyless cloud family — no sign-in, no keys, nothing to
+              configure: LLM7.io's anonymous tier, served server-side ── */}
+          {AI_MODELS.filter((m) => m.provider === "llm7").length > 0 && (
+            <>
+              <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {tt(T.aiModelKeylessCat, lang)}
+              </div>
+              {AI_MODELS.filter((m) => m.provider === "llm7").map((m) => (
+                <ModelRow
+                  key={m.id}
+                  active={modelId === m.id}
+                  onClick={() => onModelChange(m.id)}
+                  icon={<Zap className="h-3.5 w-3.5 text-up" aria-hidden />}
+                  title={m.label}
+                  sub={`${tt({ ar: m.noteAr, en: m.note }, lang)}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
+                  badge={null}
+                />
+              ))}
+            </>
+          )}
 
           <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
             {tt(T.aiModelCloudCat, lang)}

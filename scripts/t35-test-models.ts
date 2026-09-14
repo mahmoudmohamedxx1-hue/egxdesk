@@ -27,12 +27,14 @@ function ok(cond: boolean, label: string, extra = "") {
   }
 }
 
-console.log("1) registry shape — 20 curated free cloud models");
+console.log("1) registry shape — 23 curated free cloud models");
 {
   const server = AI_MODELS.filter((m) => m.provider === "zai");
+  const llm7 = AI_MODELS.filter((m) => m.provider === "llm7");
   const puter = AI_MODELS.filter((m) => m.provider === "puter");
-  ok(AI_MODELS.length === 20, "exactly 20 models (1 server + 19 Puter)", `got ${AI_MODELS.length}`);
+  ok(AI_MODELS.length === 23, "exactly 23 models (1 server + 3 keyless LLM7 + 19 Puter)", `got ${AI_MODELS.length}`);
   ok(server.length === 1 && server[0].id === "glm-4-plus", "one honest server model: GLM-4-Plus");
+  ok(llm7.length === 3, "3 KEYLESS LLM7 models (no sign-in!)", `got ${llm7.length}`);
   ok(puter.length === 19, "19 curated Puter families", `got ${puter.length}`);
   ok(DEFAULT_AI_MODEL_ID === "glm-4-plus", "default is the keyless server model");
 }
@@ -60,7 +62,7 @@ console.log("2) registry integrity — ids, prefixes, bilingual notes");
   ok(true, "every entry has consistent id/providerModel + bilingual fields + sane ctx");
 }
 
-console.log("3) GPT-OSS 20B + the T35 additions present and correctly formed");
+console.log("3) GPT-OSS 20B + the T35 additions + the T36 keyless family");
 {
   const oss = findAiModel("puter:openrouter:openai/gpt-oss-20b");
   ok(oss !== null && oss.label === "GPT-OSS 20B", "GPT-OSS 20B (the user's pick) exists");
@@ -73,6 +75,20 @@ console.log("3) GPT-OSS 20B + the T35 additions present and correctly formed");
     "puter:infron:nvidia/llama-3.3-nemotron-super-49b-v1.5",
   ];
   for (const id of additions) ok(findAiModel(id) !== null, `new family registered: ${id}`);
+  const keyless = ["llm7:mistral-Nemo-Instruct-2407", "llm7:codestral-latest", "llm7:minimax-m2.7"];
+  for (const id of keyless) {
+    const m = findAiModel(id);
+    ok(m !== null && m.provider === "llm7", `keyless LLM7 model registered: ${id}`);
+    if (m) ok(m.id === `llm7:${m.providerModel}`, `llm7 id matches providerModel: ${m.id}`);
+  }
+  ok(
+    aiModelLabel("llm7:mistral-Nemo-Instruct-2407") === "Mistral Nemo",
+    "keyless model label resolves",
+  );
+  ok(
+    findAiModel("llm7:gpt-5.6-luna") === null,
+    "premium LLM7 ids NOT registered (keyless-honest registry)",
+  );
 }
 
 console.log("4) lookups — find, honest labels, unknown fallback");

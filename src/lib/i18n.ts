@@ -1212,6 +1212,7 @@ export const T = {
   aiModelInstantDesc: { ar: "بدون نموذج — أوامر فورية على الموقع", en: "No model — instant site commands" },
   aiModelCloud: { ar: "سحابي · GLM-4-Plus", en: "Cloud · GLM-4-Plus" },
   aiModelCloudDesc: { ar: "يعمل في أي متصفح — بدون تحميل", en: "Works in any browser — no download" },
+  aiModelKeylessCat: { ar: "سحابة بلا تسجيل — تعمل فورًا (LLM7)", en: "Keyless cloud — works instantly (LLM7)" },
   aiModelCloudCat: { ar: "نماذج سحابية مجانية (Puter)", en: "Free cloud models (Puter)" },
   aiModelAll: { ar: "كل النماذج", en: "All models" },
   aiModelSearchPh: { ar: "ابحث في النماذج…", en: "Search models…" },
@@ -1228,8 +1229,8 @@ export const T = {
   aiPuterSigninCancelled: { ar: "لم يكتمل الدخول — حاول مجددًا.", en: "Sign-in didn't complete — try again." },
   aiPuterSigninCardTitle: { ar: "نماذج سحابية مجانية — يلزم دخول Puter", en: "Free cloud models — Puter sign-in needed" },
   aiPuterSigninCardBody: {
-    ar: "نماذج Puter السحابية (GPT-OSS 20B و120B، GLM-5.3، Claude، Gemini، Grok…) مجانية تمامًا — بدون بطاقة وبدون مفاتيح — مقابل حصة شهرية خاصتك. اضغط زر الدخول مرة واحدة ثم أعد إرسال رسالتك.\n\nلا تريد التسجيل الآن؟ نموذج الخادم **GLM-4-Plus** يعمل فورًا بلا تسجيل — اختره من قائمة النماذج.",
-    en: "The Puter cloud models (GPT-OSS 20B & 120B, GLM-5.3, Claude, Gemini, Grok…) are fully free — no card, no API keys — against your own monthly allowance. Tap the sign-in button once, then resend your message.\n\nDon't want to sign in? The server model **GLM-4-Plus** always works without any sign-in — pick it from the model menu.",
+    ar: "نماذج Puter السحابية (GPT-OSS 20B و120B، GLM-5.3، Claude، Gemini، Grok…) مجانية تمامًا — بدون بطاقة وبدون مفاتيح — مقابل حصة شهرية خاصتك. اضغط زر الدخول مرة واحدة ثم أعد إرسال رسالتك.\n\nالدخول لا يعمل أو لا تريده الآن؟ نموذج الخادم **GLM-4-Plus** ونماذج **LLM7 بلا تسجيل** (Mistral Nemo / Codestral / MiniMax M2.7) تعمل فورًا من قائمة النماذج.",
+    en: "The Puter cloud models (GPT-OSS 20B & 120B, GLM-5.3, Claude, Gemini, Grok…) are fully free — no card, no API keys — against your own monthly allowance. Tap the sign-in button once, then resend your message.\n\nSign-in not working, or don't want it? The server model **GLM-4-Plus** and the **keyless LLM7 models** (Mistral Nemo / Codestral / MiniMax M2.7) work instantly — pick one from the model menu.",
   },
   aiClearChat: { ar: "مسح المحادثة", en: "Clear chat" },
   aiWhatCanDo: { ar: "ماذا تستطيع أن تفعل؟", en: "What can you do?" },

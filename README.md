@@ -9,7 +9,7 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.25-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.26-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
 [![Tests](https://img.shields.io/badge/tests-12%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
@@ -77,6 +77,7 @@ paper buy/sell/portfolio, language switching.
 
 **Model switching across free online models (agent tab + assistant popup):**
 - **GLM-4-Plus** via the app's own gateway — always on, no sign-in (agent-tab default)
+- **3 KEYLESS cloud models — no sign-in, no key, no card, ever (LLM7.io)** — Codestral (fast, precise numbers), Mistral Nemo (fastest replies), MiniMax M2.7 (strong Arabic). Served server-side through the same SSE agent loop; work even where the Puter popup is blocked
 - **19 curated flagship families, free via the Puter cloud** — GPT-OSS 20B & 120B, GLM-5.3 / 5.3-Flash / 5.2, GPT-5.6 Luna, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4 Pro, Kimi K3, Qwen3-235B, Llama 4 Maverick & Scout, Mistral Large 3, MiniMax M2.5, Command A, Phi-4, Nemotron Super 49B (every id verified against the live catalog; the agent loop runs client-side, tools stay server-side)
 - **1,008 real cloud models** in a searchable catalog, one free Puter sign-in away (no card, no API keys)
 - An offline **Instant** regex router in the assistant popup

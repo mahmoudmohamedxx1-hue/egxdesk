@@ -65,7 +65,7 @@ async function main() {
   }
   console.log(`\nResolved: ${Object.keys(resolved).length}/${BROKEN.length}`);
   console.log("Failed:", failed.join(", "));
-  require("fs").writeFileSync("scripts/t27/yahoo-aliases.json", JSON.stringify(resolved, null, 2));
+  await import("fs").then((m) => m.writeFileSync("scripts/t27/yahoo-aliases.json", JSON.stringify(resolved, null, 2)));
   console.log("Saved → scripts/t27/yahoo-aliases.json");
 }
 main().catch(e => console.error(e.message));

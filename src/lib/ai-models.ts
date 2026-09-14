@@ -26,7 +26,7 @@
  *  route and the client composer can import it. Puter runtime helpers
  *  live in src/lib/assistant-models.ts (client-only). */
 
-export type AiModelProvider = "zai" | "puter";
+export type AiModelProvider = "zai" | "puter" | "llm7";
 
 export type AiModel = {
   /** the id the client persists/selects: "glm-4-plus" or "puter:<putterId>" */
@@ -53,6 +53,36 @@ export const AI_MODELS: AiModel[] = [
     labelAr: "GLM-4-Plus",
     note: "The app's own server model — always on, no sign-in",
     noteAr: "نموذج خادم التطبيق — متاح دائمًا بلا تسجيل",
+  },
+  {
+    id: "llm7:codestral-latest",
+    provider: "llm7",
+    providerModel: "codestral-latest",
+    label: "Codestral",
+    labelAr: "Codestral",
+    ctx: 262_144,
+    note: "Keyless cloud — no sign-in, no key. Fast + precise numbers (LLM7.io)",
+    noteAr: "سحابة بلا تسجيل ولا مفاتيح — سريع ودقيق في الأرقام (LLM7.io)",
+  },
+  {
+    id: "llm7:mistral-Nemo-Instruct-2407",
+    provider: "llm7",
+    providerModel: "mistral-Nemo-Instruct-2407",
+    label: "Mistral Nemo",
+    labelAr: "Mistral Nemo",
+    ctx: 131_072,
+    note: "Keyless cloud — fastest replies; verify numbers on the stock page (LLM7.io)",
+    noteAr: "سحابة بلا تسجيل — الأسرع؛ تحقق من الأرقام في صفحة السهم (LLM7.io)",
+  },
+  {
+    id: "llm7:minimax-m2.7",
+    provider: "llm7",
+    providerModel: "minimax-m2.7",
+    label: "MiniMax M2.7",
+    labelAr: "MiniMax M2.7",
+    ctx: 180_224,
+    note: "Keyless cloud — strong Arabic, slower shared pool (LLM7.io)",
+    noteAr: "سحابة بلا تسجيل — عربية قوية ومشاركة أبطأ (LLM7.io)",
   },
   {
     id: "puter:openrouter:openai/gpt-oss-20b",
@@ -277,7 +307,9 @@ export function aiModelLabel(id: string): string {
 export function aiModelIdentity(m: AiModel): string {
   return m.provider === "zai"
     ? "a REAL large language model (GLM-4-Plus, by Z.ai)"
-    : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
+    : m.provider === "llm7"
+      ? `a REAL large language model (${m.label} — served keyless via the free LLM7.io cloud)`
+      : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
 }
 
 /** Client-side localStorage persistence helper (never throws). */

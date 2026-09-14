@@ -864,3 +864,25 @@ Stage Summary:
 - The user's "only 2 models + dead GPT-OSS 20B" was a STALE SHELL, not the shipped code: a boot-time version guard now self-heals any browser/PWA running an older build (SW unregistered, caches wiped, one reload), so this class of complaint cannot recur.
 - The ladder is now 20 curated free cloud models (all ids live-verified) + the searchable 1,008-model catalog, in BOTH the agent tab and the assistant popup, with a clearer sign-in card that always offers the keyless GLM-4-Plus fallback.
 - All 12 suites green (420+ checks), build green, AR+EN+mobile QA passed; v2.25 / SW v21 shipped; pushed to GitHub.
+
+---
+Task ID: 36
+Agent: Super Z (main)
+Task: User: "NOW MAKE DEEP ANALYSIS AND ALL KIND OF TESTS TO EVERYTHING TO CHECK THAT ALL WHAT WE DONE FROM THE BEGINING TILL NOW HAS DONE IN EFFICENT WAY AND THEN MAKE DEEP RESEARCH TO KNOW WHERE WE ARE AND WHAT WE CAN DO AS PUTER CANT BE SIGNED IN I THINK THESE REPOS COULD HELP [6 repos]" — full audit + keyless-model research.
+
+Work Log:
+- FULL AUDIT OF EVERYTHING (the "from the beginning till now" check): tsc 0 errors; eslint 0 errors (fixed a legacy require() in scripts/t27/alias-hunt.ts); production build EXIT 0 (27s); ALL 12 SUITES GREEN: api-test 100/100, new-endpoints 36/36, t16 21/21, t18 12/12, t19 18/18, t20 24/24, t21 62/62, t22 61/61, t31 29/29, t32 27/27, t35 39/39 (updated for 23 models), t28 parser ALL PASS — ~460 checks total.
+- BROWSER SWEEP: all 20 views render with real data (home 6.9k chars, market 24k, screener 33.5k, signals 25.8k after scan, news 13k, company composite card intact with COMI 133.32); favicon.ico 200; DCL 616ms; mobile 390px zero overflow; zero console/page errors.
+- RESEARCH: fetched all 6 user-suggested repos → scripts/research/t36/. Key findings: awesome-freellm-apis' 31-provider directory (485+ models) pointed at LLM7.io (no card, anonymous tier) + OVHcloud (2 RPM anon); MetaAI-Hermes = self-hosted cookie scraper (rejected); freegenius/free-deep-research = framework concepts; trading-skills = agent patterns.
+- LIVE PROBES: LLM7.io anonymous tier WORKS KEYLESS — 47-model catalog, 3 models serve real completions with zero auth (mistral-Nemo 1.4-2.9s, codestral 0.8-4.5s, minimax-m2.7 slow but works; premium ids 401 without key); SSE streaming verified; OVHcloud 429 on every probe (dead); g4f.dev unreachable; Pollinations re-confirmed dead; z-ai gateway serves glm-4-plus for every id (9 ids probed).
+- KEYLESS MODEL FAMILY SHIPPED (the Puter-can't-sign-in fix): new provider "llm7" in ai-models.ts — Codestral (fast + precise numbers), Mistral Nemo (fastest, honest verify-numbers note), MiniMax M2.7 (strong Arabic) — routed server-side through /api/agent's SSE loop via new llm7Round() (same consumeSse parser, 429/5xx backoff with the shared retry budget, honest served-model from chunk metadata, system role mapping). Model-switcher gains a "Keyless cloud — works instantly (LLM7)" family (Zap icon); sign-in card now points stranded users at the 4 sign-in-free models.
+- AGENT LOOP HARDENING: duplicate-tool-call guard in BOTH loops (server route + client Puter loop) — small models used to call the same tool 10× until budget death (36-93s); now identical tool+args gets a nudge to synthesize (Nemo 36s→3.6s, 10 calls→1). Added the NUMBERS-ARE-EXACT rule to the shared system prompt (copy tool numbers character-for-character).
+- LIVE KEYLESS QA: Codestral answered "The last price of COMI is 133.32 EGP." EXACTLY right, 1 tool call, via the real UI with zero sign-in; honest notes added where models are weak (Nemo can mistype numbers, MiniMax is slower); t36-test-keyless-agent.ts covers all 3 keyless models + GLM regression.
+- DOCS: README model section + version badge 2.26; docs/COMPETITIVE-ANALYSIS.md §11 — the full free-LLM infrastructure audit table + strategic read (three resilience tiers: own server / keyless cloud / Puter catalog) + next-infrastructure options (LLM7 free key, Groq/Gemini BYOK, WebLLM offline — out of scope).
+- VERSION 2.25→2.26, sw.js egx-desk-v21→v22; dev daemon restarted (health v2.26).
+
+Stage Summary:
+- DEEP AUDIT VERDICT: everything from T1-T35 is real and green — ~460 automated checks, 20-view browser sweep, build + types + lint clean; the one inefficiency found (small-model tool looping) was fixed this task.
+- The Puter sign-in blocker is solved: THREE keyless cloud models now work with zero sign-in (Codestral is the star — exact numbers, 4.5s), alongside GLM-4-Plus and the 1,008-model Puter catalog.
+- Research deliverables: live-probed provider table (what actually works keyless in Sept 2026) + strategic three-tier resilience read, both in docs/COMPETITIVE-ANALYSIS.md §11.
+- v2.26 / SW v22; all suites green; pushed to GitHub.

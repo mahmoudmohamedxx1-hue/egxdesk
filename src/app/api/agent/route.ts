@@ -142,6 +142,70 @@ function getZai(): Promise<Zai> {
   return zaiPromise;
 }
 
+// ── T36 — LLM7.io KEYLESS cloud rounds ─────────────────────────────────────
+// The Puter sign-in flow can be blocked (popup blockers, Cloudflare
+// Turnstile, corporate networks), so the agent also ships genuinely
+// KEYLESS cloud models: LLM7.io's anonymous tier serves a small set of
+// real models (Mistral Nemo, Codestral, MiniMax M2.7 — live-verified) with
+// zero auth, zero sign-in and zero keys, from the server side (no CORS
+// constraints). Shared anonymous pool → 429s retry with the same backoff
+// budget as the z-ai gateway, then degrade honestly.
+
+const LLM7_URL = "https://api.llm7.io/v1/chat/completions";
+
+async function llm7Round(
+  providerModel: string,
+  opts: { messages: { role: "user" | "assistant" | "system"; content: string }[] },
+  retry: { budgetLeft: number },
+  onDelta?: DeltaFn,
+  onStatus?: (note: string) => void,
+  onServedModel?: ServedModelFn
+): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(LLM7_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: providerModel,
+          messages: opts.messages,
+          stream: true,
+        }),
+      });
+      if (res.status === 429 || res.status >= 500) {
+        const err = new Error(`llm7 http ${res.status}`);
+        const wait = RETRY_BACKOFF_MS[attempt];
+        if (wait !== undefined && retry.budgetLeft >= wait) {
+          retry.budgetLeft -= wait;
+          onStatus?.(attempt === 0 ? "keyless cloud busy — retrying" : "keyless cloud busy — retrying again");
+          await sleep(wait);
+          continue;
+        }
+        throw err;
+      }
+      if (!res.ok) {
+        // model pulled / bad request — surface honestly, no retry helps
+        const detail = await res.text().catch(() => "");
+        throw new Error(`llm7 http ${res.status}: ${detail.slice(0, 140)}`);
+      }
+      if (res.body) {
+        return await consumeSse(res.body, onDelta, onServedModel);
+      }
+      throw new Error("llm7 returned no body");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const wait = RETRY_BACKOFF_MS[attempt];
+      if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait && !msg.startsWith("llm7 http 4")) {
+        retry.budgetLeft -= wait;
+        onStatus?.("keyless cloud busy — retrying");
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 /** One LLM round with streaming + the same 429 backoff as before. Falls back
  *  gracefully if the gateway ignores stream:true (returns a plain object). */
 async function createChatStream(
@@ -210,13 +274,16 @@ export async function POST(req: Request) {
   // chain-of-thought enabled; the default behavior is unchanged.
   const deep = body.deep === true;
 
-  // T33 — free cloud model selection, validated against the registry; the
-  // SERVER loop only runs the z-ai provider — a puter id (client-side loop)
-  // or an unknown id falls back to the server default instead of erroring,
-  // so old clients and hand-crafted requests never break
+  // T33/T36 — free cloud model selection, validated against the registry; the
+  // SERVER loop runs the z-ai provider AND the keyless LLM7.io provider — a
+  // puter id (client-side loop) or an unknown id falls back to the server
+  // default instead of erroring, so old clients and hand-crafted requests
+  // never break
   const picked: AiModel | null = findAiModel(body.model);
   const model: AiModel =
-    picked && picked.provider === "zai" ? picked : findAiModel(DEFAULT_AI_MODEL_ID)!;
+    picked && (picked.provider === "zai" || picked.provider === "llm7")
+      ? picked
+      : findAiModel(DEFAULT_AI_MODEL_ID)!;
 
   // persisted hourly limit (per IP or device) — UsageEvent survives restarts
   if (await overLimit(ip, deviceId)) {
@@ -246,6 +313,7 @@ export async function POST(req: Request) {
     ...history.map((m) => ({ role: m.role, content: m.content })),
   ];
   const steps: AgentStep[] = [];
+  const seenCalls = new Set<string>(); // T36 — duplicate-tool-call guard
   let corrections = 0;
   const debugRaw: string[] = [];
   const debug = body.debug === true;
@@ -316,6 +384,32 @@ export async function POST(req: Request) {
       };
 
       const zai = await getZai();
+      // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
+      // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
+      // gets the system prompt as a proper "system" role (no thinking
+      // toggle — the anonymous tier doesn't support one).
+      const runRound = (thinking: "enabled" | "disabled", onDelta?: DeltaFn): Promise<string> =>
+        model.provider === "llm7"
+          ? llm7Round(
+              model.providerModel,
+              {
+                messages: msgs.map((m, i) =>
+                  i === 0 ? { role: "system" as const, content: m.content } : m
+                ),
+              },
+              retry,
+              onDelta,
+              (note) => send({ type: "status", note }),
+              noteServedModel
+            )
+          : createChatStream(
+              zai,
+              { messages: msgs, model: model.providerModel, thinking },
+              retry,
+              onDelta,
+              (note) => send({ type: "status", note }),
+              noteServedModel
+            );
 
       try {
         for (let round = 0; round < MAX_TOOL_CALLS + 3; round++) {
@@ -330,14 +424,7 @@ export async function POST(req: Request) {
             // extended-thinking toggle ON, round 0 thinks too.
             const deepRound = round > 0 || deep;
             const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
-            raw = await createChatStream(
-              zai,
-              { messages: msgs, model: model.providerModel, thinking: deepRound ? "enabled" : "disabled" },
-              retry,
-              preview,
-              (note) => send({ type: "status", note }),
-              noteServedModel
-            );
+            raw = await runRound(deepRound ? "enabled" : "disabled", preview);
             usage.llmCalls++;
           } catch (err) {
             // gateway 429s retry with backoff inside createChatStream; if
@@ -382,6 +469,21 @@ export async function POST(req: Request) {
           }
 
           const args = (parsed.args && typeof parsed.args === "object" ? parsed.args : {}) as Record<string, unknown>;
+
+          // T36 — duplicate-call guard: small keyless models (Mistral Nemo,
+          // MiniMax…) sometimes loop calling the SAME tool with the SAME args
+          // until the budget dies. One nudge, then the loop forces synthesis.
+          const callKey = `${toolName}:${JSON.stringify(args)}`;
+          if (seenCalls.has(callKey)) {
+            msgs.push({
+              role: "user",
+              content:
+                'You already called this tool with these EXACT arguments and its result is above in the conversation. Do NOT call it again. Reply NOW with your final answer in the format {"final": "<markdown answer>"} using the data you already have.',
+            });
+            continue;
+          }
+          seenCalls.add(callKey);
+
           let result: unknown;
           try {
             result = await tool.run(args);
@@ -406,14 +508,7 @@ export async function POST(req: Request) {
           });
           try {
             const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
-            const raw = await createChatStream(
-              zai,
-              { messages: msgs, model: model.providerModel, thinking: "enabled" },
-              retry,
-              preview,
-              (note) => send({ type: "status", note }),
-              noteServedModel
-            );
+            const raw = await runRound("enabled", preview);
             usage.llmCalls++;
             if (debug) debugRaw.push(raw.slice(0, 800));
             const parsed = extractJson(raw);
