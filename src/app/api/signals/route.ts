@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { scanSignals } from "@/lib/signals-scan";
 import { fetchUniverse } from "@/lib/market";
 
-/** GET /api/signals — the cross-market technical scan, ranked best-to-worst
- *  by the 13-indicator aggregate score. Indicator fields are computed from
- *  daily candles (scan cached ~1h, pre-warmed at boot); the quote block
- *  (close/change/volume) is merged FRESH from the universe snapshot so the
- *  tab never shows an hour-old price. */
+/** GET /api/signals — the cross-market COMPOSITE scan, ranked best-to-worst
+ *  by 55% technical + 45% fundamental. Technical fields are computed from
+ *  daily candles (scan cached ~1h, pre-warmed at boot); fundamental fields
+ *  from the TradingView scanner snapshot with sector medians; the quote
+ *  block (close/change/volume) is merged FRESH from the universe snapshot so
+ *  the tab never shows an hour-old price. */
 
 export async function GET() {
   try {
@@ -24,6 +25,8 @@ export async function GET() {
         marketCap: f.marketCap,
         pe: f.pe,
         divYield: f.divYield,
+        pb: f.pb,
+        roe: f.roe,
         volRatio: f.avgVolume && f.avgVolume > 0 ? Number((f.volume / f.avgVolume).toFixed(2)) : null,
       };
     });
@@ -34,7 +37,7 @@ export async function GET() {
         failed: scan.failed,
         rows,
         source: "Yahoo Finance 1Y daily candles + TradingView universe (delayed ~15 min)",
-        note: "13-indicator technical rating (SMA/EMA/RSI/Stoch/MACD/CCI/Momentum/Williams%R/BBPower) — statistical description of price action, not investment advice.",
+        note: "Composite rating = 55% technical (13 indicators: SMA/EMA/RSI/Stoch/MACD/CCI/Momentum/Williams%R/BBPower) + 45% fundamental (P/E & P/B vs sector medians, ROE, net margin, debt/equity, dividend yield & payout). Statistical description of price action and reported financials, not investment advice.",
       },
       { headers: { "Cache-Control": "no-store" } }
     );

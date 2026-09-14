@@ -162,8 +162,14 @@ async function main() {
       ok(evidence.rowCount > 10, `evidence sheet has rows (${evidence.rowCount})`);
       ok(cfRuleCount(picks, "dataBar") >= 1, `conviction dataBar (${cfRuleCount(picks, "dataBar")})`);
     } else {
-      const j = (await res.json()) as { error?: string };
-      ok(res.status === 503, `ai-signals gracefully 503 when cache is cold (${j.error})`);
+      // body already consumed as arrayBuffer() above — parse from the buffer
+      let errMsg = "";
+      try {
+        errMsg = (JSON.parse(buf.toString("utf8")) as { error?: string }).error ?? "";
+      } catch {
+        errMsg = buf.toString("utf8").slice(0, 120);
+      }
+      ok(res.status === 503, `ai-signals gracefully 503 when cache is cold (${errMsg})`);
     }
   }
 

@@ -24,8 +24,13 @@ async function json(path, opts) {
   ok(Array.isArray(rows) && rows.length > 100, "scan covers the market", `${rows.length} rows`);
   ok(rows.every((r) => typeof r.score === "number" && r.score >= -1 && r.score <= 1), "scores within -1..+1");
   ok(rows.every((r) => ["strongBuy", "buy", "neutral", "sell", "strongSell"].includes(r.rating)), "ratings valid");
-  const sorted = [...rows].every((r, i) => i === 0 || rows[i - 1].score >= r.score);
-  ok(sorted, "rows ranked by score desc");
+  // v2.22: rows rank by the COMPOSITE (55% TA + 45% FA); technical score is the T column
+  ok(rows.every((r) => typeof r.composite === "number" && r.composite >= -1 && r.composite <= 1), "composite within -1..+1");
+  ok(rows.every((r) => r.fundScore === null || (r.fundScore >= -1 && r.fundScore <= 1)), "fundamental scores within -1..+1 or null");
+  ok(rows.every((r) => ["strongBuy", "buy", "neutral", "sell", "strongSell"].includes(r.compositeRating)), "composite ratings valid");
+  ok(rows.some((r) => r.fundScore !== null), "fundamental coverage present");
+  const sorted = [...rows].every((r, i) => i === 0 || rows[i - 1].composite >= r.composite);
+  ok(sorted, "rows ranked by composite desc");
   const first = rows[0] ?? {};
   ok(first.rsi !== undefined && first.macdHist !== undefined && first.pos52 !== undefined, "indicator fields present", first.ticker);
   ok(first.nameAr && typeof first.nameAr === "string", "Arabic name present");

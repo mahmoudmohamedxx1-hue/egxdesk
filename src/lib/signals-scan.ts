@@ -1,9 +1,18 @@
-/** Cross-market technical SIGNALS scanner — the "best signals across the
+/** Cross-market COMPOSITE SIGNALS scanner — the "best signals across the
  *  stocks" engine behind the Signals tab and the AI agent's `technicals`
- *  tool. For every traded EGX stock it computes the SAME 13-indicator rating
- *  the company Technical Panel shows (6 moving averages + 8 oscillators over
- *  one year of Yahoo daily candles), then ranks the whole market by the
- *  aggregate score (-1 … +1). Quotes/perf/valuation fields come from the
+ *  tool. For every traded EGX stock it combines TWO independent halves:
+ *
+ *   TECHNICAL  — the SAME 13-indicator rating the company Technical Panel
+ *                shows (6 moving averages + 8 oscillators over one year of
+ *                Yahoo daily candles), score −1 … +1.
+ *   FUNDAMENTAL — the src/lib/fundamentals.ts pillar engine over real
+ *                TradingView scanner fields (P/E + P/B vs sector medians,
+ *                ROE / net margin / debt-to-equity, dividend yield + payout
+ *                sanity), score −1 … +1, null-safe per component.
+ *
+ *  COMPOSITE = 55% technical + 45% fundamental (falls back to pure
+ *  technical when fewer than 2 fundamental components exist). Rows are
+ *  ranked by the composite. Quotes/perf/valuation fields come from the
  *  TradingView universe snapshot.
  *
  *  Cost: ~1 chart fetch per stock (shared cache with /api/chart). The scan
@@ -25,6 +34,15 @@ import {
   aggregateSignals,
   type Signal,
 } from "@/lib/indicators";
+import {
+  computeFundamentals,
+  compositeScores,
+  sectorStatsMap,
+  marketStats,
+  statsFor,
+  ratingFromScore,
+  type SectorStats,
+} from "@/lib/fundamentals";
 
 export type Rating = "strongBuy" | "buy" | "neutral" | "sell" | "strongSell";
 
@@ -42,6 +60,22 @@ export type SignalRow = {
   marketCap: number | null;
   pe: number | null;
   divYield: number | null;
+  // fundamental rating block (TradingView scanner fields, sector-relative)
+  pb: number | null;
+  roe: number | null;
+  netMarginTTM: number | null;
+  debtToEquity: number | null;
+  fundScore: number | null; // −1 … +1, null when coverage < 2 components
+  fundRating: Rating;
+  fundCoverage: number; // 0 … 1 fraction of the 7 components with data
+  valuation: number | null; // pillar scores
+  quality: number | null;
+  income: number | null;
+  fundReasons: string[]; // short EN evidence lines
+  fundReasonsAr: string[];
+  // composite rating block — THE ranking signal (55% TA + 45% FA)
+  composite: number; // −1 … +1 (falls back to pure technical)
+  compositeRating: Rating;
   // technical rating block
   rating: Rating;
   score: number;
@@ -107,7 +141,11 @@ function lastOf(series: (number | null)[]): number | null {
   return null;
 }
 
-export function computeSignalRow(stock: Stock, chart: StockChart): SignalRow | null {
+export function computeSignalRow(
+  stock: Stock,
+  chart: StockChart,
+  sector?: { bySector: Map<string, SectorStats>; market: SectorStats }
+): SignalRow | null {
   const pts = chart.points;
   if (pts.length < 60) return null; // not enough history for a meaningful rating
   const closes = pts.map((p) => p.close);
@@ -155,6 +193,12 @@ export function computeSignalRow(stock: Stock, chart: StockChart): SignalRow | n
   const active = rows.filter((r) => r.value !== null);
   const summary = aggregateSignals(active.map((r) => r.signal));
 
+  // ── fundamental half (real scanner fields; sector medians when the sector
+  // has ≥5 names, else market-wide medians) ──
+  const stats = sector ? statsFor(stock, sector.bySector, sector.market) : marketStats([stock]);
+  const fund = computeFundamentals(stock, stats);
+  const { composite, fundWeight } = compositeScores(summary.score, fund.score);
+
   const pos52 =
     stock.high52 !== null && stock.low52 !== null && stock.high52 > stock.low52 && price > 0
       ? ((price - stock.low52) / (stock.high52 - stock.low52)) * 100
@@ -179,6 +223,22 @@ export function computeSignalRow(stock: Stock, chart: StockChart): SignalRow | n
     marketCap: stock.marketCap,
     pe: stock.pe,
     divYield: stock.divYield,
+    // fundamental block
+    pb: stock.pb,
+    roe: stock.roe,
+    netMarginTTM: stock.netMarginTTM,
+    debtToEquity: stock.debtToEquity,
+    fundScore: fund.score,
+    fundRating: fund.rating,
+    fundCoverage: Number(fund.coverage.toFixed(2)),
+    valuation: fund.valuation,
+    quality: fund.quality,
+    income: fund.income,
+    fundReasons: fund.reasons,
+    fundReasonsAr: fund.reasonsAr,
+    // composite block — the ranking signal
+    composite,
+    compositeRating: fundWeight > 0 ? ratingFromScore(composite) : summary.rating,
     rating: summary.rating,
     score: Number(summary.score.toFixed(3)),
     buy: summary.buy,
@@ -213,6 +273,9 @@ async function runScan(): Promise<SignalsScan> {
   const universe = await fetchUniverse();
   // only stocks with a live price (suspended/zero-price rows have no signals)
   const candidates = universe.filter((s) => s.close > 0 && s.ticker);
+  // sector + market medians for the fundamental half (one pass, shared)
+  const bySector = sectorStatsMap(universe);
+  const market = marketStats(universe);
   const rows: SignalRow[] = [];
   let failed = 0;
 
@@ -222,7 +285,7 @@ async function runScan(): Promise<SignalsScan> {
       const stock = candidates[cursor++];
       try {
         const chart = await fetchStockChart(stock.ticker, "1Y");
-        const row = computeSignalRow(stock, chart);
+        const row = computeSignalRow(stock, chart, { bySector, market });
         if (row) rows.push(row);
         else failed++;
       } catch {
@@ -233,7 +296,7 @@ async function runScan(): Promise<SignalsScan> {
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 
-  rows.sort((a, b) => b.score - a.score);
+  rows.sort((a, b) => b.composite - a.composite);
   return {
     asOf: new Date().toISOString(),
     scanned: rows.length,
@@ -254,7 +317,10 @@ export async function signalForTicker(tickerRaw: string): Promise<SignalRow | nu
   if (!stock) return null;
   try {
     const chart = await fetchStockChart(t, "1Y");
-    return computeSignalRow(stock, chart);
+    return computeSignalRow(stock, chart, {
+      bySector: sectorStatsMap(universe),
+      market: marketStats(universe),
+    });
   } catch {
     return null;
   }

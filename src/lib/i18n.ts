@@ -924,12 +924,31 @@ export const T = {
   signalsNav: { ar: "الإشارات", en: "Signals" },
   signalsTabTitle: { ar: "أفضل الإشارات عبر السوق", en: "Best signals across the market" },
   signalsTabNote: {
-    ar: "مسح فني لكل الأسهم المتداولة: ١٣ مؤشراً (متوسطات متحركة ومتذبذبات) لكل سهم — نفس محرّك لوحة التحليل الفني — مع ترتيب واحد بالنتيجة. النتيجة وصف إحصائي لحركة السعر وليست توصية.",
-    en: "A technical scan of every traded stock: 13 indicators each (moving averages + oscillators) — the same engine as the technical panel — ranked by one score. The rating describes price action statistically; it is not advice.",
+    ar: "مسح مركّب لكل الأسهم المتداولة: نصف فني (١٣ مؤشراً — نفس محرّك لوحة التحليل الفني) ونصف أساسي (التقييم مقابل وسيط القطاع، الجودة، والدخل) بوزن ٥٥٪ فني + ٤٥٪ أساسي — ترتيب واحد بالدرجة المركّبة. الدرجة وصف إحصائي للسعر والقوائم المالية المعلنة وليست توصية.",
+    en: "A composite scan of every traded stock: a technical half (13 indicators — the same engine as the technical panel) and a fundamental half (valuation vs sector medians, quality, income) weighted 55% TA + 45% FA — one ranked composite score. The rating describes price action and reported financials statistically; it is not advice.",
+  },
+  signalsLensComposite: { ar: "مركّب", en: "Composite" },
+  signalsLensTech: { ar: "فني فقط", en: "Technical" },
+  signalsLensFund: { ar: "أساسي فقط", en: "Fundamental" },
+  signalsLensHint: {
+    ar: "الترتيب حسب العدسة المختارة",
+    en: "Ranking follows the selected lens",
+  },
+  signalsColTech: { ar: "فني", en: "Tech" },
+  signalsColFund: { ar: "أساسي", en: "Fund" },
+  signalsColPe: { ar: "م/ع", en: "P/E" },
+  signalsColRoe: { ar: "ROE", en: "ROE" },
+  signalsColDiv: { ar: "توزيعات %", en: "Div %" },
+  signalsPillarValuation: { ar: "التقييم", en: "Valuation" },
+  signalsPillarQuality: { ar: "الجودة", en: "Quality" },
+  signalsPillarIncome: { ar: "الدخل", en: "Income" },
+  signalsFundLegend: {
+    ar: "الأعمدة الأساسية: التقييم (م/ع وم/قيمة دفترية مقابل وسيط القطاع) · الجودة (العائد على حقوق الملكية، الهامش الصافي، الدين/حقوق الملكية) · الدخل (عائد التوزيعات ونسبة التوزيع)",
+    en: "Fundamental pillars: Valuation (P/E & P/B vs sector medians) · Quality (ROE, net margin, debt/equity) · Income (dividend yield & payout)",
   },
   signalsBullTop: { ar: "الأعلى شراءً", en: "Top bullish" },
   signalsBearTop: { ar: "الأعلى بيعاً", en: "Top bearish" },
-  signalsBias: { ar: "ميل السوق الفني", en: "Technical market bias" },
+  signalsBias: { ar: "ميل السوق المركّب", en: "Composite market bias" },
   signalsBiasBull: { ar: "شراء", en: "Bullish" },
   signalsBiasBear: { ar: "بيع", en: "Bearish" },
   signalsBiasNeutral: { ar: "حياد", en: "Neutral" },
@@ -954,7 +973,7 @@ export const T = {
   signalsCsvDone: { ar: "نُزِّلت الإشارات كملف CSV", en: "Signals downloaded as CSV" },
 
   // ── AI Signals (Task 20: the AI section inside the Signals tab) ──
-  aiSignalsModeTech: { ar: "المسح الفني", en: "Technical scan" },
+  aiSignalsModeTech: { ar: "المسح المركّب", en: "Composite scan" },
   aiSignalsModeAi: { ar: "إشارات AI", en: "AI signals" },
   aiSignalsTitle: { ar: "إشارات الذكاء الاصطناعي", en: "AI Signals" },
   aiSignalsNote: {

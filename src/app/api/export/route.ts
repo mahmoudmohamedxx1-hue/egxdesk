@@ -42,7 +42,7 @@ function labels(lang: Lang) {
     companiesSheet: ar ? "الشركات" : "Companies",
     summarySheet: ar ? "الملخص" : "Summary",
     sectorsSheet: ar ? "القطاعات" : "Sectors",
-    scanSheet: ar ? "المسح الفني" : "Technical scan",
+    scanSheet: ar ? "المسح المركّب" : "Composite scan",
     breadthSheet: ar ? "الاتساع" : "Breadth",
     picksSheet: ar ? "اختيارات AI" : "AI picks",
     evidenceSheet: ar ? "الأدلة" : "Evidence",
@@ -443,8 +443,11 @@ export async function POST(req: NextRequest) {
       case "signals": {
         const scan = await scanSignals();
         const table: TableSpec = {
-          title: lang === "ar" ? `المسح الفني — ${scan.scanned} سهم` : `Technical scan — ${scan.scanned} stocks`,
-          note: lang === "ar" ? "مرتبة بالدرجة الإجمالية (١٣ مؤشرًا)" : "Ranked by the composite 13-indicator score",
+          title: lang === "ar" ? `المسح المركّب — ${scan.scanned} سهم` : `Composite scan — ${scan.scanned} stocks`,
+          note:
+            lang === "ar"
+              ? "مرتبة بالدرجة المركّبة (٥٥٪ فني ١٣ مؤشرًا + ٤٥٪ أساسي)"
+              : "Ranked by the composite score (55% technical, 13 indicators + 45% fundamental)",
           columns: [
             { header: "#", fmt: "int", width: 6 },
             { header: L.ticker, width: 10 },
@@ -453,9 +456,19 @@ export async function POST(req: NextRequest) {
             { header: L.close, fmt: "num" },
             { header: L.change, fmt: "pct", condFmt: "changeScale" },
             { header: L.rating, width: 13 },
-            { header: L.score, fmt: "score", condFmt: "changeScale" },
+            { header: lang === "ar" ? "الدرجة المركّبة" : "Composite", fmt: "score", condFmt: "changeScale" },
+            { header: lang === "ar" ? "فني" : "Tech", fmt: "score", condFmt: "changeScale" },
+            { header: lang === "ar" ? "أساسي" : "Fund", fmt: "score", condFmt: "changeScale" },
+            { header: lang === "ar" ? "التقييم" : "Valuation", fmt: "score" },
+            { header: lang === "ar" ? "الجودة" : "Quality", fmt: "score" },
+            { header: lang === "ar" ? "الدخل" : "Income", fmt: "score" },
+            { header: "P/E", fmt: "num" },
+            { header: "P/B", fmt: "num" },
+            { header: "ROE %", fmt: "num" },
+            { header: lang === "ar" ? "هامش صافي %" : "Net margin %", fmt: "num" },
+            { header: "D/E", fmt: "num" },
+            { header: L.divYield, fmt: "num" },
             { header: "RSI", fmt: "num" },
-            { header: "MACD hist", fmt: "num" },
             { header: "SMA50", fmt: "num" },
             { header: "SMA200", fmt: "num" },
             { header: L.pos52, fmt: "pct" },
@@ -472,10 +485,20 @@ export async function POST(req: NextRequest) {
             lang === "ar" ? r.sectorAr : r.sectorEn,
             r.close,
             r.changePct,
-            lang === "ar" ? RATING_AR[r.rating] ?? r.rating : r.rating,
+            lang === "ar" ? RATING_AR[r.compositeRating] ?? r.compositeRating : r.compositeRating,
+            +r.composite.toFixed(2),
             +r.score.toFixed(2),
+            r.fundScore !== null ? +r.fundScore.toFixed(2) : "",
+            r.valuation ?? "",
+            r.quality ?? "",
+            r.income ?? "",
+            r.pe,
+            r.pb,
+            r.roe,
+            r.netMarginTTM,
+            r.debtToEquity,
+            r.divYield,
             r.rsi,
-            r.macdHist,
             r.sma50,
             r.sma200,
             r.pos52,
@@ -488,7 +511,8 @@ export async function POST(req: NextRequest) {
           autoFilter: true,
         };
         const counts: Record<string, number> = { strongBuy: 0, buy: 0, neutral: 0, sell: 0, strongSell: 0 };
-        scan.rows.forEach((r) => (counts[r.rating] = (counts[r.rating] ?? 0) + 1));
+        scan.rows.forEach((r) => (counts[r.compositeRating] = (counts[r.compositeRating] ?? 0) + 1));
+        const fundCovered = scan.rows.filter((r) => r.fundScore !== null).length;
         const breadth: TableSpec = {
           title: lang === "ar" ? "اتساع التقييمات" : "Rating breadth",
           columns: [
@@ -502,16 +526,17 @@ export async function POST(req: NextRequest) {
             [lang === "ar" ? "بيع" : "Sell", counts.sell],
             [lang === "ar" ? "بيع قوي" : "Strong sell", counts.strongSell],
             [lang === "ar" ? "عدد الأسهم المفحوصة" : "Scanned", scan.scanned],
+            [lang === "ar" ? "بأساسيات مغطاة" : "With fundamental coverage", fundCovered],
             [lang === "ar" ? "وقت المسح" : "Scan time", scan.asOf.replace("T", " ").slice(0, 16) + " UTC"],
           ] as Cell[][],
         };
         spec = {
           lang,
-          reportTitle: lang === "ar" ? "تقرير إشارات المسح الفني" : "Technical signals scan report",
+          reportTitle: lang === "ar" ? "تقرير إشارات المسح المركّب" : "Composite signals scan report",
           meta: meta([[L.rows, String(scan.rows.length)]]),
           cover: {
             toc: [
-              { sheet: L.scanSheet, title: lang === "ar" ? `المسح الفني الكامل (${scan.rows.length} سهم)` : `Full technical scan (${scan.rows.length} stocks)` },
+              { sheet: L.scanSheet, title: lang === "ar" ? `المسح المركّب الكامل (${scan.rows.length} سهم)` : `Full composite scan (${scan.rows.length} stocks)` },
               { sheet: L.breadthSheet, title: lang === "ar" ? "اتساع التقييمات" : "Rating breadth" },
             ],
           },
