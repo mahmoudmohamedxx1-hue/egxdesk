@@ -1062,6 +1062,7 @@ export const T = {
   agentNav: { ar: "مساعد AI", en: "AI Agent" },
   agentBackToDesk: { ar: "العودة إلى المكتب", en: "Back to the desk" },
   agentModelName: { ar: "GLM-4-Plus من Z.ai", en: "GLM-4-Plus by Z.ai" },
+  aiModelSwitch: { ar: "نموذج الذكاء الاصطناعي — التبديل بين النماذج السحابية المجانية", en: "AI model — switch between the free cloud models" },
   agentTitle: { ar: "مساعد EGX ديسك الذكي", en: "EGX Desk AI Agent" },
   agentNote: {
     ar: "مساعد يعمل بنموذج لغوي ضخم حقيقي (GLM) داخل التطبيق، وله أدوات على بياناتنا الحية (الأسعار والفرز والتحليل الفني والقوائم والتوزيعات والأخبار والتقويم والفائدة والصفقات الداخلية) مع بحث حي في الويب للأخبار والاقتصاد الكلي. اسأله بالعربية أو الإنجليزية — إنه نموذج يفكر ويتأمل في البيانات، وليس ردودًا جاهزة، وكل محادثة تُحفظ في السجل.",

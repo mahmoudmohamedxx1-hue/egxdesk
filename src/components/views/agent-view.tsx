@@ -32,13 +32,14 @@ import { useApp } from "@/components/market/app-context";
 import { T, tt } from "@/lib/i18n";
 import { AgentMarkdown } from "@/components/market/agent-markdown";
 import { ClaudeInput } from "@/components/market/claude-input";
+import { ModelSwitcher, useAiModel } from "@/components/market/model-switcher";
 import { bootParam } from "@/lib/url-state";
 import { copyText } from "@/lib/url-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  ArrowLeft, Check, Copy, Cpu, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench, X,
+  ArrowLeft, Check, Copy, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench, X,
 } from "lucide-react";
 import { getDeviceId } from "@/lib/push-client";
 import { useTheme } from "next-themes";
@@ -208,6 +209,7 @@ export function AgentView() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [deep, setDeep] = useState(false);
+  const [modelId, setModelId] = useAiModel(); // T30 — free cloud model switcher
   const [elapsed, setElapsed] = useState(0);
   const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
   const [liveNote, setLiveNote] = useState<string | null>(null);
@@ -339,6 +341,7 @@ export function AgentView() {
           lang,
           deviceId: getDeviceId(), // usage metering + per-user hourly limit
           deep, // the composer's extended-thinking toggle (Task 22-b)
+          model: modelId, // T30 — free cloud model chosen in the composer
         }),
       });
       const ct = res.headers.get("content-type") ?? "";
@@ -573,16 +576,9 @@ export function AgentView() {
         <span className="hidden sm:inline">{tt(T.agentThinkingToggle, lang)}</span>
       </button>
 
-      {/* model chip — the FULL served model name (verified via the gateway's
-          response payload: model "glm-4-plus") */}
-      <span
-        className="num inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium"
-        style={{ color: "var(--chat-muted)" }}
-        title={tt(T.agentModelName, lang)}
-      >
-        <Cpu className="h-3 w-3" aria-hidden />
-        GLM-4-Plus
-      </span>
+      {/* T30 — model switcher: the free-cloud model dropdown (the done event
+          reports the model the provider actually served) */}
+      <ModelSwitcher lang={lang} modelId={modelId} onModelChange={setModelId} />
     </>
   );
 

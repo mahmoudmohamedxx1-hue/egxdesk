@@ -251,10 +251,12 @@ export function AppShell() {
             </div>
           </div>
 
-          {/* the one and only nav row — T27 grouped navigation */}
+          {/* the one and only nav row — T27 grouped navigation · T30 pill
+              styling + scroll-edge fades: the active surface pops as a filled
+              pill, hovers acknowledge, and the fades signal more to scroll */}
           <nav
             aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
-            className="flex items-center gap-0.5 overflow-x-auto thin-scroll pb-px -mx-1 px-1"
+            className="relative flex items-center gap-1 overflow-x-auto thin-scroll px-1 pb-1.5 pt-1 [--edge:12px] [mask-image:linear-gradient(to_left,transparent,black_var(--edge),black_calc(100%-var(--edge)),transparent)] rtl:[mask-image:linear-gradient(to_right,transparent,black_var(--edge),black_calc(100%-var(--edge)),transparent)]"
           >
             {DIRECT_NAV.map((item) => {
               const active = navActive(item.view, view.name);
@@ -263,14 +265,13 @@ export function AppShell() {
                 <button
                   key={item.view}
                   onClick={() => navigate(item.view)}
-                  className={`relative whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-2 text-[13px] transition-colors hover:text-foreground ${
-                    active ? "font-semibold text-foreground" : "text-muted-foreground"
+                  className={`whitespace-nowrap inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] leading-none transition-all hover:bg-secondary ${
+                    active ? "bg-primary text-primary-foreground font-semibold shadow-sm" : "text-muted-foreground"
                   }`}
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden />
                   {tt(item.t, lang)}
-                  {active && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden />}
                 </button>
               );
             })}
@@ -282,8 +283,8 @@ export function AppShell() {
                 <DropdownMenu key={group.key}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className={`relative whitespace-nowrap inline-flex items-center gap-1 px-2 py-2 text-[13px] transition-colors hover:text-foreground ${
-                        active ? "font-semibold text-foreground" : "text-muted-foreground"
+                      className={`whitespace-nowrap inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[12.5px] leading-none transition-all hover:bg-secondary ${
+                        active ? "bg-primary text-primary-foreground font-semibold shadow-sm" : "text-muted-foreground"
                       }`}
                       aria-current={active ? "page" : undefined}
                       aria-haspopup="menu"
@@ -291,7 +292,6 @@ export function AppShell() {
                       <GroupIcon className="h-3.5 w-3.5" aria-hidden />
                       {tt(group.t, lang)}
                       <ChevronDown className="h-3 w-3 opacity-60" aria-hidden />
-                      {active && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden />}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="min-w-44">

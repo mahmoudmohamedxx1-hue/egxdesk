@@ -57,11 +57,15 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       // ?v= cache-buster: browsers pin favicons by URL — without it they
-      // keep showing the old full-logo icon after the mark-only redesign
-      { url: "/icon-192.png?v=216", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png?v=216", sizes: "512x512", type: "image/png" },
+      // keep showing the old full-logo icon after the mark-only redesign.
+      // favicon-32 + src/app/favicon.ico (auto-served at /favicon.ico) fix
+      // the tab icon on browsers that specifically request the .ico file.
+      { url: "/favicon-32.png?v=218", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png?v=218", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png?v=218", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png?v=216" }],
+    shortcut: ["/favicon-32.png?v=218"],
+    apple: [{ url: "/apple-touch-icon.png?v=218" }],
   },
 };
 

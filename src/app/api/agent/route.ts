@@ -12,6 +12,7 @@ import { fetchFlows } from "@/lib/flows";
 import { marketNarrative } from "@/lib/narrative";
 import insidersRaw from "@/data/insiders.json";
 import { db } from "@/lib/db";
+import { findAiModel, DEFAULT_AI_MODEL_ID, type AiModel } from "@/lib/ai-models";
 
 /** POST /api/agent — the in-app EGX analyst agent (inspired by the tool-loop
  *  pattern of open-source agent frameworks like shubhamsaboo/awesome-llm-apps
@@ -85,13 +86,22 @@ function isThrottleError(err: unknown): boolean {
 
 type DeltaFn = (text: string) => void;
 
+type ServedModelFn = (m: string) => void;
+
 /** Consume the gateway's SSE chat stream (data: lines with
- *  choices[0].delta.content chunks), accumulating the full text. */
-async function consumeSse(body: ReadableStream<Uint8Array>, onDelta?: DeltaFn): Promise<string> {
+ *  choices[0].delta.content chunks), accumulating the full text. The served
+ *  model id arrives in the chunk metadata — captured once so the done event
+ *  can report the model the provider ACTUALLY used (honest labeling). */
+async function consumeSse(
+  body: ReadableStream<Uint8Array>,
+  onDelta?: DeltaFn,
+  onServedModel?: ServedModelFn
+): Promise<string> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let out = "";
   let buf = "";
+  let modelSeen = false;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -106,7 +116,12 @@ async function consumeSse(body: ReadableStream<Uint8Array>, onDelta?: DeltaFn): 
       try {
         const j = JSON.parse(payload) as {
           choices?: { delta?: { content?: unknown }; message?: { content?: unknown } }[];
+          model?: unknown;
         };
+        if (!modelSeen && typeof j.model === "string" && j.model.length > 0) {
+          modelSeen = true;
+          onServedModel?.(j.model);
+        }
         const piece = j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.message?.content;
         if (typeof piece === "string" && piece.length > 0) {
           out += piece;
@@ -124,24 +139,27 @@ async function consumeSse(body: ReadableStream<Uint8Array>, onDelta?: DeltaFn): 
  *  gracefully if the gateway ignores stream:true (returns a plain object). */
 async function createChatStream(
   zai: Zai,
-  opts: { messages: { role: "user" | "assistant"; content: string }[]; thinking: "enabled" | "disabled" },
+  opts: { messages: { role: "user" | "assistant"; content: string }[]; thinking: "enabled" | "disabled"; model?: string },
   retry: { budgetLeft: number },
   onDelta?: DeltaFn,
-  onStatus?: (note: string) => void
+  onStatus?: (note: string) => void,
+  onServedModel?: ServedModelFn
 ): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
       const res = await zai.chat.completions.create({
+        ...(opts.model ? { model: opts.model } : {}),
         messages: opts.messages,
         thinking: { type: opts.thinking },
         stream: true,
       });
       // the SDK hands back the raw SSE body when the gateway streams
       if (res && typeof (res as { getReader?: unknown }).getReader === "function") {
-        return await consumeSse(res as ReadableStream<Uint8Array>, onDelta);
+        return await consumeSse(res as ReadableStream<Uint8Array>, onDelta, onServedModel);
       }
       // non-streaming shape — still surface the text for the live preview
-      const c = res as { choices?: { message?: { content?: string } }[] };
+      const c = res as { choices?: { message?: { content?: string } }[]; model?: unknown };
+      if (!attempt && typeof c.model === "string" && c.model.length > 0) onServedModel?.(c.model);
       const text = c.choices?.[0]?.message?.content ?? "";
       if (text) onDelta?.(text);
       return text;
@@ -156,6 +174,93 @@ async function createChatStream(
       throw err;
     }
   }
+}
+
+// ── Pollinations.ai adapter: the keyless anonymous cloud tier (T30) ──
+// OpenAI-compatible POST /openai; stream:true yields the same `data:` SSE
+// chunks consumeSse already parses. Sneaky failure mode: when the shared
+// anonymous budget is briefly spent the endpoint returns HTTP 200 with the
+// budget message AS the model content — detect it and treat it as a throttle
+// so the shared backoff absorbs it.
+const POLLINATIONS_URL = "https://text.pollinations.ai/openai";
+
+function isPollinationsBudgetText(text: string): boolean {
+  return (
+    text.includes("reached its budget") ||
+    text.includes("raise the key budget") ||
+    /api key used for this request/i.test(text)
+  );
+}
+
+async function pollinationsRound(
+  providerModel: string,
+  opts: { messages: { role: "user" | "assistant"; content: string }[] },
+  retry: { budgetLeft: number },
+  onDelta?: DeltaFn,
+  onStatus?: (note: string) => void
+): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    let text = "";
+    try {
+      const res = await fetch(POLLINATIONS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: providerModel, messages: opts.messages, stream: true }),
+        signal: AbortSignal.timeout(180_000),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(`pollinations ${res.status}: ${detail.slice(0, 160)}`);
+      }
+      if (res.body) text = await consumeSse(res.body, onDelta);
+      else {
+        const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+        text = j.choices?.[0]?.message?.content ?? "";
+        if (text) onDelta?.(text);
+      }
+      if (isPollinationsBudgetText(text)) {
+        throw new Error("pollinations anonymous budget temporarily spent (429-equivalent)");
+      }
+      return text;
+    } catch (err) {
+      const wait = RETRY_BACKOFF_MS[attempt];
+      const throttled = isThrottleError(err) || isPollinationsBudgetText(text);
+      if (throttled && wait !== undefined && retry.budgetLeft >= wait) {
+        retry.budgetLeft -= wait;
+        onStatus?.(attempt === 0 ? "provider busy — retrying" : "provider busy — retrying again");
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+/** Provider-agnostic LLM round: routes to the Z.ai gateway (GLM-4-Plus, the
+ *  app's own server model) or the keyless Pollinations cloud, with the
+ *  shared 429 backoff on both. */
+async function llmRound(
+  model: AiModel,
+  opts: { messages: { role: "user" | "assistant"; content: string }[]; thinking: "enabled" | "disabled" },
+  retry: { budgetLeft: number },
+  onDelta?: DeltaFn,
+  onStatus?: (note: string) => void,
+  onServedModel?: ServedModelFn
+): Promise<string> {
+  if (model.provider === "pollinations") {
+    // pollinations has no `thinking` switch — the open-weights model reasons
+    // internally and returns clean content
+    return pollinationsRound(model.providerModel, { messages: opts.messages }, retry, onDelta, onStatus);
+  }
+  const zai = await getZai();
+  return createChatStream(
+    zai,
+    { messages: opts.messages, model: model.providerModel, thinking: opts.thinking },
+    retry,
+    onDelta,
+    onStatus,
+    onServedModel
+  );
 }
 
 /** Decode the escaped JSON string body of raw (stops at the closing quote or
@@ -809,8 +914,12 @@ const TOOL_LIST = TOOLS.map((t) => `- ${t.name}: ${t.desc}`).join("\n");
 
 // ── system prompt ──
 
-function systemPrompt(lang: "ar" | "en"): string {
-  return `You are EGX Desk Agent — a REAL large language model (GLM-4-Plus, by Z.ai) running server-side inside the EGX Desk web app, acting as a bilingual (Arabic-first) Egyptian Exchange (EGX) market analyst. You are not a script or a keyword bot: you reason over evidence and write your own analysis. Every market number you state comes from tools that return real delayed (~15 min) data.
+function systemPrompt(lang: "ar" | "en", model: AiModel): string {
+  const identity =
+    model.provider === "zai"
+      ? "a REAL large language model (GLM-4-Plus, by Z.ai)"
+      : `a REAL large language model (${model.label} — open-weights OpenAI model served via the free Pollinations cloud)`;
+  return `You are EGX Desk Agent — ${identity} running server-side inside the EGX Desk web app, acting as a bilingual (Arabic-first) Egyptian Exchange (EGX) market analyst. You are not a script or a keyword bot: you reason over evidence and write your own analysis. Every market number you state comes from tools that return real delayed (~15 min) data.
 
 TOOLS (call at most one per reply, as strict JSON):
 ${TOOL_LIST}
@@ -835,7 +944,7 @@ RULES:
 - WEB SEARCH: for anything beyond our live EGX data layer (Egypt macro news, IMF/World Bank/ratings agencies, CBE decisions, global markets, oil/gold/FX, company announcements, general knowledge you are unsure about), call web_search — ideally BEFORE answering, and combine it with our EGX tools for market questions. ALWAYS attribute web facts to their source by name (e.g. "وفق رويترز" / "per Reuters") and include the article date when relevant. Never present web-sourced numbers as EGX live quotes — EGX prices/valuations come ONLY from our data tools.
 - Final answers are YOUR analysis in a natural analyst voice: vary the structure, never end every answer with the same closing formula. Mention the ~15-min delay only when you interpret live market moves.
 - General finance and investing-concept questions (what P/E means, how a rights issue works, what drives the EGP) may be answered directly from your own knowledge or web_search — just keep concept explanations clearly separate from live EGX data.
-- Identity questions ("are you a real AI?", "what model are you?"): answer plainly and honestly — you are a real LLM (GLM-4-Plus, by Z.ai) with live EGX data tools AND live web search. Mention that you reason and can be verified by asking anything.
+- Identity questions ("are you a real AI?", "what model are you?"): answer plainly and honestly — you are a real LLM (${model.provider === "zai" ? "GLM-4-Plus, by Z.ai" : `${model.label} via the free Pollinations cloud`}) with live EGX data tools AND live web search. Mention that you reason and can be verified by asking anything.
 - For questions entirely outside finance or about personal financial advice, politely decline and redirect to what you can do.`;
 }
 
@@ -849,9 +958,9 @@ export async function POST(req: Request) {
     req.headers.get("x-real-ip") ||
     "local";
 
-  let body: { messages?: unknown; lang?: unknown; debug?: unknown; deviceId?: unknown; deep?: unknown };
+  let body: { messages?: unknown; lang?: unknown; debug?: unknown; deviceId?: unknown; deep?: unknown; model?: unknown };
   try {
-    body = (await req.json()) as { messages?: unknown; lang?: unknown; deviceId?: unknown; deep?: unknown };
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
@@ -861,6 +970,11 @@ export async function POST(req: Request) {
   // round 0 (tool picking / quick conversational replies) runs with
   // chain-of-thought enabled; the default behavior is unchanged.
   const deep = body.deep === true;
+
+  // T30 — free cloud model selection, validated against the registry;
+  // unknown ids fall back to the default instead of erroring so old
+  // clients and hand-crafted requests never break
+  const model: AiModel = findAiModel(body.model) ?? findAiModel(DEFAULT_AI_MODEL_ID)!;
 
   // persisted hourly limit (per IP or device) — UsageEvent survives restarts
   if (await overLimit(ip, deviceId)) {
@@ -885,9 +999,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "messages required (last must be user)" }, { status: 400 });
   }
 
-  const zai = await getZai();
   const msgs: { role: "user" | "assistant"; content: string }[] = [
-    { role: "assistant", content: systemPrompt(lang) },
+    { role: "assistant", content: systemPrompt(lang, model) },
     ...history.map((m) => ({ role: m.role, content: m.content })),
   ];
   const steps: AgentStep[] = [];
@@ -929,8 +1042,22 @@ export async function POST(req: Request) {
           closed = true; // client disconnected — keep the loop honest
         }
       };
+      // T30 — the model the provider actually served (read from the stream
+      // metadata), so the done event stays honest even if a gateway reroutes
+      let servedModel = "";
+      const noteServedModel: ServedModelFn = (m) => {
+        if (!servedModel) servedModel = m;
+      };
       const done = (answer: string) => {
-        send({ type: "done", answer, steps, model: "GLM-4-Plus", disclaimer: true, ...(debug ? { debugRaw } : {}) });
+        send({
+          type: "done",
+          answer,
+          steps,
+          model: servedModel || model.label,
+          modelId: model.id,
+          disclaimer: true,
+          ...(debug ? { debugRaw } : {}),
+        });
         meter(true);
         closed = true;
         try {
@@ -959,12 +1086,13 @@ export async function POST(req: Request) {
             // extended-thinking toggle ON, round 0 thinks too.
             const deepRound = round > 0 || deep;
             const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
-            raw = await createChatStream(
-              zai,
+            raw = await llmRound(
+              model,
               { messages: msgs, thinking: deepRound ? "enabled" : "disabled" },
               retry,
               preview,
-              (note) => send({ type: "status", note })
+              (note) => send({ type: "status", note }),
+              noteServedModel
             );
             usage.llmCalls++;
           } catch (err) {
@@ -1034,12 +1162,13 @@ export async function POST(req: Request) {
           });
           try {
             const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
-            const raw = await createChatStream(
-              zai,
+            const raw = await llmRound(
+              model,
               { messages: msgs, thinking: "enabled" },
               retry,
               preview,
-              (note) => send({ type: "status", note })
+              (note) => send({ type: "status", note }),
+              noteServedModel
             );
             usage.llmCalls++;
             if (debug) debugRaw.push(raw.slice(0, 800));

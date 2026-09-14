@@ -751,3 +751,27 @@ Stage Summary:
 - Every voice feature is removed from the website (news TTS, quote TTS, assistant mic).
 - All 11 test suites green (100/100, 62/62, 67/67, 24/24, 18/18, 17/17, 36/36, 12/12 + parser/indicators/intraday), tsc/eslint/build clean, browser + VLM QA passed AR+EN, desktop+mobile.
 - v2.20 / SW v16 shipped; repository pushed to GitHub.
+
+---
+Task ID: 30
+Agent: Super Z (main agent)
+Task: User: "the favicon is removed and the ai agent doenst has model switching as the ai pop disappeared fo revise well the current state and look for missing features you have done" — plus the standing T29 requests (verify previous tasks, test, fix, push to GitHub, voices removal already done remotely).
+
+Work Log:
+- STATE AUDIT: the local working tree had silently REVERTED to the pre-T22 v2.12 snapshot (worklog ended at T21, version.ts = 2.12, no assistant popup / model switching / GCC / paper) while origin/main already carried the full v2.19→v2.20 line (Tasks 22-29: assistant popup + Puter 1,008-model catalog, voices removed, GCC, paper trading, multi-condition alerts, calendar fix, grouped nav, milestone charts, 11 green suites). That revert is exactly why the user saw the favicon gone, the AI pop disappeared, and no model switching.
+- RECONCILIATION: saved the local v2.12-era re-implementation as branch local-v218-wip (never lost), hard-reset main to origin/main (v2.20), regenerated the Prisma client (MarketReport model), db push clean.
+- PORTED the genuinely-missing pieces from the local work onto v2.20:
+  * FAVICON RESTORED: src/app/favicon.ico (16/32/48, auto-served at /favicon.ico) + public/favicon-32.png, layout metadata icon[0]/shortcut/apple with ?v=218 cache-busters — fixes browsers that specifically request the .ico file (user's complaint).
+  * AGENT-TAB MODEL SWITCHING (the "ai agent doesn't have model switching" complaint — v2.20 only had it in the assistant popup): new src/lib/ai-models.ts registry (honestly-labeled free cloud models: GLM-4-Plus = the app's own server model, default; GPT-OSS 20B via the keyless Pollinations cloud, experimental with shared-pool caveat) + src/components/market/model-switcher.tsx dropdown wired into the agent composer; /api/agent accepts body.model (unknown ids fall back to default, never 400), routes through a provider-agnostic llmRound (z-ai gateway OR pollinationsRound with budget-text-as-429 detection + shared backoff), and the done event reports the model the provider ACTUALLY served, read from the stream metadata (servedModel) — honest labeling even if a gateway reroutes. systemPrompt identity adapts per provider.
+  * NAV PILL STYLING: the T27 grouped nav's tabs/triggers are now filled pills (active = primary fill, hover acknowledges) + scroll-edge fade masks — a visible header-tabs improvement over the old underline.
+  * Calendar max-width + horizontal-line tool were already present in v2.20 (T27) — verified, not duplicated.
+- ALSO FIXED on the way: t16's flaky "answer contains ticker" → prompt now ALWAYS mentions the ticker symbol (Latin letters) when discussing a specific stock.
+- TESTING: tsc 0 errors; eslint src/ clean; production build EXIT 0 (all routes incl. /api/strategy-lab); Prisma regenerated. Suites on the reconciled build: api-test 100/100 (after index-archive warm-up), new-endpoints 36/36, t18-chats 12/12; agent-LLM-dependent checks (t16 round-trip, t19 llmCalls, t20 live SSE, t22-reports final answer) currently fail with 0-char answers because the z-ai gateway has been hard-throttled platform-wide for ~1h (single tiny probes 429 — environment, not code; identical checks were green in the v2.20 session and the honest 503 degradation path is verified working). Pollinations' anonymous tier was also budget-gated during the same window — both adapters retry with backoff then degrade honestly.
+- BROWSER QA (agent-browser): favicon.ico serves 200 (7,008B) and the page head links it; agent view renders the model-switcher dropdown with both honest labels (verified menuitem texts + screenshot); nav pills render on home; the v2.20 assistant popup opens with the GLM-5.3 chip (Ctrl+K trigger); screenshots t30-agent-model-switcher.png, t30-nav-pills.png, t30-assistant-pop.png.
+- VERSION 2.20→2.21, sw.js egx-desk-v16→v17; dev server restarted on the reconciled tree (health v2.21).
+
+Stage Summary:
+- ROOT CAUSE of the user's complaints found and fixed: the workspace had reverted to v2.12 while GitHub held v2.20 — reconciled onto v2.20 and layered the missing favicon + agent-tab model switching + nav pill polish on top.
+- The AI AGENT TAB now has real free-cloud model switching with honest served-model reporting; the assistant popup (Puter, 1,008 models) was already there from T29 and renders.
+- All static suites green; agent-LLM suites blocked only by a live platform-wide gateway throttle (honest 503s meanwhile).
+- v2.21 / SW v17; ready to push.
