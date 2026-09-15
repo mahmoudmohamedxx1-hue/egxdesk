@@ -173,6 +173,14 @@ async function llm7Round(
         }),
       });
       if (res.status === 429 || res.status >= 500) {
+        // T37 — a DAILY-QUOTA 429 is not transient: the shared anonymous
+        // pool is spent and no backoff will revive it inside this request.
+        // Throw immediately so the auto-failover re-routes to GLM in <1s
+        // instead of burning the 12s/25s backoff budget first.
+        if (res.status === 429) {
+          const bodyText = await res.text().catch(() => "");
+          if (/quota/i.test(bodyText)) throw new Error(`llm7 http 429 quota: ${bodyText.slice(0, 120)}`);
+        }
         const err = new Error(`llm7 http ${res.status}`);
         const wait = RETRY_BACKOFF_MS[attempt];
         if (wait !== undefined && retry.budgetLeft >= wait) {
@@ -280,7 +288,9 @@ export async function POST(req: Request) {
   // default instead of erroring, so old clients and hand-crafted requests
   // never break
   const picked: AiModel | null = findAiModel(body.model);
-  const model: AiModel =
+  // T37 — `let`: when the keyless LLM7 pool is quota-exhausted the loop
+  // transparently re-routes to the always-on GLM backbone (auto-failover)
+  let model: AiModel =
     picked && (picked.provider === "zai" || picked.provider === "llm7")
       ? picked
       : findAiModel(DEFAULT_AI_MODEL_ID)!;
@@ -315,6 +325,7 @@ export async function POST(req: Request) {
   const steps: AgentStep[] = [];
   const seenCalls = new Set<string>(); // T36 — duplicate-tool-call guard
   let corrections = 0;
+  let failedOver = false; // T37 — llm7 → GLM auto-failover (once per request)
   const debugRaw: string[] = [];
   const debug = body.debug === true;
 
@@ -427,6 +438,27 @@ export async function POST(req: Request) {
             raw = await runRound(deepRound ? "enabled" : "disabled", preview);
             usage.llmCalls++;
           } catch (err) {
+            // T37 — AUTO-FAILOVER: LLM7.io's anonymous tier is one globally
+            // shared daily token pool (500k tokens/24h for EVERY anonymous
+            // user on the internet), so it can be exhausted by total
+            // strangers at any moment. Instead of failing the request, the
+            // conversation transparently re-routes to the always-on
+            // GLM-4-Plus backbone: an honest status note is streamed, the
+            // system prompt is rebuilt with the fallback identity, and the
+            // done event reports the model that ACTUALLY served the answer.
+            if (model.provider === "llm7" && !failedOver) {
+              failedOver = true;
+              send({
+                type: "status",
+                note:
+                  lang === "ar"
+                    ? "حصة السحابة المجانية المشتركة (LLM7) مستنفدة حاليًا — سيتم الرد تلقائيًا عبر GLM-4-Plus"
+                    : "The shared free LLM7 cloud quota is exhausted right now — answering automatically via GLM-4-Plus",
+              });
+              model = findAiModel(DEFAULT_AI_MODEL_ID)!;
+              msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+              continue; // retry the SAME round on the backbone
+            }
             // gateway 429s retry with backoff inside createChatStream; if
             // throttling persists, answer honestly instead of a bare error
             const throttled = isThrottleError(err);

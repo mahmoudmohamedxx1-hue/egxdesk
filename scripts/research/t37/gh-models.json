@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.blog",
+    "name": "GitHub Models is no longer available to new customers",
+    "snippet": "Jun 16, 2026 — New organizations and enterprises without existing GitHub Models usage no longer have access to GitHub Models , on both free and paid plans. Read more",
+    "host_name": "github.blog",
+    "rank": 0,
+    "date": "Jun 16, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://simonwillison.net",
+    "name": "GitHub Models is now retired",
+    "snippet": "Aug 9, 2026 — GitHub Models is temporarily unavailable as part of a scheduled retirement brownout. That message is already stale, because the retirement has ... Read more",
+    "host_name": "simonwillison.net",
+    "rank": 1,
+    "date": "Aug 9, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.popularai.org",
+    "name": "GitHub Models dies July 30. Migrate before your AI app breaks",
+    "snippet": "Jul 30, 2026 — GitHub Models shuts down July 30, 2026 . Use this migration checklist to replace endpoints, authentication, models, embeddings, tools, tests, ...",
+    "host_name": "www.popularai.org",
+    "rank": 2,
+    "date": "Jul 30, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.developersdigest.tech",
+    "name": "GitHub Models Is Retired: What to Use for Model Access Now",
+    "snippet": "Jul 31, 2026 — GitHub Models is fully retired as of July 30, 2026 . The playground, model catalog, inference API, and BYOK are gone for every customer.",
+    "host_name": "www.developersdigest.tech",
+    "rank": 3,
+    "date": "Jul 31, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://devops.com",
+    "name": "GitHub Retires Its Free AI Model Playground",
+    "snippet": "Jun 19, 2026 — GitHub is retiring GitHub Models , closing it to new customers. Existing users can continue for now; Azure AI Foundry is the path forward.",
+    "host_name": "devops.com",
+    "rank": 4,
+    "date": "Jun 19, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://rohitai.com",
+    "name": "GitHub Models Shuts Down July 30: The Migration Is",
+    "snippet": "Jul 17, 2026 — GitHub Models retires July 30, 2026 . Map every affected API, Action, prompt, BYOK key, and embedding index before you migrate.",
+    "host_name": "rohitai.com",
+    "rank": 5,
+    "date": "Jul 17, 2026",
+    "favicon": ""
+  }
+]

@@ -221,13 +221,18 @@ export function riskLevels(f: StrategyFeatures): { entry: number; stop: number; 
   const entry = f.sma20 !== null && f.sma20 < f.close && f.close - f.sma20 < atrAbs ? f.sma20 : f.close;
   const stop = entry - 2 * atrAbs;
   const target = entry + 3 * atrAbs; // 1.5 reward per unit of risk
-  const rr = (target - entry) / (entry - stop);
-  return {
-    entry: Number(entry.toFixed(2)),
-    stop: Number(stop.toFixed(2)),
-    target: Number(target.toFixed(2)),
-    rr: Number(rr.toFixed(2)),
-  };
+  // T37 — price-adaptive level precision: a fixed 2dp round broke the
+  // charter's R:R 1.5 for low-priced names (SPMD at ~0.6 EGP served
+  // 0.60/0.56/0.67 → R:R 1.75 — the stop distance is only ~4 ticks wide,
+  // so 2dp rounding is ~12% of the risk leg). Scale decimals with price so
+  // rounding stays ~<1% of the risk leg, and report the R:R of the levels
+  // actually SERVED (the number the report, XLSX and UI display).
+  const dp = entry >= 20 ? 2 : entry >= 2 ? 3 : 4;
+  const entryR = Number(entry.toFixed(dp));
+  const stopR = Number(stop.toFixed(dp));
+  const targetR = Number(target.toFixed(dp));
+  const rrR = entryR - stopR > 0 ? (targetR - entryR) / (entryR - stopR) : 1.5;
+  return { entry: entryR, stop: stopR, target: targetR, rr: Number(rrR.toFixed(2)) };
 }
 
 /** THE CHARTER — the tested strategy, written down. This exact text (plus the

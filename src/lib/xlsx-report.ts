@@ -31,11 +31,14 @@ const CF_MID = "FFEFEBE0";
 const CF_UP = "FF2E9E6B";
 const CF_BAR = "FF1E8A5C"; // data bars
 
-export type ColFmt = "text" | "num" | "int" | "pct" | "ratio" | "score";
+export type ColFmt = "text" | "num" | "int" | "pct" | "ratio" | "score" | "lvl";
 
 const NUM_FMT: Record<ColFmt, string | null> = {
   text: null,
   num: "#,##0.00",
+  // T37 — ATR levels: General shows each cell's own precision, so a 0.5984
+  // stop keeps 4dp while a 46.48 entry stays 2dp (fixed 0.00 broke low-priced R:R)
+  lvl: "General",
   int: "#,##0",
   pct: '0.00"%"',
   ratio: '0.00"×"',

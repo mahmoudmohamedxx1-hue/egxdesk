@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/market/app-context";
 import { useLiveData } from "@/components/market/use-live-data";
 import { T, tt } from "@/lib/i18n";
-import { fmtNum } from "@/lib/format";
+import { fmtNum, fmtLevel } from "@/lib/format";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -118,9 +118,9 @@ function MoverCard({ m, lang, onOpen }: { m: ReportMover; lang: "ar" | "en"; onO
 
         {m.entry !== null && (
           <div className="flex items-stretch gap-1.5 flex-wrap">
-            <LevelBox label={tt(T.reportsEntry, lang)} value={fmtNum(m.entry)} />
-            <LevelBox label={tt(T.reportsStop, lang)} value={fmtNum(m.stop)} cls="text-down" />
-            <LevelBox label={tt(T.reportsTarget, lang)} value={fmtNum(m.target)} cls="text-up" />
+            <LevelBox label={tt(T.reportsEntry, lang)} value={fmtLevel(m.entry)} />
+            <LevelBox label={tt(T.reportsStop, lang)} value={fmtLevel(m.stop)} cls="text-down" />
+            <LevelBox label={tt(T.reportsTarget, lang)} value={fmtLevel(m.target)} cls="text-up" />
             {m.rr !== null && <LevelBox label={tt(T.reportsRr, lang)} value={`1:${fmtNum(m.rr, 1)}`} />}
           </div>
         )}

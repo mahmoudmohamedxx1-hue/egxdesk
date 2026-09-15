@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://github.com",
+    "name": "LLM7.io offers a single API gateway that connects you to a",
+    "snippet": "Token-required access: Use a free API token to call the service; Free tokens: Get higher rate limits via dash.llm7.io; Responsive design: Clean layout ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.llm7.io",
+    "name": "Limits",
+    "snippet": "Anonymous, 500,000 tokens per 24 hours ; Free token, 1,000,000 tokens per 24 hours ; Pro ($12/mo), Higher dynamically managed token limits than the free tier ...",
+    "host_name": "docs.llm7.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ayautomate.com",
+    "name": "+ ~24 more models (LLM7.io): Free Limits + How to Use",
+    "snippet": "LLM7 . io offers it as Free API tier with these limits : 30 RPM (120 with token ). No credit card is required. Zero-friction API gateway. No registration needed ...",
+    "host_name": "www.ayautomate.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://itch.io",
+    "name": "Free LLM API resources + API Setup Guide Sticky",
+    "snippet": "Sep 26, 2025 — The limits are 20 requests per minute and 1,000 requests per month. Tokens : 100,000 per month (Hard Limit ) LLM7 Token Key : Click Get Free Token ...",
+    "host_name": "itch.io",
+    "rank": 3,
+    "date": "Sep 26, 2025",
+    "favicon": ""
+  }
+]

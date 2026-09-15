@@ -61,8 +61,8 @@ export const AI_MODELS: AiModel[] = [
     label: "Codestral",
     labelAr: "Codestral",
     ctx: 262_144,
-    note: "Keyless cloud — no sign-in, no key. Fast + precise numbers (LLM7.io)",
-    noteAr: "سحابة بلا تسجيل ولا مفاتيح — سريع ودقيق في الأرقام (LLM7.io)",
+    note: "Keyless cloud — no sign-in, no key. Shared free quota; auto-falls back to GLM-4-Plus when busy",
+    noteAr: "سحابة بلا تسجيل ولا مفاتيح — حصة مجانية مشتركة، وعند استنفادها يتحول تلقائيًا إلى GLM-4-Plus",
   },
   {
     id: "llm7:mistral-Nemo-Instruct-2407",
@@ -71,8 +71,8 @@ export const AI_MODELS: AiModel[] = [
     label: "Mistral Nemo",
     labelAr: "Mistral Nemo",
     ctx: 131_072,
-    note: "Keyless cloud — fastest replies; verify numbers on the stock page (LLM7.io)",
-    noteAr: "سحابة بلا تسجيل — الأسرع؛ تحقق من الأرقام في صفحة السهم (LLM7.io)",
+    note: "Keyless cloud — fastest when free; shared quota, verify numbers on the stock page",
+    noteAr: "سحابة بلا تسجيل — الأسرع عند توفر الحصة المشتركة؛ تحقق من الأرقام في صفحة السهم",
   },
   {
     id: "llm7:minimax-m2.7",
@@ -81,8 +81,8 @@ export const AI_MODELS: AiModel[] = [
     label: "MiniMax M2.7",
     labelAr: "MiniMax M2.7",
     ctx: 180_224,
-    note: "Keyless cloud — strong Arabic, slower shared pool (LLM7.io)",
-    noteAr: "سحابة بلا تسجيل — عربية قوية ومشاركة أبطأ (LLM7.io)",
+    note: "Keyless cloud — strong Arabic, slower shared pool; auto-fallback to GLM-4-Plus",
+    noteAr: "سحابة بلا تسجيل — عربية قوية ومشاركة أبطأ؛ يتحول تلقائيًا إلى GLM-4-Plus",
   },
   {
     id: "puter:openrouter:openai/gpt-oss-20b",

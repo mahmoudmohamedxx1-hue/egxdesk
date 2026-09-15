@@ -277,3 +277,49 @@ alone with model choice. The next infrastructure upgrades worth considering:
 a free LLM7 API key (unlocks their 47-model premium ladder server-side),
 Groq/Gemini free-tier BYOK ("bring your own key" settings row), and a
 WebLLM WASM fallback for offline-only users (explicitly out of scope so far).
+
+### 11.1 T37 Addendum — the keyless quota died; what actually works now (Sept 16, 2026)
+
+**What broke:** LLM7.io's anonymous tier turned out to be one **globally
+shared** daily token pool (500,000 tokens / 24h for EVERY anonymous user on
+the internet). By mid-September strangers routinely exhaust it, so all three
+keyless models (Codestral / Mistral Nemo / MiniMax M2.7) started returning
+`429 insufficient_quota` for hours at a time — the exact "MiniMax doesn't
+work" complaint. The catalog itself stays alive (47 models).
+
+**Probed this session (all live):**
+
+| Option | Status Sept 16, 2026 | Verdict |
+|---|---|---|
+| LLM7 anonymous | 429 "Daily token quota exceeded" (global pool) | works in bursts only — cannot be the primary free tier |
+| LLM7 **free token** (dash.llm7.io) | 1,000,000 tokens/24h **per key**, ~120 RPM, no card | the cheapest personal fix — BYOK candidate #1 |
+| Groq free tier | ~30 RPM, ~14,400 requests/day, no card (email signup) | **the strongest free quota in the industry** — Llama 4, GPT-OSS 120B, Kimi K2 — BYOK candidate #1-equivalent |
+| Google Gemini free tier | slashed Dec 2025 — Flash ~20–250 RPD | weak free tier now |
+| GitHub Models | **fully retired July 30, 2026** (410 brownout → gone) | dead — do not build on it |
+| Puter cloud | sign-in still broken for this user (Cloudflare Turnstile / email-confirm loops) | opportunistic only |
+| z-ai gateway (GLM-4-Plus) | healthy, serves every request | the backbone — now the auto-failover target |
+
+**Shipped (v2.27) — never a dead end again:** when the shared LLM7 quota is
+exhausted, the agent loop detects the quota-429 in <1s (no futile backoff),
+streams an honest bilingual note ("answering automatically via GLM-4-Plus"),
+re-routes the whole conversation to the always-on backbone and stamps the
+finished answer with a permanent **served-model chip** (`glm-4-plus`) —
+picked MiniMax, got MiniMax-or-GLM, never an error. Also fixed this session:
+price-adaptive ATR level precision (a fixed 2dp round broke the charter's
+R:R 1.5 for low-priced names — SPMD at ~0.6 EGP served R:R 1.75; now
+2/3/4 decimals by price band, R:R exactly 1.5 everywhere, unit-locked by
+t37-test-risk-levels 18/18 and the live report).
+
+**The decision tree from here (BYOK = "bring your own free key"):**
+
+1. **Now (zero user effort):** GLM-4-Plus backbone + keyless-when-available
+   with auto-failover — shipped.
+2. **Next (2-minute user signup, biggest win):** a "Your free API keys"
+   settings row — Groq key (14,400 req/day of Llama 4 / GPT-OSS / Kimi K2)
+   and/or an LLM7 free token (1M tokens/day, unlocks the 47-model ladder).
+   Keys stored client-side, sent per-request, never logged. Turns the model
+   menu from "3 shaky free models" into "20,000+ requests/day of real
+   frontier models".
+3. **Later (offline frontier):** WebLLM in-browser WebGPU models — zero key,
+   zero server, works offline; one-time ~1GB model download; small-model
+   quality only. Unique among EGX competitors, low priority.

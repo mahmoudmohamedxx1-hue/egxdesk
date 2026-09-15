@@ -8,6 +8,15 @@ export function fmtNum(n: number | null | undefined, digits = 2): string {
   });
 }
 
+/** T37 — price-adaptive level precision (entry/stop/target): 2dp above 20
+ *  EGP, 3dp above 2, 4dp below — a fixed 2dp broke the R:R of low-priced
+ *  names (see riskLevels). Matches riskLevels' own rounding. */
+export function fmtLevel(n: number | null | undefined): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+  const dp = Math.abs(n) >= 20 ? 2 : Math.abs(n) >= 2 ? 3 : 4;
+  return n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+
 export function fmtInt(n: number | null | undefined): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
   return Math.round(n).toLocaleString("en-US");

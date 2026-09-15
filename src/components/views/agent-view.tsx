@@ -59,6 +59,9 @@ type AgentMsg = {
   steps?: AgentStep[];
   error?: boolean;
   ts: number;
+  /** T37 — the model that ACTUALLY served this answer (done event); when a
+   *  keyless model auto-fell back to GLM-4-Plus, this records it honestly. */
+  servedModel?: string;
 };
 
 const CHAT_KEY = "egx-agent-chat";
@@ -186,6 +189,15 @@ function Exchange({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
         <span className="text-[11px] font-medium" style={{ color: "var(--chat-muted)" }}>
           EGX Desk
         </span>
+        {m.servedModel && (
+          <span
+            className="num rounded-full border px-1.5 py-0 text-[9.5px] leading-4"
+            style={{ color: "var(--chat-muted)" }}
+            title={lang === "ar" ? "النموذج الذي أجاب فعليًا" : "The model that actually served this answer"}
+          >
+            {m.servedModel}
+          </span>
+        )}
       </div>
       {m.steps && !m.error && <StepChips steps={m.steps} lang={lang} />}
       {m.error ? (
@@ -601,7 +613,16 @@ export function AgentView() {
         } else if (evt.type === "done" && typeof evt.answer === "string") {
           gotTerminal = true;
           const finalSteps = Array.isArray(evt.steps) ? (evt.steps as AgentStep[]) : stepsAcc;
-          const next: AgentMsg[] = [...history, { role: "assistant", content: evt.answer, steps: finalSteps, ts: Date.now() }];
+          const next: AgentMsg[] = [
+            ...history,
+            {
+              role: "assistant",
+              content: evt.answer,
+              steps: finalSteps,
+              ts: Date.now(),
+              ...(typeof evt.model === "string" && evt.model ? { servedModel: evt.model } : {}),
+            },
+          ];
           persist(next);
           saveChat(next); // server-side history (fire-and-forget)
         } else if (evt.type === "error") {

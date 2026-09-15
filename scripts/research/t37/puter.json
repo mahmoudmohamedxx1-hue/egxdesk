@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://docs.puter.com/Auth/signIn",
+    "name": "puter.auth.signIn() - Puter.js Docs",
+    "snippet": "The sign-in popup was blocked by the browser. This usually happens when signIn() is not called from a user action (such as a click event). Parameters · Options (optional) · Rejection",
+    "host_name": "docs.puter.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://puter.com",
+    "name": "Puter",
+    "snippet": "Everything You Need, To Work, Create, and Play. Log in Email or username Password Forgot password? 2026 Puter Technologies Inc. Forgot password? Log In or Sign ...",
+    "host_name": "puter.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/HeyPuter/puter/issues/2444",
+    "name": "AI Service blocked by \"Confirm Email\" prompt despite  - GitHub",
+    "snippet": "Feb 8, 2026 · I have encountered a persistent issue regarding my account verification status. I am unable to use the AI services. Logged out and logged back ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.puter.com/tutorials/free-unlimited-auth-api",
+    "name": "Free, Unlimited Auth API - Puter.js",
+    "snippet": "May 17, 2026 · This tutorial will show you how to implement user authentication in your web applications using Puter.js, completely free and without any API ... Example 2: Check... · Example 4: Combining Auth... · Example 5: Combining Auth...",
+    "host_name": "developer.puter.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=4lWojGQxZzc",
+    "name": "3 Apps You Can Build This Weekend With Puter.js - YouTube",
+    "snippet": "Sep 3, 2026 · Try Puter.js Now: https://tinyurl.com/ttPuterjs Building the interface for a small AI app can take twenty minutes, while login, storage, ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://atul4u.medium.com/puter-js-streamline-your-backend-with-the-ultimate-serverless-framework-a982227dcb26",
+    "name": "Puter.js: Streamline Your Backend with the Ultimate Serverless",
+    "snippet": "Nov 16, 2025 · Puter.js automatically displays a popup asking them to sign in with their Puter.com account Once signed in, they won't be prompted again",
+    "host_name": "atul4u.medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]
