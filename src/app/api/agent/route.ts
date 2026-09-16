@@ -5,7 +5,7 @@ type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 import { db } from "@/lib/db";
 import { findAiModel, DEFAULT_AI_MODEL_ID, aiModelIdentity, type AiModel } from "@/lib/ai-models";
 import { AGENT_TOOLS } from "@/lib/agent-core";
-import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer } from "@/lib/agent-protocol";
+import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer, verifyFinalAnswer, verificationRepairMessage, verificationFootnote } from "@/lib/agent-protocol";
 
 /** POST /api/agent — the in-app EGX analyst agent (inspired by the tool-loop
  *  pattern of open-source agent frameworks like shubhamsaboo/awesome-llm-apps
@@ -422,6 +422,10 @@ export async function POST(req: Request) {
               noteServedModel
             );
 
+      const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
+      let verifyRetried = false; // T38 — one repair round max per request
+      // T38 — the user's own question text: its numbers are trusted
+      const userQuestion = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
       try {
         for (let round = 0; round < MAX_TOOL_CALLS + 3; round++) {
           if (steps.length >= MAX_TOOL_CALLS) break;
@@ -487,7 +491,37 @@ export async function POST(req: Request) {
           }
 
           if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-            return void done(parsed.final.trim());
+            // T38 — ANTI-FABRICATION GATE: verify every significant number
+            // in the answer against the tool data it was built from, and
+            // reject CJK leakage into Arabic/English. One repair round on
+            // failure; if a keyless model STILL fabricates, the request
+            // quality-falls-back to the GLM-4-Plus backbone (same pattern
+            // as the quota failover) so the user never receives invented
+            // numbers; the backbone's own failures ship with an honest
+            // verification footnote instead.
+            const finalText = parsed.final.trim();
+            const verdict = verifyFinalAnswer(finalText, toolJsons, userQuestion);
+            if (!verdict.ok && !verifyRetried) {
+              verifyRetried = true;
+              msgs.push({ role: "user", content: verificationRepairMessage(verdict, lang) });
+              continue; // same conversation, corrected rewrite requested
+            }
+            if (!verdict.ok && model.provider === "llm7" && !failedOver) {
+              failedOver = true;
+              send({
+                type: "status",
+                note:
+                  lang === "ar"
+                    ? "تعذّر التحقق من أرقام هذا النموذج المجاني — سيتم الرد عبر GLM-4-Plus لضمان الدقة"
+                    : "This free model's numbers could not be verified — answering via GLM-4-Plus for accuracy",
+              });
+              model = findAiModel(DEFAULT_AI_MODEL_ID)!;
+              msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+              verifyRetried = false; // the backbone gets its own repair budget
+              continue; // re-answer the SAME conversation on the backbone
+            }
+            const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
+            return void done(shipped);
           }
 
           const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
@@ -528,6 +562,7 @@ export async function POST(req: Request) {
           if (toolName === "web_search" && ok) usage.webSearches++;
 
           msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
+          toolJsons.push(JSON.stringify(result).slice(0, 9000));
         }
 
         // loop exhausted without a final answer — NEVER waste the collected
@@ -545,7 +580,10 @@ export async function POST(req: Request) {
             if (debug) debugRaw.push(raw.slice(0, 800));
             const parsed = extractJson(raw);
             if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-              return void done(parsed.final.trim());
+              // T38 — the forced-synthesis answer passes the same gate
+              const finalText = parsed.final.trim();
+              const verdict = verifyFinalAnswer(finalText, toolJsons, userQuestion);
+              return void done(verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang));
             }
           } catch {
             // fall through to the honest fallback below

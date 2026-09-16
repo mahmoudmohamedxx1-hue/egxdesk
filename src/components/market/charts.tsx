@@ -31,23 +31,26 @@ export function DivergingBars({
   lang,
   maxRows,
   compact = false,
+  keepOrder = false,
 }: {
   items: BarItem[];
   unit: "pct" | "egpMn";
   lang: "ar" | "en";
   maxRows?: number;
   compact?: boolean;
+  /** T38 — skip the internal value sort and render the caller's order
+   *  (the sectors view ranks multi-stock sectors first, tiny sectors last). */
+  keepOrder?: boolean;
 }) {
-  const rows = [...items]
-    .filter((i) => i.value !== null)
-    .sort((a, b) => (b.value as number) - (a.value as number))
-    .slice(0, maxRows ?? items.length);
-  const vals = rows.map((r) => Math.abs(r.value as number));
+  const rows = [...items].filter((i) => i.value !== null);
+  if (!keepOrder) rows.sort((a, b) => (b.value as number) - (a.value as number)); // stable order kept otherwise
+  const shown = rows.slice(0, maxRows ?? rows.length);
+  const vals = shown.map((r) => Math.abs(r.value as number));
   const max = Math.max(1, ...vals);
   const fmt = unit === "pct" ? (v: number) => `${v > 0 ? "+" : ""}${fmtNum(v, 2)}%` : (v: number) => `${v > 0 ? "+" : ""}${fmtNum(v, 0)}`;
   return (
     <div dir="ltr" className="space-y-1.5" role="img" aria-label={lang === "ar" ? "رسم بياني بالأعمدة" : "bar chart"}>
-      {rows.map((r) => {
+      {shown.map((r) => {
         const v = r.value as number;
         const w = (Math.abs(v) / max) * 50;
         return (

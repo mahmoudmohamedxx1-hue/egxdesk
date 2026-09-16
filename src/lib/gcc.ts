@@ -188,7 +188,9 @@ async function scanMovers(market: string, exchange: "TADAWUL" | "ADX" | "DFM", c
       const close = n(r.d[2]) ?? 0;
       const volume = n(r.d[4]);
       return {
-        ticker: full.split(":")[1] ?? full,
+        // T38 — the Saudi scanner serves symbols like "1120TADAWUL"; strip
+        // the trailing exchange suffix so the row shows the readable code
+        ticker: (full.split(":")[1] ?? full).replace(/(TADAWUL|ADX|DFM)$/i, ""),
         exchange: (ex === "DFM" ? "DFM" : exchange) as GccMover["exchange"],
         name: String(r.d[1] ?? r.d[0] ?? ""),
         sector: typeof r.d[6] === "string" ? r.d[6] : null,

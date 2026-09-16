@@ -570,7 +570,7 @@ export const T = {
   },
   fundsListedTitle: { ar: "الصناديق المقفلة المدرجة — أسعار حية", en: "Listed closed-end funds — live prices" },
   fundsListedNote: {
-    ar: "تتداول على البورطة المصرية مثل أي سهم؛ اقتباساتها حية هنا (بتأخير ~١٥ دقيقة) وتفتح صفحة الشركة الكاملة.",
+    ar: "تتداول على البورصة المصرية مثل أي سهم؛ اقتباساتها حية هنا (بتأخير ~١٥ دقيقة) وتفتح صفحة الشركة الكاملة.",
     en: "Trade on the EGX like any share; quotes are live here (~15-min delayed) and open the full company page.",
   },
   fundsSaverTitle: { ar: "طاولة المدّخر: أين يمكن أن يوقف الجنيه؟", en: "The saver's table: where the pound can park" },

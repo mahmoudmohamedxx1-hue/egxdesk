@@ -12,6 +12,8 @@
  *  Every model reply is exactly ONE JSON object: {"tool":…,"args":…} to
  *  call a tool, or {"final": "<markdown answer>"} to answer. */
 
+import { resolveTicker } from "@/lib/ticker-aliases";
+
 // ── the tool registry's public spec (names + descriptions) ──
 
 export type AgentToolSpec = {
@@ -22,7 +24,7 @@ export type AgentToolSpec = {
 export const AGENT_TOOL_SPECS: AgentToolSpec[] = [
   { name: "market_overview", desc: "Current market state: the 3 EGX indices, breadth (up/down/flat counts), biggest movers, best/worst sectors and a one-line narrative." },
   { name: "top_movers", desc: "Ranked lists: kind = gainers | losers | active (by traded value). arg: { kind, limit<=15 }." },
-  { name: "quote", desc: "Full live quote + fundamentals for ONE stock. arg: { ticker } (EGX ticker like COMI, HDBK, TMGH, ABUK)." },
+  { name: "quote", desc: "Full live quote + fundamentals for ONE stock. arg: { ticker } (EGX ticker like COMI, HDBK, TMGH, ABUK). If you only have a company NAME (Arabic or English), resolve the correct ticker with the search tool FIRST — never guess, and never answer a named company from another ticker's data." },
   { name: "screen", desc: "Rank the whole universe by a metric. metrics: pe | pb | divYield | roe | marketCap | changePct | perfYTD | perfY | volume | revenueTTM | netMarginTTM. arg: { metric, direction: top|bottom, limit<=15 }." },
   { name: "technicals", desc: "13-indicator technical rating (SMA/EMA/RSI/Stoch/MACD/CCI/Momentum/WilliamsR/BBPower, 1Y daily candles) for ONE stock. arg: { ticker }." },
   { name: "best_signals", desc: "The Signals tab scan: strongest bullish (or bearish) composite ratings across ALL stocks (technical + fundamental + news pillars). arg: { direction: top|bottom, limit<=10 }." },
@@ -59,8 +61,8 @@ REPLY PROTOCOL — your every reply MUST be exactly ONE JSON object and nothing 
 2. To give your final answer (only once you have enough real data): {"final": "<markdown answer>"}
 
 RULES:
-- Answer language: ${lang === "ar" ? "Arabic (clear Egyptian-friendly MSA)" : "English"}. If the user writes in the other language, switch to theirs.
-- NEVER invent or estimate market numbers. Every EGX figure in your final answer must come from our data tools; every web fact must come from web_search results. If data is missing, say so plainly.
+- Answer language: ${lang === "ar" ? "Arabic (clear Egyptian-friendly MSA)" : "English"}. If the user writes in the other language, switch to theirs. ONE language per answer: never mix Chinese/Japanese/Korean characters or any third language into an Arabic or English answer (e.g. 最高 or 最低 inside Arabic text is a defect). Arabic answers may keep Latin tickers like COMI and standard financial abbreviations (P/E, RSI) — nothing else.
+- NEVER invent or estimate market numbers. Every EGX figure in your final answer must come from our data tools; every web fact must come from web_search results. If data is missing, say so plainly. Fabricated-looking sequences (1234567, 123.45 …) are grounds for rejection: your final answer is machine-verified against the tool data before the user sees it.
 - NUMBERS ARE EXACT: when a tool result contains a price/percentage/value, COPY it character-for-character into your answer (e.g. last 133.32 → write 133.32). Never round, recompute or replace tool numbers from memory.
 - EGX tickers look like COMI, HDBK, TMGH, ABUK, ETEL, SWDY, EFIH. If unsure of a ticker, use screen/top_movers or state the ambiguity.
 - Call tools to fetch facts BEFORE answering market questions; 2-5 calls is typical; hard cap 10.
@@ -82,13 +84,153 @@ RULES:
 // ── shared arg cleaners ──
 
 export function cleanTicker(raw: unknown): string {
-  return typeof raw === "string" ? raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) : "";
+  // keep dashes so "-EGP"-suffixed ISIN forms survive to the resolver
+  const t = typeof raw === "string" ? raw.toUpperCase().replace(/[^A-Z0-9-]/g, "") : "";
+  if (!t) return "";
+  // T38 — accept BOTH forms: the canonical Reuters tickers (NAPR) and the
+  // legacy ISIN-shaped codes (EGS370O1C013 / EGS3E071C013-EGP). Resolve
+  // BEFORE any length cap — the old 10-char slice silently truncated ISINs.
+  return resolveTicker(t).slice(0, 12);
 }
 
 export function clampLimit(raw: unknown, max: number, dflt: number): number {
   const n = typeof raw === "number" ? Math.floor(raw) : Number(raw);
   if (!Number.isFinite(n) || n <= 0) return dflt;
   return Math.min(n, max);
+}
+
+// ── T38: final-answer VERIFICATION (the anti-fabrication guard) ──────────
+// Live QA caught a keyless model answering a Hermes question with a fully
+// fabricated quote (price 133.32, volume 1,234,567, marketCap 123,456,789,012
+// — sequential digits!) even though the REAL tool data sat right above it in
+// the conversation. Small models sometimes paraphrase numbers from memory
+// instead of copying them, and occasionally leak CJK characters (最高/最低)
+// into Arabic answers. Both loops (server SSE + client Puter) now run this
+// verifier on every {"final": …} before accepting it:
+//   1. collect every numeric token the tools actually returned;
+//   2. collect every significant numeric token in the answer;
+//   3. an answer number is SUSPECT when it matches no tool number (±1%),
+//      has ≥4 significant digits and is not a plain year;
+//   4. any CJK codepoint in the answer is a suspect too;
+//   5. ≥2 suspects (or any CJK) → ONE repair round telling the model exactly
+//      which tokens are wrong; if it still fails, the answer ships with an
+//      honest verification footnote instead of silently trusting it.
+
+const NUM_RE = /-?\d[\d,]*(?:\.\d+)?/g;
+const CJK_RE = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3040-\u30FF]/;
+
+/** All numeric tokens in a string, comma separators stripped. */
+function numTokens(s: string): string[] {
+  return (s.match(NUM_RE) ?? []).map((t) => t.replace(/,/g, ""));
+}
+
+/** True when `a` matches `b` numerically: exact, or within ±1% relative
+ *  tolerance (honest roundings and quick mental math stay accepted). */
+function numMatch(a: number, b: number): boolean {
+  if (a === b) return true;
+  const big = Math.max(Math.abs(a), Math.abs(b));
+  if (big === 0) return true;
+  return Math.abs(a - b) / big <= 0.01;
+}
+
+export type VerifyVerdict = {
+  ok: boolean;
+  suspects: string[]; // fabricated-or-unverified numeric tokens
+  cjk: string[]; // leaked CJK characters (最高 etc.)
+  degenerate?: boolean; // live-observed model breakdown ("-fluid{") — not an answer
+};
+
+/** Verify a final answer against the tool results it was built from.
+ *  `toolJsons` are the raw JSON.stringify() payloads the loop fed into the
+ *  conversation; `userText` (the question) whitelists its own numbers so
+ *  answers that echo the user's figures are not flagged. With no tool data
+ *  (concept questions) it always passes — there is nothing to check.
+ *  Live-tested threshold: ONE unmatched significant number is enough to
+ *  trigger repair — the classic quick-quote fabrication emits exactly one
+ *  invented price. */
+export function verifyFinalAnswer(final: string, toolJsons: string[], userText?: string): VerifyVerdict {
+  if (toolJsons.length === 0) return { ok: true, suspects: [], cjk: [] };
+  // degenerate-output guard: after real tool data, a handful of characters
+  // (live case: "-fluid{") is model breakdown, not an answer — route it
+  // through the same repair / quality-fallback path
+  if (final.trim().length < 12) return { ok: false, suspects: [], cjk: [], degenerate: true };
+
+  // every number the tools actually served (with their 1dp roundings too)
+  const toolNums: number[] = [];
+  for (const j of toolJsons) for (const t of numTokens(j)) {
+    const v = Number(t);
+    if (Number.isFinite(v)) toolNums.push(v);
+  }
+  const toolRounded = new Set<string>();
+  for (const v of toolNums) {
+    toolRounded.add(v.toPrecision(12));
+    toolRounded.add(v.toFixed(1));
+    toolRounded.add(v.toFixed(2));
+  }
+  // numbers the user themselves wrote are trusted (portfolio sizes, "بـ 50 ألف"…)
+  const userNums: number[] = [];
+  for (const t of numTokens(userText ?? "")) {
+    const v = Number(t);
+    if (Number.isFinite(v)) userNums.push(v);
+  }
+
+  const suspects: string[] = [];
+  for (const raw of numTokens(final)) {
+    const v = Number(raw);
+    if (!Number.isFinite(v)) continue;
+    // plain years and small counts/indices are not market figures
+    if (Number.isInteger(v) && v >= 1990 && v <= 2035) continue;
+    if (Number.isInteger(v) && Math.abs(v) <= 100) continue;
+    const digits = raw.replace(/^-/, "").replace(/^\d\./, "").replace(/\./, "").replace(/^0+/, "").length;
+    if (digits < 4) continue; // 0.57, 5.8, 12 … — derived roundings are fine
+    // accept: exact presence in tool output, a tool rounding, ±1% close,
+    // the user's own number echoed back, or a ratio/product of a user
+    // number with a tool number ("50,000 / 116.5 ≈ 429.2 shares")
+    const hit =
+      toolRounded.has(v.toPrecision(12)) ||
+      toolNums.some((t) => numMatch(v, t)) ||
+      userNums.some((t) => numMatch(v, t)) ||
+      (userNums.length > 0 &&
+        userNums.some((u) =>
+          toolNums.some((t) =>
+            (t !== 0 && numMatch(v, u / t)) || (u !== 0 && numMatch(v, t / u)) || numMatch(v, u * t)
+          )
+        ));
+    if (!hit) suspects.push(raw);
+  }
+
+  const cjk = [...new Set(final.match(new RegExp(CJK_RE.source, "g")) ?? [])];
+
+  return { ok: suspects.length === 0 && cjk.length === 0, suspects, cjk };
+}
+
+/** The repair-round message injected when verification fails. Bilingual on
+ *  purpose: small models follow English instructions more reliably. */
+export function verificationRepairMessage(v: VerifyVerdict, lang: "ar" | "en"): string {
+  const bad = v.suspects.slice(0, 12).join(", ");
+  const cjk = v.cjk.slice(0, 12).join(" ");
+  const parts = [
+    "VERIFICATION FAILED — do NOT send this to the user yet.",
+    v.degenerate &&
+      "Your reply was not a usable answer (broken / far too short for the tool data above). Write a real, complete final answer now.",
+    v.suspects.length > 0 &&
+      `Your answer contains numbers that DO NOT EXIST in the tool data above: ${bad}. They look invented. If a number is your own arithmetic from tool values, recompute it and keep it ONLY if the arithmetic is exact; otherwise copy the exact value from the tool results.`,
+    v.cjk.length > 0 &&
+      `Your answer mixed Chinese characters (${cjk}) into ${lang === "ar" ? "Arabic" : "English"} text.`,
+    `Rewrite your final answer NOW: copy EVERY market number character-for-character from the tool results above (scroll up and re-read them), keep your structure, and write strictly in ${lang === "ar" ? "clear Arabic (zero Chinese/Latin fragments inside Arabic words)" : "English"}.`,
+    'Reply again with {"final": "<corrected markdown answer>"} only.',
+  ].filter(Boolean) as string[];
+  return parts.join(" ");
+}
+
+/** Honest footnote appended when a repaired answer STILL fails verification —
+ *  the answer ships, but never silently trusted. */
+export function verificationFootnote(v: VerifyVerdict, lang: "ar" | "en"): string {
+  const ar =
+    "**تنبيه التحقق:** تعذّر تأكيد تطابق بعض أرقام هذه الإجابة مع بيانات الأدوات الحية — تحقق من الأرقام في صفحة السهم قبل الاعتماد عليها.";
+  const en =
+    "**Verification note:** some numbers in this answer could not be confirmed against the live tool data — double-check them on the stock page before relying on them.";
+  return `\n\n---\n${lang === "ar" ? ar : en}`;
 }
 
 // ── the reply-JSON parser (identical semantics on both runtimes) ──

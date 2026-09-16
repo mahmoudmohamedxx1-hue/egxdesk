@@ -25,11 +25,18 @@ export function normalizeAr(s: string): string {
     .trim();
 }
 
+/** T38 — space-insensitive matching key: normalizeAr with ALL whitespace
+ *  removed, so "أبو قير" matches "أبوقير" and "التجاري الدولي" matches
+ *  "التجاريالدولي" — the docstring always promised this; now it is real. */
+export function normalizeArKey(s: string): string {
+  return normalizeAr(s).replace(/\s+/g, "");
+}
+
 /** Ticker -> common Arabic brand names (Egyptian financial-press usage). */
 export const AR_ALIASES: Record<string, string[]> = {
-  COMI: ["التجاري الدولي", "البنك التجاري الدولي", "سي آي بي", "سي اي بي"],
+  COMI: ["التجاري الدولي", "البنك التجاري الدولي", "سي آي بي", "سي اي بي", "كومي"],
   TMGH: ["طلعت مصطفى"],
-  HRHO: ["إي إف جي", "هيرميس"],
+  HRHO: ["إي إف جي", "هيرميس", "هيرمس", "هرمس"],
   ETEL: ["المصرية للاتصالات", "اتصالات مصر"],
   EAST: ["الشرق للدخان", "الشرقية للدخان"],
   ABUK: ["أبو قير"],
@@ -111,16 +118,22 @@ export type ArMatch = { ticker: string; alias: string; score: number };
 export function matchArabic(q: string): ArMatch[] {
   const nq = normalizeAr(q);
   if (!nq) return [];
+  const nqKey = normalizeArKey(q); // T38 — space-insensitive form
   const out: ArMatch[] = [];
   for (const [ticker, aliases] of Object.entries(AR_ALIASES)) {
     for (const alias of aliases) {
       const na = normalizeAr(alias);
       if (!na) continue;
+      const naKey = normalizeArKey(alias);
       let score = 0;
       if (na === nq) score = 100;
       else if (na.startsWith(nq)) score = 85;
       else if (na.includes(nq)) score = 70;
       else if (nq.includes(na) && na.length >= 3) score = 60;
+      // T38 — space-insensitive tiers: "أبوقير" hits "أبو قير" at the same
+      // score level as its spaced twin
+      else if (nqKey && naKey.includes(nqKey)) score = naKey.startsWith(nqKey) ? 85 : 70;
+      else if (nqKey && nqKey.includes(naKey) && naKey.length >= 3) score = 60;
       if (score > 0) {
         out.push({ ticker, alias, score });
         break;
@@ -136,8 +149,14 @@ export function rowMatchesArabic(ticker: string, q: string): boolean {
   if (!nq) return false;
   const aliases = AR_ALIASES[ticker];
   if (!aliases) return false;
+  const nqKey = normalizeArKey(q);
   return aliases.some((a) => {
     const na = normalizeAr(a);
-    return na.includes(nq) || (nq.includes(na) && na.length >= 3);
+    const naKey = normalizeArKey(a);
+    return (
+      na.includes(nq) ||
+      (nq.includes(na) && na.length >= 3) ||
+      (nqKey.length > 0 && (naKey.includes(nqKey) || (nqKey.includes(naKey) && naKey.length >= 3)))
+    );
   });
 }

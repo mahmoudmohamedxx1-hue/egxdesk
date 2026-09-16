@@ -9,6 +9,7 @@
 
 import { fetchUniverse, type Stock } from "./market";
 import { marketStatus } from "./market-status";
+import { historySymbol } from "./ticker-aliases";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -116,8 +117,13 @@ type YahooChart = {
 };
 
 export async function fetchStockChart(ticker: string, range: ChartRange): Promise<StockChart> {
-  const t = ticker.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (!t) throw new Error("history: empty ticker");
+  // T38 — the aliased Reuters tickers (NAPR, MKIT…) are OUR canonical ids,
+  // but Yahoo's EGX history serves those names under the ISIN symbol —
+  // historySymbol() maps back (and passes everything else through). The
+  // response still reports the REQUESTED ticker as `symbol`.
+  const req = ticker.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const t = historySymbol(req);
+  if (!req) throw new Error("history: empty ticker");
   const cfg = RANGE_MAP[range];
   const intraday = cfg.interval !== "1d" && cfg.interval !== "1wk";
   // intraday windows move with the tape while the market is open — cache
@@ -194,7 +200,7 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
     const first = closesArr[0];
     const last = closesArr[closesArr.length - 1];
     return {
-      symbol: t,
+      symbol: req,
       yahooSymbol: `${t}.CA`,
       range,
       currency: r.meta?.currency ?? "EGP",

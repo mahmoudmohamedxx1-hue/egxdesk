@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchStatements } from "@/lib/statements";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET(
   ctx: { params: Promise<{ ticker: string }> }
 ) {
   const { ticker } = await ctx.params;
-  const t = decodeURIComponent(ticker).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const t = resolveTicker(decodeURIComponent(ticker).toUpperCase().replace(/[^A-Z0-9]/g, "")); // T38 — legacy ISIN form -> Reuters ticker
   if (!t) {
     return NextResponse.json({ error: "ticker required" }, { status: 400 });
   }

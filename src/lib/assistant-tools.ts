@@ -14,6 +14,7 @@
 import type { Lang } from "@/lib/i18n";
 import type { AlertCondition, PriceAlert } from "@/lib/alerts";
 import { loadBook, saveBook, buy, sell, emptyBook, tradeErrText, type PaperBook } from "@/lib/paper";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 export type ToolCtx = {
   lang: Lang;
@@ -77,7 +78,7 @@ function localNameMatch(rows: CompanyRowLite[], q: string): CompanyRowLite | nul
 }
 
 export async function findTicker(q: string): Promise<CompanyRowLite | null> {
-  const raw = q.trim().toUpperCase();
+  const raw = resolveTicker(q.trim().toUpperCase()); // T38 — accepts the legacy ISIN form too
   if (!raw) return null;
   const rows = await companies();
   const exact = rows.find((r) => r.ticker === raw);

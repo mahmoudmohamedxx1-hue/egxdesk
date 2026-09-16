@@ -28,6 +28,7 @@ import {
   type PriceAlert,
 } from "@/lib/alerts";
 import type { CompanyRow } from "./types";
+import { resolveTicker } from "@/lib/ticker-aliases";
 import { syncPushAlerts } from "@/lib/push-client";
 
 /** T27 — indicator-snapshot cache for the alert engine (per ticker, 60s
@@ -172,7 +173,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(WATCH_KEY);
       if (raw) {
         const arr = JSON.parse(raw);
-        if (Array.isArray(arr)) setWatch({ tickers: arr.filter((x) => typeof x === "string"), ready: true });
+        if (Array.isArray(arr)) {
+          // T38 — migrate legacy ISIN-shaped tickers to the Reuters form
+          const tickers = [...new Set(arr.filter((x) => typeof x === "string").map((x) => resolveTicker(x)))];
+          setWatch({ tickers, ready: true });
+        }
         else setWatch((w) => ({ ...w, ready: true }));
       } else {
         setWatch((w) => ({ ...w, ready: true }));

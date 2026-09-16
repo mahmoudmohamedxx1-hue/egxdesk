@@ -4,6 +4,7 @@ import { ensureNewsArchive, relatedNewsArchive, companyDisclosures } from "@/lib
 import { computeSignals } from "@/lib/signals";
 import { signalForTicker } from "@/lib/signals-scan";
 import { arCompanySector } from "@/lib/ar-names";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 function median(vals: number[]): number | null {
   if (!vals.length) return null;
@@ -30,7 +31,9 @@ export async function GET(
     ensureNewsArchive().catch(() => {});
 
     const [stocks, news] = await Promise.all([fetchUniverse(), fetchNews()]);
-    const company = stocks.find((s) => s.ticker === t);
+    // T38 — legacy URLs may carry the pre-alias ISIN form (EGS370O1C013);
+    // canonicalize to the exchange's Reuters ticker before the lookup
+    const company = stocks.find((s) => s.ticker === resolveTicker(t));
     if (!company) {
       return NextResponse.json({ error: "no such company" }, { status: 404 });
     }

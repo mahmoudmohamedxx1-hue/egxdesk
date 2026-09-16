@@ -26,6 +26,15 @@ export function SectorsView() {
     );
   }
 
+  // T38 — performance order that matches the overview/home narrative:
+  // multi-stock sectors by weighted performance first, then the tiny ones
+  // (still real, still shown — just never headline "sector of the day")
+  const rankedSectors = [...sectors].sort(
+    (a, b) =>
+      (a.count >= 3 ? 0 : 1) - (b.count >= 3 ? 0 : 1) ||
+      (b.capWeightedChangePct ?? 0) - (a.capWeightedChangePct ?? 0)
+  );
+
   return (
     <div className="space-y-5">
       <div className="flex items-baseline justify-between flex-wrap gap-2">
@@ -36,16 +45,25 @@ export function SectorsView() {
       </div>
       <p className="text-xs text-muted-foreground -mt-3">{tt(T.sectorClassNote, lang)}</p>
 
-      {/* sector performance chart */}
+      {/* sector performance chart — T38: real sectors (3+ companies) rank
+          first, exactly like the home narrative and overview's best/worst
+          lists; single-stock "sectors" follow at the bottom, visibly
+          labeled, so the two views can never disagree about who leads */}
       <section className="rounded-lg border bg-card p-4 space-y-2">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <h2 className="text-base font-bold">{tt(T.sectorPerfChart, lang)}</h2>
           <p className="text-[11px] text-muted-foreground">{tt(T.capWeighted, lang)}</p>
         </div>
         <DivergingBars
-          items={sectors.map((s) => ({ label: lang === "ar" ? s.nameAr : s.nameEn, value: s.capWeightedChangePct }))}
+          items={rankedSectors.map((s) => ({
+            label:
+              (lang === "ar" ? s.nameAr : s.nameEn) +
+              (s.count < 3 ? (lang === "ar" ? ` · ${s.count} شركة فقط` : ` · ${s.count} stock` + (s.count === 1 ? "" : "s")) : ""),
+            value: s.capWeightedChangePct,
+          }))}
           unit="pct"
           lang={lang}
+          keepOrder
         />
       </section>
 

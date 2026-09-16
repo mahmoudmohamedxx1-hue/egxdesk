@@ -798,7 +798,7 @@ function ValuationTeaser({
               </p>
               {upside != null && (
                 <p className={`num text-xs font-semibold ${directionClass(upside)}`}>
-                  {upside >= 0 ? "+" : ""}
+                  {/* T38 — fmtPct already signs; the manual "+" doubled it into "++52.53%" */}
                   {fmtPct(upside)} {tt(T.valTeaserVsPrice, lang)}
                 </p>
               )}

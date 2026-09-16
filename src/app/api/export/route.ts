@@ -4,6 +4,7 @@ import { fetchUniverse, fetchIndices, companyRow, sessionMeta, sectorRows, SECTO
 import { scanSignals, signalForTicker } from "@/lib/signals-scan";
 import { getLatestAiSignals } from "@/lib/ai-signals";
 import { getLatestReport, getReportById } from "@/lib/hourly-report";
+import { resolveTicker } from "@/lib/ticker-aliases";
 import { fetchStockChart } from "@/lib/history";
 import { fetchDividends } from "@/lib/dividends";
 import { makeRateLimiter } from "@/lib/rate-limit";
@@ -775,7 +776,7 @@ export async function POST(req: NextRequest) {
       case "company": {
         const ticker =
           typeof (payload as { ticker?: unknown })?.ticker === "string"
-            ? (payload as { ticker: string }).ticker.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)
+            ? resolveTicker((payload as { ticker: string }).ticker.toUpperCase())
             : "";
         if (!ticker) return NextResponse.json({ error: "ticker required" }, { status: 400 });
         const stocks = await fetchUniverse();
@@ -915,7 +916,7 @@ export async function POST(req: NextRequest) {
         if (!tickers.length) return NextResponse.json({ error: "tickers required" }, { status: 400 });
         const stocks = await fetchUniverse();
         const picked = tickers
-          .map((t) => stocks.find((x) => x.ticker === t))
+          .map((t) => stocks.find((x) => x.ticker === resolveTicker(t)))
           .filter((x): x is NonNullable<typeof x> => !!x);
         if (!picked.length) return NextResponse.json({ error: "no such companies" }, { status: 404 });
         const metrics: [string, (s: (typeof picked)[number]) => Cell][] = [

@@ -45,7 +45,7 @@ import { getDeviceId } from "@/lib/push-client";
 import { useTheme } from "next-themes";
 import { puterChat, puterSignedIn, puterSignIn, PuterAuthRequiredError } from "@/lib/assistant-models";
 import { findAiModel, aiModelLabel, aiModelIdentity } from "@/lib/ai-models";
-import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer } from "@/lib/agent-protocol";
+import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer, verifyFinalAnswer, verificationRepairMessage, verificationFootnote } from "@/lib/agent-protocol";
 
 type AgentStep = {
   tool: string;
@@ -359,6 +359,8 @@ export function AgentView() {
 
     puterStopRef.current = false;
     const stepsAcc: AgentStep[] = [];
+    const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
+    let verifyRetried = false; // T38 — one repair round max
     let streamSoFar = "";
     setLiveNote(`${label} — thinking`);
 
@@ -405,8 +407,21 @@ export function AgentView() {
         }
 
         if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
+          // T38 — ANTI-FABRICATION GATE (same semantics as the server loop):
+          // verify significant numbers against the tool data, reject CJK
+          // leakage. One repair round, then ship with an honest footnote.
+          const finalText = parsed.final.trim();
+          const verdict = verifyFinalAnswer(finalText, toolJsons, q);
+          if (!verdict.ok && !verifyRetried) {
+            verifyRetried = true;
+            streamSoFar = "";
+            setStreamText("");
+            msgs.push({ role: "user", content: verificationRepairMessage(verdict, lang) });
+            continue;
+          }
+          const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
           const finalSteps = [...stepsAcc];
-          const answerMsg: AgentMsg = { role: "assistant", content: parsed.final.trim(), steps: finalSteps, ts: Date.now() };
+          const answerMsg: AgentMsg = { role: "assistant", content: shipped, steps: finalSteps, ts: Date.now() };
           persist([...history, answerMsg]);
           saveChat([...history, answerMsg]); // server-side history (fire-and-forget)
           answered = true;
@@ -452,7 +467,9 @@ export function AgentView() {
         }
         stepsAcc.push({ tool: toolName, args, ok });
         setLiveSteps([...stepsAcc]);
-        msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
+        const resultJson = JSON.stringify(result).slice(0, 9000);
+        msgs.push({ role: "user", content: resultJson });
+        toolJsons.push(resultJson);
       }
 
       if (!answered && !puterStopRef.current && stepsAcc.length > 0) {
@@ -478,7 +495,11 @@ export function AgentView() {
           });
           const parsed = extractJson(out);
           if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-            persist([...history, { role: "assistant", content: parsed.final.trim(), steps: [...stepsAcc], ts: Date.now() }]);
+            // T38 — forced-synthesis answers pass the same verification gate
+            const finalText = parsed.final.trim();
+            const verdict = verifyFinalAnswer(finalText, toolJsons, q);
+            const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
+            persist([...history, { role: "assistant", content: shipped, steps: [...stepsAcc], ts: Date.now() }]);
             answered = true;
           }
         } catch {

@@ -138,6 +138,7 @@ const INDEX_AR: Record<IndexQuote["code"], string> = {
 };
 
 import { arName, arCompanySector, isUsdQuoted } from "./ar-names";
+import { prettyTicker } from "./ticker-aliases";
 
 const NEWS_FEEDS: { url: string; source: string }[] = [
   { url: "https://www.alborsaanews.com/feed", source: "جريدة البورصة" },
@@ -242,7 +243,9 @@ export async function fetchUniverse(): Promise<Stock[]> {
         const close = (n(d[2]) ?? 0) as number;
         const volume = (n(d[5]) ?? 0) as number;
         return {
-          ticker: String(r.s).split(":")[1] ?? String(r.s),
+          // T38 — the exchange's Reuters ticker (NAPR, MKIT…) instead of the
+          // ISIN-shaped symbol TradingView serves for these 8 names
+          ticker: prettyTicker(String(r.s).split(":")[1] ?? String(r.s)),
           name: String(d[1] ?? d[0] ?? ""),
           sector: typeof d[7] === "string" ? d[7] : "",
           industry: typeof d[8] === "string" ? d[8] : null,

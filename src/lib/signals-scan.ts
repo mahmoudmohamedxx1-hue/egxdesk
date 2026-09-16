@@ -26,6 +26,7 @@
  *  users never wait for the full sweep. */
 
 import { fetchUniverse, companyRow, type Stock } from "@/lib/market";
+import { resolveTicker } from "@/lib/ticker-aliases";
 import { fetchStockChart, type StockChart } from "@/lib/history";
 import {
   smaSeries,
@@ -384,7 +385,7 @@ export async function reblendNews(
 /** Single-stock rating for the AI agent's `technicals` tool and the
  *  company page composite signal card (TA + FA + news). */
 export async function signalForTicker(tickerRaw: string): Promise<SignalRow | null> {
-  const t = tickerRaw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const t = resolveTicker(tickerRaw.toUpperCase().replace(/[^A-Z0-9]/g, "")); // T38 — legacy ISIN form resolves too
   const universe = await fetchUniverse();
   const stock = universe.find((s) => s.ticker === t);
   if (!stock) return null;

@@ -179,7 +179,7 @@ const WORLD_WATCH: Omit<WorldQuote, "price" | "changePct">[] = [
   {
     key: "sp500", symbol: "^GSPC", group: "index", currency: "USD", unitAr: "نقطة", unitEn: "pts",
     nameAr: "ستاندرد آند بورز 500", nameEn: "S&P 500",
-    whyAr: "أوسع مؤشر للشركات الأمريكية — مزاج المستثمر العالمي الذي تتدفقاته على الأسواق الناشئة.",
+    whyAr: "أوسع مؤشر للشركات الأمريكية — مزاج المستثمر العالمي الذي تُوجّه تدفقاته إلى الأسواق الناشئة.",
     whyEn: "The broadest US corporate index — the global risk mood foreign flows into EGX follow.",
   },
   {
@@ -197,7 +197,7 @@ const WORLD_WATCH: Omit<WorldQuote, "price" | "changePct">[] = [
   {
     key: "tasi", symbol: "^TASI.SR", group: "index", currency: "SAR", unitAr: "نقطة", unitEn: "pts",
     nameAr: "تاسي السعودي", nameEn: "TASI (Saudi)",
-    whyAr: "السوق السعودية — منافس إقليمي على سيولة المستثمر العربي، وتاسي يرتفع حين تسحب السيولة إليها.",
+    whyAr: "السوق السعودية — منافس إقليمي على سيولة المستثمر العربي، وتاسي يرتفع حين تُسحب السيولة إليها.",
     whyEn: "The Saudi market — a regional competitor for Arab-investor liquidity in EGX.",
   },
   {

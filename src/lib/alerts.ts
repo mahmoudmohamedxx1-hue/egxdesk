@@ -16,6 +16,7 @@
 
 import type { CompanyRow } from "@/components/market/types";
 import { rsiSeries, macdSeries, smaSeries } from "@/lib/indicators";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 /** Legacy single-condition kinds (G1) — kept for migration. */
 export type AlertCond = "above" | "below" | "risePct" | "fallPct" | "onDate";
@@ -208,7 +209,7 @@ export function loadAlerts(): PriceAlert[] {
         const isReminder = conditions.length === 1 && conditions[0].kind === "onDate";
         return {
           id: String(a.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
-          ticker: a.ticker,
+          ticker: resolveTicker(a.ticker.toUpperCase()), // T38 — legacy ISIN form -> Reuters ticker
           conditions,
           ...(isReminder && typeof a.date === "string" ? { date: a.date } : {}),
           createdAt: typeof a.createdAt === "string" ? a.createdAt : new Date().toISOString(),

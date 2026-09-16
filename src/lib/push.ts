@@ -15,6 +15,7 @@ import path from "node:path";
 import webpush from "web-push";
 import { db } from "@/lib/db";
 import { fetchUniverse, type Stock } from "@/lib/market";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 // ── VAPID keys (generated once by scripts/gen-vapid.js) ──
 
@@ -146,7 +147,7 @@ function normalizeAlert(a: ServerAlert): { ticker: string; date?: string; conds:
     conds = mapped.map((c) => ({ ...c, value: a.cond === "fallPct" ? -Math.abs(value) : value }));
   }
   if (conds.length === 0) return null;
-  return { ticker: a.ticker, date: a.date, conds };
+  return { ticker: resolveTicker(a.ticker.toUpperCase()), date: a.date, conds }; // T38 — legacy ISIN alerts resolve to the Reuters ticker
 }
 
 const IND_KINDS_SERVER = new Set<CondKindServer>(["rsiAbove", "rsiBelow", "macdAbove", "macdBelow", "maCrossUp", "maCrossDown", "volRatioAbove"]);

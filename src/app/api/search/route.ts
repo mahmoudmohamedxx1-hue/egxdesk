@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, sectorAr } from "@/lib/market";
-import { matchArabic, normalizeAr, arabicName, AR_ALIASES } from "@/lib/ar-search";
+import { matchArabic, normalizeAr, arabicName, AR_ALIASES, normalizeArKey } from "@/lib/ar-search";
 import { arName, arCompanySector } from "@/lib/ar-names";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 /** GET /api/search?q= — type-ahead live company search.
- *  Matches ticker / English name / industry, plus the curated Arabic
- *  brand-alias map (normalized), plus Arabic sector names. */
+ *  Matches ticker / English name / industry, the curated Arabic brand-alias
+ *  map (normalized), the FULL official Arabic name directory (270 exchange
+ *  names — T38: previously matched only for display, never for search),
+ *  plus Arabic sector names. */
 export async function GET(req: NextRequest) {
   try {
     const qRaw = (req.nextUrl.searchParams.get("q") ?? "").trim();
@@ -20,14 +23,24 @@ export async function GET(req: NextRequest) {
     const arMatches = matchArabic(qRaw);
     const arScore = new Map<string, number>();
     for (const m of arMatches) {
-      if (byTicker.has(m.ticker) && !arScore.has(m.ticker)) arScore.set(m.ticker, m.score);
+      const key = resolveTicker(m.ticker);
+      if (byTicker.has(key) && !arScore.has(key)) arScore.set(key, m.score);
     }
+
+    // T38 — space-insensitive key for tolerant Arabic matching: "أبو قير"
+    // must match "أبوقير", exactly as the module's docstring always promised
+    const nqKey = normalizeArKey(qRaw);
 
     const scored = stocks
       .map((c) => {
         const tickerL = c.ticker.toLowerCase();
         const nameL = (c.name ?? "").toLowerCase();
         const sectorArL = normalizeAr(sectorAr(c.sector));
+        // T38 — the official Arabic company directory is now SEARCHABLE,
+        // not just display fuel: a word from the exchange's own Arabic name
+        // ("مطاحن", "الاسيوطية"…) finds the company
+        const nameArKey = normalizeArKey(arName(c.ticker) ?? "");
+        const aliasKey = normalizeArKey(arabicName(c.ticker) ?? "");
         let score = 0;
         if (tickerL === q) score = 120;
         else if (tickerL.includes(q)) score = 95;
@@ -35,6 +48,11 @@ export async function GET(req: NextRequest) {
         else if (nameL.includes(q)) score = 65;
         else if ((c.industry ?? "").toLowerCase().includes(q)) score = 40;
         else if (nq && sectorArL.includes(nq) && nq.length >= 3) score = 30;
+        if (score === 0 && nqKey.length >= 2) {
+          if (nameArKey.includes(nqKey)) score = 75; // official Arabic name hit
+          else if (aliasKey.includes(nqKey)) score = 70; // curated alias hit
+          else if (nqKey.includes(nameArKey) && nameArKey.length >= 3) score = 60;
+        }
         const ar = arScore.get(c.ticker) ?? 0;
         if (ar > score) score = ar;
         return { c, score };

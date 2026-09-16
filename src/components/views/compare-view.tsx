@@ -178,7 +178,10 @@ export function CompareView() {
             </span>
           );
         })}
-        {selected.length === 0 && (
+        {/* T38 — hint only while EXACTLY one is picked; with zero picked the
+            big empty-state card below is the single message (it used to
+            render twice) */}
+        {selected.length === 1 && (
           <span className="text-[11px] text-muted-foreground">{tt(T.compareNeedTwo, lang)}</span>
         )}
       </div>

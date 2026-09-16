@@ -216,7 +216,7 @@ export function GccView() {
         </h1>
         {data && (
           <p className="num text-xs text-muted-foreground">
-            {tt({ ar: "مح dulث", en: "updated" }, lang)} {new Date(data.asOf).toLocaleTimeString(lang === "ar" ? "ar-EG" : "en-GB", { hour: "2-digit", minute: "2-digit" })}
+            {tt({ ar: "حُدِّث", en: "updated" }, lang)} {new Date(data.asOf).toLocaleTimeString(lang === "ar" ? "ar-EG" : "en-GB", { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
       </div>

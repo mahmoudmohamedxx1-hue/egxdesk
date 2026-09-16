@@ -3,6 +3,7 @@ import { fetchUniverse, type Stock } from "@/lib/market";
 import { fetchStockChart, milestoneChart, CHART_RANGES, type ChartRange } from "@/lib/history";
 import { ensureHistory, indexHistory } from "@/lib/flows";
 import { sampleIfDue, intradayPoints } from "@/lib/intraday";
+import { resolveTicker } from "@/lib/ticker-aliases";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,8 @@ export async function GET(req: NextRequest) {
   let stockRow: Stock | null = null;
   try {
     const universe = await fetchUniverse();
-    stockRow = universe.find((s) => s.ticker === symbol) ?? null;
+    // T38 — canonicalize legacy ISIN-shaped symbols to the Reuters ticker
+    stockRow = universe.find((s) => s.ticker === resolveTicker(symbol)) ?? null;
     if (!stockRow) {
       return NextResponse.json({ error: "no such symbol" }, { status: 404 });
     }

@@ -1,7 +1,7 @@
 /** T37 probe #2 — GitHub Models free inference with the repo's embedded PAT.
  *  If this works, the user gets 10+ real frontier models with a key they
  *  ALREADY own (their GitHub account) — no Puter, no signup, no card. */
-const { execSync } = require("child_process");
+import { execSync } from "node:child_process";
 const gitUrl = execSync("git config --get remote.origin.url").toString().trim();
 const afterColon = gitUrl.split(":").pop() || "";  // "ghp_xxx@github.com/..."
 const PAT = afterColon.split("@")[0];
