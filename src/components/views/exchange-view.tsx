@@ -164,6 +164,7 @@ export function ExchangeView() {
                     {tt(T.ratesAsOf, lang)}: {r.reference || "—"}
                     {changed && (
                       <span className={`ms-1.5 font-semibold ${directionClass(r.value - (r.previous ?? 0))}`}>
+                        {(r.value - (r.previous ?? 0)) >= 0 ? "+" : ""}
                         {fmtNum(r.value - (r.previous ?? 0), 2)}pp
                       </span>
                     )}

@@ -9,6 +9,10 @@ export type CompanyRow = {
   usdQuoted?: boolean;
   sectorEn: string;
   sectorAr: string;
+  /** Deterministic Arabic label of the sectorCode taxonomy itself (T39) —
+   *  use for any filter/grouping keyed by sectorCode; sectorAr above is the
+   *  per-company OFFICIAL EGX label and can differ between codes. */
+  sectorGroupAr: string;
   sectorCode: string;
   close: number;
   changePct: number;

@@ -39,6 +39,17 @@ export function fmtPct(p: number | null | undefined, signed = true): string {
   return `${p > 0 ? "+" : ""}${s}%`;
 }
 
+/** T39 — P/E display: a scanner-served P/E above 1000 means earnings are
+ *  ~0.1% of price (near-zero TTM profit). The raw number (e.g. 3,406.3)
+ *  is real but reads like fabricated data on screen, so extreme readings
+ *  render as an explicit "—" dash; sorting/filtering still use the raw
+ *  value. Negative/zero P/E (loss-making TTM) was already dashed. */
+export function fmtPE(pe: number | null | undefined): string {
+  if (pe === null || pe === undefined || !Number.isFinite(pe)) return "—";
+  if (pe <= 0 || pe >= 1000) return "—";
+  return pe >= 100 ? fmtNum(pe, 0) : fmtNum(pe, 1);
+}
+
 export function fmtRatio(r: number | null | undefined): string {
   if (r === null || r === undefined || !Number.isFinite(r)) return "—";
   return `${r.toFixed(2)}×`;

@@ -53,7 +53,9 @@ export function HeatView() {
     const bySector = new Map<string, { name: string; rows: CompanyRow[] }>();
     scoped.forEach((r) => {
       if (sectorFocus && r.sectorCode !== sectorFocus) return;
-      const g = bySector.get(r.sectorCode) ?? { name: lang === "ar" ? r.sectorAr : r.sectorEn, rows: [] };
+      // T39 — deterministic taxonomy label per sectorCode, so two sectors
+      // can never share one Arabic label in the heat grouping headers
+      const g = bySector.get(r.sectorCode) ?? { name: lang === "ar" ? r.sectorGroupAr : r.sectorEn, rows: [] };
       g.rows.push(r);
       bySector.set(r.sectorCode, g);
     });

@@ -6,7 +6,7 @@ import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
-import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
+import { fmtNum, fmtValue, fmtPct, fmtPE, directionClass } from "@/lib/format";
 import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
@@ -76,8 +76,12 @@ export function MarketView() {
 
   const sectors = useMemo(() => {
     if (!rows) return [];
+    // T39 — label each sectorCode with the deterministic taxonomy label
+    // (sectorGroupAr), NOT the per-company official label: the old
+    // last-company-wins labeling made several codes show the SAME Arabic
+    // text in the dropdown (and the label didn't even cover every member).
     const seen = new Map<string, string>();
-    rows.forEach((r) => seen.set(r.sectorCode, lang === "ar" ? r.sectorAr : r.sectorEn));
+    rows.forEach((r) => seen.set(r.sectorCode, lang === "ar" ? r.sectorGroupAr : r.sectorEn));
     return Array.from(seen.entries())
       .map(([code, name]) => ({ code, name }))
       .sort((a, b) => a.name.localeCompare(b.name, lang === "ar" ? "ar" : "en"));
@@ -139,6 +143,7 @@ export function MarketView() {
     if (key === "divYield" || key === "roe" || key === "perfYTD") return `${fmtNum(v, 1)}%`;
     if (key === "volumeRatio") return `${fmtNum(v, 1)}×`;
     if (key === "eps" || key === "close") return fmtNum(v);
+    if (key === "pe") return fmtPE(v); // T39 — extreme P/E renders as —
     return fmtNum(v, 2);
   };
 
@@ -304,7 +309,7 @@ export function MarketView() {
                       </>
                     )}
                     <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">
-                      {r.pe ? fmtNum(r.pe, 1) : "—"}
+                      {fmtPE(r.pe)}
                     </td>
                     {tab === "metrics" && (
                       <>

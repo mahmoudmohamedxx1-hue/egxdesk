@@ -6,7 +6,7 @@ import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn, type Lang } from "@/lib/i18n";
-import { fmtNum, fmtValue, fmtPct, fmtInt, directionClass } from "@/lib/format";
+import { fmtNum, fmtValue, fmtPct, fmtPE, fmtInt, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -302,7 +302,7 @@ const COLUMNS: ColDef[] = [
     align: "end",
     hidden: "hidden sm:table-cell",
     val: (r) => r.pe,
-    cell: (r) => <span className="num text-muted-foreground">{r.pe !== null ? fmtNum(r.pe, 1) : "—"}</span>,
+    cell: (r) => <span className="num text-muted-foreground">{fmtPE(r.pe)}</span>,
   },
   {
     key: "pb",
@@ -569,8 +569,9 @@ export function ScreenerView() {
 
   const sectors = useMemo(() => {
     if (!rows) return [];
+    // T39 — deterministic taxonomy label per sectorCode (see market-view)
     const seen = new Map<string, string>();
-    rows.forEach((r) => seen.set(r.sectorCode, lang === "ar" ? r.sectorAr : r.sectorEn));
+    rows.forEach((r) => seen.set(r.sectorCode, lang === "ar" ? r.sectorGroupAr : r.sectorEn));
     return Array.from(seen.entries())
       .map(([code, name]) => ({ code, name }))
       .sort((a, b) => a.name.localeCompare(b.name, lang === "ar" ? "ar" : "en"));

@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NotebookPen, Plus, TrendingDown, TrendingUp, Trash2, RotateCcw, Wallet, Receipt } from "lucide-react";
+import { rowMatchesQuery } from "@/lib/ar-search";
 import {
   loadBook,
   saveBook,
@@ -56,15 +57,10 @@ export function PaperView() {
 
   const suggestions = useMemo(() => {
     if (!data || q.trim().length < 1) return [];
-    const needle = q.trim().toLowerCase();
-    const ar = /[\u0600-\u06FF]/.test(needle);
+    // T39 — shared tolerant matcher (Arabic aliases + normalization), so
+    // typing "كومي" finds COMI here exactly like the header search
     return data.rows
-      .filter((r) => {
-        if (r.ticker.toLowerCase().startsWith(needle)) return true;
-        if (!ar && r.name.toLowerCase().includes(needle)) return true;
-        if (ar && (r.nameAr ?? "").includes(q.trim())) return true;
-        return false;
-      })
+      .filter((r) => rowMatchesQuery(r, q))
       .slice(0, 7);
   }, [data, q]);
 
@@ -168,17 +164,19 @@ export function PaperView() {
           { label: tt({ ar: "قيمة المراكز", en: "Positions value" }, lang), value: `${fmtValue(joined.marketValue)} EGP`, icon: TrendingUp },
           {
             label: tt({ ar: "أرباح غير محققة", en: "Unrealized P&L" }, lang),
-            value: `${joined.unrealized >= 0 ? "+" : ""}${fmtValue(joined.unrealized)}`,
+            // exact EGP value with an explicit sign — the old fmtValue()
+            // rounding ("-6" for -6.33) looked broken next to "6 EGP" fees
+            value: `${joined.unrealized >= 0 ? "+" : ""}${fmtNum(joined.unrealized, 2)} EGP`,
             cls: joined.unrealized >= 0 ? "text-up" : "text-down",
             icon: joined.unrealized >= 0 ? TrendingUp : TrendingDown,
           },
           {
             label: tt({ ar: "أرباح محققة", en: "Realized P&L" }, lang),
-            value: `${joined.realized >= 0 ? "+" : ""}${fmtValue(joined.realized)}`,
+            value: `${joined.realized >= 0 ? "+" : ""}${fmtNum(joined.realized, 2)} EGP`,
             cls: joined.realized >= 0 ? "text-up" : "text-down",
             icon: Receipt,
           },
-          { label: tt({ ar: "إجمالي العمولات", en: "Total commissions" }, lang), value: `${fmtValue(joined.fees)} EGP`, icon: Receipt },
+          { label: tt({ ar: "إجمالي العمولات", en: "Total commissions" }, lang), value: `${fmtNum(joined.fees, 2)} EGP`, icon: Receipt },
         ].map((c, i) => (
           <div key={i} className="rounded-lg border bg-card p-2.5">
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">

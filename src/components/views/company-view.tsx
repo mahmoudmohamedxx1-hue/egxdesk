@@ -7,7 +7,7 @@ import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import type { CompanyRow, NewsRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
-import { fmtNum, fmtValue, fmtPct, fmtInt, fmtDateAr, fmtTimeAr, directionClass } from "@/lib/format";
+import { fmtNum, fmtValue, fmtPct, fmtPE, fmtInt, fmtDateAr, fmtTimeAr, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { PerfChart, RangeBar } from "../market/perf-chart";
@@ -221,7 +221,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           <Stat label={tt(T.month, lang)} value={fmtPct(c.perf1M)} cls={directionClass(c.perf1M)} />
           <Stat label={tt(T.ytd, lang)} value={fmtPct(c.perfYTD)} cls={directionClass(c.perfYTD)} />
           <Stat label={tt(T.volume, lang)} value={fmtInt(c.volume)} sub={`${tt(T.inSession, lang)} · ${tt(T.avg10, lang)} ${fmtInt(c.avgVolume)}`} />
-          <Stat label="P/E" value={c.pe ? fmtNum(c.pe, 1) : "—"} sub={c.eps ? `EPS ${fmtNum(c.eps)}` : undefined} />
+          <Stat label="P/E" value={fmtPE(c.pe)} sub={c.eps ? `EPS ${fmtNum(c.eps)}` : undefined} />
         </div>
       </div>
 
@@ -427,7 +427,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
                       <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(p.close)}</td>
                       <td className="px-3 py-2.5 text-end"><ChangeCell pct={p.changePct} /></td>
                       <td className="num px-3 py-2.5 text-end hidden sm:table-cell text-muted-foreground">EGP {fmtValue(p.marketCap)}</td>
-                      <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">{p.pe ? fmtNum(p.pe, 1) : "—"}</td>
+                      <td className="num px-3 py-2.5 text-end hidden md:table-cell text-muted-foreground">{fmtPE(p.pe)}</td>
                     </tr>
                   ))}
                   {data.peers.length === 0 && (

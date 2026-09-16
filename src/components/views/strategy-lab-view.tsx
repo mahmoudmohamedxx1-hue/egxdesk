@@ -51,6 +51,23 @@ type LabData = {
   error?: string;
 };
 
+/* T39 — the charter/universe strings live in backtest.json in English
+ * (machine-readable canonical form); the view renders them in the reader's
+ * language, keyed by strategyRev with an honest fallback to the original. */
+const METHOD_AR: Record<string, string> = {
+  "egx-trend-v1":
+    "اختبار مشي-للأمام بلا أي اطلاع مسبق: كل ١٠ جلسات يُرتَّب السوق بالدالة الحية نفسها على شموع حتى ذلك التاريخ فقط؛ الشراء لأعلى ٥ أسهم بدرجة ≥ 0.5؛ الاحتفاظ ١٠ جلسات؛ التكاليف 0.35٪ لكل صفقة ذهاباً وإياباً؛ المرجع = السوق بترجيح متساوٍ.",
+};
+const UNIVERSE_AR =
+  "أكثر ٤٠ سهماً تداولاً في البورصة المصرية اليوم ولديها تاريخ يومي لثلاث سنوات.";
+const PARAM_AR: Record<string, string> = {
+  warmupSessions: "جلسات الإحماء",
+  holdSessions: "جلسات الاحتفاظ",
+  topN: "عدد الأسهم",
+  scoreMin: "الحد الأدنى للدرجة",
+  costPctRoundTrip: "التكاليف٪ ذهاباً وإياباً",
+};
+
 export function StrategyLabView() {
   const { lang, navigate } = useApp();
   const [data, setData] = useState<LabData | null>(null);
@@ -117,18 +134,22 @@ export function StrategyLabView() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-md bg-secondary/40 p-3">
             <p className="text-[11px] font-semibold text-foreground/80 mb-1">{tt(T.labCharter, lang)}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">{data.method}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {lang === "ar" ? (METHOD_AR[data.strategyRev] ?? data.method) : data.method}
+            </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {Object.entries(data.params).map(([k, v]) => (
                 <span key={k} className="num rounded-sm bg-card border px-1.5 py-0.5 text-[10px]">
-                  {k}: {v}
+                  {lang === "ar" && PARAM_AR[k] ? PARAM_AR[k] : k}: {v}
                 </span>
               ))}
             </div>
           </div>
           <div className="rounded-md bg-secondary/40 p-3">
             <p className="text-[11px] font-semibold text-foreground/80 mb-1">{tt(T.labUniverse, lang)}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">{data.universe.selection}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {lang === "ar" ? UNIVERSE_AR : data.universe.selection}
+            </p>
             <p className="num text-[10px] text-muted-foreground mt-1">
               {data.universe.size} {lang === "ar" ? "اسماً" : "names"}
             </p>

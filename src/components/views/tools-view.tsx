@@ -7,6 +7,7 @@ import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Calculator, TrendingUp, Scale, BookOpen, Landmark, PiggyBank } from "lucide-react";
+import { rowMatchesQuery } from "@/lib/ar-search";
 
 type Row = { ticker: string; name: string; nameAr?: string; close: number; divYield: number | null; changePct?: number | null };
 
@@ -44,9 +45,10 @@ export function ToolsView() {
 
   const matches = useMemo(() => {
     if (!query.trim()) return [];
-    const s = query.trim().toLowerCase();
+    // T39 — shared tolerant matcher: Arabic aliases + letter-variant
+    // normalization work here like every other picker
     return companies
-      .filter((c) => c.ticker.toLowerCase().includes(s) || c.name.toLowerCase().includes(s) || (c.nameAr ?? "").includes(query.trim()))
+      .filter((c) => rowMatchesQuery(c, query))
       .slice(0, 6);
   }, [query, companies]);
 
@@ -131,9 +133,11 @@ export function ToolsView() {
                 </div>
                 <Input type="number" min={0} step={0.01} className="num w-28" value={price || ""} onChange={(e) => setPrice(Number(e.target.value) || 0)} dir="ltr" aria-label={tt(T.sharePrice, lang)} />
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                {lang === "ar" ? "النتائج مرتبة حسب مطابقة النص لا حسب أي مقياس." : "Matches are by text, not by any metric."}
-              </p>
+              {matches.length > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  {lang === "ar" ? "النتائج مرتبة حسب مطابقة النص لا حسب أي مقياس." : "Matches are by text, not by any metric."}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

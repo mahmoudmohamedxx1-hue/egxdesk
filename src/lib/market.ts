@@ -178,6 +178,18 @@ export function sectorCode(en: string): string {
   return (en || "unclassified").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
+/** T39 — strip TradingView's nominal-value artifacts from display names.
+ *  The scanner sometimes appends the share's nominal value ("El Nasr Housing
+ *  & Egp5", "Egyptian Ferro All Egp10", "Heibco Npv") — exchange noise that
+ *  must never reach a company card or table. Trailing-only, so a legitimate
+ *  name containing "EGP" mid-string is untouched (none do, but be safe). */
+export function cleanName(name: string): string {
+  return name
+    .replace(/\s*&?\s*Egp\s?\d+\s*$/i, "")
+    .replace(/\s+Npv\s*$/i, "")
+    .trim();
+}
+
 // ─────────────────────────────────────────────────────────── caching ───
 
 type Entry = { data: unknown; at: number };
@@ -446,11 +458,19 @@ export function relatedNews(stock: Stock, news: NewsItem[], limit = 6): NewsItem
 export function companyRow(s: Stock) {
   return {
     ticker: s.ticker,
-    name: s.name,
+    name: cleanName(s.name),
     // Official EGX Arabic name (exchange directory), curated alias, then English.
-    nameAr: arName(s.ticker) ?? s.name,
+    nameAr: arName(s.ticker) ?? cleanName(s.name),
     sectorEn: s.sector || "Unclassified",
+    // Per-company OFFICIAL EGX sector label (what the sector column shows).
     sectorAr: arCompanySector(s.ticker) ?? sectorAr(s.sector),
+    // Deterministic Arabic label for the SECTOR-CODE taxonomy itself — a
+    // pure function of the TradingView sector, so filters/groupings keyed by
+    // sectorCode can never show two different (or two identical) labels for
+    // the same code (T39: the market/screener dropdowns used to render the
+    // same Arabic label on several different codes because the label came
+    // from whichever company happened to iterate last).
+    sectorGroupAr: sectorAr(s.sector),
     sectorCode: sectorCode(s.sector),
     // Listings the exchange quotes in dollars — flagged so a pound column
     // never prints an eleven-times-wrong number without saying so.

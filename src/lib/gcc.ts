@@ -1,14 +1,18 @@
-/** Server-side GCC market layer (T27 — P1-6 gap): Saudi (Tadawul), Dubai
- *  (DFM) and Abu Dhabi (ADX) basics from the same free feeds the EGX side
- *  uses. No API key, no auth.
+/** Server-side GCC market layer (T27 — P1-6 gap; T39 history fix): Saudi
+ *  (Tadawul), Dubai (DFM) and Abu Dhabi (ADX) basics from the same free
+ *  feeds the EGX side uses. No API key, no auth.
  *
  *  - Indices: TradingView global scanner (TADAWUL:TASI, TADAWUL:MT30,
  *    DFM:DFMGI) + Yahoo chart meta for the ADX general index (FADGI.FGI —
  *    quote only: no free source serves its history)
  *  - Movers: TradingView "ksa" and "uae" market scanners (the UAE market
  *    covers both ADX: and DFM: listings), ranked by traded value
- *  - Index history for charts: Yahoo (^TASI.SR has full daily bars,
- *    DFMGI.AE about a year, FADGI.FGI a single stub — each labeled honestly)
+ *  - Index history for charts: T39 (Sept 2026) — Yahoo retired the daily
+ *    bars for the GCC INDEX symbols (^TASI.SR, DFMGI.AE now serve a single
+ *    quote stub; individual Saudi/UAE stocks still have history). The
+ *    chart layer therefore detects <2 points and returns an honest
+ *    quoteOnly frame the view renders as "live quote, no history" — never
+ *    a fabricated flat series.
  */
 
 const UA =
@@ -257,7 +261,9 @@ export async function fetchGccIndexChart(code: string, range: "1M" | "3M" | "6M"
       points.push({ date: new Date(ts[i] * 1000).toISOString().slice(0, 10), close: c });
     }
     if (points.length < 2) {
-      // ADX has no free history — quoteOnly frames are handled by the caller
+      // T39 — Yahoo retired the GCC index bars (single quote stub since
+      // Sept 2026): serve an honest quote-only frame instead of a one-point
+      // "chart" the view would have to render as a flat +0.00% line.
       return { points, source: "No free source publishes this index's history — quote only", quoteOnly: true };
     }
     return { points, source: cfg.label, quoteOnly: false };

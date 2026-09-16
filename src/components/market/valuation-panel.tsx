@@ -13,7 +13,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
-import { fmtNum, fmtPct, fmtValue, directionClass } from "@/lib/format";
+import { fmtNum, fmtPct, fmtPE, fmtValue, directionClass } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calculator, Snowflake, RotateCcw, Download } from "lucide-react";
@@ -329,7 +329,7 @@ export function ValuationPanel({ company, sectorAgg }: { company: CompanyFund; s
             </p>
             <p className="num text-muted-foreground flex justify-between">
               <span>P/E</span>
-              <b>{company.pe != null ? fmtNum(company.pe, 1) : "—"}</b>
+              <b>{fmtPE(company.pe)}</b>
             </p>
             <p className="num text-muted-foreground flex justify-between">
               <span>{lang === "ar" ? "وسيط القطاع P/E" : "Sector median P/E"}</span>

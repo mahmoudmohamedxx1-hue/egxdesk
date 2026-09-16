@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Scale, X } from "lucide-react";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { downloadCsv, fileStamp } from "@/lib/export";
+import { rowMatchesQuery } from "@/lib/ar-search";
 import { ExportMenu } from "../market/export-xlsx-button";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid,
@@ -73,16 +74,11 @@ export function CompareView() {
 
   const suggestions = useMemo(() => {
     if (!data || q.trim().length < 1) return [];
-    const needle = q.trim().toLowerCase();
-    const ar = /[\u0600-\u06FF]/.test(needle);
+    // T39 — the shared tolerant matcher: Arabic brand aliases (كومي → COMI)
+    // and normalized letter variants now work here exactly like header search
     return data.rows
       .filter((r) => !selected.includes(r.ticker))
-      .filter((r) => {
-        if (r.ticker.toLowerCase().startsWith(needle)) return true;
-        if (!ar && r.name.toLowerCase().includes(needle)) return true;
-        if (ar && (r.nameAr ?? "").includes(q.trim())) return true;
-        return false;
-      })
+      .filter((r) => rowMatchesQuery(r, q))
       .slice(0, 7);
   }, [data, q, selected]);
 

@@ -160,3 +160,36 @@ export function rowMatchesArabic(ticker: string, q: string): boolean {
     );
   });
 }
+
+/** T39 — the ONE picker matcher every client-side company picker should use
+ *  (compare / paper-trade / coupon tools). The pickers used to do raw
+ *  substring matching, so "التجاري" missed "التجارى" (alef-maqsura variant)
+ *  and brand aliases like "كومي" never matched at all, while the header
+ *  search (server, /api/search) understood both. This helper gives the
+ *  pickers the same tolerance: Latin queries match ticker/English-name;
+ *  Arabic queries match the official Arabic name AND the alias map, with
+ *  normalization + space-insensitivity. */
+export function rowMatchesQuery(
+  row: { ticker: string; name: string; nameAr?: string | null },
+  q: string,
+): boolean {
+  const query = q.trim();
+  if (!query) return false;
+  const needle = query.toLowerCase();
+  if (row.ticker.toLowerCase().startsWith(needle)) return true;
+  const isAr = /[\u0600-\u06FF]/.test(query);
+  if (!isAr) return row.name.toLowerCase().includes(needle);
+  // Arabic: normalized substring against the official name…
+  const nq = normalizeAr(query);
+  const nqKey = normalizeArKey(query);
+  const na = normalizeAr(row.nameAr ?? "");
+  const naKey = normalizeArKey(row.nameAr ?? "");
+  if (
+    (na && (na.includes(nq) || (nq.includes(na) && na.length >= 3))) ||
+    (nqKey && naKey && (naKey.includes(nqKey) || (nqKey.includes(naKey) && naKey.length >= 3)))
+  ) {
+    return true;
+  }
+  // …plus the curated press aliases (كومي → COMI, هيرمس → HRHO …)
+  return rowMatchesArabic(row.ticker, query);
+}

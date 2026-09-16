@@ -380,8 +380,11 @@ function FinCharts({ table, lang }: { table: StmtTable; lang: "ar" | "en" }) {
           );
         })}
       </div>
+      {/* T39 — EPS is a per-share EGP figure, NOT millions: the old title
+          borrowed the revenue chart's "× بالمليون جنيه" suffix. */}
       <p className="mt-1 text-[10px] text-muted-foreground">
-        {tt(T.finEpsTitle, lang)} — {tt(T.epsName, lang)} × <span className="num">{tt(T.inMnEgp, lang)}</span>
+        {tt(T.finEpsTitle, lang)} — {tt(T.epsName, lang)} ×{" "}
+        <span className="num">{tt({ ar: "بالجنيه للسهم", en: "EGP per share" }, lang)}</span>
       </p>
     </section>
   );

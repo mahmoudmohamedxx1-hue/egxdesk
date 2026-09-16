@@ -78,15 +78,17 @@ export function InvestorsView() {
       {/* headline stats */}
       {today && (
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* T39 — the "EGP" prefix plus the مليون ج.م suffix read as a
+              double currency ("EGP 20,020 مليون ج.م"): one unit marker only. */}
           <Stat
             icon={<ArrowLeftRight className="h-4 w-4" aria-hidden />}
             label={tt(T.totalTurnover, lang)}
-            value={`EGP ${fmtNum(today.turnoverTotal, 0)} ${tt(T.egpMn, lang)}`}
+            value={`${fmtNum(today.turnoverTotal, 0)} ${tt(T.egpMn, lang)}`}
           />
           <Stat
             icon={<Landmark className="h-4 w-4" aria-hidden />}
             label={tt(T.oneWayValue, lang)}
-            value={`EGP ${fmtNum(today.valueTradedOneWay, 0)} ${tt(T.egpMn, lang)}`}
+            value={`${fmtNum(today.valueTradedOneWay, 0)} ${tt(T.egpMn, lang)}`}
           />
           <Stat
             icon={<Users className="h-4 w-4" aria-hidden />}
@@ -169,7 +171,17 @@ export function InvestorsView() {
             <p className="num font-semibold text-foreground mb-1">
               {flowHist.length === 1 ? flowHist[0].date : "—"}
             </p>
-            <p className="max-w-md mx-auto leading-relaxed">{tt(T.flowHistoryNote, lang)}</p>
+            {/* T39 — this used to repeat the panel note word-for-word above it;
+                now it says WHY only one session exists */}
+            <p className="max-w-md mx-auto leading-relaxed">
+              {tt(
+                {
+                  ar: "جلسة واحدة مسجّلة حتى الآن — يبدأ الرسم تلقائياً من ثاني جلسة بعد إغلاقها.",
+                  en: "One session recorded so far — the chart starts automatically from the second session close.",
+                },
+                lang,
+              )}
+            </p>
           </div>
         )}
       </Panel>

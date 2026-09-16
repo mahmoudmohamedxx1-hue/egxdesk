@@ -15,9 +15,14 @@ export type NarrativeInput = {
   topMover: { ticker: string; changePct: number } | null;
 };
 
-/** Format a net-flow figure the investors view serves (EGP millions). */
-function egpMn(v: number): string {
-  const mn = v; // values arrive in EGP millions (flowsSummary contract)
+/** Format a net-flow figure the investors view serves (EGP millions) —
+ *  language-aware: English keeps the compact m/bn suffixes, Arabic spells
+ *  them out (مليون / مليار) so no Latin unit ever sits inside Arabic prose. */
+function egpMn(v: number, lang: "ar" | "en"): string {
+  const mn = Math.abs(v); // values arrive in EGP millions (flowsSummary contract)
+  if (lang === "ar") {
+    return mn >= 1000 ? `${(mn / 1000).toFixed(1)} مليار` : `${mn.toFixed(0)} مليون`;
+  }
   return `${mn >= 1000 ? `${(mn / 1000).toFixed(1)}bn` : mn.toFixed(0)}m`;
 }
 
@@ -56,8 +61,8 @@ export function marketNarrative(d: NarrativeInput, lang: "ar" | "en"): string | 
     const sign = (v: number) => (v >= 0 ? "+" : "−");
     s2 =
       lang === "ar"
-        ? `${buyers.ar} ${sign(buyers.v)}${egpMn(Math.abs(buyers.v))} جنيه صافي، مقابل ${sellers.ar} ${sign(sellers.v)}${egpMn(Math.abs(sellers.v))} — أيدي على الطاولة اليوم.`
-        : `${buyers.en} ${sign(buyers.v)}${egpMn(Math.abs(buyers.v))} EGP net against ${sellers.en} ${sign(sellers.v)}${egpMn(Math.abs(sellers.v))} — the hands on the table today.`;
+        ? `${buyers.ar} ${sign(buyers.v)}${egpMn(Math.abs(buyers.v), lang)} جنيه صافي، مقابل ${sellers.ar} ${sign(sellers.v)}${egpMn(Math.abs(sellers.v), lang)} — أيدي على الطاولة اليوم.`
+        : `${buyers.en} ${sign(buyers.v)}${egpMn(Math.abs(buyers.v), lang)} EGP net against ${sellers.en} ${sign(sellers.v)}${egpMn(Math.abs(sellers.v), lang)} — the hands on the table today.`;
   }
 
   // sentence 3: sector extremes + top mover

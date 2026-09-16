@@ -1,11 +1,17 @@
 "use client";
 
-/** GCC markets view (T27 — P1-6): Saudi (Tadawul), Dubai (DFM) and Abu Dhabi
- *  (ADX) basics — index cards, one main index chart with range switcher
- *  (TASI has multi-year history on Yahoo, DFMGI ~a year, ADX quote-only and
- *  labeled as such), and top movers by traded value from the same delayed
- *  TradingView scanners the EGX side uses. A regional companion view — EGX
- *  remains the app's home market and every number here is honestly sourced. */
+/** GCC markets view (T27 — P1-6, T39 honesty pass): Saudi (Tadawul), Dubai
+ *  (DFM) and Abu Dhabi (ADX) basics — index cards, one main index chart
+ *  with range switcher, and top movers by traded value from the same
+ *  delayed TradingView scanners the EGX side uses.
+ *
+ *  Index HISTORY note (T39): Yahoo quietly retired the daily bars for the
+ *  GCC INDEX symbols (^TASI.SR, DFMGI.AE serve a single quote stub since
+ *  Sept 2026 — individual Saudi/UAE STOCKS still carry full history), so
+ *  the chart degrades to an honest quote-only state: no fake flat line, no
+ *  "+0.00%", disabled range buttons, and a plain-language note. The index
+ *  CARDS stay fully live (TradingView quotes + YTD/1M/1Y perf). A regional
+ *  companion view — EGX remains the app's home market. */
 
 import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
@@ -256,7 +262,10 @@ export function GccView() {
               <p className="text-sm font-semibold flex items-center gap-1.5">
                 <LineChartIcon className="h-4 w-4 text-primary" />
                 {tt(INDEX_LABELS[chartIdx] ?? { ar: chartIdx, en: chartIdx }, lang)}
-                {chg != null && (
+                {/* T39 — never print a computed change for a quote-only series:
+                    first==last made the header read "+0.00%", which looked
+                    like a flat market when there is actually no history. */}
+                {chg != null && points.length >= 2 && (
                   <span className={`num text-xs font-semibold ms-2 ${directionClass(chg)}`}>
                     {up ? "+" : ""}
                     {chg.toFixed(2)}% {first != null && last != null ? `(${fmtNum(last, 1)})` : ""}
@@ -270,9 +279,11 @@ export function GccView() {
                     role="tab"
                     aria-selected={range === r}
                     onClick={() => setRange(r)}
+                    disabled={!!chart?.quoteOnly || points.length < 2}
+                    title={chart?.quoteOnly || points.length < 2 ? tt({ ar: "لا يوجد تاريخ متاح لهذا المؤشر", en: "No history available for this index" }, lang) : undefined}
                     className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
                       range === r ? "bg-secondary font-semibold border-ring" : "text-muted-foreground hover:bg-accent/50"
-                    }`}
+                    } ${chart?.quoteOnly || points.length < 2 ? "opacity-40 cursor-not-allowed hover:bg-transparent" : ""}`}
                   >
                     {r}
                   </button>
@@ -283,11 +294,11 @@ export function GccView() {
               <Skeleton className="h-56 w-full" />
             ) : chart?.error || points.length < 2 ? (
               <p className="py-12 text-center text-sm text-muted-foreground leading-relaxed">
-                {chart?.quoteOnly || chartIdx === "ADI"
+                {chart?.quoteOnly
                   ? tt(
                       {
-                        ar: "لا يوجد تاريخ عام مجاني لمؤشر أبوظبي — بيانات السعر المباشرة فقط في البطاقة أعلاه.",
-                        en: "No free public history exists for the ADX index — live quote only in the card above.",
+                        ar: `لا يوجد مصدر مجاني يعرض تاريخ مؤشر ${tt(INDEX_LABELS[chartIdx] ?? { ar: chartIdx, en: chartIdx }, "ar")} حالياً — السعر المباشر فقط في البطاقة أعلاه.`,
+                        en: `No free source currently publishes ${chartIdx} index history — live quote only in the card above.`,
                       },
                       lang,
                     )

@@ -9,9 +9,9 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.28-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.29-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
-[![Tests](https://img.shields.io/badge/tests-15%20suites-green)](#testing)
+[![Tests](https://img.shields.io/badge/tests-16%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
 
@@ -173,6 +173,7 @@ bun scripts/t35-test-models.ts           # 30 unit checks — model registry + v
 bun scripts/t37-test-failover.ts         # 10 live checks — LLM7→GLM auto-failover (quota-exhaustion path)
 bun scripts/t37-test-risk-levels.ts      # 18 unit checks — price-adaptive ATR levels (penny-stock R:R integrity)
 bun scripts/t38-test-audit-fixes.ts       # 64 unit checks — anti-fabrication gate, ticker aliases, Arabic search, UI regressions
+bun scripts/t39-test-fixes.ts            # 35 checks — audit-2 fixes: AR narrative units, picker aliases, name artifacts, P/E cap, sector labels
 bunx tsc --noEmit && bunx eslint src/
 ```
 
