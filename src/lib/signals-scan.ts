@@ -51,6 +51,8 @@ import {
   type SectorStats,
 } from "@/lib/fundamentals";
 import { newsScoreForTicker, newsScoresForUniverse, type NewsScore } from "@/lib/news-score";
+import { evaluateStrategies, ensembleRead, type StrategyVerdict } from "@/lib/strategies";
+import { atrPctAt } from "@/lib/strategy";
 
 export type Rating = "strongBuy" | "buy" | "neutral" | "sell" | "strongSell";
 
@@ -114,6 +116,16 @@ export type SignalRow = {
   perfY: number | null;
   nextEarnings: string | null; // ISO date
   lastDate: string; // last candle date
+  // multi-strategy ensemble (T42) — 12 deterministic strategies vote per stock
+  ensemble: {
+    consensus: number; // −1..+1 weighted vote
+    longVotes: number; // strategies firing long
+    avoidVotes: number; // strategies firing avoid
+    applicable: number; // counted strategies (votes + deliberate no-trigger)
+    agreement: number; // longVotes / applicable
+    fired: string[]; // ids of strategies that fired (long or avoid)
+  };
+  ensembleEvidence: string[]; // union of fired evidence codes (≤12)
 };
 
 export type SignalsScan = {
@@ -228,6 +240,15 @@ export function computeSignalRow(
       ? new Date(stock.nextEarnings * 1000).toISOString().slice(0, 10)
       : null;
 
+  // ── T42: the 12-strategy ensemble vote (same candles, deterministic) ──
+  const verdicts: StrategyVerdict[] = evaluateStrategies(pts, {
+    divYield: stock.divYield,
+    fundQuality: fund.quality,
+    newsScore: ns ? ns.score : null,
+    techScore: summary.score,
+  });
+  const ens = ensembleRead(verdicts, atrPctAt(pts, 14));
+
   return {
     ticker: row.ticker,
     name: row.name,
@@ -287,6 +308,15 @@ export function computeSignalRow(
     perfY: stock.perfY,
     nextEarnings,
     lastDate: pts[pts.length - 1].date,
+    ensemble: {
+      consensus: ens.consensus,
+      longVotes: ens.longVotes,
+      avoidVotes: ens.avoidVotes,
+      applicable: ens.applicable,
+      agreement: ens.agreement,
+      fired: ens.verdicts.filter((v) => v.fired).map((v) => v.id),
+    },
+    ensembleEvidence: ens.evidence,
   };
 }
 

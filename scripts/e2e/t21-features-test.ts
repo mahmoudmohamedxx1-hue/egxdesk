@@ -157,7 +157,9 @@ async function main() {
       ok(!!picks, `picks sheet (${wb.worksheets.map((w) => w.name).join(", ")})`);
       const af = headerRowOf(picks);
       const r = picks.getRow(af + 1);
-      ok(typeof r.getCell(7).value === "number", "close numeric");
+      // T42 — the picks sheet gained votes/agreement/strategies columns before
+      // close (old col 7 → now col 10)
+      ok(typeof r.getCell(10).value === "number", "close numeric");
       const evidence = wb.worksheets.find((w) => w.name === "الأدلة")!;
       ok(evidence.rowCount > 10, `evidence sheet has rows (${evidence.rowCount})`);
       ok(cfRuleCount(picks, "dataBar") >= 1, `conviction dataBar (${cfRuleCount(picks, "dataBar")})`);

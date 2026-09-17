@@ -1,10 +1,12 @@
 "use client";
 
-/** AI Signals panel (Task 20) — the AI section inside the Signals tab.
- *  Serves the SHARED signal set from /api/ai-signals (one LLM call per cycle
- *  for all users — free and unlimited to read) with the strategy's market
- *  read, evidence-backed trade ideas with fixed ATR risk levels, the
- *  walk-forward backtest evidence, and the full strategy charter. */
+/** AI Signals panel (Task 20 → T42 multi-strategy) — the AI section inside
+ *  the Signals tab. Serves the SHARED signal set from /api/ai-signals (one
+ *  LLM call per cycle for all users — free and unlimited to read) with the
+ *  12-strategy ensemble's market read, consensus-ranked trade ideas carrying
+ *  the fired-strategy chips and agreement meter, fixed ATR risk levels, the
+ *  walk-forward backtest evidence (ensemble + per-strategy), and the full
+ *  strategy charter. */
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/market/app-context";
@@ -14,10 +16,31 @@ import { fmtNum } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ExportXlsxButton } from "@/components/market/export-xlsx-button";
-import { BrainCircuit, ChevronDown, ChevronUp, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { BrainCircuit, ChevronDown, ChevronUp, Layers, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import type { AiSignalsResponse, AiPick } from "@/lib/ai-signals";
+import { STRATEGY_REGISTRY, strategyById } from "@/lib/strategies";
 
 type Response = AiSignalsResponse & { error?: string };
+
+/** One row of the per-strategy standalone backtest (backtest.json perStrategy). */
+type PerStrategyRow = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  family: string;
+  backtested: boolean;
+  note?: string;
+  stats?: {
+    trades: number;
+    hitRate: number;
+    avgNetPct: number;
+    profitFactor: number | null;
+    strategyCumPct: number;
+    benchCumPct: number;
+    maxDrawdownPct: number;
+    medianNetPct: number;
+  };
+};
 
 const BIAS_CLS: Record<string, string> = {
   bullish: "bg-up text-up-foreground",
@@ -49,10 +72,60 @@ function LevelBox({ label, value, cls }: { label: string; value: string; cls?: s
   );
 }
 
+/** Agreement meter — how many of the counted strategies vote for the pick's
+ *  stance. 12 segments; filled = supporting votes, dimmed = the rest. */
+function AgreementMeter({ long, total, stance, lang }: { long: number; total: number; stance: "long" | "avoid"; lang: "ar" | "en" }) {
+  const n = Math.max(0, Math.min(12, total));
+  const votes = Math.max(0, Math.min(n, long));
+  return (
+    <span className="inline-flex items-center gap-1.5" dir="ltr" title={`${votes}/${n} ${tt(T.aiSignalsVotes, lang)}`}>
+      <span className="inline-flex gap-[2px]" aria-hidden>
+        {Array.from({ length: n }, (_, i) => (
+          <span
+            key={i}
+            className={`h-2.5 w-[5px] rounded-[1px] ${
+              i < votes ? (stance === "long" ? "bg-up" : "bg-down") : "bg-secondary"
+            }`}
+          />
+        ))}
+      </span>
+      <span className="num text-[10px] font-semibold text-muted-foreground">
+        {votes}/{n}
+      </span>
+    </span>
+  );
+}
+
+/** The fired-strategy chips — each chip is one of the 12 strategies whose
+ *  trigger fired in the pick's stance direction (deterministic, machine-built). */
+function StrategyChips({ ids, lang, stance }: { ids: string[]; lang: "ar" | "en"; stance: "long" | "avoid" }) {
+  if (!ids.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {ids.map((id) => {
+        const s = strategyById(id);
+        if (!s) return null;
+        return (
+          <span
+            key={id}
+            title={`${tt(T.aiSignalsStrategiesFired, lang)} · ${lang === "ar" ? s.oneLineAr : s.oneLineEn}`}
+            className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[9px] font-medium ${
+              stance === "long" ? "bg-up-soft/70 text-up" : "bg-down-soft/70 text-down"
+            }`}
+          >
+            {lang === "ar" ? s.nameAr : s.nameEn}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function PickCard({ p, lang, onOpen }: { p: AiPick; lang: "ar" | "en"; onOpen: () => void }) {
   const thesis = lang === "ar" ? p.thesisAr : p.thesisEn;
   const riskLabel =
     p.riskLevel === "low" ? T.aiSignalsRiskLow : p.riskLevel === "high" ? T.aiSignalsRiskHigh : T.aiSignalsRiskMedium;
+  const votes = p.stance === "long" ? p.longVotes : p.avoidVotes;
   return (
     <button
       onClick={onOpen}
@@ -84,6 +157,18 @@ function PickCard({ p, lang, onOpen }: { p: AiPick; lang: "ar" | "en"; onOpen: (
           {tt(riskLabel, lang)}
         </span>
       </div>
+
+      {/* T42 — ensemble agreement + the fired-strategy chips */}
+      {p.applicable > 0 && (
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+            <Layers className="h-3 w-3" aria-hidden />
+            {tt(T.aiSignalsAgreement, lang)}
+            <AgreementMeter long={votes} total={p.applicable} stance={p.stance} lang={lang} />
+          </span>
+        </div>
+      )}
+      <StrategyChips ids={p.strategies ?? []} lang={lang} stance={p.stance} />
 
       {p.stance === "long" && p.entry !== null && (
         <div className="flex items-stretch gap-1.5 flex-wrap">
@@ -132,6 +217,7 @@ export function AiSignalsPanel() {
 
   const bt = data?.backtest;
   const stats = bt?.stats;
+  const perStrategy = (bt as { perStrategy?: PerStrategyRow[] } | undefined)?.perStrategy ?? [];
   const set = data?.set;
   const stale = data?.status === "stale";
   const generatedAt = set?.generatedAt ?? null;
@@ -192,6 +278,10 @@ export function AiSignalsPanel() {
           <span className="inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             <Sparkles className="h-3 w-3" aria-hidden />
             {tt(T.agentModelBadge, lang)}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <Layers className="h-3 w-3" aria-hidden />
+            {tt(T.aiSignalsEnsembleBadge, lang)}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full border bg-secondary/60 px-2 py-0.5 text-[10px] text-muted-foreground">
             {tt(T.aiSignalsSharedNote, lang)}
@@ -301,6 +391,59 @@ export function AiSignalsPanel() {
         </section>
       )}
 
+      {/* T42 — per-strategy standalone backtest (each strategy's own picks,
+          same walk-forward methodology) */}
+      {perStrategy.length > 0 && (
+        <section className="rounded-lg border bg-card p-4 space-y-2">
+          <p className="text-sm font-semibold">{tt(T.aiSignalsPerStrategyTitle, lang)}</p>
+          <div className="overflow-x-auto thin-scroll -mx-1 px-1">
+            <table className="w-full text-[10px]" dir="ltr">
+              <thead>
+                <tr className="text-muted-foreground border-b border-border/60">
+                  <th className="text-start font-medium py-1 pe-2">{lang === "ar" ? "الاستراتيجية" : "Strategy"}</th>
+                  <th className="text-end font-medium px-1.5">{tt(T.aiSignalsBacktestTrades, lang)}</th>
+                  <th className="text-end font-medium px-1.5">{tt(T.aiSignalsBacktestHit, lang)}</th>
+                  <th className="text-end font-medium px-1.5">{tt(T.aiSignalsBacktestExpectancy, lang)}</th>
+                  <th className="text-end font-medium px-1.5">{tt(T.aiSignalsBacktestPf, lang)}</th>
+                  <th className="text-end font-medium ps-1.5">3y</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perStrategy.map((s) => {
+                  const meta = strategyById(s.id);
+                  return (
+                    <tr key={s.id} className="border-b border-border/30 last:border-0">
+                      <td className="py-1 pe-2 whitespace-nowrap" title={meta ? (lang === "ar" ? meta.oneLineAr : meta.oneLineEn) : undefined}>
+                        <span className="font-medium">{lang === "ar" ? s.nameAr : s.nameEn}</span>
+                        <span className="ms-1 text-muted-foreground/60">{s.family}</span>
+                      </td>
+                      {s.backtested && s.stats ? (
+                        <>
+                          <td className="num text-end px-1.5">{s.stats.trades}</td>
+                          <td className="num text-end px-1.5">{(s.stats.hitRate * 100).toFixed(1)}%</td>
+                          <td className={`num text-end px-1.5 ${s.stats.avgNetPct > 0 ? "text-up" : "text-down"}`}>
+                            {s.stats.avgNetPct > 0 ? "+" : ""}
+                            {s.stats.avgNetPct.toFixed(2)}%
+                          </td>
+                          <td className="num text-end px-1.5">{s.stats.profitFactor !== null ? s.stats.profitFactor.toFixed(2) : "—"}</td>
+                          <td className={`num text-end ps-1.5 ${s.stats.strategyCumPct >= s.stats.benchCumPct ? "text-up" : "text-muted-foreground"}`}>
+                            {s.stats.strategyCumPct.toFixed(0)}%
+                          </td>
+                        </>
+                      ) : (
+                        <td colSpan={5} className="text-end px-1.5 text-muted-foreground/70 whitespace-nowrap" dir="auto">
+                          {tt(T.aiSignalsStrategyNotBacktested, lang)}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {/* how it works — the tested charter */}
       <section className="rounded-lg border bg-card overflow-hidden">
         <button
@@ -312,7 +455,21 @@ export function AiSignalsPanel() {
           {howOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </button>
         {howOpen && data?.meta && (
-          <div className="px-4 pb-4 space-y-2">
+          <div className="px-4 pb-4 space-y-3">
+            {/* T42 — the twelve strategies, one line each */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-medium text-muted-foreground">{tt(T.aiSignalsStrategiesTitle, lang)}</p>
+              <ul className="space-y-1">
+                {STRATEGY_REGISTRY.map((s) => (
+                  <li key={s.id} className="flex items-baseline gap-2 text-[10px] leading-relaxed">
+                    <span className={`shrink-0 rounded-sm px-1.5 py-0.5 font-medium ${s.family === "news" || s.family === "fundamental" ? "bg-secondary/70 text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                      {lang === "ar" ? s.nameAr : s.nameEn}
+                    </span>
+                    <span className="text-muted-foreground">{lang === "ar" ? s.oneLineAr : s.oneLineEn}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.aiSignalsCharterLabel, lang)}</p>
             <pre dir="ltr" className="text-[10px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono bg-secondary/30 rounded-md p-3 max-h-80 overflow-y-auto thin-scroll">
               {data.meta.charter}

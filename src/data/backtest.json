@@ -1,669 +1,674 @@
 {
-  "asOf": "2026-09-13T17:43:37.515Z",
-  "strategyRev": "egx-trend-v1",
-  "method": "walk-forward, no lookahead: every 10 sessions rank the universe with the live scoring function over candles up to that date only; longs = top 5 with score >= 0.5; hold 10 sessions; costs 0.35% round trip; benchmark = equal-weight universe",
+  "asOf": "2026-09-17T20:18:17.631Z",
+  "strategyRev": "egx-multi-v2",
+  "ensemble": {
+    "size": 12,
+    "candleStrategies": 10,
+    "gate": "consensus >= 0.35",
+    "description": "the served consensus is the family-weighted vote of all applicable strategies; this replay validates the 10 candle strategies' vote (the two data-gated strategies cannot be replayed historically)"
+  },
+  "method": "walk-forward, no lookahead: every 10 sessions the 12-strategy ensemble votes on the universe over candles up to that date only; longs = top 5 with consensus >= 0.35; hold 10 sessions; costs 0.35% round trip; benchmark = equal-weight universe. Each candle strategy is ALSO backtested standalone (own top-5 picks when it fires).",
   "params": {
     "warmupSessions": 200,
     "holdSessions": 10,
     "topN": 5,
-    "scoreMin": 0.5,
+    "scoreMin": 0.35,
     "costPctRoundTrip": 0.35
   },
   "universe": {
-    "size": 36,
+    "size": 35,
     "selection": "today's 40 most-traded EGX names with 3y daily history"
   },
   "stats": {
     "windows": 53,
-    "noPickWindows": 1,
-    "trades": 252,
-    "suspectExcluded": 4,
-    "hitRate": 0.504,
-    "avgNetPct": 2.26,
-    "avgWinPct": 9.87,
-    "avgLossPct": -5.47,
-    "profitFactor": 1.83,
-    "avgExcessPct": -0.38,
-    "beatBenchRate": 0.397,
-    "strategyCumPct": 211,
-    "benchCumPct": 266.8,
-    "maxDrawdownPct": -10.8,
-    "bestPct": 43.5,
-    "worstPct": -41.7,
-    "medianNetPct": 0.17
+    "trades": 78,
+    "hitRate": 0.603,
+    "avgNetPct": 3.13,
+    "avgWinPct": 8.42,
+    "avgLossPct": -4.89,
+    "profitFactor": 2.61,
+    "avgExcessPct": 0.94,
+    "beatBenchRate": 0.449,
+    "strategyCumPct": 165.8,
+    "benchCumPct": 181.4,
+    "maxDrawdownPct": -13.5,
+    "bestPct": 37.3,
+    "worstPct": -14.9,
+    "medianNetPct": 2.29,
+    "noPickWindows": 13,
+    "suspectExcluded": 0
   },
+  "perStrategy": [
+    {
+      "id": "trend-rider",
+      "nameAr": "ركوب الترند",
+      "nameEn": "Trend Rider",
+      "family": "trend",
+      "backtested": true,
+      "stats": {
+        "trades": 238,
+        "hitRate": 0.563,
+        "avgNetPct": 2.18,
+        "profitFactor": 2,
+        "strategyCumPct": 222.4,
+        "benchCumPct": 173.4,
+        "maxDrawdownPct": -10.7,
+        "medianNetPct": 0.99
+      }
+    },
+    {
+      "id": "golden-cross",
+      "nameAr": "التقاطع الذهبي",
+      "nameEn": "Golden Cross",
+      "family": "trend",
+      "backtested": true,
+      "stats": {
+        "trades": 259,
+        "hitRate": 0.571,
+        "avgNetPct": 1.75,
+        "profitFactor": 1.74,
+        "strategyCumPct": 137,
+        "benchCumPct": 173.4,
+        "maxDrawdownPct": -11.5,
+        "medianNetPct": 1.19
+      }
+    },
+    {
+      "id": "breakout-hunter",
+      "nameAr": "صائد الاختراق",
+      "nameEn": "Breakout Hunter",
+      "family": "momentum",
+      "backtested": true,
+      "stats": {
+        "trades": 214,
+        "hitRate": 0.505,
+        "avgNetPct": 1.28,
+        "profitFactor": 1.43,
+        "strategyCumPct": 94.5,
+        "benchCumPct": 144.7,
+        "maxDrawdownPct": -17.7,
+        "medianNetPct": 0.2
+      }
+    },
+    {
+      "id": "mean-reversion",
+      "nameAr": "ارتداد المتوسط",
+      "nameEn": "Mean Reversion",
+      "family": "reversion",
+      "backtested": true,
+      "stats": {
+        "trades": 16,
+        "hitRate": 0.438,
+        "avgNetPct": 0.56,
+        "profitFactor": 1.42,
+        "strategyCumPct": 5.7,
+        "benchCumPct": 46.9,
+        "maxDrawdownPct": -5.7,
+        "medianNetPct": -0.35
+      }
+    },
+    {
+      "id": "bb-bounce",
+      "nameAr": "ارتداد بولينجر",
+      "nameEn": "Bollinger Bounce",
+      "family": "reversion",
+      "backtested": true,
+      "stats": {
+        "trades": 15,
+        "hitRate": 0.467,
+        "avgNetPct": 2.07,
+        "profitFactor": 1.84,
+        "strategyCumPct": 20.2,
+        "benchCumPct": 41.6,
+        "maxDrawdownPct": -23.9,
+        "medianNetPct": -0.35
+      }
+    },
+    {
+      "id": "macd-swing",
+      "nameAr": "تأرجح ماكد",
+      "nameEn": "MACD Swing",
+      "family": "momentum",
+      "backtested": true,
+      "stats": {
+        "trades": 120,
+        "hitRate": 0.5,
+        "avgNetPct": 1.41,
+        "profitFactor": 1.5,
+        "strategyCumPct": 4.8,
+        "benchCumPct": 107.3,
+        "maxDrawdownPct": -33.4,
+        "medianNetPct": 0.15
+      }
+    },
+    {
+      "id": "volume-surge",
+      "nameAr": "انفجار الحجم",
+      "nameEn": "Volume Surge",
+      "family": "volume",
+      "backtested": true,
+      "stats": {
+        "trades": 136,
+        "hitRate": 0.456,
+        "avgNetPct": 1.52,
+        "profitFactor": 1.52,
+        "strategyCumPct": 96.6,
+        "benchCumPct": 64,
+        "maxDrawdownPct": -24.5,
+        "medianNetPct": -0.43
+      }
+    },
+    {
+      "id": "stoch-cross",
+      "nameAr": "تقاطع الاستوكاستك",
+      "nameEn": "Stochastic Cross",
+      "family": "reversion",
+      "backtested": true,
+      "stats": {
+        "trades": 41,
+        "hitRate": 0.61,
+        "avgNetPct": 1.41,
+        "profitFactor": 1.68,
+        "strategyCumPct": 45.5,
+        "benchCumPct": 58.8,
+        "maxDrawdownPct": -25.2,
+        "medianNetPct": 2.05
+      }
+    },
+    {
+      "id": "momentum-3m",
+      "nameAr": "زخم 3 أشهر",
+      "nameEn": "3-Month Momentum",
+      "family": "momentum",
+      "backtested": true,
+      "stats": {
+        "trades": 255,
+        "hitRate": 0.569,
+        "avgNetPct": 2.23,
+        "profitFactor": 1.98,
+        "strategyCumPct": 212.1,
+        "benchCumPct": 173.4,
+        "maxDrawdownPct": -8.4,
+        "medianNetPct": 1.23
+      }
+    },
+    {
+      "id": "pullback-continue",
+      "nameAr": "تصحيح في ترند صاعد",
+      "nameEn": "Pullback Continuation",
+      "family": "trend",
+      "backtested": true,
+      "stats": {
+        "trades": 235,
+        "hitRate": 0.523,
+        "avgNetPct": 1.63,
+        "profitFactor": 1.79,
+        "strategyCumPct": 88.8,
+        "benchCumPct": 173.4,
+        "maxDrawdownPct": -14.3,
+        "medianNetPct": 0.33
+      }
+    },
+    {
+      "id": "dividend-quality",
+      "nameAr": "جودة التوزيعات",
+      "nameEn": "Dividend Quality",
+      "family": "fundamental",
+      "backtested": false,
+      "note": "live-only: needs current scanner fundamentals (yield/quality) that have no historical series"
+    },
+    {
+      "id": "press-tone",
+      "nameAr": "تأكيد الصحافة",
+      "nameEn": "Press Confirmation",
+      "family": "news",
+      "backtested": false,
+      "note": "live-only: needs the current 14-day press archive (no historical coverage)"
+    }
+  ],
   "windows": [
     {
-      "date": "2024-07-16",
+      "date": "2024-07-18",
       "picks": [],
       "netPct": 0,
-      "benchPct": -3.8
+      "benchPct": 2.93
     },
     {
-      "date": "2024-07-31",
+      "date": "2024-08-04",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 3.51
+    },
+    {
+      "date": "2024-08-18",
       "picks": [
+        "ADIB",
+        "HDBK",
         "COMI",
-        "KABO",
-        "OIH",
-        "SCEM",
-        "ZMID"
+        "ALCN"
       ],
-      "netPct": 3.37,
-      "benchPct": -1.51
+      "netPct": 0.08,
+      "benchPct": 4.75
     },
     {
-      "date": "2024-08-14",
+      "date": "2024-09-01",
       "picks": [
-        "MPCO",
-        "COMI",
-        "TMGH",
-        "RMDA",
-        "EFIC"
-      ],
-      "netPct": -4.52,
-      "benchPct": 10.47
-    },
-    {
-      "date": "2024-08-28",
-      "picks": [
-        "ORHD",
-        "OIH",
-        "EMFD",
-        "MPRC",
-        "ELEC"
-      ],
-      "netPct": -0.76,
-      "benchPct": 1.28
-    },
-    {
-      "date": "2024-09-11",
-      "picks": [
-        "TMGH",
-        "EFIC",
-        "RMDA",
-        "MASR",
-        "ORHD"
-      ],
-      "netPct": 5.07,
-      "benchPct": 11.43
-    },
-    {
-      "date": "2024-09-26",
-      "picks": [
-        "RMDA",
-        "OIH",
-        "MASR",
-        "TMGH",
-        "ELEC"
-      ],
-      "netPct": -5.45,
-      "benchPct": -1.79
-    },
-    {
-      "date": "2024-10-13",
-      "picks": [
-        "RMDA",
-        "POUL",
-        "SVCE",
-        "MPRC",
-        "EFIC"
-      ],
-      "netPct": 14.56,
-      "benchPct": 5.82
-    },
-    {
-      "date": "2024-10-27",
-      "picks": [
-        "KABO",
-        "EMFD",
-        "EPCO",
-        "OIH",
-        "ZMID"
-      ],
-      "netPct": 3.18,
-      "benchPct": 6.45
-    },
-    {
-      "date": "2024-11-10",
-      "picks": [
-        "OIH",
-        "TMGH",
-        "MASR",
-        "ELEC",
-        "KABO"
-      ],
-      "netPct": -4.45,
-      "benchPct": -3.55
-    },
-    {
-      "date": "2024-11-24",
-      "picks": [
-        "MPCO",
-        "ORHD",
-        "OIH",
-        "EPCO",
-        "POUL"
-      ],
-      "netPct": 1.89,
-      "benchPct": 3.66
-    },
-    {
-      "date": "2024-12-08",
-      "picks": [
-        "MASR",
-        "PHDC",
-        "EMFD",
-        "ELEC",
-        "ETEL"
-      ],
-      "netPct": -4.1,
-      "benchPct": -2.25
-    },
-    {
-      "date": "2024-12-22",
-      "picks": [
-        "PHDC",
-        "ORHD",
-        "OIH",
-        "GTWL",
-        "MPCO"
-      ],
-      "netPct": -0.34,
-      "benchPct": -0.52
-    },
-    {
-      "date": "2025-01-06",
-      "picks": [
-        "SIPC",
-        "SVCE",
-        "SCEM",
-        "RMDA",
-        "INEG"
-      ],
-      "netPct": -1.13,
-      "benchPct": 1.68
-    },
-    {
-      "date": "2025-01-21",
-      "picks": [
-        "SVCE",
-        "INEG",
-        "EFIC",
-        "CCAP",
-        "MPRC"
-      ],
-      "netPct": 2.76,
-      "benchPct": 1.89
-    },
-    {
-      "date": "2025-02-04",
-      "picks": [
-        "RMDA",
-        "POUL",
-        "GTWL",
-        "MPCO",
-        "HELI"
-      ],
-      "netPct": -0.89,
-      "benchPct": -0.31
-    },
-    {
-      "date": "2025-02-18",
-      "picks": [
-        "OIH",
-        "CCAP",
-        "EMFD",
-        "ORHD",
-        "ETEL"
-      ],
-      "netPct": 5.89,
-      "benchPct": 3.15
-    },
-    {
-      "date": "2025-03-04",
-      "picks": [
-        "INEG",
-        "EPCO",
-        "GTWL",
-        "LUTS",
-        "MPCO"
-      ],
-      "netPct": 5.83,
-      "benchPct": 4.27
-    },
-    {
-      "date": "2025-03-18",
-      "picks": [
-        "EPCO",
-        "RMDA",
-        "EMFD",
-        "SVCE",
-        "MASR"
-      ],
-      "netPct": -4.28,
-      "benchPct": -4.18
-    },
-    {
-      "date": "2025-04-07",
-      "picks": [
-        "OIH",
-        "MASR",
-        "RMDA",
-        "DTPP",
-        "HELI"
-      ],
-      "netPct": 3.74,
-      "benchPct": 8.54
-    },
-    {
-      "date": "2025-04-23",
-      "picks": [
-        "EPCO",
-        "AFMC",
-        "POUL",
-        "MPCO",
-        "SVCE"
-      ],
-      "netPct": 7.71,
-      "benchPct": 1.78
-    },
-    {
-      "date": "2025-05-11",
-      "picks": [
-        "SVCE",
-        "MPCO",
-        "SIPC",
-        "EMFD",
-        "AFMC"
-      ],
-      "netPct": -1.05,
-      "benchPct": 0.49
-    },
-    {
-      "date": "2025-05-25",
-      "picks": [
-        "SVCE",
-        "ETEL",
-        "PHDC",
-        "HELI",
-        "NCCW"
-      ],
-      "netPct": 8.27,
-      "benchPct": 4.49
-    },
-    {
-      "date": "2025-06-11",
-      "picks": [
-        "AMES",
-        "CCAP",
-        "MASR",
-        "MCRO",
-        "SIPC"
-      ],
-      "netPct": 1.25,
-      "benchPct": 1.17
-    },
-    {
-      "date": "2025-06-25",
-      "picks": [
-        "CCAP",
-        "GTWL",
-        "RMDA",
-        "MASR",
         "EMFD"
       ],
-      "netPct": 5.35,
-      "benchPct": 4.85
+      "netPct": -5.86,
+      "benchPct": -2.54
     },
     {
-      "date": "2025-07-14",
+      "date": "2024-09-16",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 6.16
+    },
+    {
+      "date": "2024-09-30",
       "picks": [
-        "AFMC",
-        "GTWL",
-        "ETEL",
-        "COMI",
-        "MCRO"
+        "ADIB",
+        "HDBK"
       ],
-      "netPct": 5.06,
-      "benchPct": 2.69
+      "netPct": -8.1,
+      "benchPct": -5.72
     },
     {
-      "date": "2025-07-29",
+      "date": "2024-10-15",
       "picks": [
-        "NCCW",
-        "ORHD",
-        "EGCH",
-        "OIH",
-        "INEG"
+        "SVCE"
       ],
-      "netPct": 7.12,
-      "benchPct": 5.37
+      "netPct": 0.48,
+      "benchPct": 3.87
     },
     {
-      "date": "2025-08-12",
+      "date": "2024-10-29",
       "picks": [
-        "POUL",
-        "RMDA",
-        "ORHD",
-        "AFMC",
-        "MPCO"
+        "OIH"
       ],
-      "netPct": -1.06,
-      "benchPct": 3.21
+      "netPct": 6.22,
+      "benchPct": 4.56
     },
     {
-      "date": "2025-08-26",
+      "date": "2024-11-12",
+      "picks": [
+        "ORHD"
+      ],
+      "netPct": -3.99,
+      "benchPct": -3.13
+    },
+    {
+      "date": "2024-11-26",
+      "picks": [
+        "BINV"
+      ],
+      "netPct": -1.09,
+      "benchPct": 1.74
+    },
+    {
+      "date": "2024-12-10",
+      "picks": [
+        "OIH"
+      ],
+      "netPct": 8.98,
+      "benchPct": -3.02
+    },
+    {
+      "date": "2024-12-24",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 2.48
+    },
+    {
+      "date": "2025-01-09",
       "picks": [
         "MPCO",
-        "POUL",
-        "DTPP",
-        "ORHD",
-        "EPCO"
+        "EGAL",
+        "CCAP"
       ],
-      "netPct": 0.02,
+      "netPct": 14.39,
+      "benchPct": 2.99
+    },
+    {
+      "date": "2025-01-23",
+      "picks": [
+        "SPMD",
+        "MPCO"
+      ],
+      "netPct": 0.86,
+      "benchPct": -0.25
+    },
+    {
+      "date": "2025-02-06",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 1.26
+    },
+    {
+      "date": "2025-02-20",
+      "picks": [
+        "CCAP",
+        "ORHD",
+        "OIH",
+        "PHDC"
+      ],
+      "netPct": 1.51,
+      "benchPct": 0.79
+    },
+    {
+      "date": "2025-03-06",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 4.82
+    },
+    {
+      "date": "2025-03-20",
+      "picks": [
+        "OIH"
+      ],
+      "netPct": 3.05,
+      "benchPct": -4.35
+    },
+    {
+      "date": "2025-04-09",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 8.82
+    },
+    {
+      "date": "2025-04-28",
+      "picks": [
+        "OIH",
+        "EMFD"
+      ],
+      "netPct": 3.11,
+      "benchPct": -1.4
+    },
+    {
+      "date": "2025-05-13",
+      "picks": [
+        "OIH"
+      ],
+      "netPct": 8.08,
+      "benchPct": -1.38
+    },
+    {
+      "date": "2025-05-27",
+      "picks": [
+        "GBCO",
+        "PHDC"
+      ],
+      "netPct": -1.27,
+      "benchPct": -2.86
+    },
+    {
+      "date": "2025-06-15",
+      "picks": [
+        "CERA"
+      ],
+      "netPct": 6.68,
+      "benchPct": 9.02
+    },
+    {
+      "date": "2025-06-30",
+      "picks": [
+        "GBCO",
+        "WKOL"
+      ],
+      "netPct": -3.02,
+      "benchPct": 0.62
+    },
+    {
+      "date": "2025-07-16",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 1.38
+    },
+    {
+      "date": "2025-07-31",
+      "picks": [
+        "SVCE",
+        "CERA"
+      ],
+      "netPct": 2.21,
+      "benchPct": 1.34
+    },
+    {
+      "date": "2025-08-14",
+      "picks": [
+        "BINV"
+      ],
+      "netPct": -1.11,
+      "benchPct": 13.02
+    },
+    {
+      "date": "2025-08-28",
+      "picks": [
+        "CERA"
+      ],
+      "netPct": -3.9,
+      "benchPct": -3.15
+    },
+    {
+      "date": "2025-09-14",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": -0.7
+    },
+    {
+      "date": "2025-09-28",
+      "picks": [
+        "MPCO",
+        "ZMID",
+        "COMI"
+      ],
+      "netPct": 18.06,
+      "benchPct": 5.6
+    },
+    {
+      "date": "2025-10-13",
+      "picks": [
+        "COMI"
+      ],
+      "netPct": 0.27,
+      "benchPct": 4.22
+    },
+    {
+      "date": "2025-10-27",
+      "picks": [
+        "DTPP",
+        "CLHO"
+      ],
+      "netPct": -7.11,
+      "benchPct": -0.06
+    },
+    {
+      "date": "2025-11-10",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 0.88
+    },
+    {
+      "date": "2025-11-24",
+      "picks": [
+        "ETEL"
+      ],
+      "netPct": -3.09,
       "benchPct": 3.49
     },
     {
-      "date": "2025-09-10",
+      "date": "2025-12-08",
       "picks": [
-        "BTFH",
-        "OIH",
-        "KABO",
-        "CERA",
-        "MCRO"
+        "EFID",
+        "FWRY",
+        "EMFD",
+        "EGAL",
+        "PHDC"
       ],
-      "netPct": -3.7,
-      "benchPct": -4.52
+      "netPct": 2.52,
+      "benchPct": 1.74
     },
     {
-      "date": "2025-09-24",
-      "picks": [
-        "MPCO",
-        "POUL",
-        "TMGH",
-        "BTFH",
-        "AMES"
-      ],
-      "netPct": 3.89,
-      "benchPct": 5.59
-    },
-    {
-      "date": "2025-10-08",
-      "picks": [
-        "SCEM",
-        "TMGH",
-        "GTWL",
-        "KABO",
-        "SVCE"
-      ],
-      "netPct": 10.69,
-      "benchPct": 4.62
-    },
-    {
-      "date": "2025-10-23",
+      "date": "2025-12-22",
       "picks": [
         "SVCE",
-        "OIH",
-        "ELEC",
-        "KABO",
-        "DTPP"
+        "EFID"
       ],
-      "netPct": -0.92,
-      "benchPct": -0.32
+      "netPct": 12.98,
+      "benchPct": 0.44
     },
     {
-      "date": "2025-11-06",
+      "date": "2026-01-06",
       "picks": [
-        "MCRO",
+        "ELEC",
+        "EGAL"
+      ],
+      "netPct": -10.84,
+      "benchPct": 0.35
+    },
+    {
+      "date": "2026-01-21",
+      "picks": [
+        "FWRY",
+        "BINV",
+        "ADIB",
         "PHDC",
-        "EFIC",
-        "INEG",
+        "TMGH"
+      ],
+      "netPct": 7.8,
+      "benchPct": 3.81
+    },
+    {
+      "date": "2026-02-05",
+      "picks": [
         "COMI"
       ],
-      "netPct": 6.61,
-      "benchPct": -0.8
+      "netPct": 0.2,
+      "benchPct": 1.11
     },
     {
-      "date": "2025-11-20",
+      "date": "2026-02-19",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": -1.33
+    },
+    {
+      "date": "2026-03-05",
       "picks": [
+        "ABUK",
+        "EGAL"
+      ],
+      "netPct": 12.5,
+      "benchPct": 3.07
+    },
+    {
+      "date": "2026-03-19",
+      "picks": [
+        "ADIB"
+      ],
+      "netPct": -0.35,
+      "benchPct": 1.43
+    },
+    {
+      "date": "2026-04-06",
+      "picks": [
+        "ADIB"
+      ],
+      "netPct": 6.86,
+      "benchPct": 6.32
+    },
+    {
+      "date": "2026-04-22",
+      "picks": [
+        "MFPC",
         "DTPP",
-        "ZMID",
-        "INEG",
-        "TMGH",
-        "EFIC"
-      ],
-      "netPct": 5.66,
-      "benchPct": -0.57
-    },
-    {
-      "date": "2025-12-04",
-      "picks": [
-        "OIH",
-        "BTFH",
-        "SIPC",
-        "ETEL",
-        "LUTS"
-      ],
-      "netPct": 2.12,
-      "benchPct": 3.2
-    },
-    {
-      "date": "2025-12-18",
-      "picks": [
-        "EGCH",
-        "SVCE",
-        "EFIC",
-        "OIH",
-        "BTFH"
-      ],
-      "netPct": 3.37,
-      "benchPct": 1.42
-    },
-    {
-      "date": "2026-01-04",
-      "picks": [
-        "TMGH",
-        "EPCO",
-        "ELEC",
-        "EGCH",
-        "SIPC"
-      ],
-      "netPct": -7.93,
-      "benchPct": -3.59
-    },
-    {
-      "date": "2026-01-19",
-      "picks": [
-        "KABO",
-        "POUL",
-        "MASR",
         "PHDC",
-        "ETEL"
-      ],
-      "netPct": 7.65,
-      "benchPct": 4.21
-    },
-    {
-      "date": "2026-02-03",
-      "picks": [
-        "PHDC",
-        "EGCH",
-        "SCEM",
-        "AFMC",
-        "POUL"
-      ],
-      "netPct": 4.34,
-      "benchPct": 4.57
-    },
-    {
-      "date": "2026-02-17",
-      "picks": [
-        "EMFD",
-        "MPCI",
-        "INEG",
-        "ETEL",
-        "GTWL"
-      ],
-      "netPct": -10.79,
-      "benchPct": -7.76
-    },
-    {
-      "date": "2026-03-03",
-      "picks": [
-        "POUL"
-      ],
-      "netPct": 6.5,
-      "benchPct": 3.28
-    },
-    {
-      "date": "2026-03-17",
-      "picks": [
-        "MPCI",
-        "DTPP",
-        "CCAP",
-        "EFIC",
-        "OIH"
-      ],
-      "netPct": 3.15,
-      "benchPct": 0.96
-    },
-    {
-      "date": "2026-04-02",
-      "picks": [
-        "GTWL",
-        "CCAP",
-        "AMES",
-        "MASR",
-        "AFMC"
-      ],
-      "netPct": -5,
-      "benchPct": 3.56
-    },
-    {
-      "date": "2026-04-20",
-      "picks": [
-        "RMDA",
-        "ZMID",
-        "SIPC",
-        "GTWL",
-        "EMFD"
-      ],
-      "netPct": 6.56,
-      "benchPct": 9.83
-    },
-    {
-      "date": "2026-05-04",
-      "picks": [
-        "AMOC",
-        "EGCH",
-        "KABO",
-        "ORHD",
         "ZMID"
       ],
-      "netPct": 6.87,
-      "benchPct": 3.47
+      "netPct": 0.62,
+      "benchPct": 6.2
     },
     {
-      "date": "2026-05-19",
+      "date": "2026-05-06",
       "picks": [
-        "ZMID",
-        "SCEM",
-        "CCAP",
-        "MASR",
-        "AMOC"
+        "ORHD"
       ],
-      "netPct": -0.98,
-      "benchPct": 0.48
+      "netPct": 0.31,
+      "benchPct": -0.86
+    },
+    {
+      "date": "2026-05-20",
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 3.51
     },
     {
       "date": "2026-06-03",
       "picks": [
-        "MPRC",
-        "POUL",
-        "KABO",
-        "ZMID",
-        "EPCO"
+        "EMFD",
+        "ASPI"
       ],
-      "netPct": -0.83,
-      "benchPct": 0.45
+      "netPct": -0.42,
+      "benchPct": -1.37
     },
     {
       "date": "2026-06-17",
-      "picks": [
-        "EPCO",
-        "COMI",
-        "ORHD",
-        "ZMID",
-        "MPRC"
-      ],
-      "netPct": 2.67,
-      "benchPct": 4.32
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 0.3
     },
     {
       "date": "2026-07-01",
       "picks": [
-        "POUL",
-        "KABO",
-        "SCEM",
-        "AMES",
-        "SVCE"
+        "SVCE",
+        "NIPH",
+        "DTPP",
+        "ZMID"
       ],
-      "netPct": 4.64,
-      "benchPct": 10.15
+      "netPct": 4.11,
+      "benchPct": 4.27
     },
     {
       "date": "2026-07-15",
       "picks": [
-        "AFMC",
-        "EGCH",
-        "SIPC",
-        "POUL",
-        "CCAP"
+        "GBCO",
+        "NIPH",
+        "TMGH"
       ],
-      "netPct": 0.08,
-      "benchPct": 5.91
+      "netPct": 1.26,
+      "benchPct": 3.16
     },
     {
       "date": "2026-07-29",
       "picks": [
-        "KABO",
-        "EPCO",
-        "COMI",
-        "AMOC",
-        "OIH"
+        "MPCO",
+        "ORHD"
       ],
-      "netPct": 10.19,
-      "benchPct": 10.74
+      "netPct": 8.46,
+      "benchPct": 8.97
     },
     {
       "date": "2026-08-12",
       "picks": [
-        "MPRC",
-        "ETEL",
-        "SVCE",
-        "PHDC",
-        "EGCH"
+        "OIH"
       ],
-      "netPct": -2.64,
-      "benchPct": 2.86
+      "netPct": 12.01,
+      "benchPct": 1.34
     },
     {
       "date": "2026-08-26",
       "picks": [
-        "INEG",
-        "EMFD",
-        "AMOC",
-        "KABO",
-        "MPCO"
+        "ZMID"
       ],
-      "netPct": 16.77,
-      "benchPct": 5.62
+      "netPct": 13.6,
+      "benchPct": 5.75
     }
   ],
   "notes": [
     "Past performance is NOT a guarantee — the backtest validates the RULES on history, it cannot validate the LLM's future judgment.",
-    "Trades with |gross return| > 45% inside a 10-session hold (4 found) are excluded as likely rights-issue/split print artifacts.",
+    "Trades with |gross return| > 45% inside a 10-session hold (0 found) are excluded as likely rights-issue/split print artifacts.",
     "Universe is today's most-traded names — mild survivorship/selection bias is possible.",
-    "Quotes are ~15-min delayed daily candles; fills at next available close, no intraday stops modeled (EGX circuit breakers make stop fills uncertain)."
+    "Quotes are ~15-min delayed daily candles; fills at next available close, no intraday stops modeled (EGX circuit breakers make stop fills uncertain).",
+    "The dividend-quality and press-tone strategies join the LIVE consensus only when their data fires — they have no historical replay and are labeled live-only in the per-strategy table."
   ]
 }

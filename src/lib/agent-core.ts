@@ -375,6 +375,7 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
 
   ai_signals: async () => {
     const { getLatestAiSignals } = await import("@/lib/ai-signals");
+    const { strategyById } = await import("@/lib/strategies");
     const set = await getLatestAiSignals();
     if (!set) return { status: "warming — no AI signal set generated yet, try again later" };
     return {
@@ -385,7 +386,9 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
         nameAr: p.nameAr,
         stance: p.stance,
         conviction: p.conviction,
-        charterScore: p.charterScore,
+        ensembleConsensus: p.charterScore,
+        strategyVotes: p.applicable > 0 ? `${p.stance === "long" ? p.longVotes : p.avoidVotes}/${p.applicable}` : null,
+        strategies: (p.strategies ?? []).map((id) => strategyById(id)?.nameEn ?? id),
         close: p.close,
         entry: p.entry,
         stop: p.stop,

@@ -9,7 +9,7 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.31-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.32-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
 [![Tests](https://img.shields.io/badge/tests-18%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
@@ -63,8 +63,12 @@ re-blended at SERVE TIME (≤10-min press pass) so it never lags the hourly tech
 AI-signals evidence pack, and the agent's `technicals` tool — one math everywhere. See
 [`src/lib/fundamentals.ts`](src/lib/fundamentals.ts) and [`src/lib/signals-scan.ts`](src/lib/signals-scan.ts).
 
-A separate **AI Signals** mode runs a written, walk-forward-back-tested strategy charter through a GLM model
-(shared compute — one call per cycle serves everyone) with ATR-based entry/stop/target levels.
+A separate **AI Signals** mode runs a **12-strategy ensemble** (trend, momentum, reversion, volume, dividend
+quality, press tone — each deterministic, each with its own trigger and evidence codes) whose weighted consensus
+feeds a GLM model (shared compute — one call per cycle serves everyone) with ATR-based entry/stop/target levels.
+Every pick carries the fired-strategy chips, the vote count (e.g. 8/11) and the consensus; the walk-forward
+backtest validates the ensemble AND each strategy standalone (hit 60.3%, PF 2.61, avg excess +0.94%/trade over
+3y). See [`src/lib/strategies.ts`](src/lib/strategies.ts) and [`scripts/backtest-signals.ts`](scripts/backtest-signals.ts).
 
 ---
 
@@ -162,7 +166,7 @@ else works with zero configuration and zero API keys.
 
 ## Testing
 
-15 end-to-end/API suites cover the whole surface — run against a live dev server:
+16 end-to-end/API suites cover the whole surface — run against a live dev server:
 
 ```bash
 bun scripts/e2e/api-test.js          # 100 checks — every route, NaN/consistency guards
@@ -180,6 +184,7 @@ bun scripts/t38-test-audit-fixes.ts       # 64 unit checks — anti-fabrication 
 bun scripts/t39-test-fixes.ts            # 35 checks — audit-2 fixes: AR narrative units, picker aliases, name artifacts, P/E cap, sector labels
 bun scripts/t40-test-fixes.ts            # 38 checks — audit-3 fixes: vendor-stub chart guard, EN-news latinization, bilingual metadata, P&L decimals
 bun scripts/t41-test-fixes.ts            # 51 checks — audit-4 fixes: calendar dedupe, ai-signals language-purity gate + evidence fallback, lab notes AR, EN home news, honest dead-feed cards
+bun scripts/t42-test-strategies.ts       # 86 checks — the 12-strategy ensemble: per-strategy triggers, no-lookahead, consensus math, ATR guard, purity, live ensemble blocks + picks
 bunx tsc --noEmit && bunx eslint src/
 ```
 

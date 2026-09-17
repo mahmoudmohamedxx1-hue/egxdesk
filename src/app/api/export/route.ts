@@ -73,7 +73,10 @@ function labels(lang: Lang) {
     nextEarnings: ar ? "الأرباح القادمة" : "Next earnings",
     stance: ar ? "الاتجاه" : "Stance",
     conviction: ar ? "القناعة (من ٥)" : "Conviction (of 5)",
-    engineScore: ar ? "درجة المحرك" : "Engine score",
+    engineScore: ar ? "إجماع المحرك (من ١٢ استراتيجية)" : "Ensemble consensus (of 12 strategies)",
+    strategiesCol: ar ? "الاستراتيجيات المؤيدة" : "Supporting strategies",
+    votesCol: ar ? "أصوات الاستراتيجيات" : "Strategy votes",
+    agreementCol: ar ? "توافق الاستراتيجيات %" : "Strategy agreement %",
     entry: ar ? "الدخول" : "Entry",
     stop: ar ? "وقف الخسارة" : "Stop",
     target: ar ? "الهدف" : "Target",
@@ -556,13 +559,14 @@ export async function POST(req: NextRequest) {
         if (!ai) {
           return NextResponse.json({ error: "no AI signals generated yet — open the AI signals page first" }, { status: 503 });
         }
+        const { strategyById } = await import("@/lib/strategies");
         const stances = { long: lang === "ar" ? "شراء" : "Long", avoid: lang === "ar" ? "تجنّب" : "Avoid" } as const;
         const risks = { low: lang === "ar" ? "منخفضة" : "Low", medium: lang === "ar" ? "متوسطة" : "Medium", high: lang === "ar" ? "مرتفعة" : "High" } as const;
         const picksTable: TableSpec = {
           title: lang === "ar" ? `اختيارات النموذج (${ai.picks.length})` : `Model picks (${ai.picks.length})`,
           note: lang === "ar"
-            ? `المستويات من معادلات ATR الميثاق — لا يستطيع النموذج تعديلها · مسح ${ai.scanned} سهم`
-            : `Levels from the charter's fixed ATR math — the model cannot alter them · ${ai.scanned} scanned`,
+            ? `المستويات من معادلات ATR الميثاق — لا يستطيع النموذج تعديلها · مسح ${ai.scanned} سهم · المنظومة: ١٢ استراتيجية مستقلة`
+            : `Levels from the charter's fixed ATR math — the model cannot alter them · ${ai.scanned} scanned · ensemble: 12 independent strategies`,
           columns: [
             { header: L.ticker, width: 10 },
             { header: L.name, width: 30 },
@@ -570,6 +574,9 @@ export async function POST(req: NextRequest) {
             { header: L.stance, width: 10 },
             { header: L.conviction, fmt: "int", condFmt: "dataBar" },
             { header: L.engineScore, fmt: "score", condFmt: "changeScale" },
+            { header: L.votesCol, width: 12 },
+            { header: L.agreementCol, fmt: "pct" },
+            { header: L.strategiesCol, width: 42 },
             { header: L.close, fmt: "num" },
             { header: L.entry, fmt: "lvl" },
             { header: L.stop, fmt: "lvl" },
@@ -588,6 +595,14 @@ export async function POST(req: NextRequest) {
             stances[p.stance],
             p.conviction,
             p.charterScore != null ? +p.charterScore.toFixed(2) : null,
+            p.applicable > 0 ? `${p.stance === "long" ? p.longVotes : p.avoidVotes}/${p.applicable}` : "",
+            p.applicable > 0 ? +(p.agreement * 100).toFixed(0) : null,
+            (p.strategies ?? [])
+              .map((id) => {
+                const s = strategyById(id);
+                return s ? (lang === "ar" ? s.nameAr : s.nameEn) : id;
+              })
+              .join(" · "),
             p.close,
             p.entry,
             p.stop,
@@ -638,6 +653,45 @@ export async function POST(req: NextRequest) {
           ],
           rows: btStats as Cell[][],
         };
+        // T42 — per-strategy standalone backtest rows
+        const psTyped = (bt as { perStrategy?: { id: string; nameAr: string; nameEn: string; family: string; backtested: boolean; note?: string; stats?: { trades: number; hitRate: number; avgNetPct: number; profitFactor: number | null; strategyCumPct: number } }[] }).perStrategy ?? [];
+        const perStrategyTable: TableSpec = {
+          title: lang === "ar" ? "أداء كل استراتيجية على حدة (اختبار مستقل)" : "Per-strategy standalone backtest",
+          note: lang === "ar"
+            ? "كل استراتيجية اختبرت منفردة بنفس منهجية الاختبار المتحرك — الاستراتيجيتان المباشرتان فقط بلا سجل تاريخي"
+            : "Each strategy backtested standalone with the same walk-forward methodology — the two live-only strategies carry no history",
+          columns: [
+            { header: lang === "ar" ? "الاستراتيجية" : "Strategy", width: 26 },
+            { header: lang === "ar" ? "العائلة" : "Family", width: 14 },
+            { header: lang === "ar" ? "الصفقات" : "Trades", fmt: "int" },
+            { header: lang === "ar" ? "نسبة الصواب" : "Hit rate", fmt: "pct" },
+            { header: lang === "ar" ? "متوسط/صفقة" : "Avg/trade", fmt: "num" },
+            { header: lang === "ar" ? "معامل الربح" : "Profit factor", fmt: "num" },
+            { header: lang === "ar" ? "تراكمي ٣ سنوات" : "3y cumulative", fmt: "pct" },
+          ],
+          rows: psTyped.map(
+            (s): Cell[] =>
+              s.backtested && s.stats
+                ? [
+                    lang === "ar" ? s.nameAr : s.nameEn,
+                    s.family,
+                    s.stats.trades,
+                    +(s.stats.hitRate * 100).toFixed(1),
+                    s.stats.avgNetPct,
+                    s.stats.profitFactor,
+                    s.stats.strategyCumPct,
+                  ]
+                : [
+                    lang === "ar" ? s.nameAr : s.nameEn,
+                    s.family,
+                    lang === "ar" ? "مباشرة فقط" : "live-only",
+                    null,
+                    null,
+                    null,
+                    null,
+                  ]
+          ),
+        };
         spec = {
           lang,
           reportTitle: lang === "ar" ? "تقرير إشارات الذكاء الاصطناعي" : "AI signals report",
@@ -650,7 +704,7 @@ export async function POST(req: NextRequest) {
           },
           sheets: [
             { name: L.picksSheet, tables: [picksTable] },
-            { name: L.evidenceSheet, tables: [biasTable, btTable] },
+            { name: L.evidenceSheet, tables: [biasTable, btTable, perStrategyTable] },
           ],
           footerNote: L.disclaimer,
         };

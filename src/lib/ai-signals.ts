@@ -29,6 +29,12 @@ import {
   riskLevels,
   type StrategyFeatures,
 } from "@/lib/strategy";
+import {
+  evaluateEnsemble,
+  strategyById,
+  STRATEGY_REGISTRY,
+  type EnsembleRead,
+} from "@/lib/strategies";
 import backtestJson from "@/data/backtest.json";
 
 // ── tuning ──
@@ -67,7 +73,12 @@ export type AiPick = {
   sectorAr: string;
   stance: "long" | "avoid";
   conviction: number; // 1-5
-  charterScore: number | null; // the deterministic engine's score
+  charterScore: number | null; // the ensemble consensus (deterministic)
+  strategies: string[]; // ids of the fired strategies supporting the stance
+  longVotes: number; // ensemble votes
+  avoidVotes: number;
+  applicable: number; // counted strategies
+  agreement: number; // fraction of counted strategies supporting the stance
   close: number;
   entry: number | null; // charter ATR math (authoritative)
   stop: number | null;
@@ -173,6 +184,7 @@ function extractJson(raw: string): Record<string, unknown> | null {
 type Candidate = {
   row: SignalRow;
   f: StrategyFeatures | null;
+  ens: EnsembleRead | null;
   risk: { entry: number; stop: number; target: number; rr: number } | null;
 };
 
@@ -197,13 +209,34 @@ async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): P
     while (cursor < rows.length) {
       const row = rows[cursor++];
       let f: StrategyFeatures | null = null;
+      let ens: EnsembleRead | null = null;
       try {
         const chart = await fetchStockChart(row.ticker, "1Y");
         f = strategyFeaturesAt(row.ticker, chart.points);
+        // T42 — the 12-strategy ensemble vote on the same candles: the scan
+        // row already carries divYield / quality pillar / press score / the
+        // 13-indicator technical score, so the ctx is fully real
+        ens = evaluateEnsemble(
+          chart.points,
+          {
+            divYield: row.divYield,
+            fundQuality: row.quality,
+            newsScore: row.newsScore,
+            techScore: row.score,
+          },
+          f ? f.atrPct : null
+        );
       } catch {
         f = null; // chart hiccup — the scan row still carries the 13-indicator read
+        ens = row.ensemble
+          ? {
+              ...row.ensemble,
+              verdicts: [],
+              evidence: row.ensembleEvidence ?? [],
+            }
+          : null;
       }
-      out.push({ row, f, risk: f ? riskLevels(f) : null });
+      out.push({ row, f, ens, risk: f ? riskLevels(f) : null });
       await sleep(120);
     }
   };
@@ -305,12 +338,20 @@ export function strayArabicInEnglish(s: string): boolean {
 }
 
 /** T41 — deterministic Arabic rendering of the strategy evidence codes (the
- *  English originals live in strategy.ts). Used whenever a thesis falls back
- *  to its evidence lines, so the Arabic slot never receives English text. */
+ *  English originals live in strategy.ts / strategies.ts). Used whenever a
+ *  thesis falls back to its evidence lines, so the Arabic slot never receives
+ *  English text. T42 — also renders the ENSEMBLE codes ("strategy-id: …")
+ *  using each strategy's Arabic name. */
 export function evidenceAr(codes: string[]): string {
   const parts: string[] = [];
   for (const c of codes) {
     let m: RegExpExecArray | null;
+    // ensemble codes first: "<strategy-id>: <inner>"
+    const ens = /^(\w+-(?:rider|cross|hunter|reversion|bounce|swing|surge|3m|continue|quality|tone)):\s*(.+)$/.exec(c);
+    if (ens && strategyById(ens[1])) {
+      parts.push(`${strategyById(ens[1])!.nameAr}: ${innerEvidenceAr(ens[2])}`);
+      continue;
+    }
     if ((m = /^close vs SMA50: (above|below)$/.exec(c))) parts.push(m[1] === "above" ? "السعر فوق المتوسط 50" : "السعر تحت المتوسط 50");
     else if ((m = /^close vs SMA200: (above|below)$/.exec(c))) parts.push(m[1] === "above" ? "فوق المتوسط 200" : "تحت المتوسط 200");
     else if ((m = /^SMA50 ([><]) SMA200$/.exec(c))) parts.push(m[1] === ">" ? "المتوسط 50 فوق المتوسط 200" : "المتوسط 50 تحت المتوسط 200");
@@ -324,6 +365,77 @@ export function evidenceAr(codes: string[]): string {
     else parts.push(c); // unknown code stays verbatim (honest)
   }
   return parts.join(" · ");
+}
+
+/** T42 — Arabic rendering of one ensemble evidence line's inner text (the
+ *  part after "strategy-id:"). Phrase table, longest-match first; anything
+ *  unmatched keeps only its Arabic-safe tokens (numbers/acronyms) so the
+ *  purity gate can never fire on a fallback. */
+function innerEvidenceAr(inner: string): string {
+  let s = inner;
+  const phrases: [RegExp, string][] = [
+    [/price > SMA50 > SMA200, MACD hist > 0/g, "السعر فوق المتوسط 50 فوق 200 وماكد موجب"],
+    [/price < SMA50 < SMA200, MACD hist < 0/g, "السعر تحت المتوسط 50 تحت 200 وماكد سالب"],
+    [/SMA50 > SMA200 \(golden\), price > SMA50/g, "المتوسط 50 فوق 200 (تقاطع ذهبي) والسعر فوق المتوسط 50"],
+    [/SMA50 < SMA200 \(death\), price < SMA50/g, "المتوسط 50 تحت 200 (تقاطع سالب) والسعر تحت المتوسط 50"],
+    [/RSI14 ([\d.]+) in thrust zone/g, "مؤشر RSI عند $1 في منطقة الاندفاع"],
+    [/RSI14 ([\d.]+) stretched/g, "مؤشر RSI عند $1 في تمدد مفرط"],
+    [/RSI14 ([\d.]+) weak/g, "مؤشر RSI عند $1 ضعيف"],
+    [/RSI14 ([\d.]+)/g, "مؤشر RSI عند $1"],
+    [/cross (\d+) sessions ago \(fresh\)/g, "التقاطع قبل $1 جلسة (حديث)"],
+    [/cross (\d+) sessions ago/g, "التقاطع قبل $1 جلسة"],
+    [/within 2% of 60-session high ([\d.]+)/g, "على بعد 2% من قمة 60 جلسة عند $1"],
+    [/within 2% of 60-session low ([\d.]+)/g, "على بعد 2% من قاع 60 جلسة عند $1"],
+    [/at 60-session highs \(new-high territory\)/g, "عند قمم 60 جلسة (أرضية قمم جديدة)"],
+    [/at 60-session lows \(breakdown territory\)/g, "عند قيعان 60 جلسة (منطقة انهيار)"],
+    [/60-session position ([\d.]+)%/g, "الموضع $1% من مدى 60 جلسة"],
+    [/volume ×([\d.]+) of 20d avg/g, "الحجم ×$1 من متوسط 20 جلسة"],
+    [/oversold dip RSI14 ([\d.]+) above SMA200/g, "ترهّل بيعي بمؤشر RSI عند $1 والسعر فوق المتوسط 200"],
+    [/overbought pop RSI14 ([\d.]+) below SMA200/g, "تشبع شرائي بمؤشر RSI عند $1 والسعر تحت المتوسط 200"],
+    [/close below lower Bollinger\(20,2\) by ([\d.]+)%/g, "إغلاق دون الحد السفلي لبولينجر (20،2) بنسبة $1%"],
+    [/close below lower Bollinger\(20,2\)/g, "إغلاق دون الحد السفلي لبولينجر (20،2)"],
+    [/RSI14 ([\d.]+) with price above SMA100/g, "مؤشر RSI عند $1 والسعر فوق المتوسط 100"],
+    [/MACD hist crossed positive within 3 sessions/g, "هيستوغرام ماكد تحول موجبًا خلال 3 جلسات"],
+    [/MACD hist crossed negative within 3 sessions/g, "هيستوغرام ماكد تحول سالبًا خلال 3 جلسات"],
+    [/price above SMA50/g, "السعر فوق المتوسط 50"],
+    [/price below SMA50/g, "السعر تحت المتوسط 50"],
+    [/up day \(([\d.-]+)%\) above SMA20/g, "جلسة صاعدة ($1%) فوق المتوسط 20"],
+    [/down day \(([\d.-]+)%\) below SMA20/g, "جلسة هابطة ($1%) تحت المتوسط 20"],
+    [/stochastic %K crossed %D up from ([\d.]+) \(oversold\)/g, "تقاطع الاستوكاستك صاعدًا من $1 (تشبع بيعي)"],
+    [/stochastic %K crossed %D down from ([\d.]+) \(overbought\)/g, "تقاطع الاستوكاستك هابطًا من $1 (تشبع شرائي)"],
+    [/price above SMA100/g, "السعر فوق المتوسط 100"],
+    [/price below SMA100/g, "السعر تحت المتوسط 100"],
+    [/3-month ROC ([\d.-]+)% \(leadership\)/g, "معدل التغير 3 أشهر $1% (ريادة)"],
+    [/3-month ROC ([\d.-]+)% \(laggard\)/g, "معدل التغير 3 أشهر $1% (تأخر)"],
+    [/([\d.-]+)% over SMA50 \(non-parabolic\)/g, "أعلى من المتوسط 50 بنسبة $1% (دون ذروة)"],
+    [/([\d.-]+)% under SMA50/g, "أدنى من المتوسط 50 بنسبة $1%"],
+    [/orderly dip ([\d.]+)% below 20-session high/g, "تصحيح منظم $1% تحت قمة 20 جلسة"],
+    [/uptrend intact \(price > SMA200, SMA50 > SMA200\)/g, "الترند الصاعد سليم (السعر فوق المتوسط 200 والمتوسط 50 فوق 200)"],
+    [/RSI14 ([\d.]+) \(reset zone\)/g, "مؤشر RSI عند $1 (منطقة إعادة ضبط)"],
+    [/mid-zone reset — classic continuation window/g, "إعادة ضبط وسطى — نافذة استكمال كلاسيكية"],
+    [/dividend yield ([\d.]+)%/g, "عائد توزيعات $1%"],
+    [/quality pillar ([\d.-]+) positive/g, "ركيزة الجودة $1 موجبة"],
+    [/price above SMA200 \(trend-safe income\)/g, "السعر فوق المتوسط 200 (دخل آمن ترندًا)"],
+    [/press tone ([\d.-]+) \(14-day lexicon\)/g, "نبرة الصحافة $1 (معجم 14 يومًا)"],
+    [/technical score ([\d.-]+) not contradicting/g, "الدرجة الفنية $1 دون تناقض"],
+    [/trend: /g, ""],
+  ];
+  for (const [re, ar] of phrases) s = s.replace(re, ar);
+  // anything still Latin beyond allowed acronyms/numbers/tickers is dropped —
+  // a fallback must never carry stray English into an Arabic slot
+  const tokens = s.split(/\s+/).filter((t) => t.length > 0);
+  const kept = tokens.filter((t) => {
+    const bare = t.replace(/[.:,;()]+$/g, "").replace(/^[():,;]+/g, "");
+    if (!bare) return false;
+    if (/[\u0600-\u06ff]/.test(bare)) return true; // Arabic passes
+    if (/^[×%→←\-–—/]+$/.test(t)) return true; // symbols
+    if (/^\d+(?:[.,]\d+)*%?$/.test(bare)) return true; // numbers
+    const up = bare.toUpperCase();
+    if (["RSI", "SMA", "MACD", "ATR", "ROC", "SMA50", "SMA100", "SMA200", "SMA20", "ATR14", "RSI14"].includes(up)) return true;
+    if (/^[A-Z]{2,5}$/.test(bare)) return true; // ticker-like
+    return false;
+  });
+  return kept.join(" ").trim() || "راجع عناصر الأدلة";
 }
 
 /** Multiset of numeric tokens — used to prove a repaired rewrite kept every
@@ -364,6 +476,19 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     .slice(0, 5)
     .map((r) => ({ ticker: r.ticker, nameAr: r.nameAr, changePct: r.changePct }));
 
+  // T42 — strategy regime across the candidate pack: how many candidates each
+  // of the 12 strategies is long/avoid on (the ensemble's market read)
+  const strategyRegime = STRATEGY_REGISTRY.map((s) => {
+    let longs = 0;
+    let avoids = 0;
+    for (const c of candidates) {
+      const v = c.ens?.verdicts.find((x) => x.id === s.id);
+      if (v?.fired && v.direction === "long") longs++;
+      else if (v?.fired && v.direction === "avoid") avoids++;
+    }
+    return { id: s.id, name: s.nameEn, family: s.family, longs, avoids };
+  });
+
   const marketContext = {
     scanAsOf: scan.asOf,
     indices: indices.map((i) => ({ code: i.code, close: i.close, changePct: i.changePct })),
@@ -371,11 +496,13 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     bestSector: best,
     worstSector: worst,
     topMovers: movers,
+    strategyRegime,
+    ensembleSize: STRATEGY_REGISTRY.length,
     backtestEvidence: backtestJson.stats,
     backtestMethod: backtestJson.method,
   };
 
-  const pack = candidates.map(({ row, f, risk }) => ({
+  const pack = candidates.map(({ row, f, ens, risk }) => ({
     ticker: row.ticker,
     nameAr: row.nameAr,
     nameEn: row.name,
@@ -411,6 +538,18 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     },
     perf: { m1: row.perf1M, m6: row.perf6M, ytd: row.perfYTD, y1: row.perfY },
     nextEarnings: row.nextEarnings,
+    strategies: ens
+      ? {
+          consensus: ens.consensus,
+          agreement: ens.agreement,
+          longVotes: ens.longVotes,
+          avoidVotes: ens.avoidVotes,
+          applicable: ens.applicable,
+          fired: ens.verdicts
+            .filter((v) => v.fired)
+            .map((v) => ({ id: v.id, name: v.nameEn, dir: v.direction, score: v.score, evidence: v.evidence })),
+        }
+      : null,
     strategy: f
       ? {
           trend: f.trend,
@@ -430,10 +569,10 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     "MARKET CONTEXT (live, ~15-min delayed):",
     JSON.stringify(marketContext),
     "",
-    "CANDIDATES (charter-scored on daily candles; charterRisk is the precomputed ATR level set):",
+    "CANDIDATES (12-strategy ensemble verdicts per candidate; charterRisk is the precomputed ATR level set):",
     JSON.stringify(pack),
     "",
-    "Apply the charter to this evidence. Choose 3-6 picks (you may include 'avoid' stances when the charter's bear rules clearly fire; you may return fewer picks or none qualifying).",
+    "Apply the charter to this evidence. Choose 3-6 picks (you may include 'avoid' stances when the ensemble consensus is net bearish; you may return fewer picks or none qualifying).",
     "Reply with EXACTLY ONE JSON object, no fences, no commentary, matching this schema:",
     OUTPUT_SCHEMA,
   ].join("\n");
@@ -472,6 +611,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
 
   const picksRaw = Array.isArray(parsed.picks) ? parsed.picks : [];
   const picks: AiPick[] = [];
+  const fallbackArByTicker = new Map<string, string>(); // deterministic pure-Arabic fallbacks (T41/T42)
   for (const p of picksRaw) {
     if (!p || typeof p !== "object") continue;
     const o = p as Record<string, unknown>;
@@ -479,16 +619,33 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     const cand = byTicker.get(ticker);
     if (!cand) continue; // unknown ticker — never serve it
     const f = cand.f;
-    const charterScore = f ? f.score : cand.row.score;
+    const ens = cand.ens;
+    // T42 — the charter score is now the ENSEMBLE CONSENSUS (the weighted
+    // vote of the 12 strategies). With 12 counted strategies and family
+    // weights, a single full-strength vote moves the consensus only ~0.09 —
+    // the 0.35 long gate therefore mathematically requires SEVERAL
+    // independent strategies to agree. A long can never be single-strategy.
+    const charterScore = ens ? ens.consensus : f ? f.score : cand.row.score;
     const stance: "long" | "avoid" = o.stance === "avoid" ? "avoid" : "long";
-    // charter discipline: no longs the engine scores weakly, no avoids on strong setups
+    // charter discipline: no longs the ensemble scores weakly; avoids need a
+    // net-bearish consensus (a positive consensus never serves an avoid)
     if (stance === "long" && charterScore < 0.35) continue;
-    if (stance === "avoid" && charterScore > 0.35) continue;
+    if (stance === "avoid" && charterScore > 0) continue;
     // conviction cap: a long cannot be max-conviction against the market bias
     let conviction = Math.min(5, Math.max(1, Math.round(Number(o.conviction) || 2)));
     if (stance === "long" && bias.direction === "neutral" && conviction > 4) conviction = 4;
     if (stance === "long" && bias.direction === "bearish" && conviction > 3) conviction = 3;
     if (stance === "avoid" && bias.direction === "bullish" && conviction > 3) conviction = 3;
+    // T42 — conviction is ALSO capped by ensemble agreement (the charter:
+    // 5 = broad multi-strategy agreement). agreement = the fraction of
+    // counted strategies voting for this pick's stance.
+    const applicable = Math.max(1, ens?.applicable ?? 0);
+    const agreeVotes = stance === "long" ? (ens?.longVotes ?? 0) : (ens?.avoidVotes ?? 0);
+    const agreement = ens ? Number((agreeVotes / applicable).toFixed(2)) : 0;
+    const agreeCap = Math.max(1, Math.ceil(agreement * 5)); // 0.4→2, 0.6→3, 0.8→4, 1.0→5
+    if (agreement > 0 && conviction > agreeCap) conviction = agreeCap;
+    // the strategy ids supporting this stance (deterministic — never LLM-chosen)
+    const supportIds = ens ? ens.verdicts.filter((v) => v.fired && v.direction === stance).map((v) => v.id) : [];
 
     const horizon = Math.min(20, Math.max(5, Math.round(Number(o.horizonSessions) || 10)));
     const atrPct = f ? f.atrPct : null;
@@ -508,13 +665,20 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     const evidence = Array.isArray(o.evidence)
       ? o.evidence.filter((e): e is string => typeof e === "string" && e.trim().length > 0).slice(0, 8)
       : [];
-    const fallbackEvidence = f ? f.evidence.slice(0, 6) : [`indicator score ${charterScore}`];
+    // T42 — the deterministic fallback now leads with the ENSEMBLE evidence
+    // ("strategy-id: code" lines from all fired strategies) — richer than the
+    // old single-strategy feature codes, same numbers.
+    const fallbackEvidence =
+      ens && ens.evidence.length ? ens.evidence.slice(0, 8) : f ? f.evidence.slice(0, 6) : [`indicator score ${charterScore}`];
     // T41 — a missing Arabic thesis falls back to the DETERMINISTIC evidence
-    // rendered in Arabic (the old fallback joined the English evidence codes
-    // into the Arabic slot). Same numbers, reader's language.
-    const fallbackThesisAr = f
-      ? evidenceAr(f.evidence.slice(0, 6))
-      : `درجة المحرك ${charterScore.toFixed(2)} — راجع عناصر الأدلة.`;
+    // rendered in Arabic. Same numbers, reader's language.
+    const fallbackThesisAr =
+      ens && ens.evidence.length
+        ? evidenceAr(ens.evidence.slice(0, 8))
+        : f
+          ? evidenceAr(f.evidence.slice(0, 6))
+          : `درجة المحرك ${charterScore.toFixed(2)} — راجع عناصر الأدلة.`;
+    fallbackArByTicker.set(ticker, fallbackThesisAr);
     const thesisAr =
       typeof o.thesisAr === "string" && o.thesisAr.trim() ? o.thesisAr.trim().slice(0, 900) : fallbackThesisAr;
     const thesisEn =
@@ -528,6 +692,11 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
       stance,
       conviction,
       charterScore,
+      strategies: supportIds,
+      longVotes: ens?.longVotes ?? 0,
+      avoidVotes: ens?.avoidVotes ?? 0,
+      applicable: ens?.applicable ?? 0,
+      agreement,
       close: f ? f.close : cand.row.close,
       entry: stance === "long" ? cand.risk?.entry ?? null : null,
       stop: stance === "long" ? cand.risk?.stop ?? null : null,
@@ -553,7 +722,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
   };
 
   // ── T41 language-purity gate: repair, then verify, then honest fallback ──
-  await purifyPayload(payload, zai, retry);
+  await purifyPayload(payload, zai, retry, fallbackArByTicker);
   return { payload, llmMs: Date.now() - t0 };
 }
 
@@ -570,7 +739,8 @@ type PurityFix = { key: string; arabic: boolean; original: string };
 async function purifyPayload(
   payload: AiSetPayload,
   zai: Zai,
-  retry: { budgetLeft: number }
+  retry: { budgetLeft: number },
+  fallbackArByTicker: Map<string, string>
 ): Promise<void> {
   const fixes: PurityFix[] = [];
   for (const p of payload.picks) {
@@ -589,10 +759,11 @@ async function purifyPayload(
   );
 
   // last resort for a pick thesis: the deterministic evidence lines, rendered
-  // in the field's language (T41 — never English codes in the Arabic slot)
+  // in the field's language (T41 — never English codes in the Arabic slot;
+  // T42 — prefers the per-ticker ensemble fallback computed at validation)
   const fallbackFor = (f: PurityFix) => {
     const pick = payload.picks.find((p) => f.key.startsWith(`${p.ticker}.`));
-    if (pick && f.key.endsWith("thesisAr")) pick.thesisAr = evidenceAr(pick.evidence.slice(0, 6));
+    if (pick && f.key.endsWith("thesisAr")) pick.thesisAr = fallbackArByTicker.get(pick.ticker) ?? evidenceAr(pick.evidence.slice(0, 6));
     else if (pick && f.key.endsWith("thesisEn")) pick.thesisEn = pick.evidence.slice(0, 6).join(" · ");
     else if (f.key === "bias.summaryAr") payload.marketBias.summaryAr = "الاتساع: صاعد مقابل هابط — راجع عناصر الأدلة.";
     else if (f.key === "bias.summaryEn") payload.marketBias.summaryEn = "Breadth: up vs down — see the evidence lines.";
@@ -656,6 +827,14 @@ function parseRow(row: { data: string; createdAt: Date; model: string; strategyR
         const d = Date.parse(`${p.earningsRisk}T00:00:00Z`);
         if (!Number.isFinite(d) || d <= now) p.earningsRisk = null;
       }
+      // T42 — normalize sets persisted by the pre-ensemble build (rev
+      // egx-trend-v1): the new ensemble fields default to empty/zero so the
+      // UI and agent never see undefined; a fresh set fills them properly
+      if (!Array.isArray(p.strategies)) p.strategies = [];
+      if (typeof p.longVotes !== "number") p.longVotes = 0;
+      if (typeof p.avoidVotes !== "number") p.avoidVotes = 0;
+      if (typeof p.applicable !== "number") p.applicable = 0;
+      if (typeof p.agreement !== "number") p.agreement = 0;
     }
     return { ...payload, model: row.model, strategyRev: row.strategyRev, llmMs: row.llmMs };
   } catch {

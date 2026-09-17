@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { BrainCircuit, TrendingDown, TrendingUp, Search } from "lucide-react";
 import type { Rating, SignalRow, SignalsScan } from "@/lib/signals-scan";
+import { strategyById } from "@/lib/strategies";
 import { AiSignalsPanel } from "@/components/views/ai-signals-panel";
 
 type SignalsResponse = SignalsScan & {
@@ -26,7 +27,7 @@ type SignalsResponse = SignalsScan & {
   note?: string;
 };
 
-type Lens = "composite" | "tech" | "fund" | "news";
+type Lens = "composite" | "tech" | "fund" | "news" | "strategies";
 
 const RATING_LABEL: Record<Rating, { ar: string; en: string }> = {
   strongBuy: T.techStrongBuy,
@@ -218,7 +219,7 @@ export function SignalsView() {
       setMode(m);
     }
     const l = bootParam("lens");
-    if (l === "composite" || l === "tech" || l === "fund" || l === "news") setLens(l);
+    if (l === "composite" || l === "tech" || l === "fund" || l === "news" || l === "strategies") setLens(l);
     const d = bootParam("dir");
     if (d === "bull" || d === "bear") setDir(d);
     const r = bootParam("rating");
@@ -266,7 +267,15 @@ export function SignalsView() {
       );
     }
     const key = (r: SignalRow) =>
-      lens === "tech" ? r.score : lens === "fund" ? (r.fundScore ?? -2) : lens === "news" ? (r.newsScore ?? -2) : r.composite;
+      lens === "tech"
+        ? r.score
+        : lens === "fund"
+          ? (r.fundScore ?? -2)
+          : lens === "news"
+            ? (r.newsScore ?? -2)
+            : lens === "strategies"
+              ? (r.ensemble?.consensus ?? -2)
+              : r.composite;
     return [...list].sort((a, b) => (dir === "bull" ? key(b) - key(a) : key(a) - key(b)));
   }, [data, filter, q, dir, lens]);
 
@@ -275,6 +284,7 @@ export function SignalsView() {
     const headers = [
       "#", "ticker", "name (ar)", "sector (ar)", "close EGP", "day %",
       "composite rating", "composite score", "technical score", "fundamental score", "news score",
+      "ensemble consensus", "ensemble long votes", "ensemble avoid votes", "ensemble applicable", "fired strategies",
       "news articles 14d", "news bullish", "news bearish",
       "valuation", "quality", "income", "fundamental coverage",
       "P/E", "P/B", "ROE %", "net margin %", "D/E", "div yield %",
@@ -285,6 +295,8 @@ export function SignalsView() {
     downloadCsv(`egx-signals-${fileStamp()}`, headers, data.rows.map((r, i) => [
       i + 1, r.ticker, r.nameAr, r.sectorAr, r.close, r.changePct,
       r.compositeRating, r.composite, r.score, r.fundScore ?? "", r.newsScore ?? "",
+      r.ensemble?.consensus ?? "", r.ensemble?.longVotes ?? "", r.ensemble?.avoidVotes ?? "", r.ensemble?.applicable ?? "",
+      (r.ensemble?.fired ?? []).join(" | "),
       r.newsCount, r.newsBull, r.newsBear,
       r.valuation ?? "", r.quality ?? "", r.income ?? "", r.fundCoverage,
       r.pe ?? "", r.pb ?? "", r.roe ?? "", r.netMarginTTM ?? "", r.debtToEquity ?? "", r.divYield ?? "",
@@ -319,7 +331,15 @@ export function SignalsView() {
   }
 
   const lensScore = (r: SignalRow): number | null =>
-    lens === "tech" ? r.score : lens === "fund" ? r.fundScore : lens === "news" ? r.newsScore : r.composite;
+    lens === "tech"
+      ? r.score
+      : lens === "fund"
+        ? r.fundScore
+        : lens === "news"
+          ? r.newsScore
+          : lens === "strategies"
+            ? (r.ensemble?.consensus ?? null)
+            : r.composite;
 
   return (
     <div className="space-y-5">
@@ -482,6 +502,7 @@ export function SignalsView() {
         <div className="flex rounded-md border overflow-hidden" title={tt(T.signalsLensHint, lang)}>
           {([
             ["composite", T.signalsLensComposite],
+            ["strategies", T.signalsLensStrategies],
             ["tech", T.signalsLensTech],
             ["fund", T.signalsLensFund],
             ["news", T.signalsLensNews],
@@ -543,6 +564,9 @@ export function SignalsView() {
                 <th className="text-end font-medium px-2 py-2" title={tt(T.signalsLensFund, lang)}>F</th>
                 <th className="text-end font-medium px-2 py-2" title={tt(T.signalsLensNews, lang)}>N</th>
                 <th className="text-end font-medium px-2 py-2 hidden lg:table-cell">{tt(T.signalsColNews, lang)}<span className="text-[9px] text-muted-foreground"> 14d</span></th>
+                <th className="text-end font-medium px-2 py-2" title={tt(T.signalsStrategiesHint, lang)}>
+                  <span title={tt(T.signalsColStrategies, lang)}>S<span className="text-[9px] text-muted-foreground">12</span></span>
+                </th>
                 <th className="text-end font-medium px-2 py-2">{tt(T.signalsColPe, lang)}</th>
                 <th className="text-end font-medium px-2 py-2">{tt(T.signalsColRoe, lang)}</th>
                 <th className="text-end font-medium px-2 py-2 hidden lg:table-cell">{tt(T.signalsColDiv, lang)}</th>
@@ -586,6 +610,31 @@ export function SignalsView() {
                   <td className="px-2 py-2 text-end"><ScoreCell score={r.newsScore} /></td>
                   <td className="px-2 py-2 text-end hidden lg:table-cell"><NewsCountCell r={r} /></td>
                   <td
+                    className="num px-2 py-2 text-end"
+                    title={
+                      r.ensemble
+                        ? `${tt(T.signalsColStrategies, lang)}: ${(r.ensemble.fired ?? [])
+                            .map((id) => {
+                              const s = strategyById(id);
+                              return s ? (lang === "ar" ? s.nameAr : s.nameEn) : id;
+                            })
+                            .join(" · ")}`
+                        : undefined
+                    }
+                  >
+                    {r.ensemble ? (
+                      <span
+                        className={`font-semibold ${
+                          r.ensemble.consensus > 0.1 ? "text-up" : r.ensemble.consensus < -0.1 ? "text-down" : "text-muted-foreground"
+                        }`}
+                      >
+                        {r.ensemble.longVotes}/{r.ensemble.applicable}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td
                     className={`num px-2 py-2 text-end ${
                       r.pe === null ? "text-muted-foreground" : r.pe <= 0 ? "text-down" : ""
                     }`}
@@ -623,7 +672,7 @@ export function SignalsView() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={17} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={18} className="px-3 py-6 text-center text-muted-foreground">
                     {tt(T.signalsEmptyFilter, lang)}
                   </td>
                 </tr>
