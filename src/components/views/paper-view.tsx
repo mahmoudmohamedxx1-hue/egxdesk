@@ -348,8 +348,10 @@ export function PaperView() {
                       </td>
                       <td className="num text-end px-3 py-2">{fmtValue(value)}</td>
                       <td className={`num text-end px-3 py-2 font-semibold ${directionClass(pl)}`}>
+                        {/* T40 — exact 2dp like the summary card: fmtValue()
+                            compacted small P&L to "-6" for a true -6.33 */}
                         {pl >= 0 ? "+" : ""}
-                        {fmtValue(pl)}
+                        {fmtNum(pl, 2)}
                       </td>
                       <td className={`num text-end px-3 py-2 ${directionClass(pl)}`}>{plPct != null ? `${plPct >= 0 ? "+" : ""}${plPct.toFixed(1)}%` : "—"}</td>
                     </tr>
@@ -418,8 +420,9 @@ export function PaperView() {
                   <span className="flex-1" />
                   {t.realizedPl != null && (
                     <span className={`num text-[11px] font-semibold shrink-0 ${directionClass(t.realizedPl)}`}>
+                      {/* T40 — same exact-2dp rule as the positions table */}
                       {t.realizedPl >= 0 ? "+" : ""}
-                      {fmtValue(t.realizedPl)}
+                      {fmtNum(t.realizedPl, 2)}
                     </span>
                   )}
                 </div>

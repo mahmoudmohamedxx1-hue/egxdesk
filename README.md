@@ -9,9 +9,9 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.29-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.30-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
-[![Tests](https://img.shields.io/badge/tests-16%20suites-green)](#testing)
+[![Tests](https://img.shields.io/badge/tests-17%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
 
@@ -79,6 +79,7 @@ paper buy/sell/portfolio, language switching.
 - **GLM-4-Plus** via the app's own gateway — always on, no sign-in (agent-tab default)
 - **3 KEYLESS cloud models — no sign-in, no key, no card, ever (LLM7.io)** — Codestral (fast, precise numbers), Mistral Nemo (fastest replies), MiniMax M2.7 (strong Arabic). Served server-side through the same SSE agent loop; work even where the Puter popup is blocked. The anonymous tier is one **globally shared** free daily pool — when strangers exhaust it, every keyless model **auto-falls back to GLM-4-Plus in <2s** with an honest streamed note + a permanent served-model chip on the answer (never a dead end)
 - **Anti-fabrication gate (machine-verified answers)** — every agent final answer is cross-checked against the tool data it was built from before you see it: invented numbers (the classic small-model failure), leaked Chinese characters inside Arabic, and degenerate replies are caught, given ONE repair round, and — if a keyless model still fails — re-answered on the GLM-4-Plus backbone. Surviving outliers ship with an honest verification footnote; the app never silently trusts a model's memory
+- **Honest-history chart guard** — free chart sources sometimes go stale under a ticker (Yahoo re-typed ORAS into a frozen 71.05 "mutual fund" while the real stock trades at 837). A flat zero-volume daily series is detected and refused before it can paint a fake ±10x rocket, wreck the 52-week band, or feed RSI-0/100 garbage into signals and the agent's technicals tool; affected names fall back to the verified milestone reconstruction with an explicit note
 - **19 curated flagship families, free via the Puter cloud** — GPT-OSS 20B & 120B, GLM-5.3 / 5.3-Flash / 5.2, GPT-5.6 Luna, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4 Pro, Kimi K3, Qwen3-235B, Llama 4 Maverick & Scout, Mistral Large 3, MiniMax M2.5, Command A, Phi-4, Nemotron Super 49B (every id verified against the live catalog; the agent loop runs client-side, tools stay server-side)
 - **1,008 real cloud models** in a searchable catalog, one free Puter sign-in away (no card, no API keys)
 - An offline **Instant** regex router in the assistant popup
@@ -158,7 +159,7 @@ else works with zero configuration and zero API keys.
 
 ## Testing
 
-14 end-to-end/API suites cover the whole surface — run against a live dev server:
+15 end-to-end/API suites cover the whole surface — run against a live dev server:
 
 ```bash
 bun scripts/e2e/api-test.js          # 100 checks — every route, NaN/consistency guards
@@ -174,6 +175,7 @@ bun scripts/t37-test-failover.ts         # 10 live checks — LLM7→GLM auto-fa
 bun scripts/t37-test-risk-levels.ts      # 18 unit checks — price-adaptive ATR levels (penny-stock R:R integrity)
 bun scripts/t38-test-audit-fixes.ts       # 64 unit checks — anti-fabrication gate, ticker aliases, Arabic search, UI regressions
 bun scripts/t39-test-fixes.ts            # 35 checks — audit-2 fixes: AR narrative units, picker aliases, name artifacts, P/E cap, sector labels
+bun scripts/t40-test-fixes.ts            # 38 checks — audit-3 fixes: vendor-stub chart guard, EN-news latinization, bilingual metadata, P&L decimals
 bunx tsc --noEmit && bunx eslint src/
 ```
 

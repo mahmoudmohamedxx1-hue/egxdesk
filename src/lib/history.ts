@@ -165,6 +165,27 @@ export async function fetchStockChart(ticker: string, range: ChartRange): Promis
     const final = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
     if (final.length < 2) throw new Error("history: not enough candles");
 
+    // T40 — discontinued-vendor stub guard: Yahoo re-keys or retires EGX
+    // symbols and then pads the old key with a FLAT zero-volume daily series
+    // that keeps emitting dates forever (ORAS.CA was re-typed as a "mutual
+    // fund" at 71.05 while the real stock trades at 837.01). Without this
+    // guard the live-splice below appends the real close to the stale level,
+    // painting a fake ±10x last-day rocket (ORAS "+1078%"), wrecking the
+    // Hi/Lo band, and feeding RSI-0/100 garbage into signals, the agent's
+    // technicals tool and every other consumer. A flat series that almost
+    // never traded is indistinguishable from "no free daily history exists"
+    // — exactly what the T27 milestone fallback was built for, so we refuse
+    // to serve it and let each caller take its honest failure path.
+    if (!intraday && final.length >= 20) {
+      const lo = Math.min(...final.map((p) => p.close));
+      const hi = Math.max(...final.map((p) => p.close));
+      const flat = lo > 0 && hi / lo - 1 < 0.005;
+      const tradedDays = final.filter((p) => (p.volume ?? 0) > 0).length;
+      if (flat && tradedDays < final.length * 0.05) {
+        throw new Error("history: flat untraded stub (vendor-discontinued series)");
+      }
+    }
+
     // Task 23 fix — Yahoo routinely publishes the latest EGX session with a
     // NULL close for hours after the EGX close (null candles are dropped
     // above), so charts, technical panels and signals all ended a session
@@ -328,7 +349,7 @@ export function milestoneChart(
     low: stock.low52 && stock.low52 <= last ? stock.low52 : Math.min(...closes),
     changePct: first > 0 ? ((last - first) / first) * 100 : null,
     source:
-      "TradingView performance milestones — no public daily history exists for this name; points are verified horizon prices (1W/1M/3M/6M/YTD/1Y) reconstructed from live performance data",
+      "TradingView performance milestones — no free public daily history we can serve for this name (uncovered by Yahoo or a vendor-discontinued series); points are verified horizon prices (1W/1M/3M/6M/YTD/1Y) reconstructed from live performance data",
     asOf: points[points.length - 1].date,
     milestones: true,
     refHigh: stock.high52,

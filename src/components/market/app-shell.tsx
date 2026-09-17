@@ -193,6 +193,27 @@ export function AppShell() {
   // T34 — warm the other view chunks in idle time (after first paint)
   useIdleViewPrefetch(view.name);
 
+  // T40 — the document metadata (tab title + meta description) is static
+  // Arabic in layout.tsx because this is a single-page app, so an English
+  // visitor's tab, bookmark and history entry stayed Arabic. Keep the
+  // crawler-facing static tags (the site's primary audience is Arabic) but
+  // make what the USER sees follow the interface language, live.
+  useEffect(() => {
+    document.title =
+      lang === "ar"
+        ? "EGX Desk — بيانات حية للبورصة المصرية"
+        : "EGX Desk — Live Egyptian Exchange data";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute(
+        "content",
+        lang === "ar"
+          ? "بيانات حية مؤجلة للبورصة المصرية: المؤشرات، ٢٩٦ شركة مقيدة بأسعار ومقاييس فعلية، أداء القطاعات، الخريطة الحرارية، أخبار السوق المصرية من مصادر عامة، ومتابعة محلية بلا تسجيل دخول."
+          : "Delayed live data for the Egyptian Exchange: indices, 296 listed companies with real prices and metrics, sector performance, the heatmap, Egyptian market news from public sources — local tracking with no sign-up.",
+      );
+    }
+  }, [lang]);
+
   // T35 — anti-staleness version guard: if this cached shell is older than
   // the server (installed PWA / long-lived tab / proxy cache holding an old
   // build), unregister the SW, wipe the caches and self-heal with one reload

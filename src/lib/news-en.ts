@@ -54,18 +54,54 @@ function decodeXml(s: string): string {
     .trim();
 }
 
+/* T40 — the English feed is aggregated from Google News' en-US edition, but
+ * Arabic-language publishers sometimes appear in it with an English article
+ * title and an ARABIC source name (آراب فاينانس = Arab Finance). Showing an
+ * Arabic-script publisher inside the English reading experience looked like
+ * broken data, so known brands are mapped to their official English name and
+ * anything unmapped falls back to the article's hostname (still the real
+ * publisher, just in Latin script). The publisher's identity is never
+ * invented or dropped. */
+const SOURCE_BRANDS_EN: Record<string, string> = {
+  "آراب فاينانس": "Arab Finance",
+  "أراب فاينانس": "Arab Finance",
+};
+
+function latinizeSource(source: string, link: string): string {
+  if (!/[\u0600-\u06FF]/.test(source)) return source;
+  const brand = SOURCE_BRANDS_EN[source.trim()];
+  if (brand) return brand;
+  try {
+    const host = new URL(link).hostname.replace(/^www\./, "");
+    if (host && !/[\u0600-\u06FF]/.test(host)) return host;
+  } catch {
+    /* Google News redirect links always parse; keep the real name otherwise */
+  }
+  return source;
+}
+
 function parseFeed(xml: string): NewsItemEn[] {
   const items: NewsItemEn[] = [];
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/g) ?? [];
   for (const b of blocks.slice(0, 60)) {
-    const title = decodeXml(/<title>([\s\S]*?)<\/title>/.exec(b)?.[1] ?? "");
+    const rawTitle = decodeXml(/<title>([\s\S]*?)<\/title>/.exec(b)?.[1] ?? "");
     const link = decodeXml(/<link>([\s\S]*?)<\/link>/.exec(b)?.[1] ?? "");
     const pub = decodeXml(/<pubDate>([\s\S]*?)<\/pubDate>/.exec(b)?.[1] ?? "");
     const source = decodeXml(/<source[^>]*>([\s\S]*?)<\/source>/.exec(b)?.[1] ?? "");
-    if (!title || !link) continue;
+    if (!rawTitle || !link) continue;
     const iso = pub ? new Date(pub).toISOString() : null;
     if (!iso || Number.isNaN(Date.parse(iso))) continue;
-    items.push({ title, link, publishedAt: iso, source: source || "Google News" });
+    // T40 — Google News appends " - Publisher" to every title; when that
+    // trailing segment is the publisher itself (in any script — e.g. an
+    // Arabic "… - آراب فاينانس"), drop it: the source chip already shows
+    // the latinized publisher, and an Arabic suffix inside an English
+    // headline reads as broken mixed-script data.
+    const title = rawTitle.replace(/\s+-\s+[^-]{2,40}$|‏?\s+[-–—]\s+[\u0600-\u06FF][^-]{1,40}$/, (m) => {
+      const tail = m.replace(/^\s+[-–—]\s+/, "").trim();
+      const srcLatin = latinizeSource(source, link);
+      return tail === source || tail === srcLatin || /[\u0600-\u06FF]/.test(tail) ? "" : m;
+    }).trim();
+    items.push({ title: title || rawTitle, link, publishedAt: iso, source: latinizeSource(source || "Google News", link) });
   }
   // feeds can interleave slightly out of order — enforce newest-first
   items.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : a.publishedAt > b.publishedAt ? -1 : 0));

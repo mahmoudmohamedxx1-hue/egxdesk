@@ -7,13 +7,16 @@ import { cn } from "@/lib/utils";
 export function WatchStar({ ticker, className }: { ticker: string; className?: string }) {
   const { isWatched, toggleWatch, lang } = useApp();
   const watched = isWatched(ticker);
+  // T40 — the aria-label was hardcoded Arabic, so screen-reader users in
+  // the English interface heard an Arabic announcement for every star.
+  const label = watched
+    ? lang === "ar" ? "إزالة من المتابعة" : "Remove from watchlist"
+    : lang === "ar" ? "أضف للمتابعة" : "Add to watchlist";
   return (
     <button
       type="button"
-      aria-label={watched ? "إزالة من المتابعة" : "أضف للمتابعة"}
-      title={watched
-        ? lang === "ar" ? "إزالة من المتابعة" : "Remove from watchlist"
-        : lang === "ar" ? "أضف للمتابعة" : "Add to watchlist"}
+      aria-label={label}
+      title={label}
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();

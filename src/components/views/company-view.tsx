@@ -179,7 +179,10 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-accent/50 transition-colors"
         >
           <Calculator className="h-3.5 w-3.5" />
-          {lang === "ar" ? "احسب عائد الكوبون" : "Compute coupon return"}
+          {/* T40 — was "Compute coupon return", a bond-specific label shown on
+              EVERY company (banks, industrials…) that don't pay coupons; the
+              shortcut opens the whole calculator suite, so say that. */}
+          {lang === "ar" ? "أدوات وحاسبات التداول" : "Trading tools & calculators"}
         </button>
         <SetAlertButton ticker={c.ticker} close={c.close} />
         {/* 21-b — the full company file (snapshot + technicals + dividends) as a branded Excel report */}

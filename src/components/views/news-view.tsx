@@ -205,9 +205,16 @@ export function NewsView() {
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.newsTitle, lang)}</h1>
         <p className="num text-xs text-muted-foreground">
+          {/* T40 — the count must not claim "0 news" while the feed is DOWN:
+              that reads as "the market had no news" (fake), when the truth
+              is "we could not load it". Show an em-dash until data exists. */}
           {feed === "en"
-            ? `${fmtInt(enFeed?.total ?? 0)} ${tt(T.newsEnTitle, lang)}`
-            : (<><span className="font-semibold">{fmtInt(total)}</span> {tt(T.headlinesShown, lang)}</>)}
+            ? enFeed
+              ? `${fmtInt(enFeed.total ?? 0)} ${tt(T.newsEnTitle, lang)}`
+              : "—"
+            : items
+              ? (<><span className="font-semibold">{fmtInt(total)}</span> {tt(T.headlinesShown, lang)}</>)
+              : "—"}
         </p>
       </div>
 

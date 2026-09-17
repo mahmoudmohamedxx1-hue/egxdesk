@@ -1002,8 +1002,8 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
         <p className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-[10px] text-muted-foreground leading-relaxed">
           {tt(
             {
-              ar: "لا يوجد تاريخ يومي عام لهذه الورقة على أي مصدر مجاني — تُعرض محطات سعرية موثّقة (أسبوع/شهر/٣ أشهر/٦ أشهر/بداية السنة/سنة) محسوبة من بيانات الأداء الحية، مع نطاق ٥٢ أسبوعًا كخطوط مرجعية.",
-              en: "No public daily history exists for this name on any free source — showing verified horizon prices (1W/1M/3M/6M/YTD/1Y) computed from live performance data, with the 52-week range as reference lines.",
+              ar: "لا يوجد تاريخ يومي مجاني متاح لهذه الورقة (غير مغطى على المصادر المجانية أو سلسلة موقوفة من المزوّد) — تُعرض محطات سعرية موثّقة (أسبوع/شهر/٣ أشهر/٦ أشهر/بداية السنة/سنة) محسوبة من بيانات الأداء الحية، مع نطاق ٥٢ أسبوعًا كخطوط مرجعية.",
+              en: "No free daily history we can serve for this name (uncovered by free sources, or a vendor-discontinued series) — showing verified horizon prices (1W/1M/3M/6M/YTD/1Y) computed from live performance data, with the 52-week range as reference lines.",
             },
             lang,
           )}
