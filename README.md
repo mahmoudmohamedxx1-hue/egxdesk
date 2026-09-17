@@ -9,9 +9,9 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.32-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.33-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
-[![Tests](https://img.shields.io/badge/tests-18%20suites-green)](#testing)
+[![Tests](https://img.shields.io/badge/tests-19%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
 
@@ -65,10 +65,14 @@ AI-signals evidence pack, and the agent's `technicals` tool — one math everywh
 
 A separate **AI Signals** mode runs a **12-strategy ensemble** (trend, momentum, reversion, volume, dividend
 quality, press tone — each deterministic, each with its own trigger and evidence codes) whose weighted consensus
-feeds a GLM model (shared compute — one call per cycle serves everyone) with ATR-based entry/stop/target levels.
-Every pick carries the fired-strategy chips, the vote count (e.g. 8/11) and the consensus; the walk-forward
-backtest validates the ensemble AND each strategy standalone (hit 60.3%, PF 2.61, avg excess +0.94%/trade over
-3y). See [`src/lib/strategies.ts`](src/lib/strategies.ts) and [`scripts/backtest-signals.ts`](scripts/backtest-signals.ts).
+feeds a GLM model (shared compute — one call per cycle serves everyone). Every pick carries the fired-strategy
+chips, the vote count (e.g. 8/11), the consensus, and a **full executable trade plan** (T43): a limit-order entry
+zone, the stop with its risk %, and a T1/T2/T3 scale-out ladder — plus a **position-size calculator** that turns
+the plan into "how many shares" for the reader's own account and risk budget. A **published-signal track record**
+replays every past pick against the real closing prints that followed it (target / stopped / expired / open —
+no simulation, no backfill); the walk-forward backtest validates the ensemble AND each strategy standalone
+(hit 60.3%, PF 2.61, avg excess +0.94%/trade over 3y). See [`src/lib/strategies.ts`](src/lib/strategies.ts),
+[`src/lib/signal-track.ts`](src/lib/signal-track.ts) and [`scripts/backtest-signals.ts`](scripts/backtest-signals.ts).
 
 ---
 
@@ -185,6 +189,7 @@ bun scripts/t39-test-fixes.ts            # 35 checks — audit-2 fixes: AR narra
 bun scripts/t40-test-fixes.ts            # 38 checks — audit-3 fixes: vendor-stub chart guard, EN-news latinization, bilingual metadata, P&L decimals
 bun scripts/t41-test-fixes.ts            # 51 checks — audit-4 fixes: calendar dedupe, ai-signals language-purity gate + evidence fallback, lab notes AR, EN home news, honest dead-feed cards
 bun scripts/t42-test-strategies.ts       # 86 checks — the 12-strategy ensemble: per-strategy triggers, no-lookahead, consensus math, ATR guard, purity, live ensemble blocks + picks
+bun scripts/t43-test-signaltrack.ts       # 51 checks — trade-plan ladder math, legacy-set rebuild, outcome classification (order-based), episode grouping/freezing, live plan + trackRecord shape
 bunx tsc --noEmit && bunx eslint src/
 ```
 

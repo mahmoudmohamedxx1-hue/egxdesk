@@ -27,7 +27,10 @@ import {
   STRATEGY_REV,
   strategyFeaturesAt,
   riskLevels,
+  tradePlan,
+  planFromLegacy,
   type StrategyFeatures,
+  type TradePlan,
 } from "@/lib/strategy";
 import {
   evaluateEnsemble,
@@ -35,13 +38,15 @@ import {
   STRATEGY_REGISTRY,
   type EnsembleRead,
 } from "@/lib/strategies";
+import { getTrackRecord, type TrackRecord } from "@/lib/signal-track";
 import backtestJson from "@/data/backtest.json";
 
 // ── tuning ──
 
 const COOLDOWN_MS = 45 * 60_000; // one shared refresh per 45 minutes
 const MAX_PICKS = 6;
-const KEEP_SETS = 20; // rows retained for history/debugging
+const KEEP_SETS = 20; // rows retained for freshness (T43: + a 60-day daily spine)
+const PRUNE_SCAN = 400; // rows considered when building the retention set
 const RETRY_BACKOFF_MS = [12_000, 25_000];
 const RETRY_BUDGET_MS = 70_000;
 const CAND_BULL = 12;
@@ -82,8 +87,11 @@ export type AiPick = {
   close: number;
   entry: number | null; // charter ATR math (authoritative)
   stop: number | null;
-  target: number | null;
+  target: number | null; // === plan.t2 (1.5R) — the level the old fields carried
   rr: number | null;
+  // T43 — the full executable plan: limit-order zone + scale-out ladder.
+  // Null for avoids and for pre-T43 sets whose entry is null.
+  plan: { zoneLo: number; zoneHi: number; t1: number; t2: number; t3: number; riskPct: number } | null;
   horizonSessions: number;
   riskLevel: "low" | "medium" | "high";
   earningsRisk: string | null; // ISO date if next earnings falls inside the horizon
@@ -112,6 +120,9 @@ export type AiSignalsResponse = {
   status: "ready" | "stale" | "warming";
   set: (AiSetPayload & { model: string; strategyRev: string; llmMs: number }) | null;
   backtest: typeof backtestJson;
+  // T43 — every PUBLISHED pick since persistence began, replayed against
+  // the candles that followed it. The proof layer: dates, numbers, outcomes.
+  trackRecord: TrackRecord | null;
   meta: {
     cooldownMinutes: number;
     sharedCompute: true;
@@ -186,6 +197,7 @@ type Candidate = {
   f: StrategyFeatures | null;
   ens: EnsembleRead | null;
   risk: { entry: number; stop: number; target: number; rr: number } | null;
+  plan: TradePlan | null; // T43 — the ladder plan (longs only make use of it)
 };
 
 async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): Promise<Candidate[]> {
@@ -236,7 +248,7 @@ async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): P
             }
           : null;
       }
-      out.push({ row, f, ens, risk: f ? riskLevels(f) : null });
+      out.push({ row, f, ens, risk: f ? riskLevels(f) : null, plan: f ? tradePlan(f) : null });
       await sleep(120);
     }
   };
@@ -502,7 +514,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     backtestMethod: backtestJson.method,
   };
 
-  const pack = candidates.map(({ row, f, ens, risk }) => ({
+  const pack = candidates.map(({ row, f, ens, risk, plan }) => ({
     ticker: row.ticker,
     nameAr: row.nameAr,
     nameEn: row.name,
@@ -563,6 +575,9 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
         }
       : null,
     charterRisk: risk, // precomputed entry/stop/target (ATR math) — cite, don't change
+    tradePlan: plan // T43 — the limit-order zone + T1/T2/T3 ladder, same ATR spine
+      ? { zoneLo: plan.zoneLo, zoneHi: plan.zoneHi, t1: plan.t1, t2: plan.t2, t3: plan.t3, riskPct: plan.riskPct }
+      : null,
   }));
 
   const userMsg = [
@@ -698,10 +713,23 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
       applicable: ens?.applicable ?? 0,
       agreement,
       close: f ? f.close : cand.row.close,
-      entry: stance === "long" ? cand.risk?.entry ?? null : null,
-      stop: stance === "long" ? cand.risk?.stop ?? null : null,
-      target: stance === "long" ? cand.risk?.target ?? null : null,
-      rr: stance === "long" ? cand.risk?.rr ?? null : null,
+      entry: stance === "long" ? cand.plan?.entry ?? cand.risk?.entry ?? null : null,
+      stop: stance === "long" ? cand.plan?.stop ?? cand.risk?.stop ?? null : null,
+      target: stance === "long" ? cand.plan?.target ?? cand.risk?.target ?? null : null,
+      rr: stance === "long" ? cand.plan?.rr ?? cand.risk?.rr ?? null : null,
+      // T43 — the executable plan rides along for longs (zone + ladder);
+      // avoids never carry levels by charter.
+      plan:
+        stance === "long" && cand.plan
+          ? {
+              zoneLo: cand.plan.zoneLo,
+              zoneHi: cand.plan.zoneHi,
+              t1: cand.plan.t1,
+              t2: cand.plan.t2,
+              t3: cand.plan.t3,
+              riskPct: cand.plan.riskPct,
+            }
+          : null,
       horizonSessions: horizon,
       riskLevel,
       earningsRisk,
@@ -835,6 +863,24 @@ function parseRow(row: { data: string; createdAt: Date; model: string; strategyR
       if (typeof p.avoidVotes !== "number") p.avoidVotes = 0;
       if (typeof p.applicable !== "number") p.applicable = 0;
       if (typeof p.agreement !== "number") p.agreement = 0;
+      // T43 — normalize pre-ladder sets: derive the zone + T1/T3 rungs from
+      // the persisted entry/stop/target deterministically (ATR is exactly
+      // recoverable: stop = entry − 2×ATR). Avoids and chart-less picks
+      // (entry null) simply carry plan: null.
+      if (p.plan === undefined) {
+        p.plan =
+          p.stance === "long" && typeof p.entry === "number" && typeof p.stop === "number" && typeof p.target === "number"
+            ? planFromLegacy(p.entry, p.stop, p.target)
+            : null;
+      } else if (p.plan !== null) {
+        // a persisted ladder with a missing field (future edits) — guard
+        for (const k of ["zoneLo", "zoneHi", "t1", "t2", "t3", "riskPct"] as const) {
+          if (typeof p.plan[k] !== "number" || !Number.isFinite(p.plan[k])) {
+            p.plan = null;
+            break;
+          }
+        }
+      }
     }
     return { ...payload, model: row.model, strategyRev: row.strategyRev, llmMs: row.llmMs };
   } catch {
@@ -855,10 +901,32 @@ async function refreshLocked(): Promise<AiSetPayload | null> {
         backtestRev: backtestJson.strategyRev,
       },
     });
-    // prune: keep the newest KEEP_SETS rows
-    const rows = await db.aiSignalSet.findMany({ orderBy: { createdAt: "desc" }, take: KEEP_SETS, select: { id: true } });
-    if (rows.length === KEEP_SETS) {
-      await db.aiSignalSet.deleteMany({ where: { id: { notIn: rows.map((r) => r.id) } } }).catch(() => {});
+    // prune (T43): keep the newest KEEP_SETS rows for freshness AND one
+    // representative set per Cairo trading day for the last 60 days — that
+    // daily spine is what lets the track record grow into a real multi-week
+    // proof instead of evaporating after ~15 hours of 45-minute cycles.
+    const rows = await db.aiSignalSet.findMany({
+      orderBy: { createdAt: "desc" },
+      take: PRUNE_SCAN,
+      select: { id: true, createdAt: true },
+    });
+    const keep = new Set<string>(rows.slice(0, KEEP_SETS).map((r) => r.id));
+    const seenDays = new Set<string>();
+    const dayCutoff = Date.now() - 60 * 24 * 3600_000;
+    for (const r of rows) {
+      const day = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Cairo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(r.createdAt);
+      if (r.createdAt.getTime() >= dayCutoff && !seenDays.has(day)) {
+        seenDays.add(day);
+        keep.add(r.id); // rows are desc — the first of a day is its latest set
+      }
+    }
+    if (rows.length > keep.size) {
+      await db.aiSignalSet.deleteMany({ where: { id: { notIn: [...keep] } } }).catch(() => {});
     }
     // meter the shared call (visible in /api/usage, never counts as a user question)
     await db.usageEvent
@@ -930,6 +998,10 @@ export async function getAiSignals(waitMs = 60_000): Promise<AiSignalsResponse> 
 
   const base = {
     backtest: backtestJson,
+    // T43 — the published-picks record (replayed against real candles).
+    // Computed lazily with a 10-min cache; null ONLY if the whole module
+    // fails (never blocks the signal set itself).
+    trackRecord: await getTrackRecord().catch(() => null),
     meta: {
       cooldownMinutes: Math.round(COOLDOWN_MS / 60_000),
       sharedCompute: true as const,

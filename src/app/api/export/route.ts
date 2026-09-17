@@ -83,6 +83,17 @@ function labels(lang: Lang) {
     rr: "R:R",
     horizon: ar ? "أفق الجلسات" : "Horizon (sessions)",
     risk: ar ? "المخاطر" : "Risk",
+    // T43 — the trade-plan ladder + track-record columns
+    zone: ar ? "نطاق الدخول" : "Entry zone",
+    t1: ar ? "الهدف ١" : "Target 1",
+    t2: ar ? "الهدف ٢" : "Target 2",
+    t3: ar ? "الهدف ٣" : "Target 3",
+    riskPct: ar ? "مخاطرة الدخول %" : "Entry risk %",
+    issued: ar ? "تاريخ الإصدار" : "Issued",
+    lastClose: ar ? "آخر إغلاق" : "Last close",
+    retPct: ar ? "العائد %" : "Return %",
+    status: ar ? "الحالة" : "Status",
+    sessions: ar ? "الجلسات" : "Sessions",
     evidenceCol: ar ? "الأدلة" : "Evidence",
     thesis: ar ? "الأطروحة" : "Thesis",
     metric: ar ? "المؤشر" : "Metric",
@@ -578,10 +589,15 @@ export async function POST(req: NextRequest) {
             { header: L.agreementCol, fmt: "pct" },
             { header: L.strategiesCol, width: 42 },
             { header: L.close, fmt: "num" },
+            { header: L.zone, fmt: "num", width: 16 },
             { header: L.entry, fmt: "lvl" },
             { header: L.stop, fmt: "lvl" },
+            { header: L.t1, fmt: "lvl" },
+            { header: L.t2, fmt: "lvl" },
+            { header: L.t3, fmt: "lvl" },
             { header: L.target, fmt: "lvl" },
             { header: L.rr, fmt: "num" },
+            { header: L.riskPct, fmt: "num" },
             { header: L.horizon, fmt: "int" },
             { header: L.risk, width: 10 },
             { header: lang === "ar" ? "أرباح في الأفق" : "Earnings in horizon", width: 15 },
@@ -604,10 +620,15 @@ export async function POST(req: NextRequest) {
               })
               .join(" · "),
             p.close,
+            p.plan ? `${p.plan.zoneLo}–${p.plan.zoneHi}` : "",
             p.entry,
             p.stop,
+            p.plan ? p.plan.t1 : "",
+            p.plan ? p.plan.t2 : "",
+            p.plan ? p.plan.t3 : "",
             p.target,
             p.rr,
+            p.plan ? p.plan.riskPct : null,
             p.horizonSessions,
             risks[p.riskLevel],
             p.earningsRisk ?? "",
@@ -692,6 +713,51 @@ export async function POST(req: NextRequest) {
                   ]
           ),
         };
+        // T43 — the published-signal track record: what past picks actually
+        // did against the real candles that followed them
+        const { getTrackRecord } = await import("@/lib/signal-track");
+        const tr = await getTrackRecord().catch(() => null);
+        const trackStatus = (s: string) => {
+          const m: Record<string, string> =
+            lang === "ar"
+              ? { target: "أصاب الهدف", stopped: "ضرب الوقف", expired: "انتهى الأفق", open: "مفتوحة" }
+              : { target: "Target hit", stopped: "Stopped", expired: "Expired", open: "Open" };
+          return m[s] ?? s;
+        };
+        const trackTable: TableSpec | null = tr
+          ? {
+              title: lang === "ar" ? "سجل الإشارات المنشورة — ماذا حدث فعلًا" : "Published-signal track record — what actually happened",
+              note:
+                lang === "ar"
+                  ? `السجل منذ ${tr.since ? tr.since.slice(0, 10) : "—"} · إشارات متتبعة: ${tr.summary.tracked} · أصابت الهدف قبل الوقف: ${tr.summary.hitRate !== null ? `${(tr.summary.hitRate * 100).toFixed(0)}%` : "—"} · أسعار الإغلاق الحقيقية فقط — لا محاكاة`
+                  : `Record since ${tr.since ? tr.since.slice(0, 10) : "—"} · signals tracked: ${tr.summary.tracked} · target-before-stop: ${tr.summary.hitRate !== null ? `${(tr.summary.hitRate * 100).toFixed(0)}%` : "—"} · real closing prints only — no simulation`,
+              columns: [
+                { header: L.issued, width: 13 },
+                { header: L.ticker, width: 10 },
+                { header: L.entry, fmt: "lvl" },
+                { header: L.stop, fmt: "lvl" },
+                { header: L.target, fmt: "lvl" },
+                { header: L.lastClose, fmt: "num" },
+                { header: L.retPct, fmt: "num" },
+                { header: L.status, width: 14 },
+                { header: L.sessions, fmt: "int" },
+              ],
+              rows: tr.signals.map(
+                (t): Cell[] => [
+                  t.issuedDate,
+                  t.ticker,
+                  t.entry,
+                  t.stop,
+                  t.target,
+                  t.lastClose,
+                  t.retPct,
+                  trackStatus(t.status) + (t.partialT1 && t.status !== "target" ? " ·T1" : ""),
+                  t.sessionsElapsed,
+                ]
+              ),
+              autoFilter: true,
+            }
+          : null;
         spec = {
           lang,
           reportTitle: lang === "ar" ? "تقرير إشارات الذكاء الاصطناعي" : "AI signals report",
@@ -699,11 +765,13 @@ export async function POST(req: NextRequest) {
           cover: {
             toc: [
               { sheet: L.picksSheet, title: lang === "ar" ? `اختيارات النموذج (${ai.picks.length})` : `Model picks (${ai.picks.length})` },
+              ...(trackTable ? [{ sheet: lang === "ar" ? "السجل" : "Track record", title: lang === "ar" ? "سجل الإشارات المنشورة" : "Published-signal record" }] : []),
               { sheet: L.evidenceSheet, title: lang === "ar" ? "الانحياز وأدلة الاختبار التاريخي" : "Bias & backtest evidence" },
             ],
           },
           sheets: [
             { name: L.picksSheet, tables: [picksTable] },
+            ...(trackTable ? [{ name: lang === "ar" ? "السجل" : "Track record", tables: [trackTable] }] : []),
             { name: L.evidenceSheet, tables: [biasTable, btTable, perStrategyTable] },
           ],
           footerNote: L.disclaimer,

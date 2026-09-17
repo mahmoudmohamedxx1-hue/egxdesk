@@ -163,8 +163,8 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET",
     path: "/api/ai-signals",
-    returnsAr: "إشارات الذكاء الاصطناعي المشتركة: منظومة من ١٢ استراتيجية مستقلة تصوّت على كل سهم (كل فيشة تحمل الاستراتيجيات التي أطلقت إشارتها وعدد الأصوات والإجماع) — تُحسب كل ٤٥ دقيقة لكل المستخدمين + نتائج الاختبار التاريخي للمنظومة ولكل استراتيجية على حدة. مجاني بلا حد قراءة.",
-    returnsEn: "The shared AI signals: an ensemble of 12 independent strategies votes on every stock (each pick carries the fired strategies, the vote count and the consensus) — computed once per 45-minute cycle for all users + the walk-forward backtest of the ensemble AND each strategy standalone. Free, unlimited reads.",
+    returnsAr: "إشارات الذكاء الاصطناعي المشتركة: منظومة من ١٢ استراتيجية مستقلة تصوّت على كل سهم (كل فيشة تحمل الاستراتيجيات التي أطلقت إشارتها وعدد الأصوات والإجماع) — تُحسب كل ٤٥ دقيقة لكل المستخدمين + خطة تنفيذ كاملة لكل فيشة (نطاق دخول، وقف، سلم أهداف ١/٢/٣، نسبة المخاطرة) + سجل الإشارات المنشورة (كل إشارة سابقة تُقاس بأسعار الإغلاق الحقيقية التي جاءت بعدها) + نتائج الاختبار التاريخي للمنظومة ولكل استراتيجية على حدة. مجاني بلا حد قراءة.",
+    returnsEn: "The shared AI signals: an ensemble of 12 independent strategies votes on every stock (each pick carries the fired strategies, the vote count and the consensus) — computed once per 45-minute cycle for all users + a full executable plan per pick (entry zone, stop, the T1/T2/T3 ladder, risk %) + the published-signal track record (every past pick scored against the real closing prints that followed it) + the walk-forward backtest of the ensemble AND each strategy standalone. Free, unlimited reads.",
     source: "z-ai-web-dev-sdk (1 shared call/cycle) · our 12-strategy ensemble engine + signals scan",
   },
   {

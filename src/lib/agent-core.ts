@@ -375,9 +375,29 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
 
   ai_signals: async () => {
     const { getLatestAiSignals } = await import("@/lib/ai-signals");
+    const { getTrackRecord } = await import("@/lib/signal-track");
     const { strategyById } = await import("@/lib/strategies");
     const set = await getLatestAiSignals();
     if (!set) return { status: "warming — no AI signal set generated yet, try again later" };
+    // T43 — the published-picks record: what past signals actually did
+    const tr = await getTrackRecord().catch(() => null);
+    const trackSummary = tr
+      ? {
+          signalsTracked: tr.summary.tracked,
+          targetBeforeStop: tr.summary.hitRate,
+          avgReturnClosed: tr.summary.avgRetPct,
+          open: tr.summary.open,
+          since: tr.since,
+          recent: tr.signals.slice(0, 8).map((t) => ({
+            ticker: t.ticker,
+            issuedDate: t.issuedDate,
+            entry: t.entry,
+            lastClose: t.lastClose,
+            returnPct: t.retPct,
+            status: t.status,
+          })),
+        }
+      : null;
     return {
       generatedAt: set.generatedAt,
       marketBias: set.marketBias,
@@ -393,10 +413,13 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
         entry: p.entry,
         stop: p.stop,
         target: p.target,
-        horizonSessions: p.horizonSessions,
+        // T43 — the executable plan: limit-order zone + T1/T2/T3 ladder
+        plan: p.plan,
         riskLevel: p.riskLevel,
+        horizonSessions: p.horizonSessions,
         evidence: p.evidence.slice(0, 5),
       })),
+      trackRecord: trackSummary,
       notesAr: set.notesAr,
     };
   },

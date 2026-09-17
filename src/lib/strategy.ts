@@ -235,6 +235,84 @@ export function riskLevels(f: StrategyFeatures): { entry: number; stop: number; 
   return { entry: entryR, stop: stopR, target: targetR, rr: Number(rrR.toFixed(2)) };
 }
 
+// ── T43 — the full trade plan (entry ZONE + ladder of three targets +
+//    risk % of entry). Same ATR spine as riskLevels — the levels a user can
+//    actually WORK with: a zone to place the limit order, a stop, and a
+//    scale-out ladder (take partial at T1, more at T2, trail the runner to
+//    T3) instead of a single all-or-nothing target. Selection math (the
+//    ensemble gate) is untouched — the backtest's hold-10 exits stay valid;
+//    the ladder is execution guidance layered on the same ATR numbers. ──
+
+export type TradePlan = {
+  entry: number; // same value riskLevels serves (compat: target === t2)
+  stop: number;
+  target: number; // === t2 (1.5R) — the level the old fields carried
+  rr: number; // R:R of entry/stop/target as served
+  zoneLo: number; // entry − 0.35 ATR (limit-order band floor)
+  zoneHi: number; // entry + 0.35 ATR (band ceiling)
+  t1: number; // entry + 2 ATR (1.0R — first partial)
+  t2: number; // entry + 3 ATR (1.5R — the historical target)
+  t3: number; // entry + 4.5 ATR (2.25R — the runner)
+  riskPct: number; // (entry − stop) / entry × 100 — % of capital at risk per share
+};
+
+export function tradePlan(f: StrategyFeatures): TradePlan | null {
+  const atrAbs = (f.atrPct / 100) * f.close;
+  if (!(atrAbs > 0)) return null;
+  const entry = f.sma20 !== null && f.sma20 < f.close && f.close - f.sma20 < atrAbs ? f.sma20 : f.close;
+  const stop = entry - 2 * atrAbs;
+  const t1 = entry + 2 * atrAbs;
+  const t2 = entry + 3 * atrAbs;
+  const t3 = entry + 4.5 * atrAbs;
+  const zoneLo = entry - 0.35 * atrAbs;
+  const zoneHi = entry + 0.35 * atrAbs;
+  // T37 discipline: price-adaptive decimals so rounding stays ~<1% of the
+  // risk leg, and every served ratio computed from the ROUNDED levels.
+  const dp = entry >= 20 ? 2 : entry >= 2 ? 3 : 4;
+  const r = (x: number) => Number(x.toFixed(dp));
+  const entryR = r(entry);
+  const stopR = r(stop);
+  const t1R = r(t1);
+  const t2R = r(t2);
+  const t3R = r(t3);
+  const riskLeg = entryR - stopR;
+  const rrR = riskLeg > 0 ? Number(((t2R - entryR) / riskLeg).toFixed(2)) : 1.5;
+  const riskPct = riskLeg > 0 ? Number(((riskLeg / entryR) * 100).toFixed(2)) : 0;
+  return {
+    entry: entryR,
+    stop: stopR,
+    target: t2R,
+    rr: rrR,
+    zoneLo: r(zoneLo),
+    zoneHi: r(zoneHi),
+    t1: t1R,
+    t2: t2R,
+    t3: t3R,
+    riskPct,
+  };
+}
+
+/** T43 — deterministic derivation of a plan from a persisted OLD set's
+ *  entry/stop/target (the pre-T43 shape). ATR is recoverable exactly: the
+ *  stop rule was entry − 2×ATR, so ATR = (entry − stop) / 2 — the zone and
+ *  the T1/T3 rungs rebuild from the same spine with zero new information. */
+export function planFromLegacy(entry: number, stop: number, target: number): {
+  zoneLo: number; zoneHi: number; t1: number; t2: number; t3: number; riskPct: number;
+} {
+  const riskLeg = entry - stop; // = 2×ATR by the charter's stop rule
+  const r = (x: number) => Number(x.toFixed(entry >= 20 ? 2 : entry >= 2 ? 3 : 4));
+  const t1 = entry + riskLeg; // entry + 2 ATR (1R)
+  const t3 = entry + riskLeg * 2.25; // entry + 4.5 ATR (2.25R)
+  return {
+    zoneLo: r(entry - riskLeg * 0.175),
+    zoneHi: r(entry + riskLeg * 0.175),
+    t1: r(t1),
+    t2: target, // entry + 3 ATR (1.5R) as persisted
+    t3: r(t3),
+    riskPct: entry > 0 ? Number(((riskLeg / entry) * 100).toFixed(2)) : 0,
+  };
+}
+
 /** THE CHARTER — the tested strategy ensemble, written down. This exact
  *  text (plus the live evidence pack) is the system prompt of the AI signals
  *  call, and the rule set the walk-forward backtest replays. Keep in sync

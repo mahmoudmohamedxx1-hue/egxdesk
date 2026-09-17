@@ -16,8 +16,9 @@ import { fmtNum } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ExportXlsxButton } from "@/components/market/export-xlsx-button";
-import { BrainCircuit, ChevronDown, ChevronUp, Layers, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { BrainCircuit, Calculator, ChevronDown, ChevronUp, History, Layers, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import type { AiSignalsResponse, AiPick } from "@/lib/ai-signals";
+import type { TrackRecord, TrackedSignal } from "@/lib/signal-track";
 import { STRATEGY_REGISTRY, strategyById } from "@/lib/strategies";
 
 type Response = AiSignalsResponse & { error?: string };
@@ -171,11 +172,34 @@ function PickCard({ p, lang, onOpen }: { p: AiPick; lang: "ar" | "en"; onOpen: (
       <StrategyChips ids={p.strategies ?? []} lang={lang} stance={p.stance} />
 
       {p.stance === "long" && p.entry !== null && (
-        <div className="flex items-stretch gap-1.5 flex-wrap">
-          <LevelBox label={tt(T.aiSignalsEntry, lang)} value={fmtNum(p.entry)} />
-          <LevelBox label={tt(T.aiSignalsStop, lang)} value={fmtNum(p.stop)} cls="text-down" />
-          <LevelBox label={tt(T.aiSignalsTarget, lang)} value={fmtNum(p.target)} cls="text-up" />
-          {p.rr !== null && <LevelBox label={tt(T.aiSignalsRr, lang)} value={`1:${fmtNum(p.rr, 1)}`} />}
+        <div className="space-y-1.5">
+          {/* T43 — the executable plan: limit-order zone, stop with its risk %,
+              and the T1/T2/T3 scale-out ladder (legacy sets fall back to the
+              flat entry/target pair they were persisted with) */}
+          <div className="flex items-stretch gap-1.5 flex-wrap">
+            {p.plan ? (
+              <LevelBox label={tt(T.aiSignalsPlanZone, lang)} value={`${fmtNum(p.plan.zoneLo)}–${fmtNum(p.plan.zoneHi)}`} />
+            ) : (
+              <LevelBox label={tt(T.aiSignalsEntry, lang)} value={fmtNum(p.entry)} />
+            )}
+            <LevelBox label={tt(T.aiSignalsStop, lang)} value={fmtNum(p.stop)} cls="text-down" />
+            {p.plan ? (
+              <>
+                <LevelBox label={tt(T.aiSignalsPlanT1, lang)} value={fmtNum(p.plan.t1)} cls="text-up" />
+                <LevelBox label={tt(T.aiSignalsPlanT2, lang)} value={fmtNum(p.plan.t2)} cls="text-up" />
+                <LevelBox label={tt(T.aiSignalsPlanT3, lang)} value={fmtNum(p.plan.t3)} cls="text-up" />
+                <LevelBox label={tt(T.aiSignalsPlanRiskPct, lang)} value={`${fmtNum(p.plan.riskPct, 1)}%`} cls="text-down" />
+              </>
+            ) : (
+              <>
+                <LevelBox label={tt(T.aiSignalsTarget, lang)} value={fmtNum(p.target)} cls="text-up" />
+                {p.rr !== null && <LevelBox label={tt(T.aiSignalsRr, lang)} value={`1:${fmtNum(p.rr, 1)}`} />}
+              </>
+            )}
+          </div>
+          {p.plan && (
+            <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{tt(T.aiSignalsPlanScaleOut, lang)}</p>
+          )}
         </div>
       )}
 
@@ -207,6 +231,256 @@ function StatTile({ label, value, cls }: { label: string; value: string; cls?: s
       <p className="text-[9px] text-muted-foreground leading-none mb-1">{label}</p>
       <p className={`num text-sm font-bold leading-none ${cls ?? ""}`}>{value}</p>
     </div>
+  );
+}
+
+// ── T43: position size calculator — turns a pick's plan into "how many
+//    shares" for the reader's own account and risk budget. Pure client math
+//    on the pick's served levels (entry/stop), persisted locally. ──
+
+const SIZER_ACCOUNT_KEY = "egx-sizer-account";
+const SIZER_RISK_KEY = "egx-sizer-risk";
+
+function loadNum(key: string, fallback: number): number {
+  if (typeof window === "undefined") return fallback;
+  const raw = window.localStorage.getItem(key);
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function PositionSizer({ picks, lang }: { picks: AiPick[]; lang: "ar" | "en" }) {
+  const longs = useMemo(() => picks.filter((p) => p.stance === "long" && p.entry !== null && p.stop !== null), [picks]);
+  const [account, setAccount] = useState<number>(() => loadNum(SIZER_ACCOUNT_KEY, 50_000));
+  const [riskPct, setRiskPct] = useState<number>(() => loadNum(SIZER_RISK_KEY, 1));
+  const [ticker, setTicker] = useState<string>(() => longs[0]?.ticker ?? "");
+  const pick = longs.find((p) => p.ticker === ticker) ?? longs[0];
+
+  const persist = (key: string, v: number) => {
+    try {
+      window.localStorage.setItem(key, String(v));
+    } catch {
+      /* private mode — calculator still works for this session */
+    }
+  };
+
+  if (!longs.length || !pick || pick.entry === null || pick.stop === null) return null;
+  const entry = pick.entry;
+  const stop = pick.stop;
+  const t2 = pick.plan?.t2 ?? pick.target ?? entry + 2 * (entry - stop);
+  const riskBudget = (account * riskPct) / 100;
+  const perShareRisk = entry - stop;
+  let shares = perShareRisk > 0 ? Math.floor(riskBudget / perShareRisk) : 0;
+  let capped = false;
+  if (shares > 0 && shares * entry > account) {
+    // the account can't fund the full risk-based size — trim to affordability
+    shares = Math.floor(account / entry);
+    capped = true;
+  }
+  const cost = shares * entry;
+  const lossIfStopped = shares * perShareRisk;
+  const gainAtT2 = shares * (t2 - entry);
+
+  return (
+    <section className="rounded-lg border bg-card p-4 space-y-3">
+      <p className="text-sm font-semibold flex items-center gap-1.5">
+        <Calculator className="h-4 w-4 text-primary" aria-hidden />
+        {tt(T.aiSignalsSizerTitle, lang)}
+      </p>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.aiSignalsSizerNote, lang)}</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+        <label className="space-y-1">
+          <span className="text-[10px] text-muted-foreground">{tt(T.aiSignalsSizerAccount, lang)}</span>
+          <input
+            type="number"
+            min={100}
+            step={1000}
+            value={account}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isFinite(v) && v > 0) {
+                setAccount(v);
+                persist(SIZER_ACCOUNT_KEY, v);
+              }
+            }}
+            className="num w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+            dir="ltr"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-[10px] text-muted-foreground">
+            {tt(T.aiSignalsSizerRiskPct, lang)} ({fmtNum(riskPct, 2)}%)
+          </span>
+          <input
+            type="range"
+            min={0.25}
+            max={5}
+            step={0.25}
+            value={riskPct}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isFinite(v)) {
+                setRiskPct(v);
+                persist(SIZER_RISK_KEY, v);
+              }
+            }}
+            className="w-full accent-primary"
+            dir="ltr"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-[10px] text-muted-foreground">{tt(T.aiSignalsSizerPick, lang)}</span>
+          <select
+            value={pick.ticker}
+            onChange={(e) => setTicker(e.target.value)}
+            className="num w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+          >
+            {longs.map((p) => (
+              <option key={p.ticker} value={p.ticker}>
+                {p.ticker} · {fmtNum(p.entry)} → {fmtNum(p.stop)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+        <StatTile label={tt(T.aiSignalsSizerShares, lang)} value={fmtNum(shares, 0)} />
+        <StatTile label={tt(T.aiSignalsSizerCost, lang)} value={`${fmtNum(cost, 0)}`} />
+        <StatTile label={tt(T.aiSignalsSizerLoss, lang)} value={`${fmtNum(lossIfStopped, 0)}`} cls="text-down" />
+        <StatTile label={tt(T.aiSignalsSizerUpside, lang)} value={`${fmtNum(gainAtT2, 0)}`} cls="text-up" />
+      </div>
+      {capped && (
+        <p className="text-[10px] text-down-soft text-down leading-relaxed">{tt(T.aiSignalsSizerCapped, lang)}</p>
+      )}
+      <p className="num text-[10px] text-muted-foreground/70">
+        {pick.ticker} · {tt(T.aiSignalsStop, lang)} {fmtNum(stop)} · {tt(T.aiSignalsPlanT2, lang)} {fmtNum(t2)}
+      </p>
+    </section>
+  );
+}
+
+// ── T43: the published-signal track record — every past pick replayed
+//    against the candles that followed it (target / stopped / expired /
+//    open), with the honest "record grows from day one" note. ──
+
+const STATUS_CLS: Record<TrackedSignal["status"], string> = {
+  target: "bg-up-soft text-up",
+  stopped: "bg-down-soft text-down",
+  expired: "bg-secondary text-muted-foreground",
+  open: "bg-primary/10 text-primary",
+};
+
+function statusLabel(s: TrackedSignal["status"], lang: "ar" | "en"): string {
+  return tt(
+    s === "target"
+      ? T.aiSignalsTrackStatusTarget
+      : s === "stopped"
+        ? T.aiSignalsTrackStatusStopped
+        : s === "expired"
+          ? T.aiSignalsTrackStatusExpired
+          : T.aiSignalsTrackStatusOpen,
+    lang
+  );
+}
+
+function TrackRecordSection({ tr, lang }: { tr: TrackRecord; lang: "ar" | "en" }) {
+  const sinceLabel = useMemo(() => {
+    if (!tr.since) return "";
+    return new Date(tr.since).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }, [tr.since, lang]);
+  const s = tr.summary;
+  return (
+    <section className="rounded-lg border bg-card p-4 space-y-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <p className="text-sm font-semibold flex items-center gap-1.5">
+          <History className="h-4 w-4 text-primary" aria-hidden />
+          {tt(T.aiSignalsTrackTitle, lang)}
+        </p>
+        {sinceLabel && (
+          <span className="num text-[11px] text-muted-foreground">
+            {tt(T.aiSignalsTrackSince, lang)} {sinceLabel}
+          </span>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.aiSignalsTrackNote, lang)}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+        <StatTile label={tt(T.aiSignalsTrackTracked, lang)} value={`${s.tracked}`} />
+        <StatTile
+          label={tt(T.aiSignalsTrackHitRate, lang)}
+          value={s.hitRate !== null ? `${fmtNum(s.hitRate * 100, 0)}%` : "—"}
+        />
+        <StatTile
+          label={tt(T.aiSignalsTrackAvgClosed, lang)}
+          value={s.avgRetPct !== null ? `${s.avgRetPct > 0 ? "+" : ""}${fmtNum(s.avgRetPct, 2)}%` : "—"}
+          cls={s.avgRetPct !== null && s.avgRetPct > 0 ? "text-up" : s.avgRetPct !== null ? "text-down" : undefined}
+        />
+        <StatTile
+          label={tt(T.aiSignalsTrackAvgOpen, lang)}
+          value={s.avgOpenRetPct !== null ? `${s.avgOpenRetPct > 0 ? "+" : ""}${fmtNum(s.avgOpenRetPct, 2)}%` : "—"}
+          cls={s.avgOpenRetPct !== null && s.avgOpenRetPct > 0 ? "text-up" : undefined}
+        />
+      </div>
+      {tr.signals.length > 0 ? (
+        <div className="overflow-x-auto thin-scroll -mx-1 px-1">
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="text-muted-foreground border-b border-border/60">
+                <th className="text-start font-medium py-1 pe-2">{tt(T.aiSignalsTrackColIssue, lang)}</th>
+                <th className="text-start font-medium px-1.5">{tt(T.aiSignalsTrackColTicker, lang)}</th>
+                <th className="text-end font-medium px-1.5">{tt(T.aiSignalsTrackColEntry, lang)}</th>
+                <th className="text-end font-medium px-1.5">{tt(T.aiSignalsTrackColLast, lang)}</th>
+                <th className="text-end font-medium px-1.5">{tt(T.aiSignalsTrackColRet, lang)}</th>
+                <th className="text-center font-medium px-1.5">{tt(T.aiSignalsTrackColStatus, lang)}</th>
+                <th className="text-end font-medium ps-1.5">{tt(T.aiSignalsTrackColSessions, lang)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tr.signals.map((t) => (
+                <tr key={`${t.ticker}-${t.issuedAt}`} className="border-b border-border/30 last:border-0">
+                  <td className="num py-1 pe-2 whitespace-nowrap">{t.issuedDate}</td>
+                  <td className="px-1.5 font-medium">
+                    <span className="num">{t.ticker}</span>
+                  </td>
+                  <td className="num text-end px-1.5">{fmtNum(t.entry)}</td>
+                  <td className="num text-end px-1.5">{fmtNum(t.lastClose)}</td>
+                  <td className={`num text-end px-1.5 ${t.retPct > 0 ? "text-up" : t.retPct < 0 ? "text-down" : ""}`}>
+                    {t.retPct > 0 ? "+" : ""}
+                    {fmtNum(t.retPct, 2)}%
+                  </td>
+                  <td className="text-center px-1.5">
+                    <span
+                      className={`inline-block rounded-sm px-1.5 py-0.5 text-[9px] font-semibold whitespace-nowrap ${STATUS_CLS[t.status]}`}
+                      title={t.partialT1 ? tt(T.aiSignalsTrackPartial, lang) : undefined}
+                    >
+                      {statusLabel(t.status, lang)}
+                      {t.partialT1 && t.status !== "target" ? " ·T1" : ""}
+                    </span>
+                  </td>
+                  <td className="num text-end ps-1.5">{t.sessionsElapsed}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {s.pending > 0 ? tt(T.aiSignalsTrackPending, lang) : tt(T.aiSignalsWarming, lang)}
+        </p>
+      )}
+      {s.pending > 0 && tr.signals.length > 0 && (
+        <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+          {s.pending} {tt(T.aiSignalsTrackPending, lang)}
+        </p>
+      )}
+      {s.skipped > 0 && (
+        <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+          {s.skipped} {tt(T.aiSignalsTrackSkipped, lang)}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -341,19 +615,32 @@ export function AiSignalsPanel() {
                 ))}
               </div>
             )}
-            {set.notesAr && (
+            {/* T43 fix — the engine note is generated Arabic-only (notesAr);
+                rendering it inside the EN view leaked Arabic script into the
+                English page (live case: "الأسواق الحدودية…"). The note is a
+                bonus AR commentary — EN readers keep the EN bias summary and
+                theses, so it renders in the AR view only. */}
+            {lang === "ar" && set.notesAr && (
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 <span className="font-medium">{tt(T.aiSignalsNotes, lang)}: </span>
                 {set.notesAr}
               </p>
             )}
           </section>
+
+          {/* T43 — the "so what do I DO" layer: pick a signal, size it to the
+              reader's own account and risk budget (pure client math) */}
+          <PositionSizer picks={set.picks} lang={lang} />
         </>
       ) : (
         <p className="rounded-lg border bg-card p-4 text-xs text-muted-foreground leading-relaxed">
           {tt(T.aiSignalsWarming, lang)}
         </p>
       )}
+
+      {/* T43 — the proof layer: every published signal replayed against the
+          real candles that followed it */}
+      {data?.trackRecord && <TrackRecordSection tr={data.trackRecord} lang={lang} />}
 
       {/* backtest evidence */}
       {stats && (
