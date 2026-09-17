@@ -263,7 +263,82 @@ const OUTPUT_SCHEMA = `{
     }
   ],
   "notesAr": "one short note for users (regime/caveat), or null"
-}`;
+}
+
+LANGUAGE PURITY (machine-checked before serving): thesisAr/summaryAr/notesAr must be PURE Arabic — Latin script is allowed ONLY for tickers and technical acronyms (RSI, MACD, SMA, ATR, P/E, P/B, ROE, EPS, EGP, EGX); never English words like "combination" or "volume". thesisEn/summaryEn must be pure English — never Arabic script.`;
+
+// ── T41: language-purity gate (the signals-side twin of the agent's T38
+// anti-fabrication gate). The LLM occasionally leaks a plain English word
+// into an Arabic thesis (live case: "هذه combination عالية المخاطر"). Arabic
+// fields may keep tickers + technical acronyms only; English fields may not
+// carry Arabic script. Violations trigger ONE repair round; a repair that
+// still fails (or alters numbers) falls back to the deterministic evidence
+// lines — never served dirty.
+
+const LATIN_OK = new Set([
+  "RSI", "SMA", "SMA20", "SMA50", "SMA200", "MACD", "ATR", "ATR14", "P/E", "PE",
+  "P/B", "PB", "ROE", "EPS", "EGP", "EGX", "EGX30", "EGX70", "EGX100", "VWAP",
+  "BETA", "CAGR", "YOY", "YTD", "TTM", "FY", "9M", "6M", "3M", "1M", "1Y", "QOQ",
+  "R:R", "NAV", "IPO", "ETF", "CPI", "USD", "EUR",
+]);
+
+export function strayLatinInArabic(s: string): string[] {
+  const words = s.match(/[A-Za-z][A-Za-z0-9./&:-]*/g) ?? [];
+  return words.filter((raw) => {
+    // trailing punctuation rides along with the word regex ("EGX30.", "x.") —
+    // strip it before matching the allowlist or nothing would ever pass
+    const w = raw.replace(/[.:,;]+$/, "");
+    if (!w) return false;
+    const up = w.toUpperCase();
+    if (LATIN_OK.has(up)) return false;
+    if (LATIN_OK.has(up.replace(/\d+$/, ""))) return false; // SMA20-style
+    if (/^[A-Z]{2,5}$/.test(w)) return false; // ticker-like (COMI, HRHO…)
+    if (/^[A-Z][A-Z.]*\.[A-Z.]+$/.test(w)) return false; // dotted Latin brand (A.T.LEASE)
+    if (/^\d+[a-z]$/i.test(w)) return false; // 1.84x multiplier notation
+    if (/^[A-Z]$/i.test(w)) return false; // single stray letter (rare, harmless)
+    return true;
+  });
+}
+
+export function strayArabicInEnglish(s: string): boolean {
+  return /[\u0600-\u06ff]/.test(s);
+}
+
+/** T41 — deterministic Arabic rendering of the strategy evidence codes (the
+ *  English originals live in strategy.ts). Used whenever a thesis falls back
+ *  to its evidence lines, so the Arabic slot never receives English text. */
+export function evidenceAr(codes: string[]): string {
+  const parts: string[] = [];
+  for (const c of codes) {
+    let m: RegExpExecArray | null;
+    if ((m = /^close vs SMA50: (above|below)$/.exec(c))) parts.push(m[1] === "above" ? "السعر فوق المتوسط 50" : "السعر تحت المتوسط 50");
+    else if ((m = /^close vs SMA200: (above|below)$/.exec(c))) parts.push(m[1] === "above" ? "فوق المتوسط 200" : "تحت المتوسط 200");
+    else if ((m = /^SMA50 ([><]) SMA200$/.exec(c))) parts.push(m[1] === ">" ? "المتوسط 50 فوق المتوسط 200" : "المتوسط 50 تحت المتوسط 200");
+    else if ((m = /^RSI14 ([\d.]+)$/.exec(c))) parts.push(`مؤشر RSI عند ${m[1]}`);
+    else if (/^MACD hist positive$/.test(c)) parts.push("ماكد موجب");
+    else if (/^MACD hist negative$/.test(c)) parts.push("ماكد سالب");
+    else if ((m = /^volume ×([\d.]+) of 20d avg$/.exec(c))) parts.push(`الحجم ×${m[1]} من متوسط 20 جلسة`);
+    else if ((m = /^52w position ([\d.]+)%$/.exec(c))) parts.push(`الموضع ${m[1]}% من مدى 52 أسبوع`);
+    else if ((m = /^([\d.]+)% below 20d high$/.exec(c))) parts.push(`أقل من قمة 20 جلسة بنسبة ${m[1]}%`);
+    else if ((m = /^ATR14 ([\d.]+)% of price$/.exec(c))) parts.push(`ATR14 عند ${m[1]}% من السعر`);
+    else parts.push(c); // unknown code stays verbatim (honest)
+  }
+  return parts.join(" · ");
+}
+
+/** Multiset of numeric tokens — used to prove a repaired rewrite kept every
+ *  number the original carried (a rewrite that drops or invents numbers is
+ *  rejected). */
+function numberBag(s: string): number[] {
+  return (s.match(/\d+(?:\.\d+)?/g) ?? []).map(Number).sort((a, b) => a - b);
+}
+
+export function numbersPreserved(original: string, rewritten: string): boolean {
+  const a = numberBag(original);
+  const b = numberBag(rewritten);
+  if (a.length !== b.length) return false;
+  return a.every((v, i) => Math.abs(v - b[i]) <= Math.max(0.011, Math.abs(v) * 0.001));
+}
 
 async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> {
   const t0 = Date.now();
@@ -277,8 +352,12 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
   const candidates = await buildCandidates(freshScan);
   const byTicker = new Map(candidates.map((c) => [c.row.ticker, c]));
 
-  const up = freshScan.rows.filter((r) => r.changePct > 0).length;
-  const down = freshScan.rows.filter((r) => r.changePct < 0).length;
+  // T41 — breadth for the LLM's market context comes from the FULL universe
+  // (the same 296-name figure the homepage narrative shows), not the scanned
+  // subset: the model quotes these in its bias summary, and two different
+  // breadths across views read as an inconsistency even when both are honest.
+  const up = universe.filter((r) => r.changePct > 0).length;
+  const down = universe.filter((r) => r.changePct < 0).length;
   const { best, worst } = sectorExtremes(freshScan.rows);
   const movers = [...freshScan.rows]
     .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
@@ -288,7 +367,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
   const marketContext = {
     scanAsOf: scan.asOf,
     indices: indices.map((i) => ({ code: i.code, close: i.close, changePct: i.changePct })),
-    breadth: { up, down, flat: scan.rows.length - up - down, scanned: scan.rows.length },
+    breadth: { up, down, flat: universe.length - up - down, scanned: universe.length },
     bestSector: best,
     worstSector: worst,
     topMovers: movers,
@@ -384,11 +463,11 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     summaryAr:
       typeof biasRaw.summaryAr === "string" && biasRaw.summaryAr.trim()
         ? biasRaw.summaryAr.trim().slice(0, 600)
-        : `الاتساع: ${up} صاعد مقابل ${down} هابط من ${scan.rows.length} سهم.`,
+        : `الاتساع: ${up} صاعد مقابل ${down} هابط من ${universe.length} سهم.`,
     summaryEn:
       typeof biasRaw.summaryEn === "string" && biasRaw.summaryEn.trim()
         ? biasRaw.summaryEn.trim().slice(0, 600)
-        : `Breadth: ${up} up vs ${down} down of ${scan.rows.length} scanned.`,
+        : `Breadth: ${up} up vs ${down} down of ${universe.length} scanned.`,
   };
 
   const picksRaw = Array.isArray(parsed.picks) ? parsed.picks : [];
@@ -430,8 +509,14 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
       ? o.evidence.filter((e): e is string => typeof e === "string" && e.trim().length > 0).slice(0, 8)
       : [];
     const fallbackEvidence = f ? f.evidence.slice(0, 6) : [`indicator score ${charterScore}`];
+    // T41 — a missing Arabic thesis falls back to the DETERMINISTIC evidence
+    // rendered in Arabic (the old fallback joined the English evidence codes
+    // into the Arabic slot). Same numbers, reader's language.
+    const fallbackThesisAr = f
+      ? evidenceAr(f.evidence.slice(0, 6))
+      : `درجة المحرك ${charterScore.toFixed(2)} — راجع عناصر الأدلة.`;
     const thesisAr =
-      typeof o.thesisAr === "string" && o.thesisAr.trim() ? o.thesisAr.trim().slice(0, 900) : fallbackEvidence.join(" · ");
+      typeof o.thesisAr === "string" && o.thesisAr.trim() ? o.thesisAr.trim().slice(0, 900) : fallbackThesisAr;
     const thesisEn =
       typeof o.thesisEn === "string" && o.thesisEn.trim() ? o.thesisEn.trim().slice(0, 900) : fallbackEvidence.join(" · ");
 
@@ -466,7 +551,92 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
       typeof parsed.notesAr === "string" && parsed.notesAr.trim() ? parsed.notesAr.trim().slice(0, 400) : null,
     scanned: scan.rows.length,
   };
-  return { payload, llmMs };
+
+  // ── T41 language-purity gate: repair, then verify, then honest fallback ──
+  await purifyPayload(payload, zai, retry);
+  return { payload, llmMs: Date.now() - t0 };
+}
+
+/** One repair round for any Arabic field carrying stray Latin words (or an
+ *  English field carrying Arabic script). The repair is a tiny targeted chat
+ *  call that rewrites ONLY the offending strings; the rewrite must keep the
+ *  exact same number multiset, else it is rejected. Fields that cannot be
+ *  repaired fall back to their deterministic evidence-line thesis (clean by
+ *  construction). This runs once per 45-minute shared refresh — negligible
+ *  cost, and it makes the live "combination inside Arabic" class of leak
+ *  structurally unservable. */
+type PurityFix = { key: string; arabic: boolean; original: string };
+
+async function purifyPayload(
+  payload: AiSetPayload,
+  zai: Zai,
+  retry: { budgetLeft: number }
+): Promise<void> {
+  const fixes: PurityFix[] = [];
+  for (const p of payload.picks) {
+    if (strayLatinInArabic(p.thesisAr ?? "").length) fixes.push({ key: `${p.ticker}.thesisAr`, arabic: true, original: p.thesisAr });
+    if (strayArabicInEnglish(p.thesisEn ?? "")) fixes.push({ key: `${p.ticker}.thesisEn`, arabic: false, original: p.thesisEn });
+  }
+  const b = payload.marketBias;
+  if (strayLatinInArabic(b.summaryAr ?? "").length) fixes.push({ key: "bias.summaryAr", arabic: true, original: b.summaryAr });
+  if (strayArabicInEnglish(b.summaryEn ?? "")) fixes.push({ key: "bias.summaryEn", arabic: false, original: b.summaryEn });
+  if (payload.notesAr && strayLatinInArabic(payload.notesAr).length) fixes.push({ key: "notesAr", arabic: true, original: payload.notesAr });
+  if (!fixes.length) return; // clean — the common case
+
+  console.warn(
+    "[ai-signals] language-purity violations:",
+    fixes.map((f) => `${f.key}(${f.arabic ? strayLatinInArabic(f.original).join(",") : "arabic"})`).join("; ")
+  );
+
+  // last resort for a pick thesis: the deterministic evidence lines, rendered
+  // in the field's language (T41 — never English codes in the Arabic slot)
+  const fallbackFor = (f: PurityFix) => {
+    const pick = payload.picks.find((p) => f.key.startsWith(`${p.ticker}.`));
+    if (pick && f.key.endsWith("thesisAr")) pick.thesisAr = evidenceAr(pick.evidence.slice(0, 6));
+    else if (pick && f.key.endsWith("thesisEn")) pick.thesisEn = pick.evidence.slice(0, 6).join(" · ");
+    else if (f.key === "bias.summaryAr") payload.marketBias.summaryAr = "الاتساع: صاعد مقابل هابط — راجع عناصر الأدلة.";
+    else if (f.key === "bias.summaryEn") payload.marketBias.summaryEn = "Breadth: up vs down — see the evidence lines.";
+    else if (f.key === "notesAr") payload.notesAr = null; // drop rather than serve dirty
+  };
+
+  try {
+    const list = fixes.map((f) => `- ${f.key}: ${JSON.stringify(f.original.slice(0, 400))}`).join("\n");
+    const raw = await createChat(
+      zai,
+      [
+        {
+          role: "user",
+          content:
+            "You wrote these fields for an Egyptian stock-market signals product, but they violate the language-purity rule:\n" +
+            list +
+            "\n\nRewrite EACH field in its pure language (Arabic fields: pure MSA Arabic — Latin allowed ONLY for tickers/technical acronyms like RSI, MACD, SMA, ATR; English fields: pure English). KEEP EVERY NUMBER EXACTLY as it is — do not add, drop, or round any number. Keep the meaning and the same length class.\n" +
+            'Reply with EXACTLY ONE JSON object: { "fixes": { "<key>": "<rewritten text>", ... } } covering every key listed above, nothing else.',
+        },
+      ],
+      retry
+    );
+    const parsedFix = extractJson(raw);
+    const map = (parsedFix?.fixes ?? {}) as Record<string, unknown>;
+    for (const f of fixes) {
+      const candidate = typeof map[f.key] === "string" ? (map[f.key] as string).trim() : "";
+      const clean = candidate && (f.arabic ? strayLatinInArabic(candidate).length === 0 : !strayArabicInEnglish(candidate));
+      if (clean && numbersPreserved(f.original, candidate)) {
+        if (f.key === "notesAr") payload.notesAr = candidate.slice(0, 400);
+        else if (f.key === "bias.summaryAr") payload.marketBias.summaryAr = candidate.slice(0, 600);
+        else if (f.key === "bias.summaryEn") payload.marketBias.summaryEn = candidate.slice(0, 600);
+        else {
+          const pick = payload.picks.find((p) => f.key.startsWith(`${p.ticker}.`));
+          if (pick && f.key.endsWith("thesisAr")) pick.thesisAr = candidate.slice(0, 900);
+          else if (pick && f.key.endsWith("thesisEn")) pick.thesisEn = candidate.slice(0, 900);
+        }
+      } else {
+        fallbackFor(f);
+      }
+    }
+  } catch (err) {
+    console.warn("[ai-signals] purity repair failed:", err instanceof Error ? err.message : err);
+    for (const f of fixes) fallbackFor(f);
+  }
 }
 
 // ── persistence + refresh orchestration (stale-while-revalidate) ──

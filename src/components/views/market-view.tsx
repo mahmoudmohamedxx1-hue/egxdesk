@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, fmtPE, directionClass } from "@/lib/format";
 import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
+import { ErrorCard } from "./overview-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
@@ -49,7 +50,8 @@ function metricOf(r: CompanyRow, key: SortKey): number | null {
 
 export function MarketView() {
   const { lang, navigate } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
+  // T41 — a total /api/companies outage must say so, not skeleton forever
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
   const [tab, setTab] = useState<"prices" | "rank" | "unusual" | "metrics">("prices");
   const [q, setQ] = useState("");
   const [sector, setSector] = useState<string>("");
@@ -134,6 +136,10 @@ export function MarketView() {
     }
     return [...out].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
   }, [rows, q, sector, tab, sortKey, desc, lang]);
+
+  // T41 — a total outage must say so (after every hook, so the Rules of
+  // Hooks hold when the refetch lands); a brief hiccup keeps fresh data
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
 
   const shown = filtered?.length ?? 0;
 

@@ -9,12 +9,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtInt, directionClass } from "@/lib/format";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorCard } from "./overview-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NotebookPen, Plus, TrendingDown, TrendingUp, Trash2, RotateCcw, Wallet, Receipt } from "lucide-react";
@@ -35,7 +36,7 @@ import { downloadCsv } from "@/lib/export";
 
 export function PaperView() {
   const { lang, navigate, toast } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
 
   const [book, setBook] = useState<PaperBook | null>(null);
   useEffect(() => {
@@ -118,6 +119,8 @@ export function PaperView() {
     );
   };
 
+  // T41 — a total quote outage must say so; a brief hiccup keeps fresh data
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
   if (!book || !joined) {
     return <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24" />)}</div>;
   }

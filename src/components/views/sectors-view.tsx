@@ -1,22 +1,25 @@
 "use client";
 
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import { DivergingBars, DonutChart } from "../market/charts";
 import type { SectorCard, SessionMeta } from "../market/types";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, directionClass } from "@/lib/format";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorCard } from "./overview-view";
 import { TrendingUp, TrendingDown, Building2 } from "lucide-react";
 
 const DONUT_COLORS = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6", "--c7", "--c8"] as const;
 
 export function SectorsView() {
   const { lang, navigate } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; sectors: SectorCard[] }>("/api/sectors");
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; sectors: SectorCard[] }>("/api/sectors");
   const sectors = data?.sectors ?? null;
 
+  // T41 — a total outage must say so; a brief hiccup keeps fresh data
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
   if (!sectors) {
     return (
       <div className="space-y-4">

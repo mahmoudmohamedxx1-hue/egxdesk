@@ -8,11 +8,12 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, fmtInt, directionClass } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorCard } from "./overview-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Scale, X } from "lucide-react";
@@ -36,7 +37,7 @@ type Candle = { date: string; close: number };
 
 export function CompareView() {
   const { lang, navigate, toast } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
   const [selected, setSelected] = useState<string[]>([]);
   const [q, setQ] = useState("");
 
@@ -106,6 +107,10 @@ export function CompareView() {
 
   // performance race: rebase each series to 100 on its first session
   const race = useCompareRace(selected);
+
+  // T41 — a total quote outage must say so; a brief hiccup keeps fresh data.
+  // AFTER every hook (useCompareRace included) so the Rules of Hooks hold.
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
 
   return (
     <div className="space-y-4">

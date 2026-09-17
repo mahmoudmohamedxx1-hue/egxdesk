@@ -1,7 +1,7 @@
 "use client";
 
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import { DivergingBars, DonutChart, TrendLines } from "../market/charts";
 import { ErrorCard } from "./overview-view";
 import { InsidersPanel } from "./insiders-panel";
@@ -24,7 +24,7 @@ const NATION_COLORS = { egy: "--c1", ar: "--c2", fo: "--c3" } as const;
 
 export function InvestorsView() {
   const { lang } = useApp();
-  const { data, error, loading, refresh } = useLiveData<InvestorsData>("/api/investors", 120_000);
+  const { data, error, loading, refresh, staleMs } = useLiveData<InvestorsData>("/api/investors", 120_000);
 
   if (loading && !data) {
     return (
@@ -36,7 +36,7 @@ export function InvestorsView() {
       </div>
     );
   }
-  if (error && !data) return <ErrorCard lang={lang} onRetry={refresh} />;
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
 
   const today = data?.today ?? null;
   const part = (data?.history.participation ?? []).filter(

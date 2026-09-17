@@ -17,6 +17,7 @@ type Entry = {
   at: number; // last successful/failed completion time
   data: unknown;
   err: boolean;
+  dataAt: number; // T41 — when the CURRENT data was actually fetched (0 = never)
   subs: Set<() => void>;
   inflight: Promise<void> | null;
 };
@@ -33,7 +34,7 @@ function entryFor(url: string): Entry {
       const victim = [...shared.entries()].find(([, v]) => v.subs.size === 0) ?? [...shared.entries()].sort((a, b) => a[1].at - b[1].at)[0];
       if (victim) shared.delete(victim[0]);
     }
-    e = { at: 0, data: null, err: false, subs: new Set(), inflight: null };
+    e = { at: 0, data: null, err: false, dataAt: 0, subs: new Set(), inflight: null };
     shared.set(url, e);
   }
   return e;
@@ -49,6 +50,7 @@ async function sharedRefresh(url: string): Promise<void> {
       const json = await res.json();
       e.data = json;
       e.err = false;
+      e.dataAt = Date.now();
     } catch {
       e.err = true;
     } finally {
@@ -66,6 +68,21 @@ async function fetchIfStale(url: string): Promise<void> {
   if (e.inflight) return e.inflight;
   if (Date.now() - e.at < SHARE_TTL_MS) return; // fresh enough — reuse
   return sharedRefresh(url);
+}
+
+/** How long a failing feed may keep serving its last GOOD data before the
+ *  views fall back to the honest error card: a brief hiccup should not blank
+ *  a screen that has fresh-enough numbers; a SUSTAINED outage must never
+ *  masquerade as live data. */
+export const STALE_GRACE_MS = 10 * 60_000;
+
+/** The honest-degradation rule every view shares: the feed is "dead" when it
+ *  is erroring AND we have no data at all, or the last good data is older
+ *  than the grace window. A brief hiccup over fresh data keeps serving. */
+export function isDeadFeed(r: { error: boolean; data: unknown; staleMs: number | null }): boolean {
+  if (!r.error) return false;
+  if (r.data == null) return true;
+  return (r.staleMs ?? Number.POSITIVE_INFINITY) > STALE_GRACE_MS;
 }
 
 export function useLiveData<T>(url: string, intervalMs = 60_000) {
@@ -115,5 +132,9 @@ export function useLiveData<T>(url: string, intervalMs = 60_000) {
     error: error || (e ? e.err : false),
     loading,
     refresh,
+    /** T41 — age of the CURRENT data (ms since its successful fetch; null
+     *  when never fetched). With `error`, views use it to decide between
+     *  "keep serving fresh-enough data" and the honest error card. */
+    staleMs: e && e.dataAt ? Date.now() - e.dataAt : null,
   };
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue } from "@/lib/format";
@@ -13,6 +13,7 @@ import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
 import { PortfolioView } from "./portfolio-view";
+import { ErrorCard } from "./overview-view";
 
 type Row = CompanyRow;
 
@@ -62,7 +63,7 @@ export function WatchlistView() {
 
 function WatchlistTable({ lang }: { lang: "ar" | "en" }) {
   const { watch, navigate } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
 
   const watchRows = data
     ? watch.tickers.map((t) => data.rows.find((r) => r.ticker === t)).filter((r): r is Row => !!r)
@@ -105,7 +106,11 @@ function WatchlistTable({ lang }: { lang: "ar" | "en" }) {
       </div>
       <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.watchNote, lang)}</p>
 
-      {!watch.ready || !watchRows ? (
+      {/* T41 — a total outage must say so. An empty watchlist still shows
+          the honest empty state below; a brief hiccup keeps fresh data. */}
+      {isDeadFeed({ error, data, staleMs }) ? (
+        <ErrorCard lang={lang} onRetry={refresh} />
+      ) : !watch.ready || !watchRows ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : watchRows.length === 0 ? (
         <Empty title={tt(T.emptyWatch, lang)} hint={tt(T.emptyWatchHint, lang)} action />

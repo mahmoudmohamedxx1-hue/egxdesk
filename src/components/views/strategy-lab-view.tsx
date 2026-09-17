@@ -68,6 +68,38 @@ const PARAM_AR: Record<string, string> = {
   costPctRoundTrip: "التكاليف٪ ذهاباً وإياباً",
 };
 
+/* T41 — the disclaimer notes live in backtest.json in English (generator
+ * output); the Arabic view translates them by stable prefix so the Arabic
+ * reader gets the full honesty small-print, not Latin soup. The suspect
+ * count inside note 2 is extracted from the English text and interpolated;
+ * anything unrecognized falls back to the original English line. */
+const NOTE_AR: [RegExp, (en: string) => string][] = [
+  [
+    /^Past performance is NOT a guarantee/,
+    () => "الأداء السابق ليس ضماناً للمستقبل — الاختبار التاريخي يتحقق من القواعد على التاريخ فقط، ولا يمكنه التحقق من حكم النموذج اللغوي مستقبلاً.",
+  ],
+  [
+    /^Trades with \|gross return\|/,
+    (en) => {
+      const m = /(\d+) found/.exec(en);
+      const n = m ? m[1] : "0";
+      return `الصفقات التي يتجاوز عائدها الإجمالي 45٪ في احتفاظ لعشر جلسات (${n} صفقة) مستبعدة كأثر محتمل لعمولات اكتتاب أو تجزئة أسهم.`;
+    },
+  ],
+  [
+    /^Universe is today's most-traded/,
+    () => "عينة الاختبار هي الأكثر تداولاً اليوم — قد يوجد انحياز بقاء/اختيار طفيف.",
+  ],
+  [
+    /^Quotes are ~15-min delayed/,
+    () => "الأسعار شموع يومية مؤجلة نحو ١٥ دقيقة؛ التنفيذ عند أقرب إغلاق متاح، دون نمذجة وقف داخل الجلسة (قواطع الدائرة تجعل تنفيذ الوقف غير مضمون).",
+  ],
+];
+export function noteAr(en: string): string {
+  for (const [re, fn] of NOTE_AR) if (re.test(en)) return fn(en);
+  return en; // honest fallback: unknown generator line stays in English
+}
+
 export function StrategyLabView() {
   const { lang, navigate } = useApp();
   const [data, setData] = useState<LabData | null>(null);
@@ -344,7 +376,7 @@ export function StrategyLabView() {
           {data.notes.map((n, i) => (
             <li key={i} className="text-xs text-muted-foreground leading-relaxed flex gap-2">
               <span className="num text-primary font-semibold">{i + 1}.</span>
-              <span>{n}</span>
+              <span>{lang === "ar" ? noteAr(n) : n}</span>
             </li>
           ))}
         </ul>

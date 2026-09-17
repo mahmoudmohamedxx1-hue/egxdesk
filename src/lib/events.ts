@@ -161,6 +161,21 @@ type SeedEvent = {
 function seedEvents(today: string): CalendarEvent[] {
   const out: CalendarEvent[] = [];
   const pastFloor = addDays(today, -7);
+  // T41 — dedupe key: the seed sometimes carries BOTH the ex-dividend and
+  // the payment row for the same announcement on the same date with the
+  // SAME title (GRCA 2026-09-10 rendered twice in the agenda). One event
+  // per (date|type|ticker|label); when both kinds collide, the payment
+  // row wins (it is the day money moves).
+  const seen = new Map<string, number>(); // key -> index in out
+  const addOrReplace = (key: string, ev: CalendarEvent, isPayment: boolean) => {
+    const existing = seen.get(key);
+    if (existing === undefined) {
+      seen.set(key, out.length);
+      out.push(ev);
+      return;
+    }
+    if (isPayment) out[existing] = ev; // payment supersedes ex on collision
+  };
   for (const e of (seed as { events: SeedEvent[] }).events) {
     if (e.date < pastFloor) continue;
     const est = !!e.estimated;
@@ -176,27 +191,35 @@ function seedEvents(today: string): CalendarEvent[] {
         source: est ? "esthmr.com calendar — filing-history estimate" : "esthmr.com calendar — EGX disclosure",
       });
     } else if (e.kind === "ex_dividend" || e.kind === "dividend_payment") {
-      out.push({
-        date: e.date,
-        type: "dividend",
-        ticker: e.ticker,
-        labelAr: e.title_ar || e.title,
-        labelEn: e.title,
-        note: e.note,
-        url: e.link ?? null,
-        source: "esthmr.com calendar — EGX disclosure",
-      });
+      addOrReplace(
+        `${e.date}|dividend|${e.ticker}|${(e.title_ar || e.title).slice(0, 60)}`,
+        {
+          date: e.date,
+          type: "dividend",
+          ticker: e.ticker,
+          labelAr: e.title_ar || e.title,
+          labelEn: e.title,
+          note: e.note,
+          url: e.link ?? null,
+          source: "esthmr.com calendar — EGX disclosure",
+        },
+        e.kind === "dividend_payment"
+      );
     } else if (e.kind === "rights_open" || e.kind === "rights_close") {
-      out.push({
-        date: e.date,
-        type: "rights",
-        ticker: e.ticker,
-        labelAr: e.title_ar || e.title,
-        labelEn: e.title,
-        note: e.note,
-        url: e.link ?? null,
-        source: "esthmr.com calendar — EGX disclosure",
-      });
+      addOrReplace(
+        `${e.date}|rights|${e.ticker}|${(e.title_ar || e.title).slice(0, 60)}`,
+        {
+          date: e.date,
+          type: "rights",
+          ticker: e.ticker,
+          labelAr: e.title_ar || e.title,
+          labelEn: e.title,
+          note: e.note,
+          url: e.link ?? null,
+          source: "esthmr.com calendar — EGX disclosure",
+        },
+        e.kind === "rights_close"
+      );
     }
   }
   return out;

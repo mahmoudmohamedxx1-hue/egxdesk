@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import { DivergingBars, BreadthTrend } from "../market/charts";
 import { PriceChart } from "../market/price-chart";
 import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
@@ -65,11 +65,13 @@ type EconomyLite = {
 
 export function OverviewView() {
   const { lang, navigate } = useApp();
-  const { data, error, loading, refresh } = useLiveData<Overview>("/api/overview");
+  // T41 — the news slice is language-dependent server-side (?lang=en swaps
+  // in the real English feed), so the URL must vary with the reader's lang.
+  const { data, error, loading, refresh, staleMs } = useLiveData<Overview>(`/api/overview?lang=${lang}`);
   const { data: econ } = useLiveData<EconomyLite>("/api/economy", 600_000);
   const [indexSel, setIndexSel] = useState<string>("EGX30");
 
-  if (error && !data) {
+  if (isDeadFeed({ error, data, staleMs })) {
     return <ErrorCard lang={lang} onRetry={refresh} />;
   }
   if (loading && !data) {

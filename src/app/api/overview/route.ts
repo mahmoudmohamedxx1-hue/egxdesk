@@ -1,14 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { fetchUniverse, fetchIndices, fetchNews, sectorRows, companyRow, sessionMeta } from "@/lib/market";
 import { sampleIfDue } from "@/lib/intraday";
 import { fetchFlows, breadthHistory, persistBreadthLive } from "@/lib/flows";
 import { marketStatus } from "@/lib/market-status";
+import { fetchNewsEn } from "@/lib/news-en";
 
 /** GET /api/overview — live landing payload: indices, breadth, totals,
  *  unusual-volume actives, biggest movers, top caps, sector snapshot, news,
- *  and an investor-flows summary ("who moved the market today"). */
-export async function GET() {
+ *  and an investor-flows summary ("who moved the market today").
+ *  T41: ?lang=en serves the news slice from the REAL English-language feed
+ *  (news-en.ts) so the English home never shows Arabic headlines. */
+export async function GET(req: NextRequest) {
   try {
+    const lang = req.nextUrl.searchParams.get("lang") === "en" ? "en" : "ar";
     sampleIfDue(); // T26 — keep the intraday tick store fresh while anyone browses
     const [stocks, indices, news] = await Promise.all([fetchUniverse(), fetchIndices(), fetchNews()]);
     const sectors = sectorRows(stocks);
@@ -91,6 +95,33 @@ export async function GET() {
       // flows layer hiccup — section hides itself
     }
 
+    // T41 — the news slice follows the reader's language: EN gets the real
+    // English feed mapped into the same NewsRow shape (no categories yet);
+    // AR keeps the deep Arabic archive. EN feed failure degrades to the
+    // Arabic rows rather than an empty section.
+    let newsRows = news.slice(0, 6);
+    if (lang === "en") {
+      try {
+        const en = await Promise.race([
+          fetchNewsEn(),
+          new Promise<null>((r) => setTimeout(() => r(null), 6000)),
+        ]);
+        if (en && en.items.length) {
+          newsRows = en.items.slice(0, 6).map((it, i) => ({
+            id: `en-${i}-${it.link.slice(-40)}`,
+            title: it.title,
+            link: it.link,
+            publishedAt: it.publishedAt,
+            snippet: null,
+            source: it.source,
+            categories: [],
+          }));
+        }
+      } catch {
+        /* EN feed hiccup — keep the Arabic rows */
+      }
+    }
+
     return NextResponse.json({
       session: sessionMeta(),
       indices,
@@ -107,7 +138,7 @@ export async function GET() {
       sectorsSnapshot: { best, worst },
       sectorPerformance,
       flowsSummary,
-      news: news.slice(0, 6),
+      news: newsRows,
     });
   } catch {
     return NextResponse.json({ error: "market data unavailable" }, { status: 502 });

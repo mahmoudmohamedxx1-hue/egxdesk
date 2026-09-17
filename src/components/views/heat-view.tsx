@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtPct } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorCard } from "./overview-view";
 
 function heatColor(pct: number): { bg: string; fg: string } {
   if (pct === 0) return { bg: "var(--secondary)", fg: "var(--muted-foreground)" };
@@ -20,7 +21,7 @@ function heatColor(pct: number): { bg: string; fg: string } {
 
 export function HeatView() {
   const { lang, navigate } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
   const [scope, setScope] = useState<"all" | "top30">("all");
   const [sectorFocus, setSectorFocus] = useState<string>("");
 
@@ -69,6 +70,8 @@ export function HeatView() {
       .sort((a, b) => b.cap - a.cap);
   }, [scoped, sectorFocus, lang]);
 
+  // T41 — a total outage must say so; a brief hiccup keeps fresh data
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
   if (!rows || !scoped) {
     return (
       <div className="space-y-4">

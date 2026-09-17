@@ -1,13 +1,14 @@
 "use client";
 
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtValue, fmtInt, fmtNum } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorCard } from "./overview-view";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 type ActivityData = {
@@ -23,8 +24,10 @@ type ActivityData = {
 
 export function ActivityView() {
   const { lang, navigate } = useApp();
-  const { data } = useLiveData<ActivityData>("/api/activity");
+  const { data, error, refresh, staleMs } = useLiveData<ActivityData>("/api/activity");
 
+  // T41 — a total outage must say so; a brief hiccup keeps fresh data
+  if (isDeadFeed({ error, data, staleMs })) return <ErrorCard lang={lang} onRetry={refresh} />;
   if (!data) {
     return (
       <div className="space-y-4">

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // T39 — delete the stored EOD report for session 2026-09-16 (its LLM-written
 // Arabic summary carried the typo "تراجط" for "تراجع"), then let the next
 // /api/reports call regenerate a fresh one.
