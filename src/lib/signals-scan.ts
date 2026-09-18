@@ -51,8 +51,10 @@ import {
   type SectorStats,
 } from "@/lib/fundamentals";
 import { newsScoreForTicker, newsScoresForUniverse, type NewsScore } from "@/lib/news-score";
-import { evaluateStrategies, ensembleRead, type StrategyVerdict } from "@/lib/strategies";
+import { evaluateStrategies, ensembleRead, type StrategyVerdict, type WhaleRead } from "@/lib/strategies";
 import { atrPctAt } from "@/lib/strategy";
+import { mlForecastCached } from "@/lib/ml-forecast";
+import { insiderReadFor, smartMoney } from "@/lib/smart-money";
 
 export type Rating = "strongBuy" | "buy" | "neutral" | "sell" | "strongSell";
 
@@ -116,7 +118,9 @@ export type SignalRow = {
   perfY: number | null;
   nextEarnings: string | null; // ISO date
   lastDate: string; // last candle date
-  // multi-strategy ensemble (T42) — 12 deterministic strategies vote per stock
+  // multi-strategy ensemble (T42 → T44) — 18 deterministic strategies vote
+  // per stock: 15 candle rules + the data-gated quant (per-ticker ML model)
+  // and smart-money (official filings, whale flows) layers
   ensemble: {
     consensus: number; // −1..+1 weighted vote
     longVotes: number; // strategies firing long
@@ -126,6 +130,11 @@ export type SignalRow = {
     fired: string[]; // ids of strategies that fired (long or avoid)
   };
   ensembleEvidence: string[]; // union of fired evidence codes (≤12)
+  // T44 — the per-ticker ML read rides on the row (null when the model
+  // could not train an honest forecast on this tape)
+  ml: { probUp: number; hitRate: number | null; trainedRows: number; valRows: number } | null;
+  // T44 — the official insider-filings read for this name (null = no filings)
+  insider: { buys: number; sells: number; treasuryBuys: number; treasurySells: number; lastDate: string | null } | null;
 };
 
 export type SignalsScan = {
@@ -173,7 +182,8 @@ export function computeSignalRow(
   stock: Stock,
   chart: StockChart,
   sector?: { bySector: Map<string, SectorStats>; market: SectorStats },
-  news?: NewsScore | null
+  news?: NewsScore | null,
+  whale?: WhaleRead | null
 ): SignalRow | null {
   const pts = chart.points;
   if (pts.length < 60) return null; // not enough history for a meaningful rating
@@ -240,12 +250,20 @@ export function computeSignalRow(
       ? new Date(stock.nextEarnings * 1000).toISOString().slice(0, 10)
       : null;
 
-  // ── T42: the 12-strategy ensemble vote (same candles, deterministic) ──
+  // ── T42→T44: the 18-strategy ensemble vote (same candles, deterministic).
+  //  The quant layer trains its per-ticker model on THIS tape (cached per
+  //  ticker+lastDate); the smart-money layer reads the official filings
+  //  snapshot + the market-wide whale regime. ──
+  const ml = mlForecastCached(row.ticker, pts);
+  const insider = insiderReadFor(row.ticker);
   const verdicts: StrategyVerdict[] = evaluateStrategies(pts, {
     divYield: stock.divYield,
     fundQuality: fund.quality,
     newsScore: ns ? ns.score : null,
     techScore: summary.score,
+    ml,
+    insider,
+    whale: whale ?? null,
   });
   const ens = ensembleRead(verdicts, atrPctAt(pts, 14));
 
@@ -317,6 +335,8 @@ export function computeSignalRow(
       fired: ens.verdicts.filter((v) => v.fired).map((v) => v.id),
     },
     ensembleEvidence: ens.evidence,
+    ml: ml ? { probUp: ml.probUp, hitRate: ml.hitRate, trainedRows: ml.trainedRows, valRows: ml.valRows } : null,
+    insider,
   };
 }
 
@@ -339,6 +359,10 @@ async function runScan(): Promise<SignalsScan> {
     console.warn("[signals] news pillar unavailable:", e instanceof Error ? e.message : e);
     return new Map<string, NewsScore>();
   });
+  // T44 — the market-wide whale regime (real investor-category flows),
+  // shared by every row's whale-watch vote; null when flows are down and
+  // the strategy simply stays silent
+  const { whale } = await smartMoney().catch(() => ({ whale: null, digest: null }));
   const rows: SignalRow[] = [];
   let failed = 0;
 
@@ -348,7 +372,7 @@ async function runScan(): Promise<SignalsScan> {
       const stock = candidates[cursor++];
       try {
         const chart = await fetchStockChart(stock.ticker, "1Y");
-        const row = computeSignalRow(stock, chart, { bySector, market }, newsMap.get(stock.ticker) ?? null);
+        const row = computeSignalRow(stock, chart, { bySector, market }, newsMap.get(stock.ticker) ?? null, whale);
         if (row) rows.push(row);
         else failed++;
       } catch {
@@ -422,6 +446,7 @@ export async function signalForTicker(tickerRaw: string): Promise<SignalRow | nu
   try {
     const chart = await fetchStockChart(t, "1Y");
     const news = await newsScoreForTicker(stock.ticker, stock.name).catch(() => null);
+    const { whale } = await smartMoney().catch(() => ({ whale: null, digest: null }));
     return computeSignalRow(
       stock,
       chart,
@@ -429,7 +454,8 @@ export async function signalForTicker(tickerRaw: string): Promise<SignalRow | nu
         bySector: sectorStatsMap(universe),
         market: marketStats(universe),
       },
-      news
+      news,
+      whale
     );
   } catch {
     return null;

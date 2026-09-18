@@ -98,6 +98,35 @@ export async function syncPushAlerts(
   }
 }
 
+/** T44 — opt this device INTO (or out of) LIVE SIGNAL notifications:
+ *  new picks, tracked outcomes and self-validation pushes on top of the
+ *  personal price alerts. Works when push is already enabled; returns
+ *  false when the subscription is not available (the UI then keeps the
+ *  in-tab browser notifications only). */
+export async function setSignalOptIn(optIn: boolean, lang: "ar" | "en"): Promise<boolean> {
+  try {
+    const deviceId = getDeviceId();
+    const reg = await navigator.serviceWorker?.ready;
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return false;
+    // preserve the device's CURRENT alert list (the subscribe route mirrors
+    // whatever it receives — passing [] would wipe the user's price alerts)
+    let alerts: unknown[] = [];
+    try {
+      const raw = localStorage.getItem("egx-alerts");
+      if (raw) alerts = JSON.parse(raw);
+    } catch {}
+    const res = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, subscription: sub.toJSON(), alerts, lang, signalsOptIn: optIn }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** The full enable flow: permission → subscribe → register server-side. */
 export async function enablePush(lang: "ar" | "en"): Promise<PushEnableResult> {
   try {

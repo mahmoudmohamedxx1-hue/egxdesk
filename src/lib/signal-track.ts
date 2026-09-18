@@ -40,6 +40,12 @@ export type TrackedSignal = {
   status: "target" | "stopped" | "expired" | "open";
   partialT1: boolean; // touched T1 (ladder plans) at some point
   endedDate: string | null; // the session that resolved/stopped it
+  // T44 — ASTP-style fixed-horizon outcomes: the close-based return exactly
+  // 2 / 5 / 10 sessions after issue (null when that session hasn't printed
+  // yet — never extrapolated)
+  retAt2: number | null;
+  retAt5: number | null;
+  retAt10: number | null;
 };
 
 export type TrackRecord = {
@@ -58,6 +64,12 @@ export type TrackRecord = {
     hitRate: number | null; // hits / (hits + stopped)
     avgRetPct: number | null; // closed signals only
     avgOpenRetPct: number | null; // currently-open signals
+    // T44 — ASTP-style fixed horizons (mean over signals that reached them)
+    avgRetAt2: number | null;
+    avgRetAt5: number | null;
+    avgRetAt10: number | null;
+    // T44 — does conviction actually predict outcomes? (n per bucket shown)
+    byConviction: { conv: number; n: number; hits: number; hitRate: number | null; avgRet: number | null }[];
   };
 };
 
@@ -248,6 +260,10 @@ export function classifyEpisode(
     bestPct = Math.max(bestPct, ((c.close - ep.entry) / ep.entry) * 100);
     worstPct = Math.min(worstPct, ((c.close - ep.entry) / ep.entry) * 100);
   }
+  // T44 — fixed-horizon close returns (+2 / +5 / +10 sessions after issue;
+  // null when that session hasn't printed — honest, never extrapolated)
+  const retAt = (n: number): number | null =>
+    fwd.length >= n ? Number((((fwd[n - 1].close - ep.entry) / ep.entry) * 100).toFixed(2)) : null;
   return {
     ticker: ep.ticker,
     stance: "long",
@@ -266,6 +282,9 @@ export function classifyEpisode(
     status,
     partialT1,
     endedDate,
+    retAt2: retAt(2),
+    retAt5: retAt(5),
+    retAt10: retAt(10),
   };
 }
 
@@ -301,6 +320,7 @@ export async function getTrackRecord(): Promise<TrackRecord> {
     summary: {
       tracked: 0, evaluated: 0, pending: 0, skipped: 0, hits: 0, stopped: 0, expired: 0, open: 0,
       hitRate: null, avgRetPct: null, avgOpenRetPct: null,
+      avgRetAt2: null, avgRetAt5: null, avgRetAt10: null, byConviction: [],
     },
   };
   if (!rows.length) {
@@ -353,6 +373,24 @@ export async function getTrackRecord(): Promise<TrackRecord> {
   const closedWithStop = hits + stopped;
   const avg = (xs: number[]) => (xs.length ? Number((xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2)) : null);
 
+  // T44 — conviction buckets: does a 5-conviction pick actually win more
+  // than a 2? n is shown per bucket so a thin bucket never masquerades as
+  // a pattern (the ASTP review lesson: RSI<40's edge was n=97, not n=3)
+  const byConviction: TrackRecord["summary"]["byConviction"] = [];
+  for (let conv = 1; conv <= 5; conv++) {
+    const bucket = signals.filter((s) => s.conviction === conv);
+    if (!bucket.length) continue;
+    const bHits = bucket.filter((s) => s.status === "target").length;
+    const bStopped = bucket.filter((s) => s.status === "stopped").length;
+    byConviction.push({
+      conv,
+      n: bucket.length,
+      hits: bHits,
+      hitRate: bHits + bStopped > 0 ? Number((bHits / (bHits + bStopped)).toFixed(3)) : null,
+      avgRet: avg(bucket.map((s) => s.retPct)),
+    });
+  }
+
   const record: TrackRecord = {
     evaluatedAt: new Date().toISOString(),
     since: signals.length ? signals[signals.length - 1].issuedAt : null,
@@ -369,6 +407,10 @@ export async function getTrackRecord(): Promise<TrackRecord> {
       hitRate: closedWithStop > 0 ? Number((hits / closedWithStop).toFixed(3)) : null,
       avgRetPct: avg(closed.map((s) => s.retPct)),
       avgOpenRetPct: avg(signals.filter((s) => s.status === "open").map((s) => s.retPct)),
+      avgRetAt2: avg(signals.map((s) => s.retAt2).filter((v): v is number => v !== null)),
+      avgRetAt5: avg(signals.map((s) => s.retAt5).filter((v): v is number => v !== null)),
+      avgRetAt10: avg(signals.map((s) => s.retAt10).filter((v): v is number => v !== null)),
+      byConviction,
     },
   };
   g.__egxTrackCache = { at: Date.now(), newestId, record };

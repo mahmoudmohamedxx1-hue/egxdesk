@@ -132,6 +132,12 @@ model PushDevice {
   auth           String // subscription key
   alertsJson     String    @default("[]")
   notifiedJson   String    @default("[]")
+  /// T44 — user opted into LIVE SIGNAL notifications (new picks, plan
+  /// outcomes, self-validation) on top of the personal price alerts
+  signalsOptIn   Boolean   @default(false)
+  /// newest SignalEvent.createdAt already pushed to this device — the push
+  /// loop only sends strictly newer events, so each fires exactly once
+  signalsNotifiedAt DateTime?
   lang           String    @default("ar")
   userAgent      String?
   createdAt      DateTime  @default(now())
@@ -218,4 +224,37 @@ model MarketReport {
 
   @@index([session, kind])
   @@index([createdAt])
+}
+
+// ── Live signal events (Task 44: per-signal live notifications) ──
+
+/** One live event in the signals stream — what the LIVE FEED shows and what
+ *  opted-in devices receive as push notifications. Emitted when a NEW signal
+ *  set is published (new picks + the market-bias read), when the track
+ *  record resolves a published episode (target / stop / expiry), and when
+ *  the self-validation check compares the live record against the backtest
+ *  baseline (ASTP-style review, at most once per Cairo day).
+ *
+ *  `setRef` links pick/bias events to the AiSignalSet id they came from;
+ *  `episodeKey` (ticker + issuedAt ms) links outcome events to the exact
+ *  tracked episode — both make emission idempotent (never double-notify). */
+model SignalEvent {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  /// new-pick | bias | outcome | self-check
+  kind        String
+  ticker      String?  // null for market-level events (bias / self-check)
+  stance      String?  // long | avoid (pick events)
+  setRef      String?  // AiSignalSet id for pick/bias events
+  episodeKey  String?  // `${ticker}:${issuedAtMs}` for outcome events
+  titleAr     String
+  titleEn     String
+  bodyAr      String
+  bodyEn      String
+  /// optional machine number (e.g. return % at resolution, probUp)
+  score       Float?
+
+  @@index([createdAt])
+  @@index([kind, createdAt])
+  @@index([episodeKey])
 }

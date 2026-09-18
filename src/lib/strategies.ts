@@ -1,8 +1,8 @@
-/** EGX Desk MULTI-STRATEGY ENGINE (Task 42) — the signals upgrade.
+/** EGX Desk MULTI-STRATEGY ENGINE (Task 42 → T44) — the signals upgrade.
  *
  *  The AI Signals section used to run ONE charter strategy (egx-trend-v1).
- *  It now runs an ENSEMBLE of 12 independent, deterministic strategies —
- *  each with its own trigger, family weight and evidence codes — and the
+ *  It now runs an ENSEMBLE of EIGHTEEN independent, deterministic strategies
+ *  — each with its own trigger, family weight and evidence codes — and the
  *  served consensus is the weighted vote of all applicable strategies.
  *
  *  Design rules (inherited from strategy.ts, unchanged):
@@ -10,15 +10,19 @@
  *     the walk-forward backtest (scripts/backtest-signals.ts) replays
  *     history through these exact functions.
  *   - HONESTY: every verdict is machine-computed from real candles /
- *     scanner fields / the press lexicon. The LLM narrates and weighs
- *     verdicts; it never invents one.
+ *     scanner fields / the press lexicon / the ML model's own holdout
+ *     scorecard / OFFICIAL EGX filings / the real investor-flow record.
+ *     The LLM narrates and weighs verdicts; it never invents one.
  *   - EGX-AWARE: the liquidity gate and ATR volatility guard stay; each
  *     strategy declares its own family weight so trend/momentum read
  *     heavier than news/confirmation, mirroring the market's
  *     retail-momentum regime.
  *
- *  The 12 strategies (ids are stable — they ship in the API, XLSX and
- *  backtest evidence):
+ *  The 18 strategies (ids are stable — they ship in the API, XLSX and
+ *  backtest evidence). T44 added the QUANT layer (13-16: ml-forecast,
+ *  pattern-reversal, rsi-divergence, zscore-reversion) and the SMART-MONEY
+ *  layer (17-18: insider-flow from official EGX filings, whale-watch from
+ *  the real foreign-institution flow record):
  *    trend-rider        ِركوب الترند        SMA stack + MACD + RSI thrust
  *    golden-cross       التقاطع الذهبي      SMA50/SMA200 cross state + freshness
  *    breakout-hunter    صائد الاختراق       Donchian 60-session high proximity
@@ -31,6 +35,12 @@
  *    pullback-continue  تصحيح في ترند صاعد  Orderly 3-8% dip inside an uptrend
  *    dividend-quality   جودة التوزيعات      Yield + quality pillar, trend-safe
  *    press-tone         تأكيد الصحافة       14-day press lexicon strongly one-sided
+ *    ml-forecast        توقع تعلم الآلة     Per-ticker logistic model (holdout-validated)
+ *    pattern-reversal   أنماط الانعكاس      Engulfing / hammer / morning-evening star
+ *    rsi-divergence     تباعد RSI            Price-vs-RSI swing divergence
+ *    zscore-reversion   ارتداد الانحراف      50-session z-score stretch snap-back
+ *    insider-flow       إشارة المطلعين      Official EGX insider/treasury filings
+ *    whale-watch        رادار الحيتان       Foreign-institution flow regime
  */
 
 import {
@@ -42,10 +52,11 @@ import {
   rocSeries,
 } from "@/lib/indicators";
 import { atrPctAt, type ChartPointLite } from "@/lib/strategy";
+import type { MlForecast } from "@/lib/ml-forecast";
 
 // ── types ──
 
-export type StrategyFamily = "trend" | "momentum" | "reversion" | "volume" | "fundamental" | "news";
+export type StrategyFamily = "trend" | "momentum" | "reversion" | "volume" | "fundamental" | "news" | "ml" | "flow";
 
 export type StrategyVerdict = {
   id: string;
@@ -67,6 +78,33 @@ export type StrategyCtx = {
   newsScore: number | null;
   /** the 13-indicator technical score of the scan row (−1..+1) */
   techScore: number;
+  /** T44 — per-ticker ML forecast (data-gated strategy; ml-forecast.ts) */
+  ml: MlForecast | null;
+  /** T44 — official insider/major-holder filings read for this ticker */
+  insider: InsiderRead | null;
+  /** T44 — market-wide smart-money regime (foreign-institution flows) */
+  whale: WhaleRead | null;
+};
+
+/** T44 — insider/major-holder filing read for ONE ticker over the last 90
+ *  days of OFFICIAL EGX disclosures (post-execution forms + treasury
+ *  trades). Built by lib/smart-money.ts from src/data/insiders.json. */
+export type InsiderRead = {
+  buys: number; // insider / major-holder BUY filings
+  sells: number; // SELL filings
+  treasuryBuys: number; // company treasury-share purchase filings
+  treasurySells: number;
+  lastDate: string | null; // most recent filing date (YYYY-MM-DD)
+};
+
+/** T44 — the market-wide smart-money regime, from the REAL EGX
+ *  investor-category flow data (foreign institutions net, EGP mn). Null
+ *  when the flow layer is unavailable — whale-watch then stays silent. */
+export type WhaleRead = {
+  forInstNet1d: number | null; // latest session, EGP mn
+  forInstNet3d: number | null; // sum of the last 3 sessions, EGP mn
+  instSharePct: number | null; // institutions' share of turnover (latest)
+  asOf: string | null; // YYYY-MM-DD of the latest session in the read
 };
 
 export type EnsembleRead = {
@@ -104,6 +142,18 @@ export const STRATEGY_REGISTRY: { id: string; nameAr: string; nameEn: string; fa
     oneLineAr: "عائد توزيعات ≥4% مع ركيزة جودة موجبة وفوق المتوسط 200", oneLineEn: "Dividend yield ≥4% with a positive quality pillar and price above SMA200" },
   { id: "press-tone", nameAr: "تأكيد الصحافة", nameEn: "Press Confirmation", family: "news", weight: 0.6,
     oneLineAr: "نبرة الصحافة خلال 14 يومًا منحازة بقوة (≥+0.5 أو ≤−0.5) مع عدم تناقض فني", oneLineEn: "14-day press tone strongly one-sided (≥+0.5 or ≤−0.5) without technical contradiction" },
+  { id: "ml-forecast", nameAr: "توقع تعلم الآلة", nameEn: "ML Forecast", family: "ml", weight: 0.8,
+    oneLineAr: "نموذج لوجستي مدرّب على شموع السهم نفسه — احتمال صعود خلال 5 جلسات مع دقة مقاسة على عينة احتجاز حقيقية", oneLineEn: "Logistic model trained on the stock's own candles — P(up over 5 sessions) with a holdout-measured hit rate" },
+  { id: "pattern-reversal", nameAr: "أنماط الانعكاس", nameEn: "Pattern Reversal", family: "reversion", weight: 0.7,
+    oneLineAr: "شموع انعكاسية واضحة (ابتلاع، مطرقة، نجمة صباحية/مسائية) في سياق مناسب", oneLineEn: "Classic reversal candles (engulfing, hammer, morning/evening star) in the right context" },
+  { id: "rsi-divergence", nameAr: "تباعد RSI", nameEn: "RSI Divergence", family: "reversion", weight: 0.75,
+    oneLineAr: "السعر يسجل قاعًا أدنى بينما RSI يسجل قاعًا أعلى (أو العكس) — فقدان الزخم قبل الانعكاس", oneLineEn: "Price prints a lower low while RSI prints a higher low (or the bearish mirror) — momentum dying before the turn" },
+  { id: "zscore-reversion", nameAr: "ارتداد الانحراف المعياري", nameEn: "Z-Score Reversion", family: "reversion", weight: 0.7,
+    oneLineAr: "انحراف ≤−1.8 عن متوسط 50 جلسة (أو ≥+2 داخل ترند هابط) — ارتداد إحصائي", oneLineEn: "Z-score ≤−1.8 vs the 50-session mean (or ≥+2 inside a downtrend) — statistical snap-back" },
+  { id: "insider-flow", nameAr: "إشارة المطلعين", nameEn: "Insider Flow", family: "flow", weight: 0.75,
+    oneLineAr: "إفصاحات رسمية على البورصة: صافي شراء متصلين/مساهمين رئيسيين دون أي بيع خلال 90 يومًا", oneLineEn: "Official EGX filings: net insider / major-holder buying with zero sells over 90 days" },
+  { id: "whale-watch", nameAr: "رادار الحيتان", nameEn: "Whale Watch", family: "flow", weight: 0.85,
+    oneLineAr: "صافي تدفق المؤسسات الأجنبية لثلاث جلسات متتالية — اصطفاف الأموال الذكية مع الاتجاه", oneLineEn: "Foreign institutions net-buying (or selling) over 3 sessions — smart money aligned with the tape" },
 ];
 
 const BY_ID = new Map(STRATEGY_REGISTRY.map((s) => [s.id, s]));
@@ -529,13 +579,252 @@ export function evaluateStrategies(pts: ChartPointLite[], ctx: StrategyCtx): Str
     out.push(mk("press-tone", { fired, direction, score, evidence: ev }));
   }
 
+  // ── 13. ml-forecast (T44 quant layer — the per-ticker model vote) ──
+  {
+    let fired = false;
+    let direction: "long" | "avoid" | null = null;
+    let score = 0;
+    const ev: string[] = [];
+    const ml = ctx.ml;
+    // the model must have PROVEN itself on its holdout tail before its vote
+    // counts: a coin-flip learner (hitRate < 0.52) carries no information and
+    // stays silent — honesty over decoration
+    if (ml && ml.hitRate !== null && ml.hitRate >= 0.52) {
+      const strong = ml.hitRate >= 0.58; // validated learner scores full strength
+      const mult = strong ? 1 : 0.7; // barely-above-coin learner caps at 0.7×
+      if (ml.probUp >= 0.6) {
+        fired = true;
+        direction = "long";
+        score = clamp01((0.55 + (ml.probUp - 0.6) * 1.1) * mult);
+        ev.push(`model P(up, 5 sessions) ${(ml.probUp * 100).toFixed(0)}%`);
+        ev.push(`holdout hit rate ${(ml.hitRate * 100).toFixed(0)}% over ${ml.valRows} bars (${ml.trainedRows} training rows)`);
+      } else if (ml.probUp <= 0.4) {
+        fired = true;
+        direction = "avoid";
+        score = clamp01((0.55 + (0.4 - ml.probUp) * 1.1) * mult);
+        ev.push(`model P(up, 5 sessions) ${(ml.probUp * 100).toFixed(0)}%`);
+        ev.push(`holdout hit rate ${(ml.hitRate * 100).toFixed(0)}% over ${ml.valRows} bars (${ml.trainedRows} training rows)`);
+      }
+    }
+    out.push(mk("ml-forecast", { fired, direction, score, evidence: ev }));
+  }
+
+  // ── 14. pattern-reversal (engulfing / hammer / morning-evening star) ──
+  {
+    let fired = false;
+    let direction: "long" | "avoid" | null = null;
+    let score = 0;
+    const ev: string[] = [];
+    const n = pts.length;
+    if (n >= 5) {
+      const c1 = closes[n - 1];
+      const c2 = closes[n - 2];
+      const c3 = closes[n - 3];
+      const c4 = closes[n - 4];
+      const h1 = pts[n - 1].high ?? c1;
+      const l1 = pts[n - 1].low ?? c1;
+      const h2 = pts[n - 2].high ?? c2;
+      const l2 = pts[n - 2].low ?? c2;
+      const range1 = h1 - l1;
+      const posInBar = range1 > 0 ? (c1 - l1) / range1 : 0.5; // close's place in the bar
+      const dayPct = (v: number, base: number) => (base > 0 ? ((v - base) / base) * 100 : 0);
+
+      // bullish set (needs dip context: RSI ≤ 45 — room to bounce)
+      const bullCtx = rsi !== null && rsi <= 45;
+      const bullEngulf = c1 > c2 && h1 > h2 && l1 < l2 && dayPct(c1, c2) > 0; // outside bar up
+      const hammer = range1 > 0 && posInBar >= 0.7 && range1 / c1 >= 0.02 && c2 < closes[n - 3]; // long lower wick after a down day
+      const morningStar =
+        dayPct(c3, c4) <= -1.5 && Math.abs(dayPct(c2, c3)) <= 0.7 && dayPct(c1, c2) >= 1.2 && c1 >= (c4 + c3) / 2;
+      if (bullCtx && (bullEngulf || hammer || morningStar)) {
+        fired = true;
+        direction = "long";
+        score = morningStar ? 0.8 : 0.65;
+        ev.push(
+          morningStar
+            ? "morning star: -1.5% day, inside bar, +1.2% recovery day"
+            : bullEngulf
+              ? `bullish outside bar (engulfing) +${dayPct(c1, c2).toFixed(1)}%`
+              : `hammer: close in top ${(posInBar * 100).toFixed(0)}% of a ${(range1 / c1 * 100).toFixed(1)}%-range bar`
+        );
+        if (rsi !== null) ev.push(`RSI14 ${rsi.toFixed(1)} (dip context)`);
+      }
+
+      // bearish set (needs stretch context: RSI ≥ 55)
+      const bearCtx = rsi !== null && rsi >= 55;
+      const bearEngulf = c1 < c2 && h1 > h2 && l1 < l2 && dayPct(c1, c2) < 0; // outside bar down
+      const shootingStar = range1 > 0 && posInBar <= 0.3 && range1 / c1 >= 0.02 && c2 > closes[n - 3]; // long upper wick after an up day
+      const eveningStar =
+        dayPct(c3, c4) >= 1.5 && Math.abs(dayPct(c2, c3)) <= 0.7 && dayPct(c1, c2) <= -1.2 && c1 <= (c4 + c3) / 2;
+      if (!fired && bearCtx && (bearEngulf || shootingStar || eveningStar)) {
+        fired = true;
+        direction = "avoid";
+        score = eveningStar ? 0.8 : 0.65;
+        ev.push(
+          eveningStar
+            ? "evening star: +1.5% day, inside bar, -1.2% reversal day"
+            : bearEngulf
+              ? `bearish outside bar (engulfing) ${dayPct(c1, c2).toFixed(1)}%`
+              : `shooting star: close in bottom ${(100 - posInBar * 100).toFixed(0)}% of a ${(range1 / c1 * 100).toFixed(1)}%-range bar`
+        );
+        if (rsi !== null) ev.push(`RSI14 ${rsi.toFixed(1)} (stretched context)`);
+      }
+    }
+    out.push(mk("pattern-reversal", { fired, direction, score, evidence: ev }));
+  }
+
+  // ── 15. rsi-divergence (swing divergence over the last ~35 sessions) ──
+  {
+    let fired = false;
+    let direction: "long" | "avoid" | null = null;
+    let score = 0;
+    const ev: string[] = [];
+    const W = Math.min(35, closes.length - 60);
+    if (W >= 20 && rsi !== null) {
+      // RSI series over the window (the full series is recomputed on the
+      // sliced window — deterministic, no lookahead)
+      const win = closes.slice(-W);
+      const rsiWin = rsiSeries(win, 14).map((v) => (v === null || v === undefined ? null : v));
+      const rsiAt = (i: number): number | null => (i >= 0 && i < rsiWin.length ? (rsiWin[i] as number | null) : null);
+
+      // split the window in half: an OLDER extreme vs a NEWER extreme
+      const half = Math.floor(W / 2);
+      const oldWin = win.slice(0, half);
+      const newWin = win.slice(half);
+      if (oldWin.length >= 8 && newWin.length >= 8) {
+        // bullish: price lower low in the newer half while RSI higher low
+        const oldMinIdx = oldWin.indexOf(Math.min(...oldWin));
+        const newMinIdx = newWin.indexOf(Math.min(...newWin));
+        const oldRsi = rsiAt(oldMinIdx);
+        const newRsi = rsiAt(half + newMinIdx);
+        const priceLL = newWin[newMinIdx] < oldWin[oldMinIdx];
+        if (
+          priceLL && oldRsi !== null && newRsi !== null && newRsi >= oldRsi + 3 && rsi <= 55
+        ) {
+          fired = true;
+          direction = "long";
+          score = clamp01(0.6 + Math.min(newRsi - oldRsi, 15) / 30);
+          ev.push(`bullish divergence: price lower low, RSI ${(newRsi - oldRsi).toFixed(0)} points higher`);
+        }
+        // bearish: price higher high in the newer half while RSI lower high
+        if (!fired) {
+          const oldMaxIdx = oldWin.indexOf(Math.max(...oldWin));
+          const newMaxIdx = newWin.indexOf(Math.max(...newWin));
+          const oldRsiH = rsiAt(oldMaxIdx);
+          const newRsiH = rsiAt(half + newMaxIdx);
+          const priceHH = newWin[newMaxIdx] > oldWin[oldMaxIdx];
+          if (
+            priceHH && oldRsiH !== null && newRsiH !== null && newRsiH <= oldRsiH - 3 && rsi >= 45
+          ) {
+            fired = true;
+            direction = "avoid";
+            score = clamp01(0.6 + Math.min(oldRsiH - newRsiH, 15) / 30);
+            ev.push(`bearish divergence: price higher high, RSI ${(oldRsiH - newRsiH).toFixed(0)} points lower`);
+          }
+        }
+      }
+    }
+    out.push(mk("rsi-divergence", { fired, direction, score, evidence: ev }));
+  }
+
+  // ── 16. zscore-reversion (50-session z-score stretch) ──
+  {
+    let fired = false;
+    let direction: "long" | "avoid" | null = null;
+    let score = 0;
+    const ev: string[] = [];
+    if (sma50 !== null && closes.length >= 60) {
+      const win = closes.slice(-50);
+      const mean = win.reduce((a, b) => a + b, 0) / win.length;
+      const varr = win.reduce((a, b) => a + (b - mean) * (b - mean), 0) / win.length;
+      const sd = Math.sqrt(varr);
+      if (sd > 0 && mean > 0) {
+        const z = (price - mean) / sd;
+        // deep discount vs the 50-session mean — statistical snap-back long
+        if (z <= -1.8 && sma200 !== null && price > sma200 * 0.95) {
+          fired = true;
+          direction = "long";
+          score = clamp01(0.55 + Math.min(Math.abs(z) - 1.8, 1.2) / 1.2 * 0.45);
+          ev.push(`z-score ${z.toFixed(2)} vs the 50-session mean (σ ${(sd / price * 100).toFixed(1)}% of price)`);
+          ev.push("long-term trend not broken (within 5% of SMA200)");
+        } else if (z >= 2 && sma200 !== null && price < sma200) {
+          // statistical pop INSIDE a downtrend — the dead-cat distribution
+          fired = true;
+          direction = "avoid";
+          score = clamp01(0.55 + Math.min(z - 2, 1.2) / 1.2 * 0.45);
+          ev.push(`z-score ${z.toFixed(2)} vs the 50-session mean while below SMA200`);
+        }
+      }
+    }
+    out.push(mk("zscore-reversion", { fired, direction, score, evidence: ev }));
+  }
+
+  // ── 17. insider-flow (official EGX filings — data-gated) ──
+  {
+    let fired = false;
+    let direction: "long" | "avoid" | null = null;
+    let score = 0;
+    const ev: string[] = [];
+    const ins = ctx.insider;
+    if (ins && (ins.buys > 0 || ins.sells > 0 || ins.treasuryBuys > 0)) {
+      const netBuyers = ins.buys + ins.treasuryBuys * 0.5; // treasury buys count half (company, not persons)
+      const netSellers = ins.sells + ins.treasurySells * 0.5;
+      if (netBuyers >= 2 && ins.sells === 0) {
+        fired = true;
+        direction = "long";
+        score = clamp01(0.65 + Math.min(netBuyers - 2, 3) / 3 * 0.2);
+        ev.push(
+          `${ins.buys} insider/major-holder buy filings${ins.treasuryBuys ? ` + ${ins.treasuryBuys} treasury purchase(s)` : ""}, 0 sells (90 days)`
+        );
+        if (ins.lastDate) ev.push(`latest filing ${ins.lastDate}`);
+      } else if (netSellers >= 3 && ins.buys === 0) {
+        fired = true;
+        direction = "avoid";
+        score = clamp01(0.6 + Math.min(netSellers - 3, 4) / 4 * 0.25);
+        ev.push(`${ins.sells} insider/major-holder sell filings, 0 buys (90 days)`);
+        if (ins.lastDate) ev.push(`latest filing ${ins.lastDate}`);
+      }
+    }
+    out.push(mk("insider-flow", { fired, direction, score, evidence: ev }));
+  }
+
+  // ── 18. whale-watch (foreign-institution flow regime — data-gated) ──
+  {
+    let fired = false;
+    let direction: "long" | "avoid" | null = null;
+    let score = 0;
+    const ev: string[] = [];
+    const w = ctx.whale;
+    // threshold: ±100 EGP mn of net foreign-institution flow over 3 sessions
+    // is a meaningful institutional footprint on the EGX tape (typical total
+    // daily institutional turnover is hundreds of millions of pounds)
+    if (w && w.forInstNet3d !== null && sma50 !== null) {
+      if (w.forInstNet3d >= 100 && price > sma50) {
+        fired = true;
+        direction = "long";
+        score = clamp01(0.6 + Math.min(w.forInstNet3d - 100, 500) / 500 * 0.25);
+        ev.push(`foreign institutions net +${w.forInstNet3d.toFixed(0)} EGP mn over the last 3 sessions`);
+        ev.push("candidate above SMA50 (institutions accumulate leaders)");
+        if (w.instSharePct !== null) ev.push(`institutions ${w.instSharePct.toFixed(0)}% of turnover`);
+      } else if (w.forInstNet3d <= -100 && price < sma50) {
+        fired = true;
+        direction = "avoid";
+        score = clamp01(0.6 + Math.min(-w.forInstNet3d - 100, 500) / 500 * 0.25);
+        ev.push(`foreign institutions net ${w.forInstNet3d.toFixed(0)} EGP mn over the last 3 sessions`);
+        ev.push("candidate below SMA50 (distribution hits laggards hardest)");
+        if (w.instSharePct !== null) ev.push(`institutions ${w.instSharePct.toFixed(0)}% of turnover`);
+      }
+    }
+    out.push(mk("whale-watch", { fired, direction, score, evidence: ev }));
+  }
+
   return out;
 }
 
-/** Aggregate the 12 verdicts into the served consensus read.
+/** Aggregate the 18 verdicts into the served consensus read.
  *  consensus = Σ(weight × score × sign) / Σ(weight of counted strategies)
- *  Counted set: the 10 candle strategies always (a silent one is a deliberate
- *  no-trigger vote) + the two data-gated strategies only when their data
+ *  Counted set: the 15 candle strategies always (a silent one is a deliberate
+ *  no-trigger vote) + the five data-gated strategies (dividend-quality,
+ *  press-tone, ml-forecast, insider-flow, whale-watch) only when their data
  *  existed (they cannot vote on absent data, and their silence must not
  *  inflate the agreement denominator).
  *  The ATR guard mirrors the old charter: >6% volatility cuts the consensus
@@ -551,7 +840,7 @@ export function ensembleRead(verdicts: StrategyVerdict[], atrPct: number | null)
     if (!meta) continue;
     // data-gated strategies join the counted set only when they fire —
     // their vote is otherwise neutral silence, not a no-trigger vote
-    const isDataGated = v.id === "dividend-quality" || v.id === "press-tone";
+    const isDataGated = DATA_GATED.has(v.id);
     if (isDataGated && !v.fired) continue;
     sumW += meta.weight;
     if (v.fired && v.direction === "long") {
@@ -593,11 +882,15 @@ function countNeutralSilent(verdicts: StrategyVerdict[]): number {
   // a deliberate no-trigger vote) — count them so agreement is honest.
   let n = 0;
   for (const v of verdicts) {
-    if (v.id === "dividend-quality" || v.id === "press-tone") continue; // data-gated, counted only when they fire
+    if (DATA_GATED.has(v.id)) continue; // data-gated, counted only when they fire
     if (!v.fired) n++;
   }
   return n;
 }
+
+/** The five data-gated strategies: their silence means "no data", not "no
+ *  trigger" — they join the consensus denominator only when they fire. */
+const DATA_GATED = new Set(["dividend-quality", "press-tone", "ml-forecast", "insider-flow", "whale-watch"]);
 
 /** One-call convenience: evaluate + aggregate. */
 export function evaluateEnsemble(

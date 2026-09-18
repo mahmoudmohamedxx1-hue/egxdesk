@@ -37,8 +37,13 @@ import {
   strategyById,
   STRATEGY_REGISTRY,
   type EnsembleRead,
+  type WhaleRead,
 } from "@/lib/strategies";
 import { getTrackRecord, type TrackRecord } from "@/lib/signal-track";
+import { mlForecastCached, type MlForecast } from "@/lib/ml-forecast";
+import { insiderReadFor, smartMoney, type SmartMoneyDigest } from "@/lib/smart-money";
+import { optimizePortfolio, type PortfolioPlan } from "@/lib/portfolio-opt";
+import { emitSetEvents } from "@/lib/signal-events";
 import backtestJson from "@/data/backtest.json";
 
 // ── tuning ──
@@ -92,6 +97,9 @@ export type AiPick = {
   // T43 — the full executable plan: limit-order zone + scale-out ladder.
   // Null for avoids and for pre-T43 sets whose entry is null.
   plan: { zoneLo: number; zoneHi: number; t1: number; t2: number; t3: number; riskPct: number } | null;
+  // T44 — the per-ticker ML model's read on this pick (probUp + its own
+  // holdout hit rate — never served without the scorecard)
+  ml: { probUp: number; hitRate: number | null; trainedRows: number; valRows: number } | null;
   horizonSessions: number;
   riskLevel: "low" | "medium" | "high";
   earningsRisk: string | null; // ISO date if next earnings falls inside the horizon
@@ -113,6 +121,9 @@ export type AiSetPayload = {
   picks: AiPick[];
   notesAr: string | null;
   scanned: number;
+  // T44 — the max-Sharpe allocation over the long picks at generation time
+  // (frozen with the set, like the plans; null when < 2 longs)
+  portfolio: PortfolioPlan | null;
 };
 
 export type AiSignalsResponse = {
@@ -123,6 +134,9 @@ export type AiSignalsResponse = {
   // T43 — every PUBLISHED pick since persistence began, replayed against
   // the candles that followed it. The proof layer: dates, numbers, outcomes.
   trackRecord: TrackRecord | null;
+  // T44 — the whale radar digest (real flows + official filings), served
+  // fresh (30-min cache inside) — market-level, not pick-specific
+  smartMoney: SmartMoneyDigest | null;
   meta: {
     cooldownMinutes: number;
     sharedCompute: true;
@@ -198,9 +212,14 @@ type Candidate = {
   ens: EnsembleRead | null;
   risk: { entry: number; stop: number; target: number; rr: number } | null;
   plan: TradePlan | null; // T43 — the ladder plan (longs only make use of it)
+  ml: MlForecast | null; // T44 — the per-ticker ML model's read
+  closes: number[]; // T44 — 1Y closes (portfolio covariance)
 };
 
-async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): Promise<Candidate[]> {
+async function buildCandidates(
+  scan: Awaited<ReturnType<typeof scanSignals>>,
+  whale: WhaleRead | null
+): Promise<Candidate[]> {
   const bulls = scan.rows.slice(0, CAND_BULL);
   const bears = scan.rows.slice(-CAND_BEAR).reverse();
   const movers = [...scan.rows]
@@ -222,12 +241,19 @@ async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): P
       const row = rows[cursor++];
       let f: StrategyFeatures | null = null;
       let ens: EnsembleRead | null = null;
+      let ml: MlForecast | null = null;
+      let closes: number[] = [];
       try {
         const chart = await fetchStockChart(row.ticker, "1Y");
         f = strategyFeaturesAt(row.ticker, chart.points);
-        // T42 — the 12-strategy ensemble vote on the same candles: the scan
-        // row already carries divYield / quality pillar / press score / the
-        // 13-indicator technical score, so the ctx is fully real
+        closes = chart.points.map((p) => p.close);
+        // T44 — the quant layer: train the per-ticker model on this tape
+        // (cached per ticker+lastDate; deterministic; holdout-scored)
+        ml = mlForecastCached(row.ticker, chart.points);
+        // T42→T44 — the 18-strategy ensemble vote on the same candles: the
+        // scan row already carries divYield / quality pillar / press score /
+        // the 13-indicator technical score, and smart-money reads the
+        // official filings + the whale regime — so the ctx is fully real
         ens = evaluateEnsemble(
           chart.points,
           {
@@ -235,6 +261,9 @@ async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): P
             fundQuality: row.quality,
             newsScore: row.newsScore,
             techScore: row.score,
+            ml,
+            insider: insiderReadFor(row.ticker),
+            whale,
           },
           f ? f.atrPct : null
         );
@@ -247,8 +276,10 @@ async function buildCandidates(scan: Awaited<ReturnType<typeof scanSignals>>): P
               evidence: row.ensembleEvidence ?? [],
             }
           : null;
+        ml = (row.ml ?? null) as MlForecast | null;
+        closes = [];
       }
-      out.push({ row, f, ens, risk: f ? riskLevels(f) : null, plan: f ? tradePlan(f) : null });
+      out.push({ row, f, ens, risk: f ? riskLevels(f) : null, plan: f ? tradePlan(f) : null, ml, closes });
       await sleep(120);
     }
   };
@@ -466,14 +497,19 @@ export function numbersPreserved(original: string, rewritten: string): boolean {
 
 async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> {
   const t0 = Date.now();
-  const [scan, indices, universe] = await Promise.all([scanSignals(), fetchIndices(), fetchUniverse()]);
+  const [scan, indices, universe, smart] = await Promise.all([
+    scanSignals(),
+    fetchIndices(),
+    fetchUniverse(),
+    smartMoney().catch(() => ({ whale: null, digest: null })),
+  ]);
   if (!scan.rows.length) throw new Error("signals scan unavailable");
   // fresh news pillar before picking candidates — the pack quotes press tone
   // alongside technicals/fundamentals (re-blend is pure math, ≤10-min news)
   const freshRows = await reblendNews(scan.rows, universe);
   const freshScan = { ...scan, rows: freshRows };
 
-  const candidates = await buildCandidates(freshScan);
+  const candidates = await buildCandidates(freshScan, smart.whale);
   const byTicker = new Map(candidates.map((c) => [c.row.ticker, c]));
 
   // T41 — breadth for the LLM's market context comes from the FULL universe
@@ -510,11 +546,20 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     topMovers: movers,
     strategyRegime,
     ensembleSize: STRATEGY_REGISTRY.length,
+    // T44 — the smart-money regime in the LLM's market context (real numbers)
+    smartMoney: smart.whale
+      ? {
+          foreignInstNet1dEgpMn: smart.whale.forInstNet1d,
+          foreignInstNet3dEgpMn: smart.whale.forInstNet3d,
+          institutionsSharePct: smart.whale.instSharePct,
+          asOf: smart.whale.asOf,
+        }
+      : null,
     backtestEvidence: backtestJson.stats,
     backtestMethod: backtestJson.method,
   };
 
-  const pack = candidates.map(({ row, f, ens, risk, plan }) => ({
+  const pack = candidates.map(({ row, f, ens, risk, plan, ml, closes }) => ({
     ticker: row.ticker,
     nameAr: row.nameAr,
     nameEn: row.name,
@@ -550,6 +595,25 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     },
     perf: { m1: row.perf1M, m6: row.perf6M, ytd: row.perfYTD, y1: row.perfY },
     nextEarnings: row.nextEarnings,
+    // T44 — the per-ticker ML model's read (probUp WITH its holdout hit
+    // rate — a naked probability is never served)
+    ml: ml
+      ? {
+          probUp: ml.probUp,
+          holdoutHitRate: ml.hitRate,
+          holdoutBars: ml.valRows,
+          trainingRows: ml.trainedRows,
+        }
+      : null,
+    // T44 — official insider filings read for this candidate
+    insider: row.insider
+      ? {
+          buys: row.insider.buys,
+          sells: row.insider.sells,
+          treasuryBuys: row.insider.treasuryBuys,
+          lastDate: row.insider.lastDate,
+        }
+      : null,
     strategies: ens
       ? {
           consensus: ens.consensus,
@@ -584,7 +648,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     "MARKET CONTEXT (live, ~15-min delayed):",
     JSON.stringify(marketContext),
     "",
-    "CANDIDATES (12-strategy ensemble verdicts per candidate; charterRisk is the precomputed ATR level set):",
+    "CANDIDATES (18-strategy ensemble verdicts per candidate — rule layer + quant layer (ml: per-ticker model with its holdout hit rate) + smart-money layer (insider filings, foreign-institution flows); charterRisk is the precomputed ATR level set):",
     JSON.stringify(pack),
     "",
     "Apply the charter to this evidence. Choose 3-6 picks (you may include 'avoid' stances when the ensemble consensus is net bearish; you may return fewer picks or none qualifying).",
@@ -730,6 +794,15 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
               riskPct: cand.plan.riskPct,
             }
           : null,
+      // T44 — the per-ticker ML read rides on the pick (probUp + hit rate)
+      ml: cand.ml
+        ? {
+            probUp: cand.ml.probUp,
+            hitRate: cand.ml.hitRate,
+            trainedRows: cand.ml.trainedRows,
+            valRows: cand.ml.valRows,
+          }
+        : null,
       horizonSessions: horizon,
       riskLevel,
       earningsRisk,
@@ -740,6 +813,22 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     if (picks.length >= MAX_PICKS) break;
   }
 
+  // ── T44: the max-Sharpe portfolio over the validated long picks — real
+  //  covariance from the same 1Y candles, consensus-scaled expected
+  //  returns, 35% single-name cap. Frozen with the set like the plans. ──
+  const portfolio = optimizePortfolio(
+    picks
+      .filter((p) => p.stance === "long")
+      .map((p) => {
+        const c = byTicker.get(p.ticker);
+        return {
+          ticker: p.ticker,
+          consensus: p.charterScore ?? 0,
+          closes: c?.closes ?? [],
+        };
+      })
+  );
+
   const payload: AiSetPayload = {
     generatedAt: new Date().toISOString(),
     marketBias: bias,
@@ -747,6 +836,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     notesAr:
       typeof parsed.notesAr === "string" && parsed.notesAr.trim() ? parsed.notesAr.trim().slice(0, 400) : null,
     scanned: scan.rows.length,
+    portfolio,
   };
 
   // ── T41 language-purity gate: repair, then verify, then honest fallback ──
@@ -881,6 +971,21 @@ function parseRow(row: { data: string; createdAt: Date; model: string; strategyR
           }
         }
       }
+      // T44 — normalize pre-quant sets: the ML read defaults to null and a
+      // malformed persisted read is dropped (never partially served)
+      if (p.ml === undefined) {
+        p.ml = null;
+      } else if (
+        p.ml !== null &&
+        (typeof (p.ml as { probUp?: unknown }).probUp !== "number" ||
+          !Number.isFinite((p.ml as { probUp: number }).probUp))
+      ) {
+        p.ml = null;
+      }
+    }
+    // T44 — pre-quant sets carry no portfolio field — normalize to null
+    if ((payload as { portfolio?: unknown }).portfolio === undefined) {
+      (payload as { portfolio?: unknown }).portfolio = null;
     }
     return { ...payload, model: row.model, strategyRev: row.strategyRev, llmMs: row.llmMs };
   } catch {
@@ -892,7 +997,7 @@ async function refreshLocked(): Promise<AiSetPayload | null> {
   const t0 = Date.now();
   try {
     const { payload, llmMs } = await generateSet();
-    await db.aiSignalSet.create({
+    const created = await db.aiSignalSet.create({
       data: {
         model: "GLM",
         strategyRev: STRATEGY_REV,
@@ -901,6 +1006,11 @@ async function refreshLocked(): Promise<AiSetPayload | null> {
         backtestRev: backtestJson.strategyRev,
       },
     });
+    // T44 — LIVE NOTIFICATIONS: every published pick + the market-bias read
+    // become signal events the instant the set is persisted (idempotent on
+    // the set id — a re-run can never double-notify)
+    const emitted = await emitSetEvents(created.id, payload);
+    if (emitted > 0) console.log(`[ai-signals] ${emitted} live events emitted for set ${created.id}`);
     // prune (T43): keep the newest KEEP_SETS rows for freshness AND one
     // representative set per Cairo trading day for the last 60 days — that
     // daily spine is what lets the track record grow into a real multi-week
@@ -1002,6 +1112,9 @@ export async function getAiSignals(waitMs = 60_000): Promise<AiSignalsResponse> 
     // Computed lazily with a 10-min cache; null ONLY if the whole module
     // fails (never blocks the signal set itself).
     trackRecord: await getTrackRecord().catch(() => null),
+    // T44 — the whale radar digest (real investor-category flows + official
+    // insider filings); null when both flow sources are down
+    smartMoney: (await smartMoney().catch(() => ({ digest: null }))).digest,
     meta: {
       cooldownMinutes: Math.round(COOLDOWN_MS / 60_000),
       sharedCompute: true as const,

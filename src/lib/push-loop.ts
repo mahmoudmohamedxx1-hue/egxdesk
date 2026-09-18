@@ -22,10 +22,18 @@
  *     report. maybeGenerateReport no-ops when the due report already exists,
  *     so the cadence is exact and the cost stays one call per report.
  *
+ *  5. Signal-events tick (Task 44): every 5 minutes, right after the alert
+ *     push, run the LIVE-NOTIFICATION pipeline — emit outcome events for
+ *     tracked episodes that just resolved (target/stop/expiry against the
+ *     real tape), run the once-per-Cairo-day self-validation check, then
+ *     push everything new to the devices that opted into signal alerts.
+ *     Idempotent end-to-end (episode keys + daily dedupe + per-device
+ *     cursors), so a crashed loop re-run can never double-notify.
+ *
  *  Guarded by a globalThis flag so dev hot-reloads / route module isolation
  *  can never start a second copy of the same interval. */
 
-import { evaluateDevices } from "@/lib/push";
+import { evaluateDevices, pushSignalEvents } from "@/lib/push";
 
 const g = globalThis as unknown as { __egxBgStarted?: boolean };
 
@@ -33,6 +41,7 @@ const PUSH_INTERVAL_MS = 5 * 60_000;
 const SIGNALS_WARM_DELAY_MS = 15_000;
 const SIGNALS_WARM_INTERVAL_MS = 60 * 60_000;
 const REPORT_CHECK_INTERVAL_MS = 10 * 60_000;
+const EVENTS_TICK_MS = 5 * 60_000;
 
 async function safePushTick(): Promise<void> {
   try {
@@ -78,6 +87,28 @@ async function safeDeskReportTick(): Promise<void> {
   }
 }
 
+/** T44 — the LIVE-NOTIFICATION pipeline tick: resolve what changed in the
+ *  tracked record (outcomes), run the daily self-validation, then push the
+ *  new events to opted-in devices. Everything inside is idempotent. */
+async function safeSignalEventsTick(): Promise<void> {
+  try {
+    const { getTrackRecord } = await import("@/lib/signal-track");
+    const { emitOutcomeEvents, emitSelfCheck } = await import("@/lib/signal-events");
+    const record = await getTrackRecord();
+    const outcomes = await emitOutcomeEvents(record);
+    const selfChecks = await emitSelfCheck(record);
+    if (outcomes + selfChecks > 0) {
+      console.log(`[signal-events] emitted: ${outcomes} outcome(s), ${selfChecks} self-check(s)`);
+    }
+    const pushed = await pushSignalEvents();
+    if (pushed.devices > 0 || pushed.notified > 0) {
+      console.log(`[signal-events] push: ${pushed.notified} event(s) to ${pushed.devices} opted-in device(s)`);
+    }
+  } catch (err) {
+    console.warn("[signal-events] tick failed:", err instanceof Error ? err.message : err);
+  }
+}
+
 export function startBackgroundJobs(): void {
   if (g.__egxBgStarted) return;
   g.__egxBgStarted = true;
@@ -102,5 +133,11 @@ export function startBackgroundJobs(): void {
   setTimeout(() => void safeDeskReportTick(), 2 * 60_000).unref?.();
   setInterval(() => void safeDeskReportTick(), REPORT_CHECK_INTERVAL_MS).unref?.();
 
-  console.log("[bg] push loop + signals + ai-signals warm + desk reports started");
+  // T44 — live signal events: outcomes + self-validation + opted-in pushes,
+  // first run ~90s after boot (needs a track record to exist), then every
+  // 5 minutes alongside the alert push
+  setTimeout(() => void safeSignalEventsTick(), 90_000).unref?.();
+  setInterval(() => void safeSignalEventsTick(), EVENTS_TICK_MS).unref?.();
+
+  console.log("[bg] push loop + signals + ai-signals warm + desk reports + signal events started");
 }

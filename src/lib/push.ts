@@ -406,3 +406,70 @@ export async function evaluateDevices(): Promise<EvalSummary> {
   }
   return summary;
 }
+
+// ── T44: LIVE SIGNAL-EVENT push (new picks / outcomes / self-checks) ──
+
+/** Push the signal events that arrived since each device's last
+ *  signalsNotifiedAt to every device that opted into signal notifications
+ *  (PushDevice.signalsOptIn). Capped at 3 events per device per tick (the
+ *  feed accumulates honestly — a burst never spams), newest first; the
+ *  device's cursor then jumps to the newest event we actually sent. */
+export async function pushSignalEvents(): Promise<{ devices: number; notified: number }> {
+  const out = { devices: 0, notified: 0 };
+  if (!getVapid()) return out;
+  let devices: Awaited<ReturnType<typeof db.pushDevice.findMany>> = [];
+  try {
+    devices = await db.pushDevice.findMany({ where: { signalsOptIn: true } });
+  } catch {
+    return out;
+  }
+  out.devices = devices.length;
+  if (!devices.length) return out;
+
+  // the newest events any device could need (bounded window)
+  const events = await db.signalEvent
+    .findMany({ orderBy: { createdAt: "desc" }, take: 30 })
+    .catch(() => []);
+  if (!events.length) return out;
+  const newestAt = events[0].createdAt;
+
+  for (const d of devices) {
+    const since = d.signalsNotifiedAt ?? new Date(0);
+    const fresh = events.filter((e) => e.createdAt > since).slice(0, 3); // newest first
+    if (!fresh.length) continue;
+    const top = fresh[0];
+    const single = fresh.length === 1;
+    const ok = await sendPush(
+      { endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth },
+      {
+        title: single
+          ? d.lang === "en"
+            ? top.titleEn
+            : top.titleAr
+          : d.lang === "en"
+            ? `EGX Desk — ${fresh.length} signal updates`
+            : `EGX Desk — ${fresh.length} تحديثات إشارات`,
+        body: single
+          ? (d.lang === "en" ? top.bodyEn : top.bodyAr).slice(0, 180)
+          : fresh
+              .map((e) => (d.lang === "en" ? e.titleEn : e.titleAr))
+              .join(" • ")
+              .slice(0, 180),
+        url: top.ticker
+          ? `/?view=company&ticker=${top.ticker}&panel=signals`
+          : "/?view=signals&mode=ai",
+        tag: "egx-signal-events",
+        lang: d.lang,
+      }
+    );
+    if (!ok) {
+      await db.pushDevice.delete({ where: { id: d.id } }).catch(() => {});
+      continue;
+    }
+    out.notified += fresh.length;
+    await db.pushDevice
+      .update({ where: { id: d.id }, data: { signalsNotifiedAt: newestAt, lastNotifiedAt: new Date() } })
+      .catch(() => {});
+  }
+  return out;
+}

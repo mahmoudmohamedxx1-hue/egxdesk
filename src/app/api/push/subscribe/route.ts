@@ -25,6 +25,7 @@ type Body = {
   };
   alerts?: unknown;
   lang?: unknown;
+  signalsOptIn?: unknown; // T44 — live signal-event notifications opt-in
 };
 
 const VALID_CONDS = new Set(["above", "below", "risePct", "fallPct", "onDate"]);
@@ -91,6 +92,10 @@ export async function POST(req: Request) {
     auth,
     alertsJson: JSON.stringify(alerts),
     notifiedJson: JSON.stringify(notified),
+    // T44 — live signal notifications: EXPLICIT opt-in flag from the AI
+    // signals panel's bell toggle; absent (undefined) keeps the stored
+    // value so the legacy alert sync path never silently switches it off
+    ...(typeof body.signalsOptIn === "boolean" ? { signalsOptIn: body.signalsOptIn } : {}),
     lang,
     userAgent,
     lastSeenAt: new Date(),
@@ -103,7 +108,7 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json(
-    { ok: true, deviceId: saved.deviceId, alerts: alerts.length },
+    { ok: true, deviceId: saved.deviceId, alerts: alerts.length, signalsOptIn: saved.signalsOptIn },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
