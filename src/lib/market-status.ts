@@ -75,6 +75,14 @@ function cairoYmd(now: Date): string {
   return `${p.year}-${p.month}-${p.day}`;
 }
 
+/** T45 — is this Cairo day an EGX trading day (Sun–Thu, not a listed
+ *  holiday)? Exposed for the autonomous agent's weekday scheduler: the
+ *  pre-open brief is pointless on a closed day. */
+export function isEgxTradingDay(now: Date = new Date()): boolean {
+  const p = cairoParts(now);
+  return isTradingDay(`${p.year}-${p.month}-${p.day}`, p.weekday ?? "");
+}
+
 function isTradingDay(ymd: string, weekday: string): boolean {
   if (!["Sun", "Mon", "Tue", "Wed", "Thu"].includes(weekday)) return false; // Fri/Sat weekend
   return !isHoliday(ymd);

@@ -27,7 +27,7 @@ import backtestJson from "@/data/backtest.json";
 export type SignalEventRow = {
   id: string;
   createdAt: string; // ISO
-  kind: "new-pick" | "bias" | "outcome" | "self-check";
+  kind: "new-pick" | "bias" | "outcome" | "self-check" | "agent";
   ticker: string | null;
   stance: string | null;
   titleAr: string;
@@ -98,6 +98,52 @@ function pickEvent(setRef: string, p: AiPick) {
     bodyEn,
     score: p.charterScore,
   };
+}
+
+/** T45 — ONE summary event per autonomous agent run (the per-pick events
+ *  already landed via emitSetEvents above). Idempotent on setRef+kind —
+ *  safe to call from any retry path. */
+export async function emitAgentEvent(
+  setRef: string,
+  payload: AiSetPayload & { agent?: { runKind: string; vision?: unknown[]; model: string } }
+): Promise<number> {
+  try {
+    const dup = await db.signalEvent.findFirst({ where: { kind: "agent", setRef } });
+    if (dup) return 0;
+  } catch {
+    return 0;
+  }
+  const runKind = payload.agent?.runKind ?? "manual";
+  const kindAr: Record<string, string> = {
+    "pre-open": "تعقيب ما قبل الافتتاح",
+    midday: "مسح منتصف الجلسة",
+    "post-close": "مراجعة ما بعد الإغلاق",
+    manual: "تشغيل يدوي",
+  };
+  const kindEn: Record<string, string> = {
+    "pre-open": "pre-open brief",
+    midday: "midday scan",
+    "post-close": "post-close review",
+    manual: "manual run",
+  };
+  const longs = payload.picks.filter((p) => p.stance === "long").length;
+  const avoids = payload.picks.length - longs;
+  const visionN = Array.isArray(payload.agent?.vision) ? (payload.agent?.vision as unknown[]).length : 0;
+  const biasAr = payload.marketBias.direction === "bullish" ? "صعودي" : payload.marketBias.direction === "bearish" ? "هبوطي" : "محايد";
+  return writeEvents([
+    {
+      kind: "agent",
+      ticker: null,
+      stance: null,
+      setRef,
+      episodeKey: null,
+      titleAr: `الوكيل المستقل — ${kindAr[runKind] ?? kindAr.manual}: ${payload.picks.length} فكرة (${longs} شراء${avoids > 0 ? ` و${avoids} تجنب` : ""})`,
+      titleEn: `Autonomous agent — ${kindEn[runKind] ?? kindEn.manual}: ${payload.picks.length} idea(s) (${longs} long${avoids > 0 ? `, ${avoids} avoid` : ""})`,
+      bodyAr: `قراءة السوق ${biasAr} (قناعة ${payload.marketBias.conviction}/5) · ${visionN > 0 ? `قرأ ${visionN} شارتًا بنموذج الرؤية · ` : ""}${payload.agent?.model ?? "glm-4.7-flash"} · السجل يتغذى بالتعلّم الذاتي`,
+      bodyEn: `Market read ${payload.marketBias.direction} (conviction ${payload.marketBias.conviction}/5) · ${visionN > 0 ? `read ${visionN} chart(s) with the vision model · ` : ""}${payload.agent?.model ?? "glm-4.7-flash"} · the record feeds its self-learning`,
+      score: null,
+    },
+  ]);
 }
 
 /** Emit OUTCOME events for tracked episodes that RESOLVED (target /
@@ -259,7 +305,7 @@ function mapRow(r: {
   return {
     id: r.id,
     createdAt: r.createdAt.toISOString(),
-    kind: (["new-pick", "bias", "outcome", "self-check"] as const).includes(r.kind as never)
+    kind: (["new-pick", "bias", "outcome", "self-check", "agent"] as const).includes(r.kind as never)
       ? (r.kind as SignalEventRow["kind"])
       : "self-check",
     ticker: r.ticker,

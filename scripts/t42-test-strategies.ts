@@ -124,9 +124,9 @@ function fired(v: ReturnType<typeof evaluateStrategies>, id: string) {
 // ── 1. registry integrity ─────────────────────────────────────────────────
 console.log("\n[1] registry integrity");
 {
-  ok(STRATEGY_REGISTRY.length === 12, `12 strategies registered (got ${STRATEGY_REGISTRY.length})`);
+  ok(STRATEGY_REGISTRY.length === 18, `18 strategies registered (got ${STRATEGY_REGISTRY.length})`);
   const ids = STRATEGY_REGISTRY.map((s) => s.id);
-  ok(new Set(ids).size === 12, "ids unique");
+  ok(new Set(ids).size === 18, "ids unique");
   ok(STRATEGY_REGISTRY.every((s) => s.nameAr.length > 2 && s.nameEn.length > 2 && s.oneLineAr.length > 5 && s.oneLineEn.length > 5), "bilingual names + one-liners present");
   ok(STRATEGY_REGISTRY.every((s) => s.weight > 0 && s.weight <= 1), "weights in (0, 1]");
   ok(strategyById("trend-rider")?.nameEn === "Trend Rider", "strategyById resolves");
@@ -150,7 +150,7 @@ console.log("\n[2] uptrend fires the trend/momentum family");
   const ens = ensembleRead(v, atrPctAt(pts, 14));
   ok(ens.consensus > 0.2, `ensemble consensus positive (got ${ens.consensus})`);
   ok(ens.longVotes >= 3, `several strategies long (${ens.longVotes})`);
-  ok(ens.applicable === 10, `applicable = 10 candle strategies (got ${ens.applicable})`);
+  ok(ens.applicable === 13, `applicable = 13 candle strategies (got ${ens.applicable})`);
 }
 
 // ── 3. downtrend mirrors ──────────────────────────────────────────────────
@@ -289,7 +289,7 @@ console.log("\n[10] no-lookahead contract");
   ok(JSON.stringify(before) === JSON.stringify(after), "past evaluation invariant under future mutation");
   // and the full-series evaluation only ADDS bars (does not rewrite history):
   const full = evaluateStrategies(scrambled, CTX_NULL);
-  ok(full.length === 12 && before.length === 12, "12 verdicts either way");
+  ok(full.length === 18 && before.length === 18, "18 verdicts either way");
 }
 
 // ── 11. ensemble math by hand ─────────────────────────────────────────────
@@ -306,7 +306,14 @@ console.log("\n[11] ensemble aggregation math");
   let avoids = 0;
   for (const x of v) {
     const meta = strategyById(x.id)!;
-    if ((x.id === "dividend-quality" || x.id === "press-tone") && !x.fired) continue;
+    // the FIVE data-gated strategies join the denominator only when they
+    // fire (T44): dividend-quality, press-tone, ml-forecast, insider-flow,
+    // whale-watch — mirror ensembleRead's DATA_GATED skip
+    if (
+      ["dividend-quality", "press-tone", "ml-forecast", "insider-flow", "whale-watch"].includes(x.id) &&
+      !x.fired
+    )
+      continue;
     sumW += meta.weight;
     if (x.fired && x.direction === "long") {
       net += meta.weight * x.score;
@@ -322,8 +329,8 @@ console.log("\n[11] ensemble aggregation math");
   expect = Math.max(-1, Math.min(1, expect));
   ok(Math.abs(ens.consensus - Number(expect.toFixed(3))) < 0.002, `consensus matches hand math (${ens.consensus} vs ${expect.toFixed(3)})`);
   ok(ens.longVotes === longs && ens.avoidVotes === avoids, "vote counts match");
-  ok(ens.applicable === 10, `applicable = 10 (got ${ens.applicable})`);
-  ok(Math.abs(ens.agreement - Number((longs / 10).toFixed(2))) < 0.005, `agreement = longs/10 (${ens.agreement})`);
+  ok(ens.applicable === 13, `applicable = 13 candle strategies (got ${ens.applicable})`);
+  ok(Math.abs(ens.agreement - Number((longs / 13).toFixed(2))) < 0.005, `agreement = longs/13 (${ens.agreement})`);
   ok(ens.verdicts.filter((x) => x.fired).every((x) => x.score > 0), "fired verdicts carry positive scores");
   ok(ens.evidence.length > 0 && ens.evidence.length <= 12, `evidence union bounded (${ens.evidence.length})`);
   ok(ens.evidence.every((e) => /^[a-z0-9-]+: /.test(e)), "evidence codes are strategy-prefixed");
@@ -395,9 +402,9 @@ console.log("\n[13] evidenceAr purity over the full code inventory");
 // ── 14. charter + rev ─────────────────────────────────────────────────────
 console.log("\n[14] charter is the multi-strategy charter");
 {
-  ok(STRATEGY_REV === "egx-multi-v2", `STRATEGY_REV bumped (got ${STRATEGY_REV})`);
+  ok(STRATEGY_REV === "egx-multi-v3", `STRATEGY_REV bumped (got ${STRATEGY_REV})`);
   ok(STRATEGY_CHARTER.includes("MULTI-STRATEGY ENSEMBLE"), "charter announces the ensemble");
-  ok(STRATEGY_CHARTER.includes("TWELVE-STRATEGY"), "charter says twelve");
+  ok(STRATEGY_CHARTER.includes("EIGHTEEN-STRATEGY"), "charter says eighteen");
   for (const s of STRATEGY_REGISTRY) {
     ok(STRATEGY_CHARTER.toLowerCase().includes(s.nameEn.toLowerCase()), `charter lists ${s.nameEn}`);
   }
@@ -411,8 +418,8 @@ console.log("\n[15] live /api/signals ensemble block");
   ok(res.ok && Array.isArray(data.rows) && data.rows.length > 50, `scan served (${data.rows?.length ?? 0} rows)`);
   const withEns = (data.rows ?? []).filter((r) => r.ensemble && typeof r.ensemble.consensus === "number");
   ok(withEns.length === (data.rows ?? []).length, `every row carries the ensemble block (${withEns.length}/${data.rows?.length})`);
-  const bad = (data.rows ?? []).filter((r) => r.ensemble && (r.ensemble.applicable < 1 || r.ensemble.applicable > 12));
-  ok(bad.length === 0, `applicable within 1..12 (violations: ${bad.length})`);
+  const bad = (data.rows ?? []).filter((r) => r.ensemble && (r.ensemble.applicable < 1 || r.ensemble.applicable > 18));
+  ok(bad.length === 0, `applicable within 1..18 (violations: ${bad.length})`);
   const firedSeen = new Set((data.rows ?? []).flatMap((r) => r.ensemble?.fired ?? []));
   ok(firedSeen.size >= 5, `strategy ids actually fire in the wild (${firedSeen.size} distinct: ${[...firedSeen].slice(0, 8).join(",")})`);
   const top = [...(data.rows ?? [])].sort((a, b) => (b.ensemble?.consensus ?? 0) - (a.ensemble?.consensus ?? 0))[0];
@@ -429,7 +436,7 @@ console.log("\n[16] live /api/ai-signals strategies");
     meta?: { strategyRev?: string; charter?: string };
   };
   ok(data.ok === true, "ai-signals responds ok");
-  ok(data.meta?.strategyRev === "egx-multi-v2", `served meta rev = egx-multi-v2 (got ${data.meta?.strategyRev})`);
+  ok(data.meta?.strategyRev === "egx-multi-v3", `served meta rev = egx-multi-v3 (got ${data.meta?.strategyRev})`);
   ok((data.meta?.charter ?? "").includes("MULTI-STRATEGY ENSEMBLE"), "served charter is the ensemble charter");
   const picks = data.set?.picks ?? [];
   for (const p of picks) {

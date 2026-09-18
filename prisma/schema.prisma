@@ -231,21 +231,22 @@ model MarketReport {
 /** One live event in the signals stream — what the LIVE FEED shows and what
  *  opted-in devices receive as push notifications. Emitted when a NEW signal
  *  set is published (new picks + the market-bias read), when the track
- *  record resolves a published episode (target / stop / expiry), and when
- *  the self-validation check compares the live record against the backtest
- *  baseline (ASTP-style review, at most once per Cairo day).
+ *  record resolves a published episode (target / stop / expiry), when the
+ *  self-validation check compares the live record against the backtest
+ *  baseline (ASTP-style review, at most once per Cairo day), and when the
+ *  autonomous agent (T45) publishes one of its weekday runs.
  *
- *  `setRef` links pick/bias events to the AiSignalSet id they came from;
+ *  `setRef` links pick/bias/agent events to the AiSignalSet id they came from;
  *  `episodeKey` (ticker + issuedAt ms) links outcome events to the exact
  *  tracked episode — both make emission idempotent (never double-notify). */
 model SignalEvent {
   id          String   @id @default(cuid())
   createdAt   DateTime @default(now())
-  /// new-pick | bias | outcome | self-check
+  /// new-pick | bias | outcome | self-check | agent
   kind        String
-  ticker      String?  // null for market-level events (bias / self-check)
+  ticker      String?  // null for market-level events (bias / self-check / agent)
   stance      String?  // long | avoid (pick events)
-  setRef      String?  // AiSignalSet id for pick/bias events
+  setRef      String?  // AiSignalSet id for pick/bias/agent events
   episodeKey  String?  // `${ticker}:${issuedAtMs}` for outcome events
   titleAr     String
   titleEn     String
@@ -257,4 +258,57 @@ model SignalEvent {
   @@index([createdAt])
   @@index([kind, createdAt])
   @@index([episodeKey])
+}
+
+// ── T45: the AUTONOMOUS self-learning signal agent (hermes) ──
+
+/** One autonomous agent run — the weekday schedule (pre-open / midday /
+ *  post-close, Cairo Sun–Thu) or a manual trigger. `outputJson` carries the
+ *  FULL agent payload: the validated signal set (same AiSetPayload shape the
+ *  shared pipeline serves, so it flows into the track record + live events
+ *  unchanged) PLUS the agent extras — the vision reads, the journal
+ *  reflection, the learning state snapshot, and the skills that ran.
+ *  `status` is "ok" or "failed"; a failed run stores the honest error and
+ *  NEVER fabricates output. */
+model AgentRun {
+  id           String   @id @default(cuid())
+  startedAt    DateTime @default(now())
+  /// pre-open | midday | post-close | manual
+  kind         String
+  /// the Cairo YYYY-MM-DD the run belongs to (dedupe key with kind)
+  session      String
+  model        String   @default("glm-4.7-flash")
+  visionModel  String   @default("glm-4.6v-flash")
+  status       String   @default("ok")
+  llmMs        Int      @default(0)
+  visionMs     Int      @default(0)
+  /// the AiSignalSet this run persisted (null on failure)
+  setRef       String?
+  outputJson   String? // full agent payload (set + agent extras)
+  error        String?
+
+  @@index([session, kind])
+  @@index([startedAt])
+}
+
+/** One memory entry — the agent's LEARNING JOURNAL. Written when the
+ *  learning layer moves a strategy weight (kind "weight-change", with the
+ *  before/after numbers in dataJson) and once per run for the LLM's own
+ *  reflection (kind "reflection" — what it saw, what it concluded, what it
+ *  will watch next). Milestone entries (kind "milestone") mark first runs /
+ *  record thresholds. This is the hermes-agent-inspired long-term memory:
+ *  each run reads the latest lessons, so the agent starts every session
+ *  already knowing what its own record taught it. */
+model AgentLesson {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  runId     String?
+  /// reflection | weight-change | milestone
+  kind      String
+  textAr    String
+  textEn    String
+  dataJson  String?
+
+  @@index([createdAt])
+  @@index([kind, createdAt])
 }

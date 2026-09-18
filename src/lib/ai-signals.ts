@@ -31,6 +31,7 @@ import {
   planFromLegacy,
   type StrategyFeatures,
   type TradePlan,
+  type ChartPointLite,
 } from "@/lib/strategy";
 import {
   evaluateEnsemble,
@@ -214,6 +215,7 @@ type Candidate = {
   plan: TradePlan | null; // T43 — the ladder plan (longs only make use of it)
   ml: MlForecast | null; // T44 — the per-ticker ML model's read
   closes: number[]; // T44 — 1Y closes (portfolio covariance)
+  points: ChartPointLite[]; // T45 — the tape itself (the vision pass renders it)
 };
 
 async function buildCandidates(
@@ -243,10 +245,12 @@ async function buildCandidates(
       let ens: EnsembleRead | null = null;
       let ml: MlForecast | null = null;
       let closes: number[] = [];
+      let points: ChartPointLite[] = [];
       try {
         const chart = await fetchStockChart(row.ticker, "1Y");
         f = strategyFeaturesAt(row.ticker, chart.points);
         closes = chart.points.map((p) => p.close);
+        points = chart.points;
         // T44 — the quant layer: train the per-ticker model on this tape
         // (cached per ticker+lastDate; deterministic; holdout-scored)
         ml = mlForecastCached(row.ticker, chart.points);
@@ -278,8 +282,9 @@ async function buildCandidates(
           : null;
         ml = (row.ml ?? null) as MlForecast | null;
         closes = [];
+        points = [];
       }
-      out.push({ row, f, ens, risk: f ? riskLevels(f) : null, plan: f ? tradePlan(f) : null, ml, closes });
+      out.push({ row, f, ens, risk: f ? riskLevels(f) : null, plan: f ? tradePlan(f) : null, ml, closes, points });
       await sleep(120);
     }
   };
@@ -327,7 +332,7 @@ async function createChat(
   }
 }
 
-const OUTPUT_SCHEMA = `{
+export const OUTPUT_SCHEMA = `{
   "marketBias": { "direction": "bullish" | "bearish" | "neutral", "conviction": 1-5, "summaryAr": "...", "summaryEn": "..." },
   "picks": [
     {
@@ -384,13 +389,17 @@ export function strayArabicInEnglish(s: string): boolean {
  *  English originals live in strategy.ts / strategies.ts). Used whenever a
  *  thesis falls back to its evidence lines, so the Arabic slot never receives
  *  English text. T42 — also renders the ENSEMBLE codes ("strategy-id: …")
- *  using each strategy's Arabic name. */
+ *  using each strategy's Arabic name. T45 FIX — the ensemble-code matcher now
+ *  looks up ANY registered strategy id (the old suffix whitelist missed the
+ *  T44 additions: ml-forecast, pattern-reversal, rsi-divergence,
+ *  zscore-reversion, insider-flow, whale-watch — their evidence lines leaked
+ *  verbatim English into Arabic fallback theses; live case: GSSC). */
 export function evidenceAr(codes: string[]): string {
   const parts: string[] = [];
   for (const c of codes) {
     let m: RegExpExecArray | null;
-    // ensemble codes first: "<strategy-id>: <inner>"
-    const ens = /^(\w+-(?:rider|cross|hunter|reversion|bounce|swing|surge|3m|continue|quality|tone)):\s*(.+)$/.exec(c);
+    // ensemble codes first: "<any registered strategy-id>: <inner>"
+    const ens = /^([a-z0-9][a-z0-9-]*):\s*(.+)$/.exec(c);
     if (ens && strategyById(ens[1])) {
       parts.push(`${strategyById(ens[1])!.nameAr}: ${innerEvidenceAr(ens[2])}`);
       continue;
@@ -462,6 +471,31 @@ function innerEvidenceAr(inner: string): string {
     [/press tone ([\d.-]+) \(14-day lexicon\)/g, "نبرة الصحافة $1 (معجم 14 يومًا)"],
     [/technical score ([\d.-]+) not contradicting/g, "الدرجة الفنية $1 دون تناقض"],
     [/trend: /g, ""],
+    // T45 — the T44 strategy layers' phrases (ml / pattern / divergence /
+    // z-score / insider / whale), so their fallback evidence renders in
+    // Arabic instead of leaking verbatim English:
+    [/model P\(up, 5 sessions\) ([\d.]+)%/g, "احتمال صعود النموذج خلال 5 جلسات $1%"],
+    [/holdout hit rate ([\d.]+)% over (\d+) bars \((\d+) training rows\)/g, "دقة عينة الاحتجاز $1% عبر $2 شمعة ($3 صف تدريب)"],
+    [/morning star: -1\.5% day, inside bar, \+1\.2% recovery day/g, "نجمة صباحية: جلسة هابطة ثم شمعة داخلية ثم جلسة تعافٍ صاعدة"],
+    [/evening star: \+1\.5% day, inside bar, -1\.2% reversal day/g, "نجمة مسائية: جلسة صاعدة ثم شمعة داخلية ثم جلسة انعكاس هابطة"],
+    [/bullish outside bar \(engulfing\) \+([\d.-]+)%/g, "شمعة ابتلاع صاعدة خارجية +$1%"],
+    [/bearish outside bar \(engulfing\) ([-\d.]+)%/g, "شمعة ابتلاع هابطة خارجية $1%"],
+    [/hammer: close in top ([\d.]+)% of a ([\d.]+)%-range bar/g, "مطرقة: الإغلاق في أعلى $1% من شمعة مداها $2%"],
+    [/shooting star: close in bottom ([\d.]+)% of a ([\d.]+)%-range bar/g, "شهاب: الإغلاق في أدنى $1% من شمعة مداها $2%"],
+    [/RSI14 ([\d.]+) \(dip context\)/g, "مؤشر RSI عند $1 (سياق هبوط)"],
+    [/RSI14 ([\d.]+) \(stretched context\)/g, "مؤشر RSI عند $1 (سياق تمدد)"],
+    [/bullish divergence: price lower low, RSI ([\d-]+) points higher/g, "تباعد صاعد: السعر بقاع أدنى و RSI أعلى بـ $1 نقطة"],
+    [/bearish divergence: price higher high, RSI ([\d-]+) points lower/g, "تباعد هابط: السعر بقمم أعلى و RSI أدنى بـ $1 نقطة"],
+    [/z-score ([\d.-]+) vs the 50-session mean \(σ ([\d.]+)% of price\)/g, "درجة الانحراف $1 مقابل متوسط 50 جلسة (σ $2% من السعر)"],
+    [/z-score ([\d.-]+) vs the 50-session mean while below SMA200/g, "درجة الانحراف $1 مقابل متوسط 50 جلسة والسعر تحت المتوسط 200"],
+    [/(\d+) insider\/major-holder buy filings \+ (\d+) treasury purchase\(s\), 0 sells \(90 days\)/g, "$1 إفصاح شراء من مطلعين/مساهمين رئيسيين + $2 شراء خزينة، بلا مبيعات (90 يومًا)"],
+    [/(\d+) insider\/major-holder buy filings, 0 sells \(90 days\)/g, "$1 إفصاح شراء من مطلعين/مساهمين رئيسيين، بلا مبيعات (90 يومًا)"],
+    [/(\d+) insider\/major-holder sell filings, 0 buys \(90 days\)/g, "$1 إفصاح بيع من مطلعين/مساهمين رئيسيين، بلا مشتريات (90 يومًا)"],
+    [/latest filing ([\d-]+)/g, "أحدث إفصاح $1"],
+    [/foreign institutions net ([+\-]?[\d.]+) EGP mn over the last 3 sessions/g, "صافي تدفق المؤسسات الأجنبية $1 مليون جنيه خلال آخر 3 جلسات"],
+    [/candidate above SMA50 \(institutions accumulate leaders\)/g, "المرشح فوق المتوسط 50 (المؤسسات تتراكم في الرواد)"],
+    [/candidate below SMA50 \(distribution hits laggards hardest\)/g, "المرشح تحت المتوسط 50 (التوزيع يضرب المتأخرين أشد)"],
+    [/institutions ([\d.]+)% of turnover/g, "المؤسسات $1% من قيمة التداول"],
   ];
   for (const [re, ar] of phrases) s = s.replace(re, ar);
   // anything still Latin beyond allowed acronyms/numbers/tickers is dropped —
@@ -472,7 +506,7 @@ function innerEvidenceAr(inner: string): string {
     if (!bare) return false;
     if (/[\u0600-\u06ff]/.test(bare)) return true; // Arabic passes
     if (/^[×%→←\-–—/]+$/.test(t)) return true; // symbols
-    if (/^\d+(?:[.,]\d+)*%?$/.test(bare)) return true; // numbers
+    if (/^[+\-]?\d+(?:[.,]\d+)*%?$/.test(bare)) return true; // numbers (signed — flow amounts like +322 EGP)
     const up = bare.toUpperCase();
     if (["RSI", "SMA", "MACD", "ATR", "ROC", "SMA50", "SMA100", "SMA200", "SMA20", "ATR14", "RSI14"].includes(up)) return true;
     if (/^[A-Z]{2,5}$/.test(bare)) return true; // ticker-like
@@ -495,8 +529,20 @@ export function numbersPreserved(original: string, rewritten: string): boolean {
   return a.every((v, i) => Math.abs(v - b[i]) <= Math.max(0.011, Math.abs(v) * 0.001));
 }
 
-async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> {
-  const t0 = Date.now();
+/** T45 — the EVIDENCE PACK: everything both authors of signal sets need (the
+ *  45-minute shared refresh AND the autonomous weekday agent). Gathered once,
+ *  validated identically — one spine, two brains. */
+export type EvidencePack = {
+  scan: Awaited<ReturnType<typeof scanSignals>>;
+  universe: Awaited<ReturnType<typeof fetchUniverse>>;
+  smart: { whale: WhaleRead | null };
+  candidates: Candidate[];
+  byTicker: Map<string, Candidate>;
+  marketContext: Record<string, unknown>;
+  pack: Record<string, unknown>[];
+};
+
+export async function gatherEvidence(): Promise<EvidencePack> {
   const [scan, indices, universe, smart] = await Promise.all([
     scanSignals(),
     fetchIndices(),
@@ -525,7 +571,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     .map((r) => ({ ticker: r.ticker, nameAr: r.nameAr, changePct: r.changePct }));
 
   // T42 — strategy regime across the candidate pack: how many candidates each
-  // of the 12 strategies is long/avoid on (the ensemble's market read)
+  // of the strategies is long/avoid on (the ensemble's market read)
   const strategyRegime = STRATEGY_REGISTRY.map((s) => {
     let longs = 0;
     let avoids = 0;
@@ -559,7 +605,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
     backtestMethod: backtestJson.method,
   };
 
-  const pack = candidates.map(({ row, f, ens, risk, plan, ml, closes }) => ({
+  const pack = candidates.map(({ row, f, ens, risk, plan, ml }) => ({
     ticker: row.ticker,
     nameAr: row.nameAr,
     nameEn: row.name,
@@ -644,32 +690,38 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
       : null,
   }));
 
-  const userMsg = [
+  return { scan, universe, smart, candidates, byTicker, marketContext, pack };
+}
+
+/** The shared user-message spine both authors send to their brain — the
+ *  charter application prompt over the SAME evidence pack. */
+export function composeUserMsg(ev: EvidencePack): string {
+  return [
     "MARKET CONTEXT (live, ~15-min delayed):",
-    JSON.stringify(marketContext),
+    JSON.stringify(ev.marketContext),
     "",
     "CANDIDATES (18-strategy ensemble verdicts per candidate — rule layer + quant layer (ml: per-ticker model with its holdout hit rate) + smart-money layer (insider filings, foreign-institution flows); charterRisk is the precomputed ATR level set):",
-    JSON.stringify(pack),
+    JSON.stringify(ev.pack),
     "",
     "Apply the charter to this evidence. Choose 3-6 picks (you may include 'avoid' stances when the ensemble consensus is net bearish; you may return fewer picks or none qualifying).",
     "Reply with EXACTLY ONE JSON object, no fences, no commentary, matching this schema:",
     OUTPUT_SCHEMA,
   ].join("\n");
+}
 
-  const zai = await getZai();
-  const retry = { budgetLeft: RETRY_BUDGET_MS };
-  const raw = await createChat(
-    zai,
-    [
-      { role: "assistant", content: STRATEGY_CHARTER },
-      { role: "user", content: userMsg },
-    ],
-    retry
-  );
-  const llmMs = Date.now() - t0;
-
-  const parsed = extractJson(raw);
-  if (!parsed) throw new Error("ai-signals: unparseable LLM reply");
+/** T45 — VALIDATION + ASSEMBLY: the guardrail spine, shared by both authors.
+ *  Charter math is authoritative; the LLM narrates and weighs but never
+ *  invents numbers. `chat` is the language-purity repair channel — the shared
+ *  refresh passes the z-ai SDK call, the autonomous agent passes its own
+ *  Z.AI-key client. Identical rules either way. */
+export async function assembleSet(
+  parsed: Record<string, unknown>,
+  ev: EvidencePack,
+  chat: (messages: { role: "user" | "assistant"; content: string }[]) => Promise<string>
+): Promise<AiSetPayload> {
+  const { scan, universe, byTicker, candidates } = ev;
+  const up = universe.filter((r) => r.changePct > 0).length;
+  const down = universe.filter((r) => r.changePct < 0).length;
 
   // ── validation + assembly (charter math is authoritative) ──
   const biasRaw = (parsed.marketBias ?? {}) as Record<string, unknown>;
@@ -840,8 +892,32 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
   };
 
   // ── T41 language-purity gate: repair, then verify, then honest fallback ──
-  await purifyPayload(payload, zai, retry, fallbackArByTicker);
-  return { payload, llmMs: Date.now() - t0 };
+  await purifyPayload(payload, chat, fallbackArByTicker);
+  return payload;
+}
+
+/** The 45-minute shared refresh: SDK brain over the same spine. (The
+ *  autonomous weekday agent calls gatherEvidence + its OWN Z.AI-key brain +
+ *  assembleSet — see lib/hermes-agent.ts.) */
+async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> {
+  const t0 = Date.now();
+  const ev = await gatherEvidence();
+  const zai = await getZai();
+  const retry = { budgetLeft: RETRY_BUDGET_MS };
+  const raw = await createChat(
+    zai,
+    [
+      { role: "assistant", content: STRATEGY_CHARTER },
+      { role: "user", content: composeUserMsg(ev) },
+    ],
+    retry
+  );
+  const llmMs = Date.now() - t0;
+
+  const parsed = extractJson(raw);
+  if (!parsed) throw new Error("ai-signals: unparseable LLM reply");
+  const payload = await assembleSet(parsed, ev, (messages) => createChat(zai, messages, retry));
+  return { payload, llmMs };
 }
 
 /** One repair round for any Arabic field carrying stray Latin words (or an
@@ -856,8 +932,7 @@ type PurityFix = { key: string; arabic: boolean; original: string };
 
 async function purifyPayload(
   payload: AiSetPayload,
-  zai: Zai,
-  retry: { budgetLeft: number },
+  chat: (messages: { role: "user" | "assistant"; content: string }[]) => Promise<string>,
   fallbackArByTicker: Map<string, string>
 ): Promise<void> {
   const fixes: PurityFix[] = [];
@@ -890,20 +965,16 @@ async function purifyPayload(
 
   try {
     const list = fixes.map((f) => `- ${f.key}: ${JSON.stringify(f.original.slice(0, 400))}`).join("\n");
-    const raw = await createChat(
-      zai,
-      [
-        {
-          role: "user",
-          content:
-            "You wrote these fields for an Egyptian stock-market signals product, but they violate the language-purity rule:\n" +
-            list +
-            "\n\nRewrite EACH field in its pure language (Arabic fields: pure MSA Arabic — Latin allowed ONLY for tickers/technical acronyms like RSI, MACD, SMA, ATR; English fields: pure English). KEEP EVERY NUMBER EXACTLY as it is — do not add, drop, or round any number. Keep the meaning and the same length class.\n" +
-            'Reply with EXACTLY ONE JSON object: { "fixes": { "<key>": "<rewritten text>", ... } } covering every key listed above, nothing else.',
-        },
-      ],
-      retry
-    );
+    const raw = await chat([
+      {
+        role: "user",
+        content:
+          "You wrote these fields for an Egyptian stock-market signals product, but they violate the language-purity rule:\n" +
+          list +
+          "\n\nRewrite EACH field in its pure language (Arabic fields: pure MSA Arabic — Latin allowed ONLY for tickers/technical acronyms like RSI, MACD, SMA, ATR; English fields: pure English). KEEP EVERY NUMBER EXACTLY as it is — do not add, drop, or round any number. Keep the meaning and the same length class.\n" +
+          'Reply with EXACTLY ONE JSON object: { "fixes": { "<key>": "<rewritten text>", ... } } covering every key listed above, nothing else.',
+      },
+    ]);
     const parsedFix = extractJson(raw);
     const map = (parsedFix?.fixes ?? {}) as Record<string, unknown>;
     for (const f of fixes) {

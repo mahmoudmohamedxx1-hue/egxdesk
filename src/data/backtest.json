@@ -1,9 +1,9 @@
 {
-  "asOf": "2026-09-17T20:18:17.631Z",
-  "strategyRev": "egx-multi-v2",
+  "asOf": "2026-09-18T13:19:07.515Z",
+  "strategyRev": "egx-multi-v3",
   "ensemble": {
-    "size": 12,
-    "candleStrategies": 10,
+    "size": 18,
+    "candleStrategies": 16,
     "gate": "consensus >= 0.35",
     "description": "the served consensus is the family-weighted vote of all applicable strategies; this replay validates the 10 candle strategies' vote (the two data-gated strategies cannot be replayed historically)"
   },
@@ -21,21 +21,21 @@
   },
   "stats": {
     "windows": 53,
-    "trades": 78,
-    "hitRate": 0.603,
-    "avgNetPct": 3.13,
-    "avgWinPct": 8.42,
-    "avgLossPct": -4.89,
-    "profitFactor": 2.61,
-    "avgExcessPct": 0.94,
-    "beatBenchRate": 0.449,
-    "strategyCumPct": 165.8,
-    "benchCumPct": 181.4,
-    "maxDrawdownPct": -13.5,
-    "bestPct": 37.3,
-    "worstPct": -14.9,
-    "medianNetPct": 2.29,
-    "noPickWindows": 13,
+    "trades": 15,
+    "hitRate": 0.6,
+    "avgNetPct": 1.98,
+    "avgWinPct": 7.27,
+    "avgLossPct": -5.95,
+    "profitFactor": 1.83,
+    "avgExcessPct": -1.3,
+    "beatBenchRate": 0.533,
+    "strategyCumPct": 37.4,
+    "benchCumPct": 181.1,
+    "maxDrawdownPct": -14.3,
+    "bestPct": 12.9,
+    "worstPct": -9.3,
+    "medianNetPct": 3.87,
+    "noPickWindows": 40,
     "suspectExcluded": 0
   },
   "perStrategy": [
@@ -48,10 +48,10 @@
       "stats": {
         "trades": 238,
         "hitRate": 0.563,
-        "avgNetPct": 2.18,
-        "profitFactor": 2,
-        "strategyCumPct": 222.4,
-        "benchCumPct": 173.4,
+        "avgNetPct": 2.01,
+        "profitFactor": 1.9,
+        "strategyCumPct": 197.6,
+        "benchCumPct": 173.1,
         "maxDrawdownPct": -10.7,
         "medianNetPct": 0.99
       }
@@ -64,13 +64,13 @@
       "backtested": true,
       "stats": {
         "trades": 259,
-        "hitRate": 0.571,
-        "avgNetPct": 1.75,
-        "profitFactor": 1.74,
-        "strategyCumPct": 137,
-        "benchCumPct": 173.4,
+        "hitRate": 0.568,
+        "avgNetPct": 1.64,
+        "profitFactor": 1.69,
+        "strategyCumPct": 124.3,
+        "benchCumPct": 173.1,
         "maxDrawdownPct": -11.5,
-        "medianNetPct": 1.19
+        "medianNetPct": 1.07
       }
     },
     {
@@ -82,10 +82,10 @@
       "stats": {
         "trades": 214,
         "hitRate": 0.505,
-        "avgNetPct": 1.28,
-        "profitFactor": 1.43,
-        "strategyCumPct": 94.5,
-        "benchCumPct": 144.7,
+        "avgNetPct": 1.25,
+        "profitFactor": 1.42,
+        "strategyCumPct": 91.9,
+        "benchCumPct": 144.4,
         "maxDrawdownPct": -17.7,
         "medianNetPct": 0.2
       }
@@ -150,10 +150,10 @@
       "stats": {
         "trades": 136,
         "hitRate": 0.456,
-        "avgNetPct": 1.52,
-        "profitFactor": 1.52,
-        "strategyCumPct": 96.6,
-        "benchCumPct": 64,
+        "avgNetPct": 1.49,
+        "profitFactor": 1.51,
+        "strategyCumPct": 92.7,
+        "benchCumPct": 63.8,
         "maxDrawdownPct": -24.5,
         "medianNetPct": -0.43
       }
@@ -184,10 +184,10 @@
       "stats": {
         "trades": 255,
         "hitRate": 0.569,
-        "avgNetPct": 2.23,
-        "profitFactor": 1.98,
-        "strategyCumPct": 212.1,
-        "benchCumPct": 173.4,
+        "avgNetPct": 2.16,
+        "profitFactor": 1.94,
+        "strategyCumPct": 200.6,
+        "benchCumPct": 173.1,
         "maxDrawdownPct": -8.4,
         "medianNetPct": 1.23
       }
@@ -201,10 +201,10 @@
       "stats": {
         "trades": 235,
         "hitRate": 0.523,
-        "avgNetPct": 1.63,
-        "profitFactor": 1.79,
-        "strategyCumPct": 88.8,
-        "benchCumPct": 173.4,
+        "avgNetPct": 1.69,
+        "profitFactor": 1.82,
+        "strategyCumPct": 94.3,
+        "benchCumPct": 173.1,
         "maxDrawdownPct": -14.3,
         "medianNetPct": 0.33
       }
@@ -224,6 +224,108 @@
       "family": "news",
       "backtested": false,
       "note": "live-only: needs the current 14-day press archive (no historical coverage)"
+    },
+    {
+      "id": "ml-forecast",
+      "nameAr": "توقع تعلم الآلة",
+      "nameEn": "ML Forecast",
+      "family": "ml",
+      "backtested": true,
+      "stats": {
+        "trades": 0,
+        "hitRate": 0,
+        "avgNetPct": 0,
+        "profitFactor": null,
+        "strategyCumPct": 0,
+        "benchCumPct": 0,
+        "maxDrawdownPct": 0,
+        "medianNetPct": 0
+      }
+    },
+    {
+      "id": "pattern-reversal",
+      "nameAr": "أنماط الانعكاس",
+      "nameEn": "Pattern Reversal",
+      "family": "reversion",
+      "backtested": true,
+      "stats": {
+        "trades": 28,
+        "hitRate": 0.679,
+        "avgNetPct": 4.47,
+        "profitFactor": 6.25,
+        "strategyCumPct": 68,
+        "benchCumPct": 52.1,
+        "maxDrawdownPct": -9.5,
+        "medianNetPct": 3.41
+      }
+    },
+    {
+      "id": "rsi-divergence",
+      "nameAr": "تباعد RSI",
+      "nameEn": "RSI Divergence",
+      "family": "reversion",
+      "backtested": true,
+      "stats": {
+        "trades": 40,
+        "hitRate": 0.575,
+        "avgNetPct": 3.38,
+        "profitFactor": 3.69,
+        "strategyCumPct": 107.2,
+        "benchCumPct": 82.1,
+        "maxDrawdownPct": -7.7,
+        "medianNetPct": 1.58
+      }
+    },
+    {
+      "id": "zscore-reversion",
+      "nameAr": "ارتداد الانحراف المعياري",
+      "nameEn": "Z-Score Reversion",
+      "family": "reversion",
+      "backtested": true,
+      "stats": {
+        "trades": 23,
+        "hitRate": 0.565,
+        "avgNetPct": 2.81,
+        "profitFactor": 3.81,
+        "strategyCumPct": 60.4,
+        "benchCumPct": 68.2,
+        "maxDrawdownPct": -4.2,
+        "medianNetPct": 1.52
+      }
+    },
+    {
+      "id": "insider-flow",
+      "nameAr": "إشارة المطلعين",
+      "nameEn": "Insider Flow",
+      "family": "flow",
+      "backtested": true,
+      "stats": {
+        "trades": 0,
+        "hitRate": 0,
+        "avgNetPct": 0,
+        "profitFactor": null,
+        "strategyCumPct": 0,
+        "benchCumPct": 0,
+        "maxDrawdownPct": 0,
+        "medianNetPct": 0
+      }
+    },
+    {
+      "id": "whale-watch",
+      "nameAr": "رادار الحيتان",
+      "nameEn": "Whale Watch",
+      "family": "flow",
+      "backtested": true,
+      "stats": {
+        "trades": 0,
+        "hitRate": 0,
+        "avgNetPct": 0,
+        "profitFactor": null,
+        "strategyCumPct": 0,
+        "benchCumPct": 0,
+        "maxDrawdownPct": 0,
+        "medianNetPct": 0
+      }
     }
   ],
   "windows": [
@@ -242,20 +344,15 @@
     {
       "date": "2024-08-18",
       "picks": [
-        "ADIB",
-        "HDBK",
-        "COMI",
-        "ALCN"
+        "ADIB"
       ],
-      "netPct": 0.08,
+      "netPct": 3.87,
       "benchPct": 4.75
     },
     {
       "date": "2024-09-01",
-      "picks": [
-        "EMFD"
-      ],
-      "netPct": -5.86,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -2.54
     },
     {
@@ -266,19 +363,14 @@
     },
     {
       "date": "2024-09-30",
-      "picks": [
-        "ADIB",
-        "HDBK"
-      ],
-      "netPct": -8.1,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -5.72
     },
     {
       "date": "2024-10-15",
-      "picks": [
-        "SVCE"
-      ],
-      "netPct": 0.48,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 3.87
     },
     {
@@ -291,26 +383,20 @@
     },
     {
       "date": "2024-11-12",
-      "picks": [
-        "ORHD"
-      ],
-      "netPct": -3.99,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -3.13
     },
     {
       "date": "2024-11-26",
-      "picks": [
-        "BINV"
-      ],
-      "netPct": -1.09,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 1.74
     },
     {
       "date": "2024-12-10",
-      "picks": [
-        "OIH"
-      ],
-      "netPct": 8.98,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -3.02
     },
     {
@@ -322,20 +408,15 @@
     {
       "date": "2025-01-09",
       "picks": [
-        "MPCO",
-        "EGAL",
-        "CCAP"
+        "MPCO"
       ],
-      "netPct": 14.39,
+      "netPct": 11.73,
       "benchPct": 2.99
     },
     {
       "date": "2025-01-23",
-      "picks": [
-        "SPMD",
-        "MPCO"
-      ],
-      "netPct": 0.86,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -0.25
     },
     {
@@ -347,12 +428,9 @@
     {
       "date": "2025-02-20",
       "picks": [
-        "CCAP",
-        "ORHD",
-        "OIH",
-        "PHDC"
+        "CCAP"
       ],
-      "netPct": 1.51,
+      "netPct": -3.42,
       "benchPct": 0.79
     },
     {
@@ -363,10 +441,8 @@
     },
     {
       "date": "2025-03-20",
-      "picks": [
-        "OIH"
-      ],
-      "netPct": 3.05,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -4.35
     },
     {
@@ -377,45 +453,34 @@
     },
     {
       "date": "2025-04-28",
-      "picks": [
-        "OIH",
-        "EMFD"
-      ],
-      "netPct": 3.11,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -1.4
     },
     {
       "date": "2025-05-13",
-      "picks": [
-        "OIH"
-      ],
-      "netPct": 8.08,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -1.38
     },
     {
       "date": "2025-05-27",
       "picks": [
-        "GBCO",
-        "PHDC"
+        "GBCO"
       ],
-      "netPct": -1.27,
+      "netPct": -5.32,
       "benchPct": -2.86
     },
     {
       "date": "2025-06-15",
-      "picks": [
-        "CERA"
-      ],
-      "netPct": 6.68,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 9.02
     },
     {
       "date": "2025-06-30",
-      "picks": [
-        "GBCO",
-        "WKOL"
-      ],
-      "netPct": -3.02,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 0.62
     },
     {
@@ -427,26 +492,21 @@
     {
       "date": "2025-07-31",
       "picks": [
-        "SVCE",
-        "CERA"
+        "SVCE"
       ],
-      "netPct": 2.21,
+      "netPct": 7.34,
       "benchPct": 1.34
     },
     {
       "date": "2025-08-14",
-      "picks": [
-        "BINV"
-      ],
-      "netPct": -1.11,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 13.02
     },
     {
       "date": "2025-08-28",
-      "picks": [
-        "CERA"
-      ],
-      "netPct": -3.9,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -3.15
     },
     {
@@ -457,29 +517,20 @@
     },
     {
       "date": "2025-09-28",
-      "picks": [
-        "MPCO",
-        "ZMID",
-        "COMI"
-      ],
-      "netPct": 18.06,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 5.6
     },
     {
       "date": "2025-10-13",
-      "picks": [
-        "COMI"
-      ],
-      "netPct": 0.27,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 4.22
     },
     {
       "date": "2025-10-27",
-      "picks": [
-        "DTPP",
-        "CLHO"
-      ],
-      "netPct": -7.11,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -0.06
     },
     {
@@ -490,60 +541,42 @@
     },
     {
       "date": "2025-11-24",
-      "picks": [
-        "ETEL"
-      ],
-      "netPct": -3.09,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 3.49
     },
     {
       "date": "2025-12-08",
       "picks": [
-        "EFID",
-        "FWRY",
-        "EMFD",
-        "EGAL",
-        "PHDC"
+        "EFID"
       ],
-      "netPct": 2.52,
+      "netPct": 4.95,
       "benchPct": 1.74
     },
     {
       "date": "2025-12-22",
-      "picks": [
-        "SVCE",
-        "EFID"
-      ],
-      "netPct": 12.98,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 0.44
     },
     {
       "date": "2026-01-06",
-      "picks": [
-        "ELEC",
-        "EGAL"
-      ],
-      "netPct": -10.84,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 0.35
     },
     {
       "date": "2026-01-21",
       "picks": [
-        "FWRY",
-        "BINV",
-        "ADIB",
-        "PHDC",
-        "TMGH"
+        "BINV"
       ],
-      "netPct": 7.8,
+      "netPct": 12.9,
       "benchPct": 3.81
     },
     {
       "date": "2026-02-05",
-      "picks": [
-        "COMI"
-      ],
-      "netPct": 0.2,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 1.11
     },
     {
@@ -554,38 +587,29 @@
     },
     {
       "date": "2026-03-05",
-      "picks": [
-        "ABUK",
-        "EGAL"
-      ],
-      "netPct": 12.5,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 3.07
     },
     {
       "date": "2026-03-19",
-      "picks": [
-        "ADIB"
-      ],
-      "netPct": -0.35,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 1.43
     },
     {
       "date": "2026-04-06",
-      "picks": [
-        "ADIB"
-      ],
-      "netPct": 6.86,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 6.32
     },
     {
       "date": "2026-04-22",
       "picks": [
         "MFPC",
-        "DTPP",
-        "PHDC",
-        "ZMID"
+        "DTPP"
       ],
-      "netPct": 0.62,
+      "netPct": -7.55,
       "benchPct": 6.2
     },
     {
@@ -604,11 +628,8 @@
     },
     {
       "date": "2026-06-03",
-      "picks": [
-        "EMFD",
-        "ASPI"
-      ],
-      "netPct": -0.42,
+      "picks": [],
+      "netPct": 0,
       "benchPct": -1.37
     },
     {
@@ -621,47 +642,38 @@
       "date": "2026-07-01",
       "picks": [
         "SVCE",
-        "NIPH",
-        "DTPP",
-        "ZMID"
+        "NIPH"
       ],
-      "netPct": 4.11,
+      "netPct": 1.89,
       "benchPct": 4.27
     },
     {
       "date": "2026-07-15",
       "picks": [
-        "GBCO",
-        "NIPH",
-        "TMGH"
+        "GBCO"
       ],
-      "netPct": 1.26,
+      "netPct": -9.33,
       "benchPct": 3.16
     },
     {
       "date": "2026-07-29",
       "picks": [
-        "MPCO",
-        "ORHD"
+        "MPCO"
       ],
-      "netPct": 8.46,
+      "netPct": 11.83,
       "benchPct": 8.97
     },
     {
       "date": "2026-08-12",
-      "picks": [
-        "OIH"
-      ],
-      "netPct": 12.01,
+      "picks": [],
+      "netPct": 0,
       "benchPct": 1.34
     },
     {
       "date": "2026-08-26",
-      "picks": [
-        "ZMID"
-      ],
-      "netPct": 13.6,
-      "benchPct": 5.75
+      "picks": [],
+      "netPct": 0,
+      "benchPct": 5.62
     }
   ],
   "notes": [

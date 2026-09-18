@@ -902,4 +902,34 @@ export function evaluateEnsemble(
   return ensembleRead(verdicts, atrPct);
 }
 
+/** T45 — the LEARNING-weighted twin of ensembleRead: IDENTICAL aggregation
+ *  math (counted set, ATR guard, clamping), but each strategy's weight is
+ *  multiplied by its learned multiplier (bounded 0.75–1.25, from the agent's
+ *  live track-record attribution — see agent-learning.ts).
+ *
+ *  Used by the autonomous agent's reasoning prompt and the learning panel —
+ *  NEVER by the served charter gates: pick validation, the 0.35 long gate
+ *  and the conviction caps keep reading the un-weighted consensus. */
+export function reweightedEnsembleRead(
+  verdicts: StrategyVerdict[],
+  atrPct: number | null,
+  multiplierOf: (id: string) => number
+): number {
+  let sumW = 0;
+  let net = 0;
+  for (const v of verdicts) {
+    const meta = BY_ID.get(v.id);
+    if (!meta) continue;
+    if (DATA_GATED.has(v.id) && !v.fired) continue;
+    const w = meta.weight * multiplierOf(v.id);
+    sumW += w;
+    if (v.fired && v.direction === "long") net += w * v.score;
+    else if (v.fired && v.direction === "avoid") net -= w * v.score;
+  }
+  let consensus = sumW > 0 ? net / sumW : 0;
+  if (atrPct !== null && atrPct > 9) consensus *= 0.35;
+  else if (atrPct !== null && atrPct > 6) consensus *= 0.7;
+  return Math.max(-1, Math.min(1, Number(consensus.toFixed(3))));
+}
+
 export const ENSEMBLE_SIZE = STRATEGY_REGISTRY.length;

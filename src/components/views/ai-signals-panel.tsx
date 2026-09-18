@@ -20,6 +20,7 @@ import { BrainCircuit, Calculator, ChevronDown, ChevronUp, History, Layers, Spar
 import type { AiSignalsResponse, AiPick } from "@/lib/ai-signals";
 import type { TrackRecord, TrackedSignal } from "@/lib/signal-track";
 import { STRATEGY_REGISTRY, strategyById } from "@/lib/strategies";
+import { AutonomousAgentSection, LiveFeedSection } from "@/components/views/agent-live-sections";
 
 type Response = AiSignalsResponse & { error?: string };
 
@@ -567,6 +568,15 @@ export function AiSignalsPanel() {
           )}
         </div>
       </section>
+
+      {/* T45 — the AUTONOMOUS SELF-LEARNING AGENT: weekday schedule,
+          GLM-4.7-Flash brain + GLM-4.6V-Flash vision, learning journal,
+          guarded manual trigger */}
+      <AutonomousAgentSection />
+
+      {/* T44/T45 — the LIVE per-signal notification stream (feed + browser
+          notifications; installed PWAs get web-push when closed) */}
+      <LiveFeedSection />
 
       {set ? (
         <>

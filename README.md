@@ -9,9 +9,9 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.33-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.34-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
-[![Tests](https://img.shields.io/badge/tests-19%20suites-green)](#testing)
+[![Tests](https://img.shields.io/badge/tests-20%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
 
@@ -63,16 +63,31 @@ re-blended at SERVE TIME (≤10-min press pass) so it never lags the hourly tech
 AI-signals evidence pack, and the agent's `technicals` tool — one math everywhere. See
 [`src/lib/fundamentals.ts`](src/lib/fundamentals.ts) and [`src/lib/signals-scan.ts`](src/lib/signals-scan.ts).
 
-A separate **AI Signals** mode runs a **12-strategy ensemble** (trend, momentum, reversion, volume, dividend
-quality, press tone — each deterministic, each with its own trigger and evidence codes) whose weighted consensus
-feeds a GLM model (shared compute — one call per cycle serves everyone). Every pick carries the fired-strategy
-chips, the vote count (e.g. 8/11), the consensus, and a **full executable trade plan** (T43): a limit-order entry
-zone, the stop with its risk %, and a T1/T2/T3 scale-out ladder — plus a **position-size calculator** that turns
-the plan into "how many shares" for the reader's own account and risk budget. A **published-signal track record**
-replays every past pick against the real closing prints that followed it (target / stopped / expired / open —
-no simulation, no backfill); the walk-forward backtest validates the ensemble AND each strategy standalone
-(hit 60.3%, PF 2.61, avg excess +0.94%/trade over 3y). See [`src/lib/strategies.ts`](src/lib/strategies.ts),
+A separate **AI Signals** mode runs an **18-strategy ensemble** (trend, momentum, reversion, volume, dividend
+quality, press tone, an ML forecast layer, candlestick patterns, RSI divergence, z-score reversion, insider
+filings and foreign-institution flows — each deterministic, each with its own trigger and evidence codes) whose
+weighted consensus feeds a GLM model (shared compute — one call per cycle serves everyone). Every pick carries
+the fired-strategy chips, the vote count (e.g. 8/14), the consensus, and a **full executable trade plan** (T43):
+a limit-order entry zone, the stop with its risk %, and a T1/T2/T3 scale-out ladder — plus a **position-size
+calculator** that turns the plan into "how many shares" for the reader's own account and risk budget. A
+**published-signal track record** replays every past pick against the real closing prints that followed it
+(target / stopped / expired / open — no simulation, no backfill); the walk-forward backtest validates the
+ensemble AND each strategy standalone. See [`src/lib/strategies.ts`](src/lib/strategies.ts),
 [`src/lib/signal-track.ts`](src/lib/signal-track.ts) and [`scripts/backtest-signals.ts`](scripts/backtest-signals.ts).
+
+On top of it runs **HERMES — the autonomous self-learning signal agent** (T45): a weekday-scheduled agent
+(Sun–Thu Cairo: pre-open 09:15, midday 12:15, post-close 15:00, plus a guarded manual trigger) that gathers
+the same evidence through **ten skills**, renders the top candidates' real candlestick tapes as PNGs and has
+the free **GLM-4.6V-Flash vision model read them**, then reasons with the **GLM-4.7-Flash brain** (thinking
+on) over evidence + vision + memory via a dedicated Z.AI key used for signals only — and its output passes the
+SAME charter gates (consensus ≥ 0.35, conviction caps, ATR math, language purity) as the shared pipeline. It
+**learns from its own published record**: closed episodes are attributed to the strategies that fired at issue,
+live hit rates bend each strategy's weight (×0.75–×1.25, n≥8 gate), and every weight change + a per-run
+reflection are journaled in a persistent lessons memory — so each session starts smarter than the last, while
+the mathematical gates never move. Every run emits **live per-signal notifications** (the event feed +
+browser notifications while the tab is open, real web-push for installed PWAs when it is closed). See
+[`src/lib/hermes-agent.ts`](src/lib/hermes-agent.ts), [`src/lib/agent-learning.ts`](src/lib/agent-learning.ts),
+[`src/lib/agent-scheduler.ts`](src/lib/agent-scheduler.ts) and [`src/lib/chart-png.ts`](src/lib/chart-png.ts).
 
 ---
 
@@ -188,8 +203,9 @@ bun scripts/t38-test-audit-fixes.ts       # 64 unit checks — anti-fabrication 
 bun scripts/t39-test-fixes.ts            # 35 checks — audit-2 fixes: AR narrative units, picker aliases, name artifacts, P/E cap, sector labels
 bun scripts/t40-test-fixes.ts            # 38 checks — audit-3 fixes: vendor-stub chart guard, EN-news latinization, bilingual metadata, P&L decimals
 bun scripts/t41-test-fixes.ts            # 51 checks — audit-4 fixes: calendar dedupe, ai-signals language-purity gate + evidence fallback, lab notes AR, EN home news, honest dead-feed cards
-bun scripts/t42-test-strategies.ts       # 86 checks — the 12-strategy ensemble: per-strategy triggers, no-lookahead, consensus math, ATR guard, purity, live ensemble blocks + picks
+bun scripts/t42-test-strategies.ts       # 85 checks — the 18-strategy ensemble: per-strategy triggers, no-lookahead, consensus math, ATR guard, purity, live ensemble blocks + picks
 bun scripts/t43-test-signaltrack.ts       # 51 checks — trade-plan ladder math, legacy-set rebuild, outcome classification (order-based), episode grouping/freezing, live plan + trackRecord shape
+bun scripts/t45-test-hermes.ts            # 63 checks — PNG encoder validity (CRC/zlib/determinism), bounded learning math, weekday scheduler, evidenceAr 18-id Arabic render (T44 leak fix), Z.AI JSON extraction, LIVE agent run + events + metering
 bunx tsc --noEmit && bunx eslint src/
 ```
 

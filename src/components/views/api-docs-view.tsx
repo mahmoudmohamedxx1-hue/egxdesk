@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Braces, ExternalLink, ChevronDown, ChevronRight, Link2 } from "lucide-react";
 
 type Endpoint = {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "GET / POST";
   path: string;
   params?: string[];
   returnsAr: string;
@@ -163,9 +163,23 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET",
     path: "/api/ai-signals",
-    returnsAr: "إشارات الذكاء الاصطناعي المشتركة: منظومة من ١٢ استراتيجية مستقلة تصوّت على كل سهم (كل فيشة تحمل الاستراتيجيات التي أطلقت إشارتها وعدد الأصوات والإجماع) — تُحسب كل ٤٥ دقيقة لكل المستخدمين + خطة تنفيذ كاملة لكل فيشة (نطاق دخول، وقف، سلم أهداف ١/٢/٣، نسبة المخاطرة) + سجل الإشارات المنشورة (كل إشارة سابقة تُقاس بأسعار الإغلاق الحقيقية التي جاءت بعدها) + نتائج الاختبار التاريخي للمنظومة ولكل استراتيجية على حدة. مجاني بلا حد قراءة.",
-    returnsEn: "The shared AI signals: an ensemble of 12 independent strategies votes on every stock (each pick carries the fired strategies, the vote count and the consensus) — computed once per 45-minute cycle for all users + a full executable plan per pick (entry zone, stop, the T1/T2/T3 ladder, risk %) + the published-signal track record (every past pick scored against the real closing prints that followed it) + the walk-forward backtest of the ensemble AND each strategy standalone. Free, unlimited reads.",
-    source: "z-ai-web-dev-sdk (1 shared call/cycle) · our 12-strategy ensemble engine + signals scan",
+    returnsAr: "إشارات الذكاء الاصطناعي المشتركة: منظومة من ١٨ استراتيجية مستقلة تصوّت على كل سهم (كل فيشة تحمل الاستراتيجيات التي أطلقت إشارتها وعدد الأصوات والإجماع) — تُحسب كل ٤٥ دقيقة لكل المستخدمين + خطة تنفيذ كاملة لكل فيشة (نطاق دخول، وقف، سلم أهداف ١/٢/٣، نسبة المخاطرة) + سجل الإشارات المنشورة (كل إشارة سابقة تُقاس بأسعار الإغلاق الحقيقية التي جاءت بعدها) + نتائج الاختبار التاريخي للمنظومة ولكل استراتيجية على حدة. مجاني بلا حد قراءة.",
+    returnsEn: "The shared AI signals: an ensemble of 18 independent strategies votes on every stock (each pick carries the fired strategies, the vote count and the consensus) — computed once per 45-minute cycle for all users + a full executable plan per pick (entry zone, stop, the T1/T2/T3 ladder, risk %) + the published-signal track record (every past pick scored against the real closing prints that followed it) + the walk-forward backtest of the ensemble AND each strategy standalone. Free, unlimited reads.",
+    source: "z-ai-web-dev-sdk (1 shared call/cycle) · our 18-strategy ensemble engine + signals scan",
+  },
+  {
+    method: "GET / POST",
+    path: "/api/agent-signals",
+    returnsAr: "الوكيل المستقل ذاتي التعلّم (HERMES): GET يعرض جدوله الأسبوعي (الأحد–الخميس بتوقيت القاهرة: قبل الافتتاح ٠٩:١٥، منتصف الجلسة ١٢:١٥، بعد الإغلاق ١٥:٠٠) مع العد التنازلي للتشغيل القادم، وآخر تشغيل ناجح كاملاً (الأفكار + يوميات الوكيل + قراءات نموذج الرؤية للشموع + لقطة حالة التعلّم)، وحالة التعلّم الحية (وزن كل استراتيجية من سجل النتائج المنشور)، ودفتر الدروس، وسجل التشغيل بالنجاح والفشل معًا. POST يشغّل الوكيل يدويًا (محد: تشغيل كل ١٠ دقائق) — نفس خط الأنابيب المجدول. عقل الوكيل GLM-4.7-Flash ونموذج الرؤية GLM-4.6V-Flash عبر مفتاح Z.AI المخصص للإشارات فقط.",
+    returnsEn: "HERMES — the autonomous self-learning agent: GET serves its weekday schedule (Sun–Thu Cairo: pre-open 09:15, midday 12:15, post-close 15:00) with the next-run countdown, the latest successful run in full (picks + the agent's journal + the vision model's candlestick reads + the frozen learning snapshot), the live learning state (per-strategy weights from the published record), the lessons journal and the run history (successes and failures alike). POST triggers a manual run (guarded: one per 10 minutes) — the same scheduled pipeline. Brain GLM-4.7-Flash, vision GLM-4.6V-Flash, via the Z.AI key dedicated to signals only.",
+    source: "src/lib/hermes-agent.ts + agent-scheduler.ts + agent-learning.ts · chart-png.ts (zero-dep candlestick renderer)",
+  },
+  {
+    method: "GET",
+    path: "/api/signals/events",
+    returnsAr: "البث المباشر للإشارات: كل إشارة جديدة لكل سهم، قراءة السوق، نتائج الإشارات المنشورة (هدف/وقف/انتهاء) مقيسة على الشريط الحقيقي، تعقيبات الوكيل المستقل، والمراجعة الذاتية اليومية — مع دعم المؤشر التزايدي (since) للقراءة اللحظية. هذه هي الأحداث نفسها التي تصل كإشعارات متصفح/هاتف للمشتركين.",
+    returnsEn: "The live signal stream: every new per-stock signal, the market read, published-signal outcomes (target/stop/expiry) measured on the real tape, the autonomous agent's briefs and the daily self-validation — with an incremental cursor (since) for live polling. The same events opted-in devices receive as browser/phone notifications.",
+    source: "src/lib/signal-events.ts (idempotent emission per set/episode/day)",
   },
   {
     method: "GET",

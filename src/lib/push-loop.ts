@@ -30,6 +30,12 @@
  *     Idempotent end-to-end (episode keys + daily dedupe + per-device
  *     cursors), so a crashed loop re-run can never double-notify.
  *
+ *  6. Autonomous agent scheduler (Task 45): every 5 minutes check the Cairo
+ *     clock against the EGX weekday schedule (Sun–Thu) — fire the pre-open
+ *     brief (09:15), the midday scan (12:15) or the post-close review
+ *     (15:00) exactly once per trading day each. The run is single-flight
+ *     and slot-deduped in the AgentRun table, so restarts never double-run.
+ *
  *  Guarded by a globalThis flag so dev hot-reloads / route module isolation
  *  can never start a second copy of the same interval. */
 
@@ -109,6 +115,16 @@ async function safeSignalEventsTick(): Promise<void> {
   }
 }
 
+/** T45 — the autonomous agent's weekday scheduler tick. */
+async function safeAgentSchedulerTick(): Promise<void> {
+  try {
+    const { agentTick } = await import("@/lib/agent-scheduler");
+    await agentTick();
+  } catch (err) {
+    console.warn("[hermes] scheduler tick failed:", err instanceof Error ? err.message : err);
+  }
+}
+
 export function startBackgroundJobs(): void {
   if (g.__egxBgStarted) return;
   g.__egxBgStarted = true;
@@ -139,5 +155,11 @@ export function startBackgroundJobs(): void {
   setTimeout(() => void safeSignalEventsTick(), 90_000).unref?.();
   setInterval(() => void safeSignalEventsTick(), EVENTS_TICK_MS).unref?.();
 
-  console.log("[bg] push loop + signals + ai-signals warm + desk reports + signal events started");
+  // T45 — the autonomous agent: weekday scheduler check every 5 minutes
+  // (first check ~4 min after boot — lets the scan + signals warm first;
+  // a due slot fires immediately after, exactly once per trading day)
+  setTimeout(() => void safeAgentSchedulerTick(), 4 * 60_000).unref?.();
+  setInterval(() => void safeAgentSchedulerTick(), 5 * 60_000).unref?.();
+
+  console.log("[bg] push loop + signals + ai-signals warm + desk reports + signal events + agent scheduler started");
 }
