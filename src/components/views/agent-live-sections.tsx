@@ -30,8 +30,13 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Cloud,
+  CloudOff,
   Eye,
+  FileText,
   GraduationCap,
+  Layers,
+  Lightbulb,
   NotebookPen,
   PlayCircle,
   Target,
@@ -59,6 +64,14 @@ type AgentExtras = {
   vision: VisionRead[];
   journalAr: string;
   journalEn: string;
+  /** T46 — the model's actual THINKING stream (verbatim, trimmed). */
+  thinking?: string | null;
+  /** T46 — the supermemory entries recalled before this run. */
+  memoryRecall?: { kind: string; text: string; score: number }[];
+  /** T46 — memory totals for this run. */
+  memory?: { totalBefore: number; stored: number };
+  /** T46 — durable file ledger state at run time. */
+  archive?: { ledgerRuns: number };
   learning: {
     episodesClosed: number;
     minN: number;
@@ -89,6 +102,10 @@ type AgentStateResponse = {
   lessons: { id: string; kind: string; textAr: string; textEn: string; createdAt: string }[];
   runs: { id: string; kind: string; session: string; startedAt: string; status: string; model: string; llmMs: number; visionMs: number; error: string | null }[];
   schedule?: { next: { kind: string; at: string; inMs: number; labelAr: string; labelEn: string }; slots: { kind: string; labelAr: string; labelEn: string }[] };
+  /** T46 — the supermemory / durable-files / supabase state. */
+  memory?: { total: number; byKind: { kind: string; count: number }[]; cloud: { configured: boolean; state: string; mirrored: number; lastError: string | null }; oldest: string | null };
+  archive?: { signalsFile: boolean; worklogFile: boolean; runs: number; dir: string };
+  supabase?: { configured: boolean; url: string | null; state: string; mirrored: number; lastError: string | null };
 };
 
 // ── small helpers ──
@@ -346,6 +363,19 @@ function WeightBadge({ multiplier }: { multiplier: number }) {
   );
 }
 
+function memKindLabel(kind: string, lang: "ar" | "en"): string {
+  const map: Record<string, { ar: string; en: string }> = {
+    reflection: { ar: "تأمل", en: "reflection" },
+    pick: { ar: "اختيار", en: "pick" },
+    bias: { ar: "قراءة سوق", en: "market read" },
+    vision: { ar: "رؤية", en: "vision" },
+    lesson: { ar: "درس", en: "lesson" },
+    milestone: { ar: "محطة", en: "milestone" },
+  };
+  const m = map[kind] ?? { ar: "ذاكرة", en: "memory" };
+  return lang === "ar" ? m.ar : m.en;
+}
+
 export function AutonomousAgentSection() {
   const { lang } = useApp();
   const [state, setState] = useState<AgentStateResponse | null>(null);
@@ -353,6 +383,7 @@ export function AutonomousAgentSection() {
   const [triggering, setTriggering] = useState(false);
   const [triggerMsg, setTriggerMsg] = useState<"started" | "cooldown" | "error" | null>(null);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [thinkingOpen, setThinkingOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   const poll = useCallback(async () => {
@@ -426,6 +457,10 @@ export function AutonomousAgentSection() {
           <span className="num inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             <BrainCircuit className="h-3 w-3" aria-hidden />
             {state?.models.brain ?? "GLM-4.7-Flash"}
+          </span>
+          <span className="num inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <Lightbulb className="h-3 w-3" aria-hidden />
+            {tt(T.agentThinkingBadge, lang)}
           </span>
           <span className="num inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             <Eye className="h-3 w-3" aria-hidden />
@@ -515,6 +550,43 @@ export function AutonomousAgentSection() {
               <p className="text-[11px] leading-relaxed border-s-2 border-primary/30 ps-2.5">{lang === "ar" ? agent.journalAr : agent.journalEn}</p>
             </div>
           )}
+
+          {/* T46 — the agent's THINKING stream, verbatim */}
+          {agent && (
+            <div className="rounded-md border overflow-hidden">
+              <button
+                onClick={() => setThinkingOpen((o) => !o)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 text-start hover:bg-accent/40 transition-colors"
+                aria-expanded={thinkingOpen}
+              >
+                <span className="text-[11px] font-medium flex items-center gap-1.5 min-w-0">
+                  <Lightbulb className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden />
+                  <span className="truncate">{tt(T.agentThinkingTitle, lang)}</span>
+                  {agent.thinking ? (
+                    <span className="num shrink-0 rounded-full border bg-up-soft/60 px-1.5 py-0.5 text-[9px] font-semibold text-up" dir="ltr">
+                      {tt(T.agentThinkingBadge, lang)}
+                    </span>
+                  ) : null}
+                </span>
+                {thinkingOpen ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+              </button>
+              {thinkingOpen && (
+                <div className="px-3 pb-3 space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">{tt(T.agentThinkingNote, lang)}</p>
+                  {agent.thinking ? (
+                    <pre
+                      className="max-h-64 overflow-y-auto thin-scroll whitespace-pre-wrap break-words rounded-md border bg-secondary/25 px-2.5 py-2 text-[10px] leading-relaxed text-muted-foreground"
+                      dir="auto"
+                    >
+                      {agent.thinking}
+                    </pre>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{tt(T.agentThinkingHidden, lang)}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -576,6 +648,90 @@ export function AutonomousAgentSection() {
           <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{lang === "ar" ? learning.noteAr : learning.noteEn}</p>
         </div>
       )}
+
+      {/* T46 — SUPERMEMORY: the unlimited memory + the durable files + supabase */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5 flex-wrap">
+          <Layers className="h-3 w-3 text-primary" aria-hidden />
+          {tt(T.agentMemoryTitle, lang)}
+          <span className="num font-normal text-muted-foreground/70">
+            · {state?.memory?.total ?? 0} {tt(T.agentMemoryCount, lang)}
+            {agent?.memory && agent.memory.stored > 0 ? ` (+${agent.memory.stored} ${tt(T.agentMemoryStoredRun, lang)})` : ""}
+          </span>
+          {state?.archive?.signalsFile ? (
+            <span className="inline-flex items-center gap-1 rounded-full border bg-up-soft/40 px-1.5 py-0.5 text-[9px] font-medium text-up" title="data/agent/signals.jsonl + worklog.md">
+              <FileText className="h-2.5 w-2.5" aria-hidden />
+              {tt(T.agentArchiveBadge, lang)}
+            </span>
+          ) : null}
+          {state?.memory?.cloud?.configured ? (
+            state.memory.cloud.state === "ok" ? (
+              <span className="inline-flex items-center gap-1 rounded-full border bg-up-soft/40 px-1.5 py-0.5 text-[9px] font-medium text-up">
+                <Cloud className="h-2.5 w-2.5" aria-hidden />
+                {tt(T.agentMemoryCloudOk, lang)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border bg-down-soft/40 px-1.5 py-0.5 text-[9px] font-medium text-down" title={state.memory.cloud.lastError ?? undefined}>
+                <CloudOff className="h-2.5 w-2.5" aria-hidden />
+                {tt(T.agentMemoryCloudErr, lang)}
+              </span>
+            )
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border bg-secondary/60 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+              <CloudOff className="h-2.5 w-2.5" aria-hidden />
+              {tt(T.agentMemoryLocal, lang)}
+            </span>
+          )}
+        </p>
+
+        {/* what the agent RECALLED before this run — the connectedness made visible */}
+        {agent && agent.memoryRecall && agent.memoryRecall.length > 0 ? (
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground/80">{tt(T.agentMemoryRecallTitle, lang)}:</p>
+            <ul className="space-y-1 max-h-40 overflow-y-auto thin-scroll pe-1">
+              {agent.memoryRecall.slice(0, 6).map((m, i) => (
+                <li key={i} className="text-[10px] leading-relaxed flex gap-1.5 items-start">
+                  <span className="shrink-0 rounded-sm bg-primary/10 text-primary px-1 py-0.5 text-[8px] font-semibold">{memKindLabel(m.kind, lang)}</span>
+                  <span className="text-muted-foreground min-w-0 flex-1" dir="auto">
+                    {m.text}
+                  </span>
+                  <span className="num shrink-0 text-[8px] text-muted-foreground/60" dir="ltr">
+                    {Math.round(m.score * 100)}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{tt(T.agentMemoryRecallNone, lang)}</p>
+        )}
+        <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{tt(T.agentMemoryNote, lang)}</p>
+        {state?.supabase && (
+          <p className="text-[10px] leading-relaxed flex items-center gap-1">
+            {state.supabase.configured ? (
+              state.supabase.state === "ok" ? (
+                <>
+                  <Cloud className="h-3 w-3 text-up shrink-0" aria-hidden />
+                  <span className="text-up font-medium">{tt(T.agentSupabaseOk, lang)}</span>
+                  <span className="num text-muted-foreground/70" dir="ltr">
+                    ({state.supabase.mirrored})
+                  </span>
+                </>
+              ) : (
+                <>
+                  <CloudOff className="h-3 w-3 text-down shrink-0" aria-hidden />
+                  <span className="text-down font-medium">{tt(T.agentSupabaseErr, lang)}</span>
+                </>
+              )
+            ) : (
+              <>
+                <CloudOff className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden />
+                <span className="text-muted-foreground">{tt(T.agentSupabaseOff, lang)}</span>
+              </>
+            )}
+          </p>
+        )}
+      </div>
 
       {/* lessons journal */}
       {state?.lessons && state.lessons.length > 0 && (

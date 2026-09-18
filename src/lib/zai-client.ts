@@ -34,10 +34,23 @@ export const ZAI_SIGNAL_MODEL = "glm-4.7-flash";
 export const ZAI_VISION_MODEL = "glm-4.6v-flash";
 
 const TIMEOUT_MS = 110_000;
-const RETRY_BACKOFF_MS = [8_000, 20_000, 35_000];
+// T46: a 4th, longer backoff — the free thinking tier's overload windows
+// (1305) can run minutes; the brain's bounded chain now rides out ~2min of
+// throttle before failing honestly (vision keeps its 1-retry cap so a dead
+// vision tier can never starve the brain's budget).
+const RETRY_BACKOFF_MS = [8_000, 20_000, 35_000, 60_000];
 
 export type ZaiUsage = { promptTokens: number; completionTokens: number; totalTokens: number };
-export type ZaiChatResult = { content: string; servedModel: string; usage: ZaiUsage | null; ms: number };
+export type ZaiChatResult = {
+  content: string;
+  /** T46 — the model's THINKING stream (GLM `reasoning_content`), captured
+   *  verbatim when thinking is on; null when the model thought silently or
+   *  thinking was off. This is what makes the agent's reasoning VISIBLE. */
+  reasoning: string | null;
+  servedModel: string;
+  usage: ZaiUsage | null;
+  ms: number;
+};
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -88,7 +101,11 @@ export async function zaiChat(opts: {
         body: JSON.stringify({
           model,
           messages: opts.messages,
-          ...(opts.thinking === false ? { thinking: { type: "disabled" } } : {}),
+          // T46 — thinking is now EXPLICIT both ways: {type:"enabled"} when the
+          // caller wants reasoning (the agent's brain), {type:"disabled"} for
+          // the small mechanical fix-ups. glm-4.7-flash is a reasoning model —
+          // enabled is its native mode and the thinking stream is captured.
+          thinking: opts.thinking === false ? { type: "disabled" } : { type: "enabled" },
           ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
           ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
         }),
@@ -108,12 +125,17 @@ export async function zaiChat(opts: {
       }
       const json = (await res.json()) as {
         model?: string;
-        choices?: { message?: { content?: string } }[];
+        choices?: { message?: { content?: string; reasoning_content?: string; reasoning?: string } }[];
         usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
       };
       const content = json.choices?.[0]?.message?.content ?? "";
+      // GLM returns the thinking stream as `reasoning_content` (DeepSeek-style
+      // OpenAI-compat shape); some builds call it `reasoning` — accept both.
+      const reasoningRaw = json.choices?.[0]?.message?.reasoning_content ?? json.choices?.[0]?.message?.reasoning;
+      const reasoning = typeof reasoningRaw === "string" && reasoningRaw.trim().length > 0 ? reasoningRaw.trim() : null;
       return {
         content,
+        reasoning,
         servedModel: json.model ?? model,
         usage:
           json.usage && Number.isFinite(json.usage.total_tokens)
@@ -198,13 +220,14 @@ export function zaiExtractJson(raw: string): Record<string, unknown> | null {
 }
 
 /** Chat call that must answer with ONE JSON object. One repair round on
- *  unparseable output, then honest failure. */
+ *  unparseable output, then honest failure. The THINKING stream of the first
+ *  (thinking-on) call is preserved — the agent's reasoning ships with the run. */
 export async function zaiChatJson(
   opts: Parameters<typeof zaiChat>[0]
-): Promise<{ parsed: Record<string, unknown>; servedModel: string; usage: ZaiUsage | null; ms: number }> {
+): Promise<{ parsed: Record<string, unknown>; reasoning: string | null; servedModel: string; usage: ZaiUsage | null; ms: number }> {
   const first = await zaiChat(opts);
   let parsed = zaiExtractJson(first.content);
-  if (parsed) return { parsed, servedModel: first.servedModel, usage: first.usage, ms: first.ms };
+  if (parsed) return { parsed, reasoning: first.reasoning, servedModel: first.servedModel, usage: first.usage, ms: first.ms };
   // one repair round (thinking off — a small mechanical fix-up)
   const fix = await zaiChat({
     ...opts,
@@ -220,7 +243,7 @@ export async function zaiChatJson(
     ],
   });
   parsed = zaiExtractJson(fix.content);
-  if (parsed) return { parsed, servedModel: fix.servedModel, usage: fix.usage, ms: first.ms + fix.ms };
+  if (parsed) return { parsed, reasoning: first.reasoning, servedModel: fix.servedModel, usage: fix.usage, ms: first.ms + fix.ms };
   throw new ZaiError("zai: unparseable JSON reply after repair", null, false);
 }
 

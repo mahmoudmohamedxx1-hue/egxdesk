@@ -48,6 +48,9 @@ import { emitSetEvents } from "@/lib/signal-events";
 import { renderCandleChartPng } from "@/lib/chart-png";
 import { zaiChat, zaiChatJson, zaiVision, ZAI_SIGNAL_MODEL, ZAI_VISION_MODEL } from "@/lib/zai-client";
 import { computeLearning, learnedConsensus, diffLearning, type LearningState } from "@/lib/agent-learning";
+import { recallForRun, rememberMemory, memoryStats, type RecalledMemory } from "@/lib/supermemory";
+import { archiveContext, appendSignalRun, appendWorklog, readWorklogTail, type ArchiveContext } from "@/lib/agent-archive";
+import { mirrorAgentRun, mirrorStatus as supabaseMirrorStatus } from "@/lib/supabase-mirror";
 import backtestJson from "@/data/backtest.json";
 
 // ── the skills registry (what the agent can do — every skill is real) ──
@@ -168,6 +171,17 @@ export type AgentExtras = {
   vision: VisionRead[];
   journalAr: string;
   journalEn: string;
+  /** T46 — the brain's THINKING stream (glm-4.7-flash reasoning_content),
+   *  captured verbatim (trimmed) so the agent's reasoning is VISIBLE, not
+   *  just claimed. Null when the model thought silently that run. */
+  thinking: string | null;
+  /** T46 — the supermemory entries the agent RECALLED for this run (what its
+   *  own past taught it about THIS situation) — with the match score. */
+  memoryRecall: { kind: string; text: string; score: number }[];
+  /** T46 — how many memories exist and how many this run stored. */
+  memory: { totalBefore: number; stored: number };
+  /** T46 — the durable file ledger (signals.jsonl + worklog.md) state. */
+  archive: { ledgerRuns: number };
   learning: {
     episodesClosed: number;
     minN: number;
@@ -319,7 +333,9 @@ function buildAgentUserMsg(
   vision: VisionRead[],
   learning: LearningState,
   lessons: { kind: string; textEn: string }[],
-  runKind: AgentRunKind
+  runKind: AgentRunKind,
+  memoryRecall: RecalledMemory[],
+  archive: ArchiveContext
 ): string {
   const moved = learning.strategies.filter((s) => s.multiplier !== 1);
   const learningSection = {
@@ -338,6 +354,14 @@ function buildAgentUserMsg(
       learned: learnedConsensus(c.ens, c.f ? c.f.atrPct : null, learning),
     }))
     .filter((x) => x.base !== null);
+  // T46 — the supermemory recall: past runs' experience relevant to TODAY's
+  // situation (same tickers, same regime). Marked as EXPERIENCE, not evidence.
+  const recallSection = memoryRecall.map((m) => ({
+    kind: m.kind,
+    when: m.createdAt.slice(0, 10),
+    score: Number(m.score.toFixed(3)),
+    memory: m.text.slice(0, 240),
+  }));
 
   return (
     composeUserMsg(ev) +
@@ -346,8 +370,10 @@ function buildAgentUserMsg(
     `LEARNING STATE (from the published track record — strategies that earned trust carry more weight in YOUR reasoning; the deterministic gates below never move):\n${JSON.stringify(learningSection)}\n\n` +
     `LEARNED CONSENSUS PER CANDIDATE (base = engine consensus, learned = after the live-record weights):\n${JSON.stringify(learnedPerCandidate)}\n\n` +
     `MEMORY (the latest lessons from your own journal):\n${JSON.stringify(memorySection)}\n\n` +
+    `SUPERMEMORY RECALL (your own past memories most relevant to TODAY's situation — same tickers, same regime; treat as EXPERIENCE from your track record, never as new evidence):\n${JSON.stringify(recallSection)}\n\n` +
+    `FILE ARCHIVE (your durable signals.jsonl + worklog.md ledger — the last runs exactly as recorded in the files that never get lost):\n${JSON.stringify(archive)}\n\n` +
     `RUN CONTEXT: this is the ${RUN_KIND_EN[runKind]} on the EGX weekday schedule (Sun-Thu, Cairo). Pre-open runs should weigh yesterday's close and overnight context; midday runs the live tape; post-close runs the completed session.\n\n` +
-    `Apply the charter. Prefer candidates where the ensemble, the vision read and the learning memory agree; downgrade or avoid where they conflict. Also write your journal reflection.\n` +
+    `Apply the charter. Prefer candidates where the ensemble, the vision read and the learning memory agree; downgrade or avoid where they conflict. Use your recalled experience to sharpen timing and conviction, but the charter's numeric gates decide. Also write your journal reflection.\n` +
     `Reply with EXACTLY ONE JSON object matching this schema:\n` +
     AGENT_SCHEMA
   );
@@ -433,14 +459,21 @@ export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
       const lessons = await latestLessons(6);
       const prevRun = await lastOkRun();
       const prevLearning = learningFromRun(prevRun?.outputJson ?? null);
+      const memoryBefore = await memoryStats();
 
       // 2. the evidence pack (same gather as the shared refresh)
       const ev = await gatherEvidence();
 
+      // T46 — SUPERMEMORY recall + the durable FILE archive: what the agent's
+      // own past says about THIS situation, read before the brain runs.
+      const memoryRecall = await recallForRun(ev, learning, kind);
+      const archive = await archiveContext(3);
+
       // 3. the vision pass
       const vision = await visionPass(ev, learning);
 
-      // 4. the brain — glm-4.7-flash with thinking ON
+      // 4. the brain — glm-4.7-flash with thinking ON, and the THINKING
+      //    STREAM ITSELF is captured (reasoning_content) and ships with the run
       const tBrain = Date.now();
       const brain = await zaiChatJson({
         messages: [
@@ -448,15 +481,16 @@ export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
           {
             role: "assistant",
             content:
-              "You are HERMES — the autonomous, self-learning signal agent of EGX Desk. You run on the exchange's weekday schedule, read the skills' evidence (ensemble, technicals, ML, press tone, whale radar, insider filings, vision), remember your own journal, and apply the charter with full honesty. You never invent numbers; the charter's ATR math is authoritative. Your conviction must reflect the ensemble agreement and your learning memory.",
+              "You are HERMES — the autonomous, self-learning signal agent of EGX Desk. You run on the exchange's weekday schedule, read the skills' evidence (ensemble, technicals, ML, press tone, whale radar, insider filings, vision), remember your own journal and your supermemory recall, and apply the charter with full honesty. You never invent numbers; the charter's ATR math is authoritative. Your conviction must reflect the ensemble agreement and your learning memory.",
           },
-          { role: "user", content: buildAgentUserMsg(ev, vision.reads, learning, lessons, kind) },
+          { role: "user", content: buildAgentUserMsg(ev, vision.reads, learning, lessons, kind, memoryRecall, archive) },
         ],
         model: ZAI_SIGNAL_MODEL,
         thinking: true,
         maxTokens: 6000,
       });
       const llmMs = Date.now() - tBrain;
+      const thinking = brain.reasoning ? brain.reasoning.trim().slice(0, 2600) : null;
 
       // 5. the SAME validation spine as the shared refresh + purity via the key
       const chat = async (messages: { role: "user" | "assistant"; content: string }[]) =>
@@ -480,6 +514,10 @@ export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
         vision: vision.reads,
         journalAr,
         journalEn,
+        thinking,
+        memoryRecall: memoryRecall.map((m) => ({ kind: m.kind, text: m.text.slice(0, 300), score: Number(m.score.toFixed(3)) })),
+        memory: { totalBefore: memoryBefore.total, stored: 0 },
+        archive: { ledgerRuns: archive.ledgerRuns.length },
         learning: {
           episodesClosed: learning.episodesClosed,
           minN: learning.minN,
@@ -576,6 +614,127 @@ export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
           .catch(() => {});
       }
 
+      // 9b. T46 — SUPERMEMORY: store this run into the unlimited memory so
+      //     every FUTURE run can recall it (reflection, each pick + thesis,
+      //     the market read, the vision verdicts, the weight-move lessons).
+      const storedMemories: { localId: string; kind: string; text: string; createdAt: string }[] = [];
+      const mem = async (input: Parameters<typeof rememberMemory>[0]) => {
+        const id = await rememberMemory({ ...input, sourceRun: run.id });
+        if (id) storedMemories.push({ localId: id, kind: input.kind, text: input.text.slice(0, 700), createdAt: new Date().toISOString() });
+      };
+      await mem({
+        kind: "reflection",
+        text: `[${kind} ${session}] ${journalEn}`,
+        textAr: journalAr,
+        tags: [kind, "reflection", payload.marketBias.direction],
+        meta: { runKind: kind, bias: payload.marketBias.direction, conviction: payload.marketBias.conviction, picks: payload.picks.length },
+      });
+      for (const p of payload.picks) {
+        const plan = p.plan;
+        await mem({
+          kind: "pick",
+          text: `[${kind} ${session}] Pick ${p.ticker} ${p.stance} conviction ${p.conviction}/5 — ${p.thesisEn ?? ""}${plan ? ` Plan: entry zone ${plan.zoneLo}-${plan.zoneHi}, stop ${p.stop} (risk ${plan.riskPct}%), targets ${plan.t1}/${plan.t2}/${plan.t3}.` : ""}`,
+          textAr: p.thesisAr ?? null,
+          tags: [p.ticker, kind, "pick", p.stance],
+          meta: { ticker: p.ticker, stance: p.stance, conviction: p.conviction, horizon: p.horizonSessions },
+        });
+      }
+      await mem({
+        kind: "bias",
+        text: `[${kind} ${session}] Market read: ${payload.marketBias.direction} (conviction ${payload.marketBias.conviction}/5) — ${payload.marketBias.summaryEn ?? ""}`,
+        textAr: payload.marketBias.summaryAr ?? null,
+        tags: [kind, "bias", payload.marketBias.direction],
+      });
+      for (const v of vision.reads) {
+        await mem({
+          kind: "vision",
+          text: `[${kind} ${session}] Vision read ${v.ticker}: pattern ${v.pattern}, verdict ${v.verdict} — ${v.noteEn}`,
+          tags: [v.ticker, kind, "vision", v.verdict],
+          meta: { ticker: v.ticker, pattern: v.pattern, verdict: v.verdict },
+        });
+      }
+      for (const w of diffLearning(prevLearning, learning)) {
+        await mem({
+          kind: "lesson",
+          text: `[${kind} ${session}] Lesson: weight of "${w.nameEn || w.id}" moved ${w.to > w.from ? "up" : "down"} ×${w.from.toFixed(2)} → ×${w.to.toFixed(2)} after ${w.decided} decided episode(s)${w.hitRate !== null ? ` (hit rate ${(w.hitRate * 100).toFixed(0)}%)` : ""}.`,
+          tags: [w.id, kind, "weight-change"],
+          meta: { strategy: w.id, from: w.from, to: w.to },
+        });
+      }
+      if (!prevRun) {
+        await mem({
+          kind: "milestone",
+          text: `First autonomous run (${session}) — the supermemory and the learning record begin together; recall grows with every measured outcome.`,
+          tags: ["milestone", "first-run"],
+        });
+      }
+      extras.memory.stored = storedMemories.length;
+      // keep both persisted copies (the AiSignalSet + the AgentRun row) in
+      // sync with the FINAL memory count — the served payload is the truth
+      await db.aiSignalSet.update({ where: { id: created.id }, data: { data: JSON.stringify(agentPayload) } }).catch(() => {});
+      await db.agentRun.update({ where: { id: run.id }, data: { outputJson: JSON.stringify(agentPayload) } }).catch(() => {});
+
+      // 9c. T46 — the SIGNALS FILE + WORKLOG FILE: the durable ledger the
+      //     agent reads back next run — context that survives anything.
+      await appendSignalRun({
+        at: startedAt.toISOString(),
+        kind,
+        runId: run.id,
+        setRef: created.id,
+        model: brain.servedModel,
+        visionModel: vision.model,
+        bias: { direction: payload.marketBias.direction, conviction: payload.marketBias.conviction },
+        picks: payload.picks.map((p: AiPick) => ({
+          ticker: p.ticker,
+          stance: p.stance,
+          conviction: p.conviction,
+          horizonSessions: p.horizonSessions ?? null,
+          entryZone: p.plan ? [p.plan.zoneLo, p.plan.zoneHi] : null,
+          targets: p.plan ? [p.plan.t1, p.plan.t2, p.plan.t3] : null,
+          stop: p.stop ?? null,
+          riskPct: p.plan?.riskPct ?? null,
+        })),
+      });
+      await appendWorklog({
+        at: startedAt.toISOString(),
+        kind,
+        ok: true,
+        picks: payload.picks.map((p: AiPick) => ({ ticker: p.ticker, stance: p.stance, conviction: p.conviction })),
+        bias: { direction: payload.marketBias.direction, conviction: payload.marketBias.conviction },
+        journalEn,
+        model: brain.servedModel,
+        visionModel: vision.model,
+      });
+
+      // 9d. T46 — the SUPABASE mirror (no-op until the user's project keys
+      //     are set; honest status either way — see docs/SUPABASE-SETUP.md)
+      await mirrorAgentRun({
+        run: {
+          runId: run.id,
+          startedAt: startedAt.toISOString(),
+          kind,
+          session,
+          model: brain.servedModel,
+          visionModel: vision.model,
+          llmMs,
+          visionMs: vision.ms,
+          setRef: created.id,
+        },
+        bias: { direction: payload.marketBias.direction, conviction: payload.marketBias.conviction },
+        picks: payload.picks.map((p: AiPick) => ({
+          ticker: p.ticker,
+          stance: p.stance,
+          conviction: p.conviction,
+          horizonSessions: p.horizonSessions ?? null,
+          entryZone: p.plan ? [p.plan.zoneLo, p.plan.zoneHi] : null,
+          targets: p.plan ? [p.plan.t1, p.plan.t2, p.plan.t3] : null,
+          stop: p.stop ?? null,
+          riskPct: p.plan?.riskPct ?? null,
+        })),
+        memories: storedMemories,
+        worklogMarkdown: await readWorklogTail(400_000),
+      });
+
       // 10. usage metering (visible in /api/usage; signals-only key usage)
       await db.usageEvent
         .create({
@@ -598,6 +757,9 @@ export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.warn(`[hermes] ${kind} run FAILED:`, message);
+      // a failed run is journaled into the WORKLOG FILE too — the honest
+      // ledger records failures, never hides them
+      void appendWorklog({ at: startedAt.toISOString(), kind, ok: false, picks: [], journalEn: "", error: message.slice(0, 400) });
       try {
         const run = await db.agentRun.create({
           data: {
@@ -659,6 +821,12 @@ export type AgentState = {
   learning: LearningState;
   lessons: AgentLessonRow[];
   runs: AgentRunMeta[];
+  /** T46 — the supermemory state: total memories, kind breakdown, cloud mode. */
+  memory: Awaited<ReturnType<typeof memoryStats>>;
+  /** T46 — the durable file ledger state (signals.jsonl + worklog.md). */
+  archive: Awaited<ReturnType<typeof import("@/lib/agent-archive").archiveStatus>>;
+  /** T46 — the Supabase mirror state (off until the user's keys are set). */
+  supabase: ReturnType<typeof supabaseMirrorStatus>;
 };
 
 export async function getAgentState(): Promise<AgentState> {
@@ -691,6 +859,7 @@ export async function getAgentState(): Promise<AgentState> {
   } catch {
     /* db hiccup — empty lists, learning still serves */
   }
+  const { archiveStatus } = await import("@/lib/agent-archive");
 
   const latestOk = runs.find((r) => r.status === "ok");
   let latest: AgentState["latest"] = null;
@@ -710,7 +879,17 @@ export async function getAgentState(): Promise<AgentState> {
     }
   }
 
-  return { ok: true, models: { brain: ZAI_SIGNAL_MODEL, vision: ZAI_VISION_MODEL }, latest, learning, lessons, runs };
+  return {
+    ok: true,
+    models: { brain: ZAI_SIGNAL_MODEL, vision: ZAI_VISION_MODEL },
+    latest,
+    learning,
+    lessons,
+    runs,
+    memory: await memoryStats(),
+    archive: await archiveStatus(),
+    supabase: supabaseMirrorStatus(),
+  };
 }
 
 /** Manual trigger guard: at most one run of ANY kind per 10 minutes. */

@@ -1,0 +1,11 @@
+import { rememberMemory } from "@/lib/supermemory";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+const kind = "manual";
+const s = "[" + kind + " 2026-09-18] built at runtime";
+const id = await rememberMemory({ kind: "pick", text: s, tags: ["repro"] });
+const row = await prisma.agentMemory.findUnique({ where: { id: id! } });
+console.log("in :", JSON.stringify(s));
+console.log("out:", JSON.stringify(row?.text));
+await prisma.agentMemory.deleteMany({ where: { id: id! } });
+await prisma.$disconnect();

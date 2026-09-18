@@ -1047,6 +1047,43 @@ export const T = {
   agentTriggerCooldown: { ar: "الوكيل يعمل أو يلتقط أنفاسه (حد: تشغيل كل ١٠ دقائق)", en: "The agent is working or cooling down (limit: one run per 10 minutes)" },
   agentTriggerError: { ar: "تعذّر بدء التشغيل — حاول مجددًا", en: "Couldn't start the run — try again" },
 
+  // T46 — thinking, supermemory, durable files, supabase
+  agentThinkingTitle: { ar: "تفكير الوكيل (بثّه كما حدث)", en: "The agent's thinking (the stream itself)" },
+  agentThinkingBadge: { ar: "التفكير مُفعّل", en: "thinking ON" },
+  agentThinkingNote: {
+    ar: "هذا بثّ التفكير الفعلي الذي أنتجه عقل GLM-4.7-Flash أثناء هذا التشغيل — كما عاد من الـAPI حرفيًا (مقتطعًا) — وليس وصفًا له. الإخراج النهائي وحده هو ما يمر بالبوابات.",
+    en: "This is the ACTUAL reasoning stream the GLM-4.7-Flash brain produced during this run — returned verbatim by the API (trimmed) — not a description of it. Only the final output passes the gates.",
+  },
+  agentThinkingHidden: {
+    ar: "لم يُرجع النموذج بثًّا للتفكير في هذا التشغيل (فكّر بصمت) — التفكير مُفعّل دائمًا، والإخراج النهائي موثّق كاملاً.",
+    en: "The model returned no thinking stream this run (it thought silently) — thinking is always enabled, and the final output is fully documented.",
+  },
+  agentMemoryTitle: { ar: "الذاكرة غير المحدودة (Supermemory)", en: "Unlimited memory (Supermemory)" },
+  agentMemoryLocal: { ar: "محرك محلي", en: "local engine" },
+  agentMemoryCloudOk: { ar: "مزامنة سحابية", en: "cloud sync" },
+  agentMemoryCloudErr: { ar: "خطأ مزامنة", en: "sync error" },
+  agentMemoryCount: { ar: "ذاكرة متراكمة", en: "memories stored" },
+  agentMemoryStoredRun: { ar: "خُزّنت هذا التشغيل", en: "stored this run" },
+  agentMemoryRecallTitle: { ar: "ما استدعاه الوكيل قبل هذا التشغيل", en: "What the agent recalled before this run" },
+  agentMemoryRecallNone: {
+    ar: "لا ذكريات ذات صلة بعد — التشغيلات الأولى تبني الأرشيف.",
+    en: "No relevant memories yet — the first runs are building the archive.",
+  },
+  agentMemoryNote: {
+    ar: "كل تشغيل يخزّن ما حدث (تأمله واختياراته وقراءة السوق وقراءات الرؤية ودروسه) في ذاكرة لا تُمسح، ويستدعي الأكثر صلة بالموقف الحالي قبل التشغيل التالي — بحث دلالي بترجيح حداثة. الملفان الدائمان data/agent/signals.jsonl وworklog.md يحفظان السياق ذاته على القرص، فلا يضيع أثر حتى لو ضاعت قاعدة البيانات.",
+    en: "Every run stores what happened (its reflection, picks, market read, vision verdicts, lessons) into never-evicted memory, and recalls the entries most relevant to the CURRENT situation before the next run — semantic search with a recency tilt. The durable data/agent/signals.jsonl + worklog.md files keep the same context on disk, so nothing is lost even if the database is.",
+  },
+  agentMemKindReflection: { ar: "تأمل", en: "reflection" },
+  agentMemKindPick: { ar: "اختيار", en: "pick" },
+  agentMemKindBias: { ar: "قراءة سوق", en: "market read" },
+  agentMemKindVision: { ar: "رؤية", en: "vision" },
+  agentMemKindLesson: { ar: "درس", en: "lesson" },
+  agentMemKindMilestone: { ar: "محطة", en: "milestone" },
+  agentArchiveBadge: { ar: "ملفات دائمة", en: "durable files" },
+  agentSupabaseOff: { ar: "Supabase: محلي فقط — أضف مفاتيح مشروعك لتفعيل السحابة", en: "Supabase: local only — add your project keys to switch on the cloud" },
+  agentSupabaseOk: { ar: "Supabase: متصل", en: "Supabase: connected" },
+  agentSupabaseErr: { ar: "Supabase: خطأ في المزامنة", en: "Supabase: mirror error" },
+
   liveFeedTitle: { ar: "البث المباشر للإشارات", en: "Live signal feed" },
   liveFeedNote: {
     ar: "كل حدث لحظي يصل هنا خلال دقيقة: إشارة جديدة لكل سهم، قراءة السوق، نتيجة إشارة منشورة (هدف/وقف/انتهاء) مرصودة على الشموع الحقيقية، تعقيبات الوكيل المستقل، والمراجعة الذاتية اليومية. فعّل الإشعارات ليصلك كل حدث نوافذ متصفحك مباشرة — ومن ثبّت التطبيق تصله إشعارات فعلية حتى والتطبيق مغلق.",

@@ -9,9 +9,9 @@
 Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
 investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
 
-[![Version](https://img.shields.io/badge/version-2.34-blue)](src/lib/version.ts)
+[![Version](https://img.shields.io/badge/version-2.35-blue)](src/lib/version.ts)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
-[![Tests](https://img.shields.io/badge/tests-20%20suites-green)](#testing)
+[![Tests](https://img.shields.io/badge/tests-21%20suites-green)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
 
@@ -79,15 +79,26 @@ On top of it runs **HERMES — the autonomous self-learning signal agent** (T45)
 (Sun–Thu Cairo: pre-open 09:15, midday 12:15, post-close 15:00, plus a guarded manual trigger) that gathers
 the same evidence through **ten skills**, renders the top candidates' real candlestick tapes as PNGs and has
 the free **GLM-4.6V-Flash vision model read them**, then reasons with the **GLM-4.7-Flash brain** (thinking
-on) over evidence + vision + memory via a dedicated Z.AI key used for signals only — and its output passes the
-SAME charter gates (consensus ≥ 0.35, conviction caps, ATR math, language purity) as the shared pipeline. It
-**learns from its own published record**: closed episodes are attributed to the strategies that fired at issue,
-live hit rates bend each strategy's weight (×0.75–×1.25, n≥8 gate), and every weight change + a per-run
-reflection are journaled in a persistent lessons memory — so each session starts smarter than the last, while
-the mathematical gates never move. Every run emits **live per-signal notifications** (the event feed +
-browser notifications while the tab is open, real web-push for installed PWAs when it is closed). See
+ON — and the thinking stream itself is captured and shown) over evidence + vision + memory via a dedicated
+Z.AI key used for signals only — and its output passes the SAME charter gates (consensus ≥ 0.35, conviction
+caps, ATR math, language purity) as the shared pipeline. It **learns from its own published record**: closed
+episodes are attributed to the strategies that fired at issue, live hit rates bend each strategy's weight
+(×0.75–×1.25, n≥8 gate), and every weight change + a per-run reflection are journaled in a persistent lessons
+memory — so each session starts smarter than the last, while the mathematical gates never move. Its
+**supermemory** ([supermemoryai/supermemory](https://github.com/supermemoryai/supermemory) inspired, local-first)
+stores every run's reflection, picks, market reads, vision verdicts and lessons as never-evicted semantic
+memories and RECALLS the most relevant ones (hashed-embedding cosine + recency tilt) before each new run —
+unlimited, connected memory that also mirrors to the supermemory.ai cloud when a key is set. Its durable
+**signals file + worklog file** (`data/agent/signals.jsonl` + `data/agent/worklog.md`, crash-safe appends)
+keep the same ledger on disk — context that survives even a database loss — and a ready-to-activate **Supabase
+mirror** ([docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md)) syncs runs, picks, memories and the worklog to
+your own Supabase project the moment you add its keys. Every run emits **live per-signal notifications**
+(the event feed + browser notifications while the tab is open, real web-push for installed PWAs when it is
+closed). See
 [`src/lib/hermes-agent.ts`](src/lib/hermes-agent.ts), [`src/lib/agent-learning.ts`](src/lib/agent-learning.ts),
-[`src/lib/agent-scheduler.ts`](src/lib/agent-scheduler.ts) and [`src/lib/chart-png.ts`](src/lib/chart-png.ts).
+[`src/lib/supermemory.ts`](src/lib/supermemory.ts), [`src/lib/agent-archive.ts`](src/lib/agent-archive.ts),
+[`src/lib/agent-scheduler.ts`](src/lib/agent-scheduler.ts), [`src/lib/supabase-mirror.ts`](src/lib/supabase-mirror.ts)
+and [`src/lib/chart-png.ts`](src/lib/chart-png.ts).
 
 ---
 
@@ -206,6 +217,7 @@ bun scripts/t41-test-fixes.ts            # 51 checks — audit-4 fixes: calendar
 bun scripts/t42-test-strategies.ts       # 85 checks — the 18-strategy ensemble: per-strategy triggers, no-lookahead, consensus math, ATR guard, purity, live ensemble blocks + picks
 bun scripts/t43-test-signaltrack.ts       # 51 checks — trade-plan ladder math, legacy-set rebuild, outcome classification (order-based), episode grouping/freezing, live plan + trackRecord shape
 bun scripts/t45-test-hermes.ts            # 63 checks — PNG encoder validity (CRC/zlib/determinism), bounded learning math, weekday scheduler, evidenceAr 18-id Arabic render (T44 leak fix), Z.AI JSON extraction, LIVE agent run + events + metering
+bun scripts/t46-test-supermemory.ts       # 44 checks — deterministic 384-dim embeddings + semantic recall ranking, crash-safe signals.jsonl/worklog.md round-trip (torn-line self-heal), kind-filtered recall, honest supabase-mirror OFF state, LIVE agent run end-to-end (thinking stream + memory storage + durable files + events)
 bunx tsc --noEmit && bunx eslint src/
 ```
 

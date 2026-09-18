@@ -1,0 +1,15 @@
+## 2026-09-18 15:20:09Z — manual run — FAILED
+- error: zai glm-4.7-flash: HTTP 429 (code 1305) {"error":{"code":"1305","message":"The service may be temporarily overloaded, please try again later"}}
+
+## 2026-09-18 15:32:47Z — manual run — OK
+- market bias: bullish (conviction 5/5)
+- picks: ALCN long ×3, GSSC long ×3, RAKT avoid ×2
+- brain: glm-4.7-flash
+- journal: Today's data showed strength in trend waves with strong institutional liquidity indicating leader accumulation. I recalled that 'Insider Flow' in PRMH added specific confidence for a local support narrative, which is repeating today in UNIP with ML backing. I will watch if these charged particles turn into a sustainable trend or just a temporary surge.
+
+## 2026-09-18 15:43:40Z — manual run — FAILED
+- error: zai glm-4.7-flash: HTTP 429 (code 1305) {"error":{"code":"1305","message":"The service may be temporarily overloaded, please try again later"}}
+
+## 2026-09-18 15:54:16Z — manual run — FAILED
+- error: zai: request timed out after 110000ms
+

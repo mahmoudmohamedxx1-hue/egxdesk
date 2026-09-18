@@ -312,3 +312,37 @@ model AgentLesson {
   @@index([createdAt])
   @@index([kind, createdAt])
 }
+
+/** T46 — SUPERMEMORY: the agent's UNLIMITED semantic memory (supermemory /
+ *  supermemory-mcp inspired, local-first). Every run stores what happened
+ *  (reflections, picks, market reads, vision verdicts, lessons); every later
+ *  run RECALLS the most semantically-relevant entries via a hashed-embedding
+ *  cosine search, so context survives DB resets, stays connected across
+ *  weeks, and grows without limit. Rows are plain data: text + tags + a
+ *  compact embedding vector (JSON numbers) + optional cloud-sync metadata.
+ *  When a SUPERMEMORY_API_KEY is configured the same entries are mirrored to
+ *  the Supermemory cloud (honest best-effort — the local engine always
+ *  serves recall; the cloud is a backup, never a dependency). */
+model AgentMemory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  /// reflection | pick | bias | vision | lesson | milestone
+  kind      String
+  /// the memory's working text (English — the recall engine's language)
+  text      String
+  /// optional Arabic twin for UI display
+  textAr    String?
+  /// short tags (tickers, run kind, bias direction) — JSON string[]
+  tagsJson  String?
+  /// the hashed bag-of-words embedding — JSON number[] (dim 384, L2-normalized)
+  embJson   String
+  /// the AgentRun that created this memory, when applicable
+  sourceRun String?
+  /// small structured extras (conviction, stance, verdict, multiplier…)
+  metaJson  String?
+  /// when mirrored to the Supermemory cloud: the remote document id
+  cloudId   String?
+
+  @@index([kind, createdAt])
+  @@index([createdAt])
+}
