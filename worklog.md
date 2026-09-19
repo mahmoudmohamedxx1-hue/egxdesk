@@ -1218,3 +1218,23 @@ Stage Summary:
 - The repo is fully synced with the fresh PAT (read+write confirmed by a real fetch+push).
 - The only real secret that ever leaked into the public repo (the Z.AI key, embedded since T46) is now REMOVED from HEAD; it remains in git HISTORY, so the old key must be considered compromised — the user should rotate it (Z.AI console → new key → sandbox .env + Vercel env var). Functionality is unchanged: with the env var set the direct GLM tier works as before; without it the assistant/agent still answer via the keyless fallback.
 - Other scan hits were false positives (placeholder text "ghp_…" / "sb_secret_…" in docs, "sk-" substrings in ordinary words) — no other secrets in git.
+
+---
+Task ID: T52
+Agent: main (Super Z)
+Task: User: "the ai agent isnt working so fix that" — diagnose and fix the autonomous AI agent, verify as a user in the browser.
+
+Work Log:
+- Diagnosis: (1) the sandbox had reset AGAIN (~17:44, right after the T51 push) and wiped .env back to DATABASE_URL-only — with the T51 security fix the ZAI key is env-only, so the agent's brain had NO key; (2) the earlier 14:53 reset had also dropped every AgentRun row from db/custom.db (the 12:20 successful run only survived in the durable file ledger data/agent/signals.jsonl + worklog.md) → /api/agent-signals served latest:null, runs:[] → the Agent panel looked dead even with a key.
+- .env fully restored from the .env.example template values (60-second recovery, exactly the design from T49).
+- RESET-PROOF HISTORY in src/lib/hermes-agent.ts getAgentState: when the db has zero AgentRun rows, the durable ledger becomes the source of truth — the runs list and the FULL latest payload (bias, every pick with its entry-zone/targets/stop plan rebuilt, the REAL journal text quoted from the agent's own markdown worklog) are reconstructed from the files and clearly marked "recovered from the durable file ledger"; canTriggerManual also consults the ledger so a reset can never unlock a double-run inside the 10-minute cooldown.
+- OVERLOAD-PROOF BRAIN in src/lib/zai-client.ts: brainJson (layered: direct glm-4.7-flash key with the full 1305 retry chain → sandbox SDK GLM-4-Plus pool with thinking captured + one repair round) and brainChat (same fallback for the validation fix-ups); the run row's model field records which tier actually served; both tiers failing surfaces the direct error honestly. hermes-agent rewired to brainJson/brainChat.
+- Triggered a fresh manual run as the user's button does: SUCCEEDED through an ACTIVE 1305 overload window — the direct brain rode out all 4 backoffs (199s), vision read 3 real charts, picks ALCN long ×3 + GSSC long ×3 (bias bullish 5/5), thinking stream captured, 8 new supermemories, live broadcast event emitted, AgentRun row + AiSignalSet persisted, both ledger files appended.
+- Browser verification as a USER (agent-browser, human UA): agent CHAT answered "ما حالة السوق الآن؟" with real numbers (EGX30 +1.23% → 55,498.7, breadth 151↑/79↓, foreigners +1.5B EGP) via the market_overview tool; the AI-signals tab's autonomous agent panel fully alive (last run 8 min ago, model+ms+vision ms, market read, picks, journal, agent thinking panel, vision reads with honest per-chart notes, learning state, supermemory 8 memories, lessons notebook with milestone+reflection, run history); EN switch clean; ZERO console errors.
+- Regressions: t48 security audit 34/34 PASS (after the env restore), api-test 100/100, tsc clean, eslint clean.
+- Committed 78a81eb and pushed to origin/main. Version 2.40 / SW v36.
+
+Stage Summary:
+- The AI agent works again and can no longer be killed by the two failure modes that hit it: sandbox resets (history now recovers from the durable file ledger automatically) and free-tier overload windows (layered brain falls back to the SDK pool).
+- The scheduler's next autonomous run fires tomorrow 09:15 Cairo (pre-open brief); the manual "شغّل الوكيل الآن" button works with the 10-minute cooldown.
+- .env recovery after any future reset: copy .env.example → .env and re-fill from the owner's notes (the whole procedure is documented in the template's header).
