@@ -1,15 +1,23 @@
 "use client";
 
-/** T47 — the Supabase ACCOUNT: a header button + sign-in dialog for the
- *  website's first real server-side auth. Email → Supabase emails a 6-digit
- *  code → verify → an HttpOnly session cookie. The browser NEVER sees a
- *  key, a JWT, or a refresh token — only {id, email} of its own user.
+/** T47/T48 — the Supabase ACCOUNT: a header button + sign-in dialog for the
+ *  website's real server-side auth. Email → Supabase emails a 6-digit code →
+ *  verify → an HttpOnly session cookie. The browser NEVER sees a key, a JWT,
+ *  or a refresh token — only {id, email} of its own user.
+ *
+ *  T48 security wiring (the anti-bot / anti-temp-mail layer lives on the
+ *  server; this component carries its client half):
+ *    • a challenge token is fetched when the dialog OPENS and echoed with
+ *      every POST (single-use, server-bound — a raw scripted POST fails);
+ *    • an invisible honeypot field rides along (bots autofill it → refused);
+ *    • the dialog's open timestamp rides along (sub-1.5s submits → refused);
+ *    • a trusted browser shows the OWNER QUICK SIGN-IN button (one click,
+ *      no code, no email) — and the owner's own email skips the email send
+ *      entirely (server answers adminFast and we finish via admin-signin);
+ *    • the signed-in owner wears an "Owner" badge.
  *
  *  Honest by construction: every failure state (rate limit, wrong code,
- *  network) renders its real message; the free tier's ~2 emails/hour budget
- *  is stated where it can be hit; a 60s resend cooldown mirrors it. If the
- *  email template carries a magic link instead of a code, the link can be
- *  pasted into the fallback field and verifies the same way. */
+ *  challenge expiry, network) renders its real message. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "./app-context";
@@ -18,9 +26,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CircleUserRound, Loader2, LogIn, LogOut, Mail, ShieldCheck } from "lucide-react";
+import { CircleUserRound, Crown, Loader2, LogIn, LogOut, Mail, ShieldCheck, Zap } from "lucide-react";
 
-type Me = { signedIn: boolean; user: { id: string; email: string | null } | null };
+type Me = {
+  signedIn: boolean;
+  user: { id: string; email: string | null } | null;
+  isAdmin?: boolean;
+  trustedAdmin?: boolean;
+};
 
 export function SupabaseAccount() {
   const { lang, toast } = useApp();
@@ -34,6 +47,13 @@ export function SupabaseAccount() {
   const [cooldown, setCooldown] = useState(0);
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // T48: the anti-bot handshake state
+  const challengeRef = useRef<string>("");
+  const [challengeReady, setChallengeReady] = useState(false);
+  const openedAtRef = useRef<number>(0);
+  const honeypotRef = useRef<HTMLInputElement | null>(null);
+  const [hp, setHp] = useState("");
+
   useEffect(() => {
     let alive = true;
     fetch("/api/auth/supabase/me", { cache: "no-store" })
@@ -46,6 +66,29 @@ export function SupabaseAccount() {
       alive = false;
     };
   }, []);
+
+  // fetch a fresh challenge whenever the dialog opens (and re-arm on expiry)
+  const fetchChallenge = useCallback(async () => {
+    setChallengeReady(false);
+    try {
+      const res = await fetch("/api/auth/supabase/challenge", { cache: "no-store" });
+      const d = (await res.json()) as { ok: boolean; token?: string };
+      if (d.ok && d.token) {
+        challengeRef.current = d.token;
+        setChallengeReady(true);
+      }
+    } catch {
+      /* offline — the POST will fail honestly with its own message */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      openedAtRef.current = Date.now();
+      setHp("");
+      void fetchChallenge();
+    }
+  }, [open, fetchChallenge]);
 
   // the 60s resend cooldown (mirrors Supabase's own send cadence)
   useEffect(() => {
@@ -61,6 +104,60 @@ export function SupabaseAccount() {
   };
   useEffect(() => () => (cooldownTimer.current ? clearInterval(cooldownTimer.current) : undefined), []);
 
+  const applyAuthError = useCallback(
+    (d: { error?: string; challengeFailed?: boolean }, res: Response) => {
+      if (d.challengeFailed) {
+        void fetchChallenge(); // re-arm immediately
+        setError(tt(T.accountChallengeExpired, lang));
+        return;
+      }
+      if (res.status === 403 && d.error?.includes("automated clients")) {
+        setError(tt(T.accountBotBlocked, lang));
+        return;
+      }
+      if (res.status === 403 && d.error?.includes("disposable")) {
+        setError(tt(T.accountTempMailBlocked, lang));
+        return;
+      }
+      if (res.status === 403 && d.error?.includes("too fast")) {
+        setError(tt(T.accountTooFast, lang));
+        return;
+      }
+      setError(d.error ?? tt(T.accountLoadErr, lang));
+    },
+    [fetchChallenge, lang],
+  );
+
+  // the owner's passwordless finish: mint the session via the admin door
+  const adminSignIn = useCallback(
+    async (setupCode?: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/auth/supabase/admin-signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() || undefined, setupCode, challenge: challengeRef.current }),
+        });
+        const d = (await res.json()) as { ok: boolean; user?: { id?: string; email: string | null }; error?: string; challengeFailed?: boolean; needsBootstrap?: boolean };
+        if (d.ok && d.user) {
+          setMe({ signedIn: true, user: { id: d.user.id ?? "", email: d.user.email ?? email }, isAdmin: true, trustedAdmin: true });
+          setOpen(false);
+          setStep("email");
+          setCode("");
+          toast(`${tt(T.accountAdminSignedIn, lang)} — ${d.user.email ?? email}`);
+        } else {
+          applyAuthError(d, res);
+        }
+      } catch {
+        setError(tt(T.accountLoadErr, lang));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [applyAuthError, email, lang, toast],
+  );
+
   const sendCode = useCallback(async () => {
     setError(null);
     setBusy(true);
@@ -68,21 +165,31 @@ export function SupabaseAccount() {
       const res = await fetch("/api/auth/supabase/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          challenge: challengeRef.current,
+          openedAt: openedAtRef.current,
+          hp,
+        }),
       });
-      const d = (await res.json()) as { ok: boolean; error?: string; rateLimited?: boolean };
+      const d = (await res.json()) as { ok: boolean; adminFast?: boolean; error?: string; rateLimited?: boolean; challengeFailed?: boolean };
+      if (d.ok && d.adminFast) {
+        // trusted owner browser — no email spent, finish via the admin door
+        await adminSignIn();
+        return;
+      }
       if (d.ok) {
         setStep("code");
         startCooldown();
       } else {
-        setError(d.rateLimited ? tt(T.accountRateLimited, lang) : (d.error ?? tt(T.accountLoadErr, lang)));
+        applyAuthError(d, res);
       }
     } catch {
       setError(tt(T.accountLoadErr, lang));
     } finally {
       setBusy(false);
     }
-  }, [email, lang]);
+  }, [adminSignIn, applyAuthError, email, hp, lang]);
 
   const verify = useCallback(async () => {
     setError(null);
@@ -92,30 +199,44 @@ export function SupabaseAccount() {
       const res = await fetch("/api/auth/supabase/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: what }),
+        body: JSON.stringify({
+          email,
+          code: what,
+          challenge: challengeRef.current,
+          hp,
+        }),
       });
-      const d = (await res.json()) as { ok: boolean; user?: { id?: string; email: string | null }; error?: string };
+      const d = (await res.json()) as { ok: boolean; user?: { id?: string; email: string | null }; isAdmin?: boolean; error?: string; challengeFailed?: boolean };
       if (d.ok && d.user) {
-        setMe({ signedIn: true, user: { id: d.user.id ?? "", email: d.user.email ?? email } });
+        setMe({
+          signedIn: true,
+          user: { id: d.user.id ?? "", email: d.user.email ?? email },
+          isAdmin: d.isAdmin === true,
+          trustedAdmin: d.isAdmin === true || (me?.trustedAdmin ?? false),
+        });
         setOpen(false);
         setStep("email");
         setCode("");
         toast(`${tt(T.accountSignedInAs, lang)} ${d.user.email ?? email}`);
       } else {
-        setError(res.status === 400 ? tt(T.accountInvalidCode, lang) : (d.error ?? tt(T.accountLoadErr, lang)));
+        if (res.status === 400) {
+          setError(tt(T.accountInvalidCode, lang));
+        } else {
+          applyAuthError(d, res);
+        }
       }
     } catch {
       setError(tt(T.accountLoadErr, lang));
     } finally {
       setBusy(false);
     }
-  }, [email, code, lang, toast]);
+  }, [applyAuthError, email, code, lang, me, toast]);
 
   const signOut = useCallback(async () => {
     setBusy(true);
     try {
       await fetch("/api/auth/supabase/logout", { method: "POST" }).catch(() => {});
-      setMe({ signedIn: false, user: null });
+      setMe((m) => ({ signedIn: false, user: null, trustedAdmin: m?.trustedAdmin }));
       setStep("email");
       setCode("");
       toast(tt(T.accountSignedOut, lang));
@@ -125,6 +246,8 @@ export function SupabaseAccount() {
   }, [lang, toast]);
 
   const signedIn = me?.signedIn === true && me.user !== null;
+  const isAdmin = me?.isAdmin === true;
+  const trustedAdmin = me?.trustedAdmin === true;
 
   return (
     <>
@@ -136,7 +259,7 @@ export function SupabaseAccount() {
         title={signedIn ? `${tt(T.accountSignedInAs, lang)} ${me.user?.email ?? ""}` : tt(T.accountSignIn, lang)}
         className="relative gap-1.5"
       >
-        <CircleUserRound className={`h-4 w-4 ${signedIn ? "text-up" : ""}`} aria-hidden />
+        {isAdmin ? <Crown className="h-4 w-4 text-amber-500" aria-hidden /> : <CircleUserRound className={`h-4 w-4 ${signedIn ? "text-up" : ""}`} aria-hidden />}
         {signedIn && (
           <span className="absolute top-1 end-1 h-1.5 w-1.5 rounded-full bg-up ring-2 ring-card" aria-hidden />
         )}
@@ -148,6 +271,12 @@ export function SupabaseAccount() {
             <DialogTitle className="flex items-center gap-2 text-base">
               <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
               {tt(T.account, lang)} — Supabase
+              {isAdmin && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                  <Crown className="h-3 w-3" aria-hidden />
+                  {tt(T.accountAdminBadge, lang)}
+                </span>
+              )}
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
               {tt(T.accountNote, lang)}
@@ -172,6 +301,25 @@ export function SupabaseAccount() {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* the trusted-device door: one click, no code, no email */}
+              {trustedAdmin && (
+                <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <Crown className="h-3.5 w-3.5" aria-hidden />
+                    {tt(T.accountAdminQuick, lang)}
+                  </div>
+                  <p className="text-[10px] leading-relaxed text-muted-foreground">{tt(T.accountAdminQuickHint, lang)}</p>
+                  <Button
+                    className="w-full gap-2"
+                    onClick={() => void adminSignIn()}
+                    disabled={busy || !challengeReady}
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {tt(T.accountAdminQuick, lang)}
+                  </Button>
+                </div>
+              )}
+
               {step === "email" ? (
                 <>
                   <div className="space-y-1.5">
@@ -192,10 +340,23 @@ export function SupabaseAccount() {
                       className="h-9"
                     />
                   </div>
+                  {/* T48 honeypot: invisible to humans, irresistible to bots */}
+                  <input
+                    ref={honeypotRef}
+                    type="text"
+                    name="company_website"
+                    autoComplete="off"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    value={hp}
+                    onChange={(e) => setHp(e.target.value)}
+                    style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+                  />
                   <Button
                     className="w-full gap-2"
                     onClick={() => void sendCode()}
-                    disabled={busy || !/.+@.+\..+/.test(email.trim())}
+                    disabled={busy || !challengeReady || !/.+@.+\..+/.test(email.trim())}
+                    title={!challengeReady ? tt(T.accountChallengeExpired, lang) : undefined}
                   >
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                     {tt(T.accountSendCode, lang)}
@@ -211,7 +372,8 @@ export function SupabaseAccount() {
                     {/* ONE combined field: a 6-digit code (if the project's email
                         template carries one) OR the whole pasted link (the default
                         Supabase template is link-only — the server route accepts
-                        code, link and bare token_hash shapes alike). */}
+                        code, link and bare token_hash shapes alike). The owner
+                        may instead paste the one-time setup code from .env. */}
                     <Input
                       id="sb-code"
                       dir="ltr"

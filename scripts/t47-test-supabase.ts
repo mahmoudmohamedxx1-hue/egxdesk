@@ -78,16 +78,18 @@ async function main() {
   try {
     const me = await fetch(`${BASE}/api/auth/supabase/me`).then((r) => r.json());
     ok("live: me signed-out shape", me.signedIn === false && me.user === null);
-    // per-run IP so the route's honest 5/10min rate limiter (keyed by IP,
-    // persistent in the dev-server process) never swallows these validation
-    // checks on repeated suite runs
-    const xff = { "Content-Type": "application/json", "x-forwarded-for": `127.0.0.${(Math.random() * 200 + 2) | 0}` };
+    // per-run IP so the route's honest flood limiter (keyed by IP, persistent
+    // in the dev-server process) never swallows these validation checks on
+    // repeated suite runs. T48: posts WITHOUT a challenge token are now
+    // refused 403 challengeFailed BEFORE any validation — that IS the
+    // correct new behavior, so these checks assert the challenge gate.
+    const xff = { "Content-Type": "application/json", "x-forwarded-for": `127.0.0.${(Math.random() * 200 + 2) | 0}`, "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" };
     const badEmail = await fetch(`${BASE}/api/auth/supabase/request`, { method: "POST", headers: xff, body: JSON.stringify({ email: "not-an-email" }) });
-    ok("live: invalid email 400", badEmail.status === 400);
-    const badBody = await fetch(`${BASE}/api/auth/supabase/request`, { method: "POST", headers: { ...xff, "x-forwarded-for": "127.0.0.201" }, body: "not-json" });
-    ok("live: garbage body 400", badBody.status === 400);
-    const shortCode = await fetch(`${BASE}/api/auth/supabase/verify`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "user@example.com", code: "12" }) });
-    ok("live: short code 400 before any Supabase call", shortCode.status === 400);
+    ok("live: no-challenge post refused (403 challengeFailed)", badEmail.status === 403 && (await badEmail.json()).challengeFailed === true);
+    const badBody = await fetch(`${BASE}/api/auth/supabase/request`, { method: "POST", headers: { ...xff, "x-forwarded-for": "127.0.0.201", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" }, body: "not-json" });
+    ok("live: garbage body still 400", badBody.status === 400);
+    const shortCode = await fetch(`${BASE}/api/auth/supabase/verify`, { method: "POST", headers: xff, body: JSON.stringify({ email: "user@example.com", code: "12" }) });
+    ok("live: verify without challenge refused (403 challengeFailed)", shortCode.status === 403 && (await shortCode.json()).challengeFailed === true);
     const logout = await fetch(`${BASE}/api/auth/supabase/logout`, { method: "POST" }).then((r) => r.json());
     ok("live: logout idempotent", logout.ok === true);
     const agent = await fetch(`${BASE}/api/agent-signals`).then((r) => r.json());

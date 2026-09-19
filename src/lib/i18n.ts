@@ -1115,6 +1115,37 @@ export const T = {
   accountSignedOut: { ar: "تم تسجيل الخروج", en: "Signed out" },
   accountLoadErr: { ar: "تعذر إكمال الطلب الآن", en: "Could not complete the request right now" },
 
+  // T48 — security layer + the owner's passwordless door
+  accountAdminBadge: { ar: "المالك", en: "Owner" },
+  accountAdminQuick: { ar: "دخول المالك السريع", en: "Owner quick sign-in" },
+  accountAdminQuickHint: {
+    ar: "هذا المتصفح موثوق — زر واحد بلا رمز ولا بريد",
+    en: "this browser is trusted — one button, no code, no email",
+  },
+  accountAdminSetupLabel: { ar: "رمز تفعيل المالك (لمرة واحدة)", en: "Owner setup code (one-time)" },
+  accountAdminSetupHint: {
+    ar: "أدخل بريد المالك ورمز التفعيل لتوثيق هذا المتصفح — بعدها الدخول بزر واحد",
+    en: "enter the owner email + setup code to trust this browser — afterwards sign-in is one button",
+  },
+  accountBotBlocked: {
+    ar: "الطلبات الآلية مرفوضة عند تسجيل الدخول",
+    en: "automated clients are refused at sign-in",
+  },
+  accountChallengeExpired: {
+    ar: "انتهت صلاحية الجلسة الأمنية — أعد المحاولة",
+    en: "the security challenge expired — try again",
+  },
+  accountTempMailBlocked: {
+    ar: "البريد المؤقت/المتاح للإلقاء غير مسموح به في هذا الموقع",
+    en: "temporary/disposable email domains are not allowed on this site",
+  },
+  accountTooFast: {
+    ar: "كانت سرعة أكبر من البشري — خذ نفسًا وأعد المحاولة",
+    en: "that was too fast to be human — take a breath and try again",
+  },
+  accountAdminOnly: { ar: "هذا الباب للمالك فقط", en: "this door is for the site owner only" },
+  accountAdminSignedIn: { ar: "تم دخول المالك", en: "Owner signed in" },
+
   liveFeedTitle: { ar: "البث المباشر للإشارات", en: "Live signal feed" },
   liveFeedNote: {
     ar: "كل حدث لحظي يصل هنا خلال دقيقة: إشارة جديدة لكل سهم، قراءة السوق، نتيجة إشارة منشورة (هدف/وقف/انتهاء) مرصودة على الشموع الحقيقية، تعقيبات الوكيل المستقل، والمراجعة الذاتية اليومية. فعّل الإشعارات ليصلك كل حدث نوافذ متصفحك مباشرة — ومن ثبّت التطبيق تصله إشعارات فعلية حتى والتطبيق مغلق.",

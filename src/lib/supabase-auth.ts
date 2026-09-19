@@ -469,8 +469,13 @@ export async function sbAdminPasswordlessSignIn(
     key: SERVICE_KEY,
     body: { type: "magiclink", email },
   });
+  // GoTrue's shape varies by version: newer ones put action_link at the top
+  // level next to the user object, older ones nest it under properties —
+  // accept both (verified live against this project: top-level).
   const props = (link.json.properties ?? null) as Record<string, unknown> | null;
-  const actionLink = props && typeof props.action_link === "string" ? props.action_link : null;
+  const actionLink =
+    (typeof link.json.action_link === "string" ? link.json.action_link : null) ??
+    (props && typeof props.action_link === "string" ? props.action_link : null);
   if (!link.ok || !actionLink) {
     const msg = typeof link.json.msg === "string" ? link.json.msg : typeof link.json.message === "string" ? link.json.message : `HTTP ${link.status}`;
     return { ok: false, error: `could not generate the admin session: ${msg.slice(0, 120)}` };
