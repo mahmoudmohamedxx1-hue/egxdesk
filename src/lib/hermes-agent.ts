@@ -46,10 +46,10 @@ import { STRATEGY_CHARTER, STRATEGY_REV } from "@/lib/strategy";
 import { gatherEvidence, composeUserMsg, assembleSet, strayLatinInArabic, strayArabicInEnglish, type AiSetPayload, type AiPick } from "@/lib/ai-signals";
 import { emitSetEvents } from "@/lib/signal-events";
 import { renderCandleChartPng } from "@/lib/chart-png";
-import { zaiChat, zaiChatJson, zaiVision, ZAI_SIGNAL_MODEL, ZAI_VISION_MODEL } from "@/lib/zai-client";
+import { zaiVision, brainJson, brainChat, ZAI_SIGNAL_MODEL, ZAI_VISION_MODEL } from "@/lib/zai-client";
 import { computeLearning, learnedConsensus, diffLearning, type LearningState } from "@/lib/agent-learning";
 import { recallForRun, rememberMemory, memoryStats, type RecalledMemory } from "@/lib/supermemory";
-import { archiveContext, appendSignalRun, appendWorklog, readWorklogTail, type ArchiveContext } from "@/lib/agent-archive";
+import { archiveContext, appendSignalRun, appendWorklog, readWorklogTail, type ArchiveContext, type SignalRunEntry } from "@/lib/agent-archive";
 import { mirrorAgentRun, mirrorStatus as supabaseMirrorStatus } from "@/lib/supabase-mirror";
 import backtestJson from "@/data/backtest.json";
 
@@ -474,10 +474,14 @@ export function runHermesAgent(kind: AgentRunKind, user?: { id: string; email: s
       // 3. the vision pass
       const vision = await visionPass(ev, learning);
 
-      // 4. the brain — glm-4.7-flash with thinking ON, and the THINKING
-      //    STREAM ITSELF is captured (reasoning_content) and ships with the run
+      // 4. the brain — T52: LAYERED. glm-4.7-flash (direct key, thinking ON,
+      //    full retry chain) first; when the free tier is inside a 1305
+      //    overload window (they run minutes) the sandbox SDK's GLM-4-Plus
+      //    pool takes over — the run records which tier actually served.
+      //    The THINKING STREAM itself is captured either way and ships with
+      //    the run.
       const tBrain = Date.now();
-      const brain = await zaiChatJson({
+      const brain = await brainJson({
         messages: [
           { role: "assistant", content: STRATEGY_CHARTER },
           {
@@ -487,16 +491,14 @@ export function runHermesAgent(kind: AgentRunKind, user?: { id: string; email: s
           },
           { role: "user", content: buildAgentUserMsg(ev, vision.reads, learning, lessons, kind, memoryRecall, archive) },
         ],
-        model: ZAI_SIGNAL_MODEL,
-        thinking: true,
         maxTokens: 6000,
       });
       const llmMs = Date.now() - tBrain;
       const thinking = brain.reasoning ? brain.reasoning.trim().slice(0, 2600) : null;
 
-      // 5. the SAME validation spine as the shared refresh + purity via the key
-      const chat = async (messages: { role: "user" | "assistant"; content: string }[]) =>
-        (await zaiChat({ messages, thinking: false, maxTokens: 1200 })).content;
+      // 5. the SAME validation spine as the shared refresh + purity via the
+      //    layered fix-up chat (direct key → SDK fallback)
+      const chat = async (messages: { role: "user" | "assistant"; content: string }[]) => brainChat(messages);
       const payload = await assembleSet(brain.parsed, ev, chat);
 
       // 6. agent extras + journal sanitization
@@ -863,6 +865,51 @@ export async function getAgentState(): Promise<AgentState> {
   } catch {
     /* db hiccup — empty lists, learning still serves */
   }
+
+  // T52 — RESET-PROOF HISTORY: a sandbox/environment reset can regenerate
+  // the database and drop every AgentRun row while the DURABLE file ledger
+  // (data/agent/signals.jsonl — append-only, crash-safe, ships with the
+  // repo) still carries each successful run. When the db has NO runs at
+  // all, the ledger becomes the panel's source of truth — the recovered
+  // latest is clearly marked, nothing is fabricated.
+  let ledgerEntry: SignalRunEntry | null = null;
+  let ledgerJournalEn: string | null = null;
+  if (runs.length === 0) {
+    try {
+      const { readRecentSignals, readWorklogTail } = await import("@/lib/agent-archive");
+      const entries = await readRecentSignals(12);
+      if (entries.length > 0) {
+        ledgerEntry = entries[entries.length - 1];
+        runs = entries
+          .slice()
+          .reverse()
+          .map((e) => ({
+            id: e.runId,
+            kind: e.kind,
+            session: "",
+            startedAt: e.at,
+            status: "ok",
+            model: e.model,
+            visionModel: e.visionModel,
+            llmMs: 0,
+            visionMs: 0,
+            setRef: e.setRef,
+            error: null,
+          }));
+        // the REAL journal text of the last run, quoted from the agent's own
+        // markdown worklog (last "- journal:" line) — null when absent
+        try {
+          const tail = await readWorklogTail(12_000);
+          const m = tail?.match(/- journal: (.+)$/gm);
+          ledgerJournalEn = m && m.length > 0 ? m[m.length - 1].replace(/^- journal: /, "") : null;
+        } catch {
+          /* worklog unreadable — the recovery note serves instead */
+        }
+      }
+    } catch {
+      /* ledger unreadable — the empty, honest state serves */
+    }
+  }
   const { archiveStatus } = await import("@/lib/agent-archive");
 
   const latestOk = runs.find((r) => r.status === "ok");
@@ -880,6 +927,100 @@ export async function getAgentState(): Promise<AgentState> {
       }
     } catch {
       latest = null;
+    }
+    // T52 — the db row is gone (reset) but the ledger entry survived:
+    // rebuild the latest payload from the durable files, clearly marked.
+    if (!latest && ledgerEntry) {
+      const e = ledgerEntry;
+      const recoveredAr = "سجل مستعاد من ملف السجل الدائم بعد إعادة ضبط البيئة — التفاصيل الكاملة في data/agent/worklog.md";
+      const recoveredEn = "Record recovered from the durable file ledger after the environment reset — full details in data/agent/worklog.md";
+      const mid = (lo: number, hi: number) => (lo + hi) / 2;
+      const kind: AgentRunKind =
+        e.kind === "pre-open" || e.kind === "midday" || e.kind === "post-close" || e.kind === "manual" ? e.kind : "manual";
+      latest = {
+        run: latestOk,
+        payload: {
+          generatedAt: e.at,
+          marketBias: {
+            direction: (e.bias.direction === "bearish" || e.bias.direction === "neutral"
+              ? e.bias.direction
+              : "bullish") as "bullish" | "bearish" | "neutral",
+            conviction: e.bias.conviction,
+            summaryAr: recoveredAr,
+            summaryEn: recoveredEn,
+          },
+          picks: e.picks.map((p) => ({
+            ticker: p.ticker,
+            nameAr: p.ticker,
+            nameEn: p.ticker,
+            sectorAr: "—",
+            stance: p.stance === "avoid" ? ("avoid" as const) : ("long" as const),
+            conviction: p.conviction,
+            charterScore: null,
+            strategies: [],
+            longVotes: 0,
+            avoidVotes: 0,
+            applicable: 0,
+            agreement: 0,
+            close: p.entryZone ? mid(p.entryZone[0], p.entryZone[1]) : 0,
+            entry: p.entryZone ? mid(p.entryZone[0], p.entryZone[1]) : null,
+            stop: p.stop,
+            target: p.targets && p.targets.length > 0 ? p.targets[p.targets.length - 1] : null,
+            rr: null,
+            plan:
+              p.entryZone && p.targets && p.targets.length > 0 && p.stop != null
+                ? {
+                    zoneLo: p.entryZone[0],
+                    zoneHi: p.entryZone[1],
+                    t1: p.targets[0],
+                    t2: p.targets[1] ?? p.targets[0],
+                    t3: p.targets[p.targets.length - 1],
+                    riskPct: p.riskPct ?? 0,
+                  }
+                : null,
+            ml: null,
+            horizonSessions: p.horizonSessions ?? 10,
+            riskLevel: "medium" as const,
+            earningsRisk: null,
+            evidence: [recoveredEn],
+            thesisAr: recoveredAr,
+            thesisEn: recoveredEn,
+          })),
+          notesAr: recoveredAr,
+          scanned: e.picks.length,
+          portfolio: null,
+          agent: {
+            runKind: kind,
+            model: e.model,
+            visionModel: e.visionModel,
+            startedAt: e.at,
+            skills: [],
+            vision: [],
+            journalAr: ledgerJournalEn ? `${recoveredAr}\n\n${ledgerJournalEn}` : recoveredAr,
+            journalEn: ledgerJournalEn ?? recoveredEn,
+            thinking: null,
+            memoryRecall: [],
+            memory: { totalBefore: 0, stored: 0 },
+            archive: { ledgerRuns: runs.length },
+            learning: {
+              episodesClosed: learning.episodesClosed,
+              minN: learning.minN,
+              since: learning.since,
+              weights: learning.strategies.map((s) => ({
+                id: s.id,
+                nameAr: s.nameAr,
+                nameEn: s.nameEn,
+                multiplier: s.multiplier,
+                decided: s.decided,
+                hitRate: s.hitRate,
+              })),
+              noteAr: recoveredAr,
+              noteEn: recoveredEn,
+            },
+            memoryLessons: 0,
+          },
+        },
+      };
     }
   }
 
@@ -905,6 +1046,19 @@ export async function canTriggerManual(): Promise<{ ok: boolean; reason?: string
     }
   } catch {
     /* db hiccup — allow the attempt; the run itself records honestly */
+  }
+  // T52 — the durable ledger counts too: a reset that dropped the db rows
+  // must not unlock a double-run inside the 10-minute cooldown window.
+  try {
+    const { readRecentSignals } = await import("@/lib/agent-archive");
+    const entries = await readRecentSignals(1);
+    const last = entries[0];
+    const at = last ? Date.parse(last.at) : NaN;
+    if (Number.isFinite(at) && Date.now() - at < 10 * 60_000) {
+      return { ok: false, reason: "cooling" };
+    }
+  } catch {
+    /* ledger unreadable — db verdict stands */
   }
   return { ok: true };
 }
