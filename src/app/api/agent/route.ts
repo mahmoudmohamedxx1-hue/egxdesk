@@ -394,13 +394,31 @@ export async function POST(req: Request) {
         } catch {}
       };
 
-      const zai = await getZai();
+      // T50 — outside the sandbox (Vercel…) the z-ai SDK can't authenticate,
+      // so the request would die HERE before a single token streams. Instead:
+      // fall through to the keyless LLM7 cloud (no key, no sign-in, works on
+      // any host) and keep the conversation alive.
+      let zai: Zai | null = null;
+      try {
+        zai = await getZai();
+      } catch {
+        zai = null;
+        send({
+          type: "status",
+          note:
+            lang === "ar"
+              ? "النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر السحابة المجانية بلا تسجيل"
+              : "backbone model unavailable on this host — answering via the keyless free cloud",
+        });
+        model = findAiModel("llm7:mistral-Nemo-Instruct-2407")!;
+        msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+      }
       // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
       // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
       // gets the system prompt as a proper "system" role (no thinking
       // toggle — the anonymous tier doesn't support one).
       const runRound = (thinking: "enabled" | "disabled", onDelta?: DeltaFn): Promise<string> =>
-        model.provider === "llm7"
+        model.provider === "llm7" || !zai
           ? llm7Round(
               model.providerModel,
               {
@@ -450,7 +468,7 @@ export async function POST(req: Request) {
             // GLM-4-Plus backbone: an honest status note is streamed, the
             // system prompt is rebuilt with the fallback identity, and the
             // done event reports the model that ACTUALLY served the answer.
-            if (model.provider === "llm7" && !failedOver) {
+            if (model.provider === "llm7" && !failedOver && zai) {
               failedOver = true;
               send({
                 type: "status",
@@ -506,7 +524,7 @@ export async function POST(req: Request) {
               msgs.push({ role: "user", content: verificationRepairMessage(verdict, lang) });
               continue; // same conversation, corrected rewrite requested
             }
-            if (!verdict.ok && model.provider === "llm7" && !failedOver) {
+            if (!verdict.ok && model.provider === "llm7" && !failedOver && zai) {
               failedOver = true;
               send({
                 type: "status",

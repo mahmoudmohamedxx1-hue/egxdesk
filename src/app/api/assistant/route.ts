@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import ZAI from "z-ai-web-dev-sdk";
+import { zaiChat } from "@/lib/zai-client";
 
 /** POST /api/assistant — the CLOUD brain of the AI assistant popup
  *  (the "EGX Desk Cloud" model option). Two stages, both stateless:
@@ -12,10 +12,14 @@ import ZAI from "z-ai-web-dev-sdk";
  *  2. stage "answer": after the client executed the tool, the model writes
  *     the final bilingual markdown answer from the REAL tool result.
  *
- *  The z-ai-web-dev-sdk (GLM-4-Plus) stays server-side; free Puter cloud
- *  models run client-side and never touch this endpoint. The tool list mirrors the client
- *  registry in src/lib/assistant-tools.ts (kept in sync by hand — it is a
- *  prompt constant, not shared code, so the client lib never loads here). */
+ *  T50 — the brain now goes through the app's OWN Z.AI key
+ *  (src/lib/zai-client.ts — glm-4.7-flash, plain HTTPS) instead of the
+ *  sandbox-only SDK, so the assistant works identically on the preview
+ *  server AND on any external host (Vercel…). The key stays server-side;
+ *  free Puter cloud models still run client-side and never touch this
+ *  endpoint. The tool list mirrors the client registry in
+ *  src/lib/assistant-tools.ts (kept in sync by hand — it is a prompt
+ *  constant, not shared code, so the client lib never loads here). */
 
 export const runtime = "nodejs";
 
@@ -39,24 +43,52 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-// ── z-ai SDK singleton ──
-type Zai = Awaited<ReturnType<typeof ZAI.create>>;
-let zaiPromise: Promise<Zai> | null = null;
-function zai(): Promise<Zai> {
-  if (!zaiPromise) zaiPromise = ZAI.create();
-  return zaiPromise;
+// ── the brain: THREE layered providers, whichever answers first wins ──
+//  T50: the popup must stay snappy on EVERY host, including during the free
+//  tier's 1305 overload windows (which can run minutes):
+//   1. direct Z.AI chat (glm-4.7-flash via the app's own key) — works on
+//      ANY host (sandbox, Vercel, anywhere); ONE throttle backoff max so an
+//      overload window fails over fast instead of hanging the popup.
+//   2. the sandbox SDK's GLM-4-Plus — instant when available, throws
+//      immediately outside the sandbox.
+//   3. LLM7.io keyless cloud (Mistral Nemo) — no key, no sign-in, works on
+//      any host from a shared anonymous quota; last resort.
+//  All three fail honestly → the client shows its generic error card.
+
+const WHY = (err: unknown): string => (err instanceof Error ? err.message : String(err)).slice(0, 140);
+
+// 1 — direct Z.AI key
+async function zaiDirectRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  const r = await zaiChat({
+    messages,
+    // planning/answering is mechanical JSON work — thinking off keeps
+    // the popup snappy (the autonomous agent keeps thinking ON)
+    thinking: false,
+    temperature: 0.4,
+    maxRetries: 1,
+  });
+  if (!r.content.trim()) throw new Error("zai: empty content");
+  return r.content;
 }
 
-async function createChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
-  const client = await zai();
+// 2 — the sandbox SDK (GLM-4-Plus). Lazy import + lazy singleton: outside
+// the sandbox ZAI.create() rejects almost instantly and we move on.
+let sdkPromise: Promise<Awaited<ReturnType<typeof import("z-ai-web-dev-sdk").default.create>>> | null = null;
+async function sdkRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  const ZAI = (await import("z-ai-web-dev-sdk")).default;
+  if (!sdkPromise) sdkPromise = ZAI.create();
+  const client = await sdkPromise;
   for (let attempt = 0; ; attempt++) {
     try {
       const res = await client.chat.completions.create({ messages, thinking: { type: "disabled" } });
       const c = res as { choices?: { message?: { content?: string } }[] };
-      return c.choices?.[0]?.message?.content ?? "";
+      const text = c.choices?.[0]?.message?.content ?? "";
+      if (!text.trim()) throw new Error("sdk: empty content");
+      return text;
     } catch (err) {
-      if (attempt < 2 && isThrottle(err)) {
-        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      const e = err as { status?: number; message?: string };
+      if (attempt < 1 && (e?.status === 429 || /rate|throttle|429/i.test(String(e?.message ?? "")))) {
+        await new Promise((r) => setTimeout(r, 1500));
         continue;
       }
       throw err;
@@ -64,9 +96,50 @@ async function createChat(messages: { role: "system" | "user" | "assistant"; con
   }
 }
 
-function isThrottle(err: unknown): boolean {
-  const e = err as { status?: number; message?: string };
-  return e?.status === 429 || /rate|throttle|429/i.test(String(e?.message ?? ""));
+// 3 — keyless LLM7.io (shared anonymous tier; the same cloud the agent view
+// offers as "no sign-in" models). Non-streaming is fine for JSON rounds.
+const LLM7_URL = "https://api.llm7.io/v1/chat/completions";
+async function llm7Round(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45_000);
+    try {
+      const res = await fetch(LLM7_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "mistral-Nemo-Instruct-2407", messages, stream: false }),
+        signal: ctrl.signal,
+      });
+      if (res.status === 429 || res.status >= 500) {
+        if (attempt < 1) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        throw new Error(`llm7 http ${res.status}`);
+      }
+      if (!res.ok) throw new Error(`llm7 http ${res.status}: ${(await res.text().catch(() => "")).slice(0, 120)}`);
+      const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const text = j.choices?.[0]?.message?.content ?? "";
+      if (!text.trim()) throw new Error("llm7: empty content");
+      return text;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+async function createChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  try {
+    return await zaiDirectRound(messages);
+  } catch (err) {
+    console.warn("[assistant] direct zai tier unavailable:", WHY(err));
+  }
+  try {
+    return await sdkRound(messages);
+  } catch (err) {
+    console.warn("[assistant] sdk tier unavailable:", WHY(err));
+  }
+  return await llm7Round(messages);
 }
 
 /** Tolerant JSON extraction — mirrors the client parser (fences, thinking

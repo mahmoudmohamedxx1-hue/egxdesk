@@ -30,6 +30,13 @@ const nextConfig: NextConfig = {
   /* Task 20: ignoreBuildErrors removed — the production build must fail
    * loudly on type errors instead of shipping them (tsc is clean). */
   reactStrictMode: false,
+  /* T50 — carry the SQLite file into every serverless function bundle
+   * (Vercel traces imports but a runtime `file:` path is invisible to it).
+   * At runtime src/lib/db.ts copies it to /tmp — the only writable dir on
+   * a serverless instance — so all read-backed features work on Vercel. */
+  outputFileTracingIncludes: {
+    "/api/**": ["./db/custom.db"],
+  },
   async headers() {
     return [
       {

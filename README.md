@@ -197,6 +197,12 @@ bun run build && bun run start
 Optional `.env`: `DATABASE_URL` (SQLite path) and VAPID keys for web-push notifications — everything
 else works with zero configuration and zero API keys.
 
+**Deploying to Vercel**: the repo is serverless-ready — the SQLite dataset ships inside the
+deployment, the AI brains call Z.AI directly (no sandbox SDK), and background loops detect
+serverless and stand down. The only manual step is setting the env vars (Supabase/auth/ZAI keys)
+in the Vercel dashboard — see **[docs/VERCEL.md](docs/VERCEL.md)** for the exact table and a
+post-deploy checklist.
+
 ## Testing
 
 16 end-to-end/API suites cover the whole surface — run against a live dev server:

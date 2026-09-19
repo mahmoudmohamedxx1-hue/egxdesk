@@ -16,7 +16,7 @@
  *  - VERSION bump on every release so installed apps pick the new shell on
  *    their next launch (skipWaiting + clients.claim apply it immediately). */
 
-const VERSION = "egx-desk-v33";
+const VERSION = "egx-desk-v34";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 

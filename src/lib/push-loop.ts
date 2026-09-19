@@ -129,6 +129,15 @@ export function startBackgroundJobs(): void {
   if (g.__egxBgStarted) return;
   g.__egxBgStarted = true;
 
+  // T50 — serverless hosts (Vercel): the function freezes between requests,
+  // so intervals never fire and the warm scans would only burn cold-start
+  // budget. Skip them; the API serves the persisted sets (db snapshot) and
+  // live quotes still stream from the public scanners on demand.
+  if (process.env.VERCEL) {
+    console.log("[bg] serverless environment — background loops skipped (serving persisted data)");
+    return;
+  }
+
   // push: first evaluation shortly after boot, then every 5 minutes
   setTimeout(() => void safePushTick(), 10_000).unref?.();
   setInterval(() => void safePushTick(), PUSH_INTERVAL_MS).unref?.();

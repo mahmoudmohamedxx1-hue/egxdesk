@@ -54,8 +54,15 @@ server.log
 # Skills directory
 /skills/
 # runtime data & environment (T29 hygiene — keep the repo code-only)
-/db/
+/db/*
+# T50: the SQLite file IS the deployment dataset — tracked so Vercel-style
+# serverless builds carry every market table (flows, indices, news archive,
+# AI signal sets, agent records). Everything else in /db/ stays local.
+!/db/custom.db
 /.env
 /dev.log
 /tool-results/
 /agent-ctx/
+
+# local Vercel simulation output (T50)
+/.vercel-test/
