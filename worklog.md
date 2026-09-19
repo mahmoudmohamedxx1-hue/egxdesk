@@ -1200,3 +1200,21 @@ Stage Summary:
 - Vercel: import the repo, set the 8 env vars from docs/VERCEL.md, deploy — every feature works (reads full-fidelity; writes ephemeral per instance by serverless design).
 - The preview server (:3000 dev via caddy :81) is fully healthy and user-verified end-to-end.
 - db/custom.db is now part of the repo — future sandbox resets also recover the full dataset from git.
+
+---
+Task ID: T51
+Agent: main (Super Z)
+Task: User: "update the repo here it is ghp_…" — re-credential the GitHub remote with the fresh PAT and push; pre-push secret audit performed.
+
+Work Log:
+- Validated the new PAT against the GitHub API (identity = repo owner), re-credentialled origin with it, fetch verified.
+- Pre-push full-repo secret scan (tracked files): scanned for GitHub tokens, Supabase secret/publishable keys, sk- prefixes, both AUTH_* HMAC secrets, the admin setup code, and the Z.AI key. All clean EXCEPT the Z.AI API key — it was hardcoded as an env fallback default in 3 tracked files (src/lib/zai-client.ts + the two t46 probe scripts) since T46, and the repo is PUBLIC → real exposure.
+- Security fix: zai-client.ts now reads ZAI_API_KEY from env ONLY (empty when unset) with an instant no-key guard at the top of zaiChat (skips the direct tier with zero wasted 401 round-trips so callers fall through to the sandbox SDK / keyless LLM7 layers immediately); both probe scripts hard-fail with a clear message when the key is missing; header comment + docs/VERCEL.md updated (env table now marks the direct tier as env-var-only, plus a prominent "rotate your Z.AI key" warning since the old key must be treated as compromised).
+- Verification after the fix: git grep confirms the key is gone from every tracked file (still present in gitignored .env for the sandbox runtime); tsc clean; eslint clean; probe scripts node --check ok; live smoke on :3000 — /api/assistant full round-trip answered with real numbers (plan picked market_overview → answer quoted 55,498.7) DURING an active free-tier 1305 overload window (dev.log shows the direct tier retrying once, then falling through and still returning 200 in ~9s — the layered fallback proven live again); /api/agent-signals green; /api/health ok db up.
+- Version 2.39 / SW v35 (footer + health now identify the security release).
+- Committed and pushed to origin/main with the new PAT; remote HEAD verified via the GitHub API.
+
+Stage Summary:
+- The repo is fully synced with the fresh PAT (read+write confirmed by a real fetch+push).
+- The only real secret that ever leaked into the public repo (the Z.AI key, embedded since T46) is now REMOVED from HEAD; it remains in git HISTORY, so the old key must be considered compromised — the user should rotate it (Z.AI console → new key → sandbox .env + Vercel env var). Functionality is unchanged: with the env var set the direct GLM tier works as before; without it the assistant/agent still answer via the keyless fallback.
+- Other scan hits were false positives (placeholder text "ghp_…" / "sb_secret_…" in docs, "sk-" substrings in ordinary words) — no other secrets in git.
