@@ -1,7 +1,11 @@
 /** T46 probe — which models does the user's Z.AI key actually SERVE?
  *  One tiny call per model (thinking off, 16 tokens) + one thinking-ON call on
  *  the flash brains to inspect the reasoning_content shape. Honest output. */
-const KEY = process.env.ZAI_API_KEY ?? "c343b6159e754f3880e2ed10750f6559.hlMMpuUNB93yEr9Y";
+const KEY = process.env.ZAI_API_KEY ?? "";
+if (!KEY) {
+  console.error("ZAI_API_KEY is not set — put it in .env (never committed) and retry.");
+  process.exit(1);
+}
 const BASE = "https://api.z.ai/api/paas/v4/chat/completions";
 
 const CATALOG = [

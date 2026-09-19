@@ -16,8 +16,10 @@
  *     response `model` field) — the run row records it verbatim;
  *   - throttle (429) and overload (1305) get bounded retries with backoff,
  *     then the error surfaces — a failed agent run is NEVER fabricated;
- *   - the key is readable from ZAI_API_KEY (env override) with the supplied
- *     key as the shipped default; it never reaches the browser bundle. */
+ *   - the key comes from ZAI_API_KEY (env / .env) ONLY — it is never a
+ *     hardcoded default, never committed to git, never in the browser
+ *     bundle; with no key the direct tier skips instantly and callers fall
+ *     through to their fallback providers. */
 
 // hard server guard — fails loudly if anything client-side imports this.
 // (the "server-only" npm pkg is not installed in this sandbox; this module is
@@ -27,7 +29,7 @@ if (!ZAI_SERVER_ONLY_GUARD) {
   throw new Error("zai-client must never run in the browser — the API key would leak");
 }
 
-export const ZAI_API_KEY = process.env.ZAI_API_KEY ?? "c343b6159e754f3880e2ed10750f6559.hlMMpuUNB93yEr9Y";
+export const ZAI_API_KEY = process.env.ZAI_API_KEY ?? "";
 const ZAI_BASE = "https://api.z.ai/api/paas/v4/chat/completions";
 
 export const ZAI_SIGNAL_MODEL = "glm-4.7-flash";
@@ -85,6 +87,11 @@ export async function zaiChat(opts: {
    *  budget (1302) which then starves the brain call. */
   maxRetries?: number;
 }): Promise<ZaiChatResult> {
+  // no key configured (e.g. a host without env vars) → skip instantly with
+  // no wasted 401 round-trip; callers fall through to their fallback tier.
+  if (!ZAI_API_KEY) {
+    throw new ZaiError("zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped", null, false);
+  }
   const model = opts.model ?? ZAI_SIGNAL_MODEL;
   const t0 = Date.now();
   const retryPlan = RETRY_BACKOFF_MS.slice(0, Math.max(0, opts.maxRetries ?? RETRY_BACKOFF_MS.length));

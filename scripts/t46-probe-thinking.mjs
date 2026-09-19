@@ -1,5 +1,9 @@
 /** T46 probe B — full 1210 error + correct thinking param shape for glm-5.3-flash. */
-const KEY = process.env.ZAI_API_KEY ?? "c343b6159e754f3880e2ed10750f6559.hlMMpuUNB93yEr9Y";
+const KEY = process.env.ZAI_API_KEY ?? "";
+if (!KEY) {
+  console.error("ZAI_API_KEY is not set — put it in .env (never committed) and retry.");
+  process.exit(1);
+}
 const BASE = "https://api.z.ai/api/paas/v4/chat/completions";
 
 async function call(model, extra, label) {
