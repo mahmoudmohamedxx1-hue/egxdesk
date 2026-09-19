@@ -1456,6 +1456,11 @@ export const T = {
   aiPuterSigninOk: { ar: "تم الدخول — يمكنك الآن استخدام أي نموذج سحابي مجاني.", en: "Signed in — you can now use any free cloud model." },
   aiPuterSigninCancelled: { ar: "لم يكتمل الدخول — حاول مجددًا.", en: "Sign-in didn't complete — try again." },
   aiPuterSigninCardTitle: { ar: "نماذج سحابية مجانية — يلزم دخول Puter", en: "Free cloud models — Puter sign-in needed" },
+  aiServerFallbackTitle: { ar: "أُجيب الآن بنموذج الخادم GLM-4-Plus — يعمل دائمًا بلا تسجيل", en: "Answered on the server model GLM-4-Plus — always on, no sign-in" },
+  aiServerFallbackBody: {
+    ar: "النموذج المختار (GLM-5.3) يحتاج دخول Puter المجاني مرة واحدة، لكن سؤالك لا يتوقف: ردك التالي يأتي الآن من نموذج الخادم. اضغط زر الدخول بالأسفل لتفعيل النماذج السحابية المجانية (GLM-5.3 و١٠٠٠+ نموذج)، أو اختر «سحابي · GLM-4-Plus» من قائمة النموذج.",
+    en: "The selected model (GLM-5.3) needs a one-time free Puter sign-in, but your question never stalls: the reply that follows comes from the server model right now. Tap the sign-in button below to switch on the free cloud models (GLM-5.3 & 1,000+ more), or pick “Cloud · GLM-4-Plus” in the model menu.",
+  },
   aiPuterSigninCardBody: {
     ar: "نماذج Puter السحابية (GPT-OSS 20B و120B، GLM-5.3، Claude، Gemini، Grok…) مجانية تمامًا — بدون بطاقة وبدون مفاتيح — مقابل حصة شهرية خاصتك. اضغط زر الدخول مرة واحدة ثم أعد إرسال رسالتك.\n\nالدخول لا يعمل أو لا تريده الآن؟ نموذج الخادم **GLM-4-Plus** يعمل دائمًا بلا تسجيل، ونماذج **LLM7 بلا تسجيل** (Mistral Nemo / Codestral / MiniMax M2.7) تعمل من حصة مجانية مشتركة — وإذا استُنفدت الحصة يتحول الرد تلقائيًا إلى GLM-4-Plus دون أي انقطاع.",
     en: "The Puter cloud models (GPT-OSS 20B & 120B, GLM-5.3, Claude, Gemini, Grok…) are fully free — no card, no API keys — against your own monthly allowance. Tap the sign-in button once, then resend your message.\n\nSign-in not working, or don't want it? The server model **GLM-4-Plus** always works with no sign-in, and the **keyless LLM7 models** (Mistral Nemo / Codestral / MiniMax M2.7) run on a shared free quota — if that quota runs out, your answer automatically falls back to GLM-4-Plus with zero interruption.",

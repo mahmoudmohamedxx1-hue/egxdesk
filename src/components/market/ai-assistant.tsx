@@ -248,14 +248,92 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     toast(tt(T.aiPuterSignedOut, lang));
   }, [toast, lang]);
 
-  const signinCard = useCallback(() => {
+  // T49 — the one-per-session note shown when a Puter cloud model is
+  // selected but the visitor isn't signed in: we STILL answer (server model),
+  // the note just surfaces the free upgrade path + the one-tap sign-in button.
+  const fallbackNotedRef = useRef(false);
+  const fallbackNote = useCallback(() => {
+    if (fallbackNotedRef.current) return;
+    fallbackNotedRef.current = true;
     pushMsg({
       role: "assistant",
-      text: `**${tt(T.aiPuterSigninCardTitle, lang)}**\n\n${tt(T.aiPuterSigninCardBody, lang)}`,
+      text: `**${tt(T.aiServerFallbackTitle, lang)}**\n\n${tt(T.aiServerFallbackBody, lang)}`,
       signin: true,
       ts: Date.now(),
     });
   }, [lang, pushMsg]);
+
+  // ── the server-cloud answer loop (GLM-4-Plus via /api/assistant — always
+  // available, zero sign-in). T49: ALSO the auto-fallback brain when a Puter
+  // cloud model is selected but the visitor hasn't signed in (or puter.js is
+  // blocked): the assistant must ALWAYS answer, never dead-wall. ──
+  const askCloud = useCallback(async (history: Msg[], text: string) => {
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setBusy("think");
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        signal: ac.signal,
+        body: JSON.stringify({
+          stage: "plan",
+          lang,
+          context: { view: view.name, ticker: view.ticker },
+          messages: history.slice(-8).map((m) => ({ role: m.role, content: m.text })),
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const j = (await res.json()) as { tool?: string; args?: Record<string, unknown>; reply?: string; error?: string };
+      if (j.tool && j.args != null) {
+        const toolRes = await executeTool(j.tool, j.args);
+        setBusy("answer");
+        let answered = false;
+        try {
+          const ac2 = new AbortController();
+          abortRef.current = ac2;
+          const res2 = await fetch("/api/assistant", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            signal: ac2.signal,
+            body: JSON.stringify({
+              stage: "answer",
+              lang,
+              question: text,
+              tool: j.tool,
+              args: j.args,
+              result: toolRes.data ?? { ok: toolRes.ok, text: toolRes.text },
+            }),
+          });
+          if (res2.ok) {
+            const j2 = (await res2.json()) as { reply?: string; error?: string };
+            if (j2.reply && j2.reply.trim()) {
+              pushMsg({ role: "assistant", text: j2.reply.trim(), steps: [{ tool: j.tool, ok: toolRes.ok }], ts: Date.now() });
+              answered = true;
+            }
+          }
+        } catch {}
+        if (!answered) {
+          pushMsg({ role: "assistant", text: toolRes.text, steps: [{ tool: j.tool, ok: toolRes.ok }], ts: Date.now() });
+        }
+      } else if (j.reply && j.reply.trim()) {
+        pushMsg({ role: "assistant", text: j.reply.trim(), ts: Date.now() });
+      } else {
+        throw new Error(j.error ?? "no action");
+      }
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      pushMsg({
+        role: "assistant",
+        text: aborted ? `⏹ ${tt(T.aiInputStop, lang)}` : tt(T.aiErrorGeneric, lang),
+        ts: Date.now(),
+        ...(aborted ? {} : { error: true }),
+      });
+    } finally {
+      abortRef.current = null;
+      setBusy(null);
+    }
+  }, [lang, view, executeTool, pushMsg]);
 
   // ── the full agent loop ──
   const ask = useCallback(async (rawText: string) => {
@@ -292,71 +370,7 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
 
     // ── CLOUD mode (GLM-4-Plus via /api/assistant) ──
     if (modelId === MODEL_CLOUD) {
-      const ac = new AbortController();
-      abortRef.current = ac;
-      setBusy("think");
-      try {
-        const res = await fetch("/api/assistant", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          signal: ac.signal,
-          body: JSON.stringify({
-            stage: "plan",
-            lang,
-            context: { view: view.name, ticker: view.ticker },
-            messages: history.slice(-8).map((m) => ({ role: m.role, content: m.text })),
-          }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const j = (await res.json()) as { tool?: string; args?: Record<string, unknown>; reply?: string; error?: string };
-        if (j.tool && j.args != null) {
-          const toolRes = await executeTool(j.tool, j.args);
-          setBusy("answer");
-          let answered = false;
-          try {
-            const ac2 = new AbortController();
-            abortRef.current = ac2;
-            const res2 = await fetch("/api/assistant", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              signal: ac2.signal,
-              body: JSON.stringify({
-                stage: "answer",
-                lang,
-                question: text,
-                tool: j.tool,
-                args: j.args,
-                result: toolRes.data ?? { ok: toolRes.ok, text: toolRes.text },
-              }),
-            });
-            if (res2.ok) {
-              const j2 = (await res2.json()) as { reply?: string; error?: string };
-              if (j2.reply && j2.reply.trim()) {
-                pushMsg({ role: "assistant", text: j2.reply.trim(), steps: [{ tool: j.tool, ok: toolRes.ok }], ts: Date.now() });
-                answered = true;
-              }
-            }
-          } catch {}
-          if (!answered) {
-            pushMsg({ role: "assistant", text: toolRes.text, steps: [{ tool: j.tool, ok: toolRes.ok }], ts: Date.now() });
-          }
-        } else if (j.reply && j.reply.trim()) {
-          pushMsg({ role: "assistant", text: j.reply.trim(), ts: Date.now() });
-        } else {
-          throw new Error(j.error ?? "no action");
-        }
-      } catch (err) {
-        const aborted = err instanceof DOMException && err.name === "AbortError";
-        pushMsg({
-          role: "assistant",
-          text: aborted ? `⏹ ${tt(T.aiInputStop, lang)}` : tt(T.aiErrorGeneric, lang),
-          ts: Date.now(),
-          ...(aborted ? {} : { error: true }),
-        });
-      } finally {
-        abortRef.current = null;
-        setBusy(null);
-      }
+      await askCloud(history, text);
       return;
     }
 
@@ -364,7 +378,10 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     setBusy("think");
     try {
       if (!(await puterSignedIn())) {
-        signinCard();
+        // T49 — never a dead wall: answer NOW on the always-on server model;
+        // the one-per-session note keeps the free Puter upgrade path visible.
+        fallbackNote();
+        await askCloud(history, text);
         return;
       }
       const planMsgs = [
@@ -400,7 +417,10 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
       }
     } catch (err) {
       if (err instanceof PuterAuthRequiredError) {
-        signinCard();
+        // T49 — auth vanished mid-flight: fall through to the server brain
+        // instead of stopping the conversation cold.
+        fallbackNote();
+        await askCloud(history, text);
       } else {
         const msg = err instanceof Error ? err.message : "error";
         const stopped = stopFlagRef.current;
@@ -416,7 +436,7 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     } finally {
       setBusy(null);
     }
-  }, [busy, modelId, lang, view, msgs, executeTool, pushMsg, patchLast, signinCard]);
+  }, [busy, modelId, lang, view, msgs, executeTool, pushMsg, patchLast, fallbackNote, askCloud]);
 
   const stop = useCallback(() => {
     stopFlagRef.current = true;
