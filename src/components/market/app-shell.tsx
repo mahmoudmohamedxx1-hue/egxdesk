@@ -4,6 +4,7 @@ import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
 import { HeaderSearch } from "./header-search";
 import { AlertsBell } from "./alerts-panel";
+import { SupabaseAccount } from "./supabase-account";
 import { PwaRegister, InstallButton } from "./pwa-register";
 import { ShareButton } from "./share-button";
 import { AiAssistantLazy } from "./ai-assistant-lazy";
@@ -299,7 +300,9 @@ export function AppShell() {
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            {/* T47: gap tightens to 1 on phones — the account button joined
+                the row, and the status chip drops its Cairo-time words there */}
+            <div className="flex items-center gap-1 sm:gap-1.5">
               {/* 21-c — share this exact page-state via its unique URL */}
               <ShareButton />
 
@@ -308,6 +311,10 @@ export function AppShell() {
 
               {/* G1 price alerts — device-stored, evaluated on quote refresh */}
               <AlertsBell />
+
+              {/* T47 — the Supabase account: real email-OTP auth, HttpOnly
+                  session; agent runs are attributed to the signed-in account */}
+              <SupabaseAccount />
 
               {/* direct light/dark toggle — dark is the default. BOTH icons are
                   rendered and switched with the html.dark CSS class (set by
@@ -361,7 +368,9 @@ export function AppShell() {
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${status?.open ? "bg-up animate-pulse" : "bg-muted-foreground"}`} aria-hidden />
                 <span className="num">{status?.cairoTime ?? "--:--"}</span>
-                {tt(T.cairoTime, lang)}
+                {/* T47 — words only where there is room (≥sm); phones keep the
+                    dot + clock and read the full phrase from the title */}
+                <span className="hidden sm:inline">{tt(T.cairoTime, lang)}</span>
               </span>
             </div>
           </div>

@@ -446,8 +446,10 @@ export type AgentRunOutcome = {
 
 /** One autonomous run. Single-flight (a manual trigger and the scheduler can
  *  never race). Persists: AgentRun row + (on success) an AiSignalSet through
- *  the shared spine, live events, and the journal lessons. */
-export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
+ *  the shared spine, live events, and the journal lessons.
+ *  T47 — `user` (optional): when a Supabase-authed account triggered the run
+ *  (manual trigger while signed in), the mirrored rows are attributed to it. */
+export function runHermesAgent(kind: AgentRunKind, user?: { id: string; email: string | null } | null): Promise<AgentRunOutcome> {
   if (g.__egxHermesInflight) return g.__egxHermesInflight;
   const p = (async () => {
     const startedAt = new Date();
@@ -707,8 +709,10 @@ export function runHermesAgent(kind: AgentRunKind): Promise<AgentRunOutcome> {
       });
 
       // 9d. T46 — the SUPABASE mirror (no-op until the user's project keys
-      //     are set; honest status either way — see docs/SUPABASE-SETUP.md)
+      //     are set; honest status either way — see docs/SUPABASE-SETUP.md).
+      //     T47: signed-in Supabase users get their runs attributed.
       await mirrorAgentRun({
+        user: user ?? null,
         run: {
           runId: run.id,
           startedAt: startedAt.toISOString(),

@@ -1,35 +1,39 @@
-# Supabase Integration — What I Need From You (and what happens the moment you provide it)
+# Supabase Integration — status: KEYS ARE IN (T47), one step remains
 
-The website is **already wired** for Supabase. The server-side mirror
-(`src/lib/supabase-mirror.ts`, zero new dependencies) activates automatically
-the moment these three environment variables exist — no code change, no
-redeploy dance. Until then everything runs on SQLite + the durable
-`data/agent/` files, so nothing is blocked and nothing is faked.
+Your credentials (publishable + secret keys) are configured in `.env` and
+verified live. Two of the three integration halves are **already running**:
 
-## The 3 things I need from you
+## ✅ AUTH — live now
 
-1. **`SUPABASE_URL`** — your project's URL, e.g. `https://abcdefgh.supabase.co`
-   (Supabase Dashboard → Project Settings → API → "Project URL").
-2. **`SUPABASE_SERVICE_ROLE_KEY`** — the `service_role` secret (same page,
-   "service_role" key). **Server-only** — it bypasses row security, so it must
-   never appear in the browser. It goes in `.env` on the server only.
-3. **`SUPABASE_ANON_KEY`** — the `anon` / publishable key (same page). This one
-   is safe for the browser and is what the AUTH flow uses.
+The website has real, server-verified sign-in (the app previously had no
+server auth at all — device-local identity only):
 
-Optionally, for the **Supermemory cloud** backup of the agent's unlimited
-memory: **`SUPERMEMORY_API_KEY`** from https://supermemory.ai → Dashboard.
-(Without it the local supermemory engine — hashed-embedding semantic recall
-over the `AgentMemory` table — already does everything; the cloud is a backup.)
+- **Header → the account button** (person icon, next to the alerts bell):
+  enter your email → Supabase emails a confirmation link/code → paste it
+  back → you're signed in.
+- The session lives in an **HttpOnly cookie** (30 days, auto-refreshed);
+  tokens, the secret key, and JWTs **never reach the browser** — the page
+  only ever learns `{id, email}`.
+- Endpoints: `POST /api/auth/supabase/request` · `POST /api/auth/supabase/verify`
+  · `GET /api/auth/supabase/me` · `POST /api/auth/supabase/logout`.
+- Signed-in users get their **agent runs attributed** (manual triggers carry
+  your account; the AI tab shows "agent runs are attributed to …").
+- Honest limits: the free tier sends **~2 auth emails per hour** (the UI
+  states it when you hit it), and the default email template carries a
+  **link** (paste the whole link — a 6-digit code also works if you enable
+  an OTP template later).
+- Verified end-to-end on 2026-09-19: real emails delivered, users created +
+  confirmed in **Authentication → Users** (the test accounts
+  `egxdesk-t47-*@uberip.com` are visible there and can be deleted).
 
-## What each one unlocks
+Optional dashboard polish (not required): **Authentication → Email
+Templates** → add `{{ .Token }}` to show a typed code instead of a link.
 
-| You provide | What switches on |
-|---|---|
-| `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | Every successful agent run mirrors to Supabase: the run row (`agent_runs`), every pick with its full trade plan (`agent_signals`), every new memory (`agent_memories`), and the whole markdown worklog, upserted (`agent_worklog`). Mirror status shows live in the AI tab + `/api/agent-signals`. |
-| `SUPABASE_ANON_KEY` (+ email auth enabled) | **AUTH**: sign-in with Supabase (email magic link / OTP). The existing OTP login stays; Supabase becomes the real user identity, and `verifySupabaseUser(jwt)` verifies tokens server-side so signals and memories can be attributed to real users. |
-| `SUPERMEMORY_API_KEY` | Every memory is ALSO pushed to your supermemory.ai account (v3 documents API) — the cloud twin of the unlimited memory. Local recall never depends on it. |
+## ⏳ THE AGENT'S SIGNALS/MEMORY/WORKLOG MIRROR — one step remains
 
-## The SQL to run once (SQL Editor in the Supabase dashboard)
+The mirror code is armed and the status line in the AI tab honestly shows
+"tables not created yet" until you run the SQL below **once** (Supabase
+dashboard → **SQL Editor** → New query → paste → Run — ~30 seconds):
 
 ```sql
 -- the agent's signals ledger (the cloud "signals file")
@@ -46,6 +50,8 @@ create table if not exists agent_signals (
   stop            double precision,
   risk_pct        double precision,
   bias_direction  text,
+  user_id         text,          -- T47: the Supabase-authed account that
+  user_email      text,          --      triggered the run (nullable)
   created_at      timestamptz default now()
 );
 
@@ -61,7 +67,9 @@ create table if not exists agent_runs (
   llm_ms      int default 0,
   vision_ms   int default 0,
   set_ref     text,
-  status      text default 'ok'
+  status      text default 'ok',
+  user_id     text,
+  user_email  text
 );
 
 -- the unlimited memory's cloud twin
@@ -81,19 +89,32 @@ create table if not exists agent_worklog (
 );
 ```
 
-## For AUTH (the browser half)
+After it runs: the next agent run (weekday slot or manual trigger) mirrors
+automatically — the AI tab's status flips to **"Supabase: connected (N)"**
+and `/api/agent-signals` reports `supabase: { state: "ok", mirrored: N }`.
+Until then nothing breaks: the mirror failure is surfaced honestly and the
+run itself is unaffected (SQLite + `data/agent/` files stay the source of
+truth; the mirror is a cloud twin, never a dependency).
 
-In the Supabase dashboard: **Authentication → Providers → Email** → enable
-(magic link or confirm-email, your choice), then **Authentication → URL
-Configuration** → add the site URL (`https://preview-<bot-id>.space-z.ai/` and
-`http://localhost:3000` for local dev) to the redirect allow-list. That's it —
-the app's OTP flow is already email-based, so the UX stays identical.
+## Why this last step can't be automated from here
 
-## After you paste the keys into `.env`
+Table creation is DDL — the publishable/secret keys can only touch data and
+auth, not the schema (verified live: the Management API rejects project
+keys, and this sandbox has no route to the Postgres port). The three ways
+to finish it, easiest first:
 
-Nothing else. The next agent run (scheduled weekday slot or manual trigger)
-mirrors automatically, the AI tab's status line flips from "local only" to
-"Supabase: connected", and `/api/agent-signals` reports
-`supabase: { configured: true, state: "ok", mirrored: N }`. If a mirror call
-ever fails, the status shows the honest error and the run is unaffected — the
-mirror can never break signal generation.
+1. **Paste the SQL above in the dashboard SQL editor** (30 seconds) —
+   recommended.
+2. Give me a **personal access token** (`supabase.com/dashboard/account/tokens`)
+   and I'll create the tables via the Management API myself.
+3. Give me the **database password** + add this server's egress IP to the
+   project's IPv4 allow-list (Database → Network access) and I'll connect
+   directly.
+
+## Key hygiene (already handled)
+
+- The **secret key** stays server-side only (`src/lib/supabase-auth.ts`,
+  `supabase-mirror.ts` — hard browser-import guards) and in `.env`, which is
+  git-ignored. The browser only ever holds the publishable-key semantics via
+  server routes.
+- `.env` never ships to GitHub — verified in `.gitignore`.

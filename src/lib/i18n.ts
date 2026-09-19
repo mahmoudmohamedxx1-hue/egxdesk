@@ -1083,6 +1083,37 @@ export const T = {
   agentSupabaseOff: { ar: "Supabase: محلي فقط — أضف مفاتيح مشروعك لتفعيل السحابة", en: "Supabase: local only — add your project keys to switch on the cloud" },
   agentSupabaseOk: { ar: "Supabase: متصل", en: "Supabase: connected" },
   agentSupabaseErr: { ar: "Supabase: خطأ في المزامنة", en: "Supabase: mirror error" },
+  agentSupabaseSetup: {
+    ar: "Supabase: الجداول لم تُنشأ بعد — نفّذ SQL الإعداد مرة واحدة (docs/SUPABASE-SETUP.md من محرر SQL في لوحة التحكم)",
+    en: "Supabase: tables not created yet — run the one-time setup SQL (docs/SUPABASE-SETUP.md, dashboard SQL editor)",
+  },
+  agentAuthAttributed: { ar: "تُنسَب عمليات الوكيل إلى", en: "agent runs are attributed to" },
+
+  // T47 — the Supabase account (header button + sign-in dialog)
+  account: { ar: "الحساب", en: "Account" },
+  accountSignIn: { ar: "تسجيل الدخول عبر Supabase", en: "Sign in with Supabase" },
+  accountEmailLabel: { ar: "البريد الإلكتروني", en: "Email address" },
+  accountSendCode: { ar: "أرسل الرمز", en: "Send the code" },
+  accountResendIn: { ar: "إعادة الإرسال خلال", en: "resend in" },
+  accountCodeSent: {
+    ar: "أُرسلت رسالة إلى بريدك (تحقق من الوارد والبريد المزعج) — تحتوي على رمز أو رابط، الصقه أدناه",
+    en: "Email sent (check inbox and spam) — it contains a code or a link; paste it below",
+  },
+  accountCodeLabel: { ar: "الرمز أو رابط التأكيد من الرسالة", en: "The code or confirmation link from the email" },
+  accountVerify: { ar: "تحقّق وسجّل الدخول", en: "Verify & sign in" },
+  accountSignedInAs: { ar: "مسجّل الدخول باسم", en: "Signed in as" },
+  accountSignOut: { ar: "تسجيل الخروج", en: "Sign out" },
+  accountInvalidCode: { ar: "الرمز خاطئ أو منتهي", en: "Wrong or expired code" },
+  accountRateLimited: {
+    ar: "بلوغ حد بريد Supabase (الخطة المجانية ≈ ٢ رسالة/ساعة) — حاول بعد قليل",
+    en: "Supabase email limit reached (free tier sends ~2 per hour) — try again later",
+  },
+  accountNote: {
+    ar: "يتحقق Supabase من ملكية بريدك عبر الرمز، وتُحفظ الجلسة في كوكي HttpOnly — ولا تصل المفاتيح ولا الرموز لمتصفحك أبدًا. عند تسجيل دخولك تُنسب عمليات الوكيل التي تطلّبها إلى حسابك.",
+    en: "Supabase verifies you own the email via the code; the session lives in an HttpOnly cookie — keys and tokens never reach your browser. While signed in, the agent runs you trigger are attributed to your account.",
+  },
+  accountSignedOut: { ar: "تم تسجيل الخروج", en: "Signed out" },
+  accountLoadErr: { ar: "تعذر إكمال الطلب الآن", en: "Could not complete the request right now" },
 
   liveFeedTitle: { ar: "البث المباشر للإشارات", en: "Live signal feed" },
   liveFeedNote: {

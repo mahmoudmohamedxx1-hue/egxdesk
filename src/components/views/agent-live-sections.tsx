@@ -29,6 +29,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  CircleUserRound,
   Clock,
   Cloud,
   CloudOff,
@@ -106,6 +107,8 @@ type AgentStateResponse = {
   memory?: { total: number; byKind: { kind: string; count: number }[]; cloud: { configured: boolean; state: string; mirrored: number; lastError: string | null }; oldest: string | null };
   archive?: { signalsFile: boolean; worklogFile: boolean; runs: number; dir: string };
   supabase?: { configured: boolean; url: string | null; state: string; mirrored: number; lastError: string | null };
+  /** T47 — the signed-in Supabase identity (when auth is on). */
+  auth?: { signedIn: boolean; user: { id: string; email: string | null } | null };
 };
 
 // ── small helpers ──
@@ -717,6 +720,11 @@ export function AutonomousAgentSection() {
                     ({state.supabase.mirrored})
                   </span>
                 </>
+              ) : state.supabase.state === "needs-setup" ? (
+                <>
+                  <CloudOff className="h-3 w-3 text-amber-500 shrink-0" aria-hidden />
+                  <span className="text-amber-500 font-medium">{tt(T.agentSupabaseSetup, lang)}</span>
+                </>
               ) : (
                 <>
                   <CloudOff className="h-3 w-3 text-down shrink-0" aria-hidden />
@@ -729,6 +737,15 @@ export function AutonomousAgentSection() {
                 <span className="text-muted-foreground">{tt(T.agentSupabaseOff, lang)}</span>
               </>
             )}
+          </p>
+        )}
+        {state?.auth?.signedIn && state.auth.user?.email && (
+          <p className="text-[10px] leading-relaxed flex items-center gap-1">
+            <CircleUserRound className="h-3 w-3 text-up shrink-0" aria-hidden />
+            <span className="text-muted-foreground">{tt(T.agentAuthAttributed, lang)}</span>
+            <span className="font-medium text-foreground/80 truncate" dir="ltr">
+              {state.auth.user.email}
+            </span>
           </p>
         )}
       </div>

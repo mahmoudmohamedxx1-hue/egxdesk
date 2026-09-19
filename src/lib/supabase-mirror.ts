@@ -45,16 +45,59 @@ const MIRROR_TIMEOUT_MS = 10_000;
 export type MirrorStatus = {
   configured: boolean;
   url: string | null;
-  state: "off" | "ok" | "error";
+  state: "off" | "ok" | "error" | "needs-setup";
   mirrored: number;
   lastError: string | null;
 };
 
-const g = globalThis as unknown as { __egxSupabaseMirror?: MirrorStatus };
+const g = globalThis as unknown as { __egxSupabaseMirror?: MirrorStatus; __egxSbMirrorProbe?: { at: number; state: MirrorStatus["state"] } };
 g.__egxSupabaseMirror ??= { configured: SUPABASE_URL.length > 0 && SERVICE_KEY.length > 0, url: SUPABASE_URL || null, state: SUPABASE_URL && SERVICE_KEY ? "ok" : "off", mirrored: 0, lastError: null };
 
 export function mirrorStatus(): MirrorStatus {
   return g.__egxSupabaseMirror!;
+}
+
+/** T47 — the initialized "ok" state has never touched the project yet; a
+ *  status line must not claim connection before the first real write. This
+ *  cheap probe (one PostgREST select, 5-min cache) verifies the agent tables
+ *  actually exist so the UI can say "needs-setup" honestly, up front. */
+export async function probeMirrorState(): Promise<MirrorStatus> {
+  const st = mirrorStatus();
+  if (!st.configured) return st;
+  if (st.mirrored > 0 || st.state === "error") return st; // real evidence already exists
+  const now = Date.now();
+  const cached = g.__egxSbMirrorProbe;
+  if (cached && now - cached.at < 5 * 60_000) {
+    st.state = cached.state;
+    return st;
+  }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8_000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/agent_runs?select=run_id&limit=1`, {
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+      signal: ctrl.signal,
+      cache: "no-store",
+    });
+    const body = await res.text().catch(() => "");
+    if (res.ok) {
+      st.state = "ok";
+      st.lastError = null;
+    } else if (/PGRST20[45]/.test(body) || /Could not find the (table|'.*?' relation)/i.test(body)) {
+      st.state = "needs-setup";
+      st.lastError = "Supabase tables not created yet — run the SQL in docs/SUPABASE-SETUP.md once (dashboard → SQL editor)";
+    } else {
+      st.state = "error";
+      st.lastError = `probe HTTP ${res.status}: ${body.slice(0, 120)}`;
+    }
+    g.__egxSbMirrorProbe = { at: now, state: st.state };
+  } catch (err) {
+    st.state = "error";
+    st.lastError = err instanceof Error ? err.message.slice(0, 180) : String(err).slice(0, 180);
+  } finally {
+    clearTimeout(t);
+  }
+  return st;
 }
 
 /** One PostgREST insert (array body → many rows). Returns rows inserted or -1. */
@@ -151,6 +194,9 @@ export async function mirrorAgentRun(opts: {
   }[];
   memories: { localId: string; kind: string; text: string; createdAt: string }[];
   worklogMarkdown: string | null;
+  /** T47 — when a Supabase-authed user triggered the run, rows are attributed
+   *  to that real account (scheduler runs stay unattributed — honest). */
+  user?: { id: string; email: string | null } | null;
 }): Promise<void> {
   const st = mirrorStatus();
   if (!st.configured) return;
@@ -168,6 +214,8 @@ export async function mirrorAgentRun(opts: {
         vision_ms: opts.run.visionMs,
         set_ref: opts.run.setRef,
         status: "ok",
+        user_id: opts.user?.id ?? null,
+        user_email: opts.user?.email ?? null,
       },
     ]);
     if (opts.picks.length > 0) {
@@ -185,6 +233,8 @@ export async function mirrorAgentRun(opts: {
           stop: p.stop,
           risk_pct: p.riskPct,
           bias_direction: opts.bias.direction,
+          user_id: opts.user?.id ?? null,
+          user_email: opts.user?.email ?? null,
           created_at: opts.run.startedAt,
         }))
       );
@@ -211,8 +261,17 @@ export async function mirrorAgentRun(opts: {
     st.mirrored += n;
     st.lastError = null;
   } catch (err) {
-    st.state = "error";
-    st.lastError = err instanceof Error ? err.message.slice(0, 180) : String(err).slice(0, 180);
+    const msg = err instanceof Error ? err.message.slice(0, 180) : String(err).slice(0, 180);
+    // T47 — the honest pre-DDL state: keys are in but the project has no
+    // agent tables yet (PGRST204/205). Say exactly that instead of a cryptic
+    // REST error, so the UI can point at the one-time setup SQL.
+    if (/PGRST20[45]/.test(msg) || /Could not find the (table|'.*?' relation)/i.test(msg)) {
+      st.state = "needs-setup";
+      st.lastError = "Supabase tables not created yet — run the SQL in docs/SUPABASE-SETUP.md once (dashboard → SQL editor)";
+    } else {
+      st.state = "error";
+      st.lastError = msg;
+    }
     console.warn("[supabase-mirror] failed:", st.lastError);
   }
 }

@@ -170,8 +170,8 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET / POST",
     path: "/api/agent-signals",
-    returnsAr: "الوكيل المستقل ذاتي التعلّم (HERMES): GET يعرض جدوله الأسبوعي (الأحد–الخميس بتوقيت القاهرة: قبل الافتتاح ٠٩:١٥، منتصف الجلسة ١٢:١٥، بعد الإغلاق ١٥:٠٠) مع العد التنازلي للتشغيل القادم، وآخر تشغيل ناجح كاملاً (الأفكار + يوميات الوكيل + بثّ تفكيره الفعلي + قراءات نموذج الرؤية + ما استدعاه من ذاكرته غير المحدودة)، وحالة التعلّم الحية، ودفتر الدروس، وسجل التشغيل بالنجاح والفشل معًا، وحالة الذاكرة (العدد + النوع + وضع المزامنة السحابية) وحالة الملفين الدائمين data/agent/signals.jsonl وworklog.md وحالة مرآة Supabase. POST يشغّل الوكيل يدويًا (حد: تشغيل كل ١٠ دقائق) — نفس خط الأنابيب المجدول. عقل الوكيل GLM-4.7-Flash بالتفكير مُفعّلًا ونموذج الرؤية GLM-4.6V-Flash عبر مفتاح Z.AI المخصص للإشارات فقط.",
-    returnsEn: "HERMES — the autonomous self-learning agent: GET serves its weekday schedule (Sun–Thu Cairo: pre-open 09:15, midday 12:15, post-close 15:00) with the next-run countdown, the latest successful run in full (picks + the agent's journal + its ACTUAL thinking stream + the vision reads + what it recalled from its unlimited memory), the live learning state, the lessons journal, the run history (successes and failures alike), plus the supermemory state (count + kinds + cloud-sync mode), the durable data/agent/signals.jsonl + worklog.md file state and the Supabase mirror status. POST triggers a manual run (guarded: one per 10 minutes) — the same scheduled pipeline. Brain GLM-4.7-Flash with thinking ON, vision GLM-4.6V-Flash, via the Z.AI key dedicated to signals only.",
+    returnsAr: "الوكيل المستقل ذاتي التعلّم (HERMES): GET يعرض جدوله الأسبوعي (الأحد–الخميس بتوقيت القاهرة: قبل الافتتاح ٠٩:١٥، منتصف الجلسة ١٢:١٥، بعد الإغلاق ١٥:٠٠) مع العد التنازلي للتشغيل القادم، وآخر تشغيل ناجح كاملاً (الأفكار + يوميات الوكيل + بثّ تفكيره الفعلي + قراءات نموذج الرؤية + ما استدعاه من ذاكرته غير المحدودة)، وحالة التعلّم الحية، ودفتر الدروس، وسجل التشغيل بالنجاح والفشل معًا، وحالة الذاكرة (العدد + النوع + وضع المزامنة السحابية) وحالة الملفين الدائمين data/agent/signals.jsonl وworklog.md وحالة مرآة Supabase، وهوية حساب Supabase المسجّل إن وُجد (تُنسَب إليه عمليات الوكيل). POST يشغّل الوكيل يدويًا (حد: تشغيل كل ١٠ دقائق) — نفس خط الأنابيب المجدول. عقل الوكيل GLM-4.7-Flash بالتفكير مُفعّلًا ونموذج الرؤية GLM-4.6V-Flash عبر مفتاح Z.AI المخصص للإشارات فقط.",
+    returnsEn: "HERMES — the autonomous self-learning agent: GET serves its weekday schedule (Sun–Thu Cairo: pre-open 09:15, midday 12:15, post-close 15:00) with the next-run countdown, the latest successful run in full (picks + the agent's journal + its ACTUAL thinking stream + the vision reads + what it recalled from its unlimited memory), the live learning state, the lessons journal, the run history (successes and failures alike), plus the supermemory state (count + kinds + cloud-sync mode), the durable data/agent/signals.jsonl + worklog.md file state, the Supabase mirror status and the signed-in Supabase identity when present (runs are attributed to it). POST triggers a manual run (guarded: one per 10 minutes) — the same scheduled pipeline. Brain GLM-4.7-Flash with thinking ON, vision GLM-4.6V-Flash, via the Z.AI key dedicated to signals only.",
     source: "src/lib/hermes-agent.ts + agent-scheduler.ts + agent-learning.ts + supermemory.ts + agent-archive.ts + supabase-mirror.ts · chart-png.ts (zero-dep candlestick renderer)",
   },
   {
@@ -180,6 +180,19 @@ const ENDPOINTS: Endpoint[] = [
     returnsAr: "البث المباشر للإشارات: كل إشارة جديدة لكل سهم، قراءة السوق، نتائج الإشارات المنشورة (هدف/وقف/انتهاء) مقيسة على الشريط الحقيقي، تعقيبات الوكيل المستقل، والمراجعة الذاتية اليومية — مع دعم المؤشر التزايدي (since) للقراءة اللحظية. هذه هي الأحداث نفسها التي تصل كإشعارات متصفح/هاتف للمشتركين.",
     returnsEn: "The live signal stream: every new per-stock signal, the market read, published-signal outcomes (target/stop/expiry) measured on the real tape, the autonomous agent's briefs and the daily self-validation — with an incremental cursor (since) for live polling. The same events opted-in devices receive as browser/phone notifications.",
     source: "src/lib/signal-events.ts (idempotent emission per set/episode/day)",
+  },
+  {
+    method: "GET / POST",
+    path: "/api/auth/supabase/*",
+    params: [
+      "request {email} — يرسل بريد التأكيد (رمز أو رابط)",
+      "verify {email, code} — يتحقق ويفتح الجلسة (كوكي HttpOnly)",
+      "me — هوية هذا المتصفح فقط {id, email}",
+      "logout — ينهي الجلسة (إلغاء لدى Supabase + مسح الكوكي)",
+    ],
+    returnsAr: "تسجيل دخول حقيقي موثّق بـ Supabase (مشروعك uwqgcflnlbmcehpilcud): البريد يتحقق عبر الرابط/الرمز، الجلسة كوكي HttpOnly لمدة ٣٠ يومًا مع تجديد تلقائي، والمفاتيح والرموز لا تصل للمتصفح أبدًا. المستخدم المسجّل تُنسَب إليه عمليات الوكيل التي يطلّبها. الحد المجاني: ≈ ٢ رسالة/ساعة.",
+    returnsEn: "Real Supabase-verified sign-in (your own project): email confirmed via the link/code, the session is an auto-refreshing HttpOnly cookie for 30 days, and keys/tokens never reach the browser. Signed-in users get their triggered agent runs attributed. Free-tier limit: ~2 auth emails/hour.",
+    source: "src/lib/supabase-auth.ts (zero-dependency GoTrue client) · supabase-mirror.ts",
   },
   {
     method: "GET",
