@@ -1163,3 +1163,21 @@ Stage Summary:
 - mahmoudmohamedxx1@gmail.com is the ADMIN: account exists+confirmed in the Supabase project; first sign-in = emailed code OR the one-time ADMIN_SETUP_CODE from .env (value lives only in .env, never in git); every later sign-in = one "Owner quick sign-in" button (no password, no code, no email; 90-day HttpOnly signed device trust, revocable by rotating AUTH_TRUST_SECRET).
 - Supabase mirror LIVE (user's SQL ran): state ok, mirrors on the next agent run; SQLite + data/agent/ stay the source of truth.
 - Evidence: t48-security-audit 35/35, t47 18/18, api 100/100, t19 18/18, build+typecheck+lint clean. v2.37/SW v33.
+
+---
+Task ID: T49
+Agent: main (Super Z)
+Task: User report "the ai doesnt work, i cant preview, repo isnt updated" — diagnose all three, fix, push.
+
+Work Log:
+- Diagnosis (all three complaints traced): (1) dev server WAS healthy (HTTP 200, AI loops live) — but .env had been WIPED by the 14:53 sandbox reset (regenerated with only DATABASE_URL) → Supabase + admin + auth keys gone → every auth endpoint 503 "supabase not configured"; (2) the REAL "ai doesn't work": the assistant's DEFAULT_MODEL is the Puter cloud GLM-5.3, and when the visitor isn't signed in to Puter the ask() path pushed a sign-in card and RETURNED — a dead wall, no answer ever came; (3) repo was actually in sync (remote HEAD == local), user saw stale state.
+- Root-cause fix in src/components/market/ai-assistant.tsx: extracted askCloud(history, text) (the GLM-4-Plus plan→tool→answer loop via /api/assistant); when a Puter model is selected but puterSignedIn() is false (covers not-signed-in AND puter.js blocked), push fallbackNote() (once per session, keeps the one-tap Puter sign-in button) then IMMEDIATELY answer via askCloud; PuterAuthRequiredError mid-flight falls back the same way instead of stopping the conversation.
+- New i18n keys aiServerFallbackTitle/Body (ar+en); .gitignore !.env.example opt-in; .env fully restored (Supabase URL/publishable/secret, ADMIN_EMAIL/ADMIN_SETUP_CODE, AUTH_TRUST_SECRET/AUTH_CHALLENGE_SECRET, ZAI_API_KEY) + .env.example template committed so any future sandbox reset is a 60-second recovery.
+- Live browser verification as a fresh unsigned visitor (localStorage cleared): Q1 "what is EGX30 level right now?" → note card + REAL answer "مستوى EGX30 الحالي هو 55,498.7 نقطة" (market_overview ✓); Q2 "show me Eastern Tobacco" → open_ticker ✓ → EAST 32.02 EGP −1.63%; note appeared exactly once.
+- Post-restore security regression run: t48-security-audit 35/35 PASS (bot UAs, 9 temp-mail domains, challenge single-use, dwell, honeypot, setup-code bootstrap → trust cookie → passwordless owner round trip, adminFast, mirror LIVE). tsc clean, eslint clean.
+- Committed 8a236d7 and pushed to origin/main.
+
+Stage Summary:
+- The AI assistant now ALWAYS answers (auto-fallback to the server brain), the auth stack is fully restored after the env wipe, and the repo is verifiably pushed.
+- Preview: https://preview-c-6aaea1e6-14810412-e83a441d2a4c.space-z.ai/ (dev server on :3000, all pages 200).
+- If a future reset wipes .env again: copy .env.example → .env and re-fill (values in the Supabase dashboard + owner notes); the site itself needs nothing else.
