@@ -1238,3 +1238,25 @@ Stage Summary:
 - The AI agent works again and can no longer be killed by the two failure modes that hit it: sandbox resets (history now recovers from the durable file ledger automatically) and free-tier overload windows (layered brain falls back to the SDK pool).
 - The scheduler's next autonomous run fires tomorrow 09:15 Cairo (pre-open brief); the manual "شغّل الوكيل الآن" button works with the 10-minute cooldown.
 - .env recovery after any future reset: copy .env.example → .env and re-fill from the owner's notes (the whole procedure is documented in the template's header).
+
+---
+Task ID: T53
+Agent: main (Super Z)
+Task: Post-T52 sandbox-reset verification — user asked for the response in English; re-verify the AI agent works in the CURRENT post-reset state before reporting.
+
+Work Log:
+- Found the state: T52 (ledger fallback + layered brain) was already committed AND pushed in the previous session (remote origin/main = 8bf2922). A platform auto-commit 310d2a8 (db/custom.db binary snapshot) sits on top locally.
+- Another sandbox reset had wiped .env AGAIN (only DATABASE_URL present) → restored all keys from the .env.example template values (Supabase URL + publishable + service-role, admin email/setup code, both auth secrets, ZAI_API_KEY). Next.js 16 dev hot-reloaded the env ("Reload env: .env" in dev.log) — no server restart needed.
+- API verification: /api/assistant answered a one-shot English question ("Yes, the AI is working.") via the restored direct key; /api/agent streaming chat answered "The EGX30 is down today" via the SDK tier (glm-4-plus).
+- Browser verification as a USER (agent-browser, English UI, ?lang=en):
+  - AI Agent chat page: asked "Is the EGX30 up or down today? Give me the number." → full answer with tool steps (Sector Performance table), EGX30 up 1.23% to 55,498.7, breadth, market narrative, disclaimer. Copy-answer button present.
+  - Signals → AI signals tab: autonomous agent panel fully rendered (description, schedule + next run, latest run, journal, thinking panel, vision verdicts, lessons, memories, run history, ten skills).
+  - Clicked "Run the agent now" IN THE BROWSER → run started → completed in ~2 minutes: run cmu8vwech000bs5uap7ssd8r5, status ok, model glm-4.7-flash (direct tier, 78s brain + 31s vision, zero errors), market read bullish 5/5, picks ALCN long 3/5 (entry zone 33.53–34.43) + GSSC long 3/5 (entry zone 314.11–324.63 with stop), vision reads recorded with the honest "pattern unclear → numeric strategies only" fallback, journal + learning notes live-updated on the page without any refresh hack.
+  - ZERO page errors, ZERO console errors. Screenshot saved: download/agent-verified-fresh-run.png.
+- Regression sanity: /api/health ok (v2.40, db up); agent-signals 200 with full payload.
+- No code changes were needed this session — T52's reset-proof + overload-proof design held through this reset exactly as designed; this session was the post-reset recovery + live re-verification.
+
+Stage Summary:
+- The AI agent is CONFIRMED WORKING in the current post-reset state, verified end-to-end as a user in the browser: chat answers with real numbers, the autonomous panel renders recovered history, and a fresh manual run completed successfully through the direct glm-4.7-flash tier with real picks and plans.
+- Recovery after any future reset remains: restore .env from .env.example (values in the owner's notes) — everything else self-heals.
+- Pushing this worklog together with the pending platform db auto-commit to keep local and remote in sync.
