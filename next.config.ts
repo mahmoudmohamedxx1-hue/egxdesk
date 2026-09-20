@@ -27,6 +27,14 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  /* T55 — pin the Turbopack workspace root to this project dir. With more
+   * than one lockfile present (bun.lock + package-lock.json) Turbopack
+   * "infers" the root and can nest the standalone output under a wrong
+   * parent (seen in the clean-room build test); an explicit root makes the
+   * build layout deterministic on every host. */
+  turbopack: {
+    root: process.cwd(),
+  },
   /* Task 20: ignoreBuildErrors removed — the production build must fail
    * loudly on type errors instead of shipping them (tsc is clean). */
   reactStrictMode: false,

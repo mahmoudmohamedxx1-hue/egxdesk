@@ -66,3 +66,4 @@ server.log
 
 # local Vercel simulation output (T50)
 /.vercel-test/
+.vercel-sim/

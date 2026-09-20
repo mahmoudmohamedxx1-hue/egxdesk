@@ -1281,3 +1281,32 @@ Work Log:
 Stage Summary:
 - The assistant code is fixed and proven to answer on Vercel even with no env vars (keyless LLM7 tier); with ZAI_API_KEY set it uses the direct GLM tier.
 - GitHub main (fc540fe) = latest v2.40. The one remaining step is Vercel-side and takes ~2 minutes: (1) Vercel → egxdesk → Settings → Git → reconnect the repo if Deployments show nothing since Sep 14, else Deployments → Redeploy; (2) add the 8 env vars from docs/VERCEL.md (ZAI_API_KEY + Supabase/auth vars); (3) verify https://egxdesk.vercel.app/api/health flips to version 2.40 / db "up", then the assistant answers.
+
+---
+Task ID: T55
+Agent: main (Super Z)
+Task: User: "https://egxdesk.vercel.app/?view=home&lang=ar check the url and the ai features and you gonna find what i am telling" — verify the LIVE Vercel deployment as a user, find what breaks, and make the next deploy actually succeed.
+
+Work Log:
+- Opened the user's exact URL in the browser (Arabic UI, live deployment egxdesk.vercel.app) and reproduced EVERYTHING they reported:
+  • AI assistant popup: asked "ما حالة السوق الآن؟" → NO answer, just the "نماذج سحابية مجانية — يلزم دخول Puter" sign-in wall (the old T49-era death wall — the current code answers via the server model instead and never stalls).
+  • AI Agent chat page: asked "ما حالة السوق؟" → "تعذر الرد الآن — أعد المحاولة (model unavailable)".
+  • Backend: POST /api/assistant → HTTP 502 {"error":"Configuration file not found or invalid. Please create .z-ai-config..."} — the sandbox-SDK error of the OLD code.
+- Root cause CONFIRMED (again, now as a user): the deployment is FROZEN at commit 54a6247 = v2.21 (built 2026-09-14 09:47Z). 31 commits have been pushed to main since — including every assistant/agent fix (T49 no-stall fallback, T50 serverless chain + db bundling, T51 env-only key, T52 layered brain) — and NONE triggered a rebuild. Vercel's Git integration is not firing on pushes.
+- CLEAN-ROOM Vercel build simulation (git archive of tracked files → fresh npm install → npm run build, in .vercel-sim):
+  • Fresh install resolves next@^16.1.1 → 16.3.5 (latest) → `next build` CRASHES with SIGBUS (exit 135) — a real deploy-blocker that would have bitten any new Vercel build.
+  • Pinned to next@16.1.3 (the version bun.lock already pins and that builds green): fresh install + build → ✓ Compiled successfully in 49s, exit 0, db/custom.db traced into 83 API routes' .nft.json (T50 db bundling WORKS under Turbopack — deployed db will be "up"), z-ai-web-dev-sdk@0.0.18 installs from public npm, prisma client auto-generates.
+- Fixes shipped to make every deploy path deterministic and unbreakable:
+  • package.json: "next" pinned EXACT to 16.1.3 (no more rolling into crashy 16.3.5 on fresh installs).
+  • package.json: build script hardened → `next build && node scripts/assemble-standalone.mjs`; the new script no-ops when .next/standalone is absent instead of failing the whole build (the old raw `cp -r .next/static .next/standalone/...` chain hard-failed whenever standalone wasn't emitted — a guaranteed build error for any host that runs the package.json build script).
+  • package-lock.json committed (1066 packages, next 16.1.3 + z-ai-web-dev-sdk 0.0.18 locked) — npm-based installs are now fully deterministic.
+  • next.config.ts: turbopack.root pinned to the project dir (fixes the multi-lockfile workspace-root mis-inference that nested standalone output wrongly in the clean room).
+  • Version bumped to 2.41 / build date 2026-09-20 / service worker egx-desk-v37 — so when the new code deploys, /api/health flips from "2.21 / db down" to "2.41 / db up" at a glance.
+- Verified in the main project after the changes: `npm run build` exit 0 (compiled 25.3s + standalone correctly assembled with static/public); dev server restarted clean on the new config; /api/health reports v2.41 db up; browser user test of the assistant popup ("What is the EGX30 level right now?") answered with today's live number (55,371.50, down) — zero console errors.
+- Also this session: ANOTHER sandbox reset had wiped .env (the hermes scheduler rode through it on the SDK fallback tier exactly as designed — midday + pre-open runs still ok); .env restored from the template, direct tier back.
+- Cleaned up .vercel-sim (gitignored) and pushed everything.
+
+Stage Summary:
+- The live Vercel site breaks exactly as the user said because it serves v2.21 from Sep 14; all fixes are in main but undeployed. The repo is now PROVEN clean-room-buildable (fresh install + build from tracked files, exactly what Vercel does) with the fresh-install SIGBUS crash eliminated by the next pin and the fragile build chain made failure-proof.
+- Remaining step is dashboard-side and tiny: in Vercel, Deployments → New Deployment from main (NOT "Redeploy" — that rebuilds the OLD 54a6247 commit), or Settings → Git → reconnect the repo; then add the 8 env vars from docs/VERCEL.md (ZAI_API_KEY + Supabase/auth). Success check: /api/health shows version 2.41 / db "up", then the assistant answers without Puter and the agent chat works.
+- Alternative offered to the user: paste a Vercel access token and the deployment is run + live-verified from here end-to-end.
