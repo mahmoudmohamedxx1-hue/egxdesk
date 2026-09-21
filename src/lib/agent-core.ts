@@ -46,6 +46,15 @@ export function getZai(): Promise<Zai> {
 
 // ── compaction helpers (real data, trimmed for the model context) ──
 
+/** T56 — round display-sensitive floats to 2 decimals. Raw scanner values
+ *  carry full float precision (-0.41139950632060096) which the prompt then
+ *  makes the model copy character-for-character — technically honest,
+ *  visually garbage. Rounding at the TOOL layer keeps the copy-exact rule
+ *  intact (the verification gate compares against the same rounded output)
+ *  while every number an answer can quote is human-clean. */
+const r2 = (v: number | null | undefined): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? Math.round(v * 100) / 100 : v ?? null;
+
 export function compactQuote(s: Stock) {
   const r = companyRow(s);
   return {
@@ -54,21 +63,21 @@ export function compactQuote(s: Stock) {
     nameAr: r.nameAr,
     sectorAr: r.sectorAr,
     close: r.close,
-    changePct: r.changePct,
-    changeAbs: r.changeAbs,
+    changePct: r2(r.changePct),
+    changeAbs: r2(r.changeAbs),
     volume: r.volume,
     marketCap: r.marketCap,
-    pe: r.pe,
-    pb: r.pb,
-    divYield: r.divYield,
-    eps: r.eps,
-    roe: r.roe,
-    high52: r.high52,
-    low52: r.low52,
-    perf1M: r.perf1M,
-    perf6M: r.perf6M,
-    perfYTD: r.perfYTD,
-    perfY: r.perfY,
+    pe: r2(r.pe),
+    pb: r2(r.pb),
+    divYield: r2(r.divYield),
+    eps: r2(r.eps),
+    roe: r2(r.roe),
+    high52: r2(r.high52) ?? r.high52,
+    low52: r2(r.low52) ?? r.low52,
+    perf1M: r2(r.perf1M),
+    perf6M: r2(r.perf6M),
+    perfYTD: r2(r.perfYTD),
+    perfY: r2(r.perfY),
     nextEarnings: r.nextEarnings,
   };
 }
@@ -89,9 +98,9 @@ export function compactSignal(r: SignalRow) {
     buy: r.buy,
     sell: r.sell,
     rsi: r.rsi,
-    macdHist: r.macdHist,
+    macdHist: r2(r.macdHist),
     close: r.close,
-    changePct: r.changePct,
+    changePct: r2(r.changePct),
     pos52: r.pos52,
     volRatio: r.volRatio,
   };
@@ -107,7 +116,7 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
     const movers = [...stocks]
       .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
       .slice(0, 5)
-      .map((s) => ({ ticker: s.ticker, nameAr: companyRow(s).nameAr, changePct: s.changePct }));
+      .map((s) => ({ ticker: s.ticker, nameAr: companyRow(s).nameAr, changePct: r2(s.changePct) ?? 0 }));
     const sectors = sectorRows(stocks).filter((s) => s.count >= 3 && s.capWeightedChangePct !== null);
     const best = [...sectors].sort((a, b) => (b.capWeightedChangePct ?? 0) - (a.capWeightedChangePct ?? 0))[0];
     const worst = [...sectors].sort((a, b) => (a.capWeightedChangePct ?? 0) - (b.capWeightedChangePct ?? 0))[0];
@@ -138,11 +147,11 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
       "ar"
     );
     return {
-      indices: indices.map((i) => ({ code: i.code, nameAr: i.nameAr, close: i.close, changePct: i.changePct })),
+      indices: indices.map((i) => ({ code: i.code, nameAr: i.nameAr, close: i.close, changePct: r2(i.changePct) })),
       breadth: { up, down, flat: stocks.length - up - down, total: stocks.length },
       movers,
-      bestSector: best ? { nameAr: best.nameAr, changePct: best.capWeightedChangePct } : null,
-      worstSector: worst ? { nameAr: worst.nameAr, changePct: worst.capWeightedChangePct } : null,
+      bestSector: best ? { nameAr: best.nameAr, changePct: r2(best.capWeightedChangePct) } : null,
+      worstSector: worst ? { nameAr: worst.nameAr, changePct: r2(worst.capWeightedChangePct) } : null,
       flows,
       narrative,
     };
@@ -158,7 +167,7 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
     else list = [...stocks].sort((a, b) => b.valueTraded - a.valueTraded);
     return list.slice(0, limit).map((s) => {
       const r = companyRow(s);
-      return { ticker: r.ticker, nameAr: r.nameAr, close: r.close, changePct: r.changePct, valueTradedEgpMn: Math.round(r.valueTraded / 1e6) };
+      return { ticker: r.ticker, nameAr: r.nameAr, close: r.close, changePct: r2(r.changePct), valueTradedEgpMn: Math.round(r.valueTraded / 1e6) };
     });
   },
 

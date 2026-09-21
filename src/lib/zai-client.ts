@@ -169,6 +169,115 @@ export async function zaiChat(opts: {
   }
 }
 
+/** T56 — STREAMING chat completion against the user's key, straight over
+ *  HTTPS. Same endpoint/auth/throttle-retry semantics as zaiChat, but the
+ *  answer arrives as OpenAI-style SSE (data: lines with
+ *  choices[0].delta.content) which is forwarded live through onDelta — built
+ *  so the in-app AGENT chat route can run the strong GLM backbone on ANY
+ *  host that has ZAI_API_KEY set (Vercel, containers…), where the
+ *  sandbox-only z-ai-web-dev-sdk cannot authenticate. Reasoning deltas
+ *  (reasoning_content / reasoning) are consumed but NOT forwarded — the
+ *  agent's strict-JSON protocol wants the content stream only. */
+export async function zaiChatStream(opts: {
+  messages: { role: "system" | "user" | "assistant"; content: string }[];
+  model?: string;
+  thinking?: boolean;
+  maxTokens?: number;
+  temperature?: number;
+  onDelta?: (text: string) => void;
+  onServedModel?: (model: string) => void;
+  maxRetries?: number;
+}): Promise<string> {
+  if (!ZAI_API_KEY) {
+    throw new ZaiError("zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped", null, false);
+  }
+  const model = opts.model ?? ZAI_SIGNAL_MODEL;
+  const retryPlan = RETRY_BACKOFF_MS.slice(0, Math.max(0, opts.maxRetries ?? RETRY_BACKOFF_MS.length));
+  for (let attempt = 0; ; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    try {
+      const res = await fetch(ZAI_BASE, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ZAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: opts.messages,
+          stream: true,
+          thinking: opts.thinking === true ? { type: "enabled" } : { type: "disabled" },
+          ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+          ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
+        }),
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        let code: string | null = null;
+        try {
+          code = (JSON.parse(body) as { error?: { code?: string | number } }).error?.code != null
+            ? String((JSON.parse(body) as { error?: { code?: string | number } }).error?.code)
+            : null;
+        } catch {}
+        const retryable = res.status === 429 || code === "1305" || res.status >= 500;
+        throw new ZaiError(`zai ${model}: HTTP ${res.status}${code ? ` (code ${code})` : ""} ${body.slice(0, 180)}`, code, retryable);
+      }
+      if (!res.body) throw new ZaiError("zai: stream returned no body", null, false);
+      // consume the SSE stream line-by-line
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let out = "";
+      let buf = "";
+      let modelSeen = false;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, nl).replace(/\r$/, "");
+          buf = buf.slice(nl + 1);
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+          try {
+            const j = JSON.parse(payload) as {
+              model?: unknown;
+              choices?: { delta?: { content?: unknown; reasoning_content?: unknown; reasoning?: unknown } }[];
+            };
+            if (!modelSeen && typeof j.model === "string" && j.model.length > 0) {
+              modelSeen = true;
+              opts.onServedModel?.(j.model);
+            }
+            const piece = j.choices?.[0]?.delta?.content;
+            if (typeof piece === "string" && piece.length > 0) {
+              out += piece;
+              opts.onDelta?.(piece);
+            }
+          } catch {
+            /* partial line / keepalive — the next chunk completes it */
+          }
+        }
+      }
+      if (!out.trim()) throw new ZaiError(`zai ${model}: stream ended with empty content`, null, true);
+      return out;
+    } catch (err) {
+      const e = classify(err);
+      const wait = retryPlan[attempt];
+      if (e.retryable && wait !== undefined) {
+        console.warn(`[zai-stream] ${e.message} — retrying in ${wait / 1000}s (attempt ${attempt + 1}/${retryPlan.length})`);
+        await sleep(wait);
+        continue;
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 // ── JSON extraction (single top-level object, fences + think tags tolerated) ──
 
 function* topLevelJsonObjects(s: string): Generator<string> {

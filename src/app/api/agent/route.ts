@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
 
+import { ZAI_API_KEY, zaiChatStream } from "@/lib/zai-client";
+
 type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 import { db } from "@/lib/db";
 import { findAiModel, DEFAULT_AI_MODEL_ID, aiModelIdentity, type AiModel } from "@/lib/ai-models";
@@ -140,6 +142,52 @@ let zaiPromise: Promise<Zai> | null = null;
 function getZai(): Promise<Zai> {
   if (!zaiPromise) zaiPromise = ZAI.create();
   return zaiPromise;
+}
+
+// ── T56 — the DIRECT GLM backbone (plain HTTPS, user's ZAI_API_KEY) ──────────
+// Outside the sandbox (Vercel, containers…) the z-ai SDK cannot authenticate,
+// but the agent must NOT sink to the weak keyless tier when a perfectly good
+// strong model is one fetch away. When the key is configured, glm-4.7-flash
+// via the direct API becomes the backbone: the tool loop, the verification
+// failovers and the final synthesis all run on it, exactly like the GLM-4-Plus
+// backbone runs inside the sandbox.
+const DIRECT_GLM: AiModel = {
+  id: "zai-direct:glm-4.7-flash",
+  provider: "zai",
+  providerModel: "glm-4.7-flash",
+  label: "GLM-4.7-Flash",
+  labelAr: "GLM-4.7-Flash",
+  note: "Direct Z.AI cloud via the server key — the strong backbone on any host",
+  noteAr: "سحابة Z.AI المباشرة عبر مفتاح الخادم — العمود الفقري القوي على أي مستضيف",
+};
+
+// T56 — weak-model output hygiene: keyless models (Mistral Nemo…) sometimes
+// emit literal "\n" escapes as TEXT and markdown tables whose headers carry
+// garbage foreign-script fragments (e.g. Cyrillic inside an Arabic answer).
+// Both are cleaned here so the user never sees transport artifacts; the
+// content itself is untouched — numbers still pass the T38 verification gate.
+const FOREIGN_SCRIPT = /[\u0370-\u03FF\u0400-\u04FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/;
+const ZERO_WIDTH = /[\u200B\u200C\u200D\uFEFF]/g;
+
+function sanitizeAgentAnswer(text: string): string {
+  let s = text;
+  // 1 — literal escape sequences emitted as text ("\\n" as two characters)
+  if (/\\[nrt]/.test(s)) {
+    s = s.replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\\t/g, " ").replace(/\\"/g, '"');
+  }
+  // 2 — broken markdown tables: foreign-script garbage in the header, or a
+  // "table" with no data rows at all → drop the block entirely
+  s = s.replace(/(^\|[^\n]*\|\s*\n?)+/gm, (block) => {
+    const rows = block.trim().split("\n").filter((r) => r.trim().length > 0);
+    const header = rows[0] ?? "";
+    if (FOREIGN_SCRIPT.test(header)) return "";
+    if (rows.length < 3) return ""; // header + separator only = no data
+    return block;
+  });
+  // 3 — zero-width junk + runaway blank lines
+  s = s.replace(ZERO_WIDTH, "");
+  s = s.replace(/\n{3,}/g, "\n\n").replace(/[ \t]+$/gm, "").trim();
+  return s;
 }
 
 // ── T36 — LLM7.io KEYLESS cloud rounds ─────────────────────────────────────
@@ -372,7 +420,7 @@ export async function POST(req: Request) {
       const done = (answer: string) => {
         send({
           type: "done",
-          answer,
+          answer: sanitizeAgentAnswer(answer),
           steps,
           model: servedModel || model.label,
           modelId: model.id,
@@ -394,31 +442,50 @@ export async function POST(req: Request) {
         } catch {}
       };
 
-      // T50 — outside the sandbox (Vercel…) the z-ai SDK can't authenticate,
-      // so the request would die HERE before a single token streams. Instead:
-      // fall through to the keyless LLM7 cloud (no key, no sign-in, works on
-      // any host) and keep the conversation alive.
+      // T50/T56 — outside the sandbox (Vercel…) the z-ai SDK can't authenticate,
+      // so the request would die HERE before a single token streams. The
+      // backbone is now layered: DIRECT GLM cloud via the server key when
+      // ZAI_API_KEY is configured (strong model, works on any host), otherwise
+      // the keyless LLM7 cloud (no key, no sign-in) keeps the conversation
+      // alive on the weak tier.
       let zai: Zai | null = null;
       try {
         zai = await getZai();
       } catch {
         zai = null;
-        send({
-          type: "status",
-          note:
-            lang === "ar"
-              ? "النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر السحابة المجانية بلا تسجيل"
-              : "backbone model unavailable on this host — answering via the keyless free cloud",
-        });
-        model = findAiModel("llm7:mistral-Nemo-Instruct-2407")!;
-        msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+        if (ZAI_API_KEY) {
+          send({
+            type: "status",
+            note:
+              lang === "ar"
+                ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM المباشرة (نموذج قوي)"
+                : "gateway unavailable on this host — answering via the direct GLM cloud (strong model)",
+          });
+          model = DIRECT_GLM;
+          msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+        } else {
+          send({
+            type: "status",
+            note:
+              lang === "ar"
+                ? "النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر السحابة المجانية بلا تسجيل"
+                : "backbone model unavailable on this host — answering via the keyless free cloud",
+          });
+          model = findAiModel("llm7:mistral-Nemo-Instruct-2407")!;
+          msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+        }
       }
+      // T56 — the backbone the failovers re-route to: SDK GLM-4-Plus in the
+      // sandbox, direct GLM-4.7-Flash on keyed hosts, keyless cloud otherwise.
+      const backboneModel = (): AiModel =>
+        zai ? findAiModel(DEFAULT_AI_MODEL_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel("llm7:mistral-Nemo-Instruct-2407")!;
+      const hasBackbone = () => zai !== null || ZAI_API_KEY.length > 0;
       // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
       // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
       // gets the system prompt as a proper "system" role (no thinking
       // toggle — the anonymous tier doesn't support one).
       const runRound = (thinking: "enabled" | "disabled", onDelta?: DeltaFn): Promise<string> =>
-        model.provider === "llm7" || !zai
+        model.provider === "llm7" || (!zai && !ZAI_API_KEY)
           ? llm7Round(
               model.providerModel,
               {
@@ -431,14 +498,26 @@ export async function POST(req: Request) {
               (note) => send({ type: "status", note }),
               noteServedModel
             )
-          : createChatStream(
-              zai,
-              { messages: msgs, model: model.providerModel, thinking },
-              retry,
-              onDelta,
-              (note) => send({ type: "status", note }),
-              noteServedModel
-            );
+          : zai
+            ? createChatStream(
+                zai,
+                { messages: msgs, model: model.providerModel, thinking },
+                retry,
+                onDelta,
+                (note) => send({ type: "status", note }),
+                noteServedModel
+              )
+            : // T56 — direct GLM cloud (keyed hosts without the SDK gateway):
+              // bounded retry chain so a dead direct tier hands the request
+              // back to the honest error path instead of hanging the stream.
+              zaiChatStream({
+                messages: msgs.map((m, i) => (i === 0 ? { role: "system" as const, content: m.content } : m)),
+                model: model.providerModel,
+                thinking: thinking === "enabled",
+                maxRetries: 2,
+                onDelta,
+                onServedModel: noteServedModel,
+              });
 
       const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
       let verifyRetried = false; // T38 — one repair round max per request
@@ -468,16 +547,16 @@ export async function POST(req: Request) {
             // GLM-4-Plus backbone: an honest status note is streamed, the
             // system prompt is rebuilt with the fallback identity, and the
             // done event reports the model that ACTUALLY served the answer.
-            if (model.provider === "llm7" && !failedOver && zai) {
+            if (model.provider === "llm7" && !failedOver && hasBackbone()) {
               failedOver = true;
               send({
                 type: "status",
                 note:
                   lang === "ar"
-                    ? "حصة السحابة المجانية المشتركة (LLM7) مستنفدة حاليًا — سيتم الرد تلقائيًا عبر GLM-4-Plus"
-                    : "The shared free LLM7 cloud quota is exhausted right now — answering automatically via GLM-4-Plus",
+                    ? "حصة السحابة المجانية المشتركة (LLM7) مستنفدة حاليًا — سيتم الرد تلقائيًا عبر نموذج GLM القوي"
+                    : "The shared free LLM7 cloud quota is exhausted right now — answering automatically via the strong GLM backbone",
               });
-              model = findAiModel(DEFAULT_AI_MODEL_ID)!;
+              model = backboneModel();
               msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
               continue; // retry the SAME round on the backbone
             }
@@ -524,16 +603,16 @@ export async function POST(req: Request) {
               msgs.push({ role: "user", content: verificationRepairMessage(verdict, lang) });
               continue; // same conversation, corrected rewrite requested
             }
-            if (!verdict.ok && model.provider === "llm7" && !failedOver && zai) {
+            if (!verdict.ok && model.provider === "llm7" && !failedOver && hasBackbone()) {
               failedOver = true;
               send({
                 type: "status",
                 note:
                   lang === "ar"
-                    ? "تعذّر التحقق من أرقام هذا النموذج المجاني — سيتم الرد عبر GLM-4-Plus لضمان الدقة"
-                    : "This free model's numbers could not be verified — answering via GLM-4-Plus for accuracy",
+                    ? "تعذّر التحقق من أرقام هذا النموذج المجاني — سيتم الرد عبر نموذج GLM القوي لضمان الدقة"
+                    : "This free model's numbers could not be verified — answering via the strong GLM backbone for accuracy",
               });
-              model = findAiModel(DEFAULT_AI_MODEL_ID)!;
+              model = backboneModel();
               msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
               verifyRetried = false; // the backbone gets its own repair budget
               continue; // re-answer the SAME conversation on the backbone
