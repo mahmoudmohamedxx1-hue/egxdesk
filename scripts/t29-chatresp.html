@@ -1,0 +1,393 @@
+<head><meta charset="utf-8"><title>Puter.js Documentation</title><meta name="title" content="Puter.js Documentation" /><link rel="canonical" href="https://docs.puter.com/"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="Puter.js documentation: API reference, examples, and playground for adding auth, cloud storage, databases, and AI with no API keys and no infrastructure setup."><meta property="og:title" content="Puter.js Documentation"><meta property="og:image" content="https://assets.puter.site/twitter.png"><meta name="twitter:image" content="https://assets.puter.site/twitter.png"><meta name="robots" content="index, follow" /><meta property="og:site_name" content="Puter.js Docs" />
+        <link rel="apple-touch-icon" sizes="57x57" href="/assets/favicon/apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="/assets/favicon/apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="/assets/favicon/apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="/assets/favicon/apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="/assets/favicon/apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="/assets/favicon/apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="/assets/favicon/apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="/assets/favicon/apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="/assets/favicon/android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+        <link rel="manifest" href="/assets/favicon/manifest.json">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="msapplication-TileImage" content="/assets/favicon/ms-icon-144x144.png">
+        <meta name="theme-color" content="#ffffff">
+        <link rel="stylesheet" href="/./assets/js/bundle.css"><link rel="stylesheet" href="/./assets/css/bootstrap.min.css"><link rel="stylesheet" href="/./assets/css/style.css"><script src="/./assets/js/bundle.js"></script>
+        <script type="application/ld+json">
+            {
+                "@context":"https://schema.org",
+                "@type":"WebSite",
+                "@id": "https://docs.puter.com/#website",
+                "name":"Puter.js Docs",
+                "alternateName": "Puter.js Documentation",
+                "url":"https://docs.puter.com",
+                "about": { "@id": "https://developer.puter.com/#puterjs" },
+                "publisher": { "@id": "https://puter.com/#organization" }
+            }
+        </script>
+        <script defer data-domain="docs.puter.com" src="https://plausible.io/js/script.js"></script>
+        <script type="text/javascript">
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                c[a]("identify", (sessionStorage.cid ??= crypto.randomUUID()));
+            })(window, document, "clarity", "script", "ubxybtas0w");
+        </script></head><body id="docs"><div class="progress-bar-container" style="position: fixed; width: 100%; height: 5px; z-index: 99999999999;"><div id="progress-bar" style="width: 0%; height: 5px; background-color: #dbdbe3; transition: 0.2s all; z-index: 99999999999;"></div></div><script>hljs.highlightAll();</script><div style="max-width: 1400px; margin: 0 auto;"><div><button class="sidebar-toggle hidden-lg hidden-xl"><div class="sidebar-toggle-button"><span></span><span></span><span></span></div></button><div class="col-xl-3 col-lg-3 hidden-md hidden-sm hidden-xs" id="sidebar-wrapper"><div id="sidebar"><div id="sidebar-title" style="font-weight: normal;"><a href="/">Puter.js Docs</a></div>
+        <div class="search-trigger">
+            <div class="search-trigger-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+            </div>
+            <div class="search-trigger-placeholder">Search</div>
+        </div>
+    <a target="_blank" href="https://github.com/heyPuter/puter/" class="download-prompt skip-insta-load" style="margin-top: 40px; font-size: 15px;"><svg role="img" style="margin-right:10px; margin-bottom: -3px;" width="20" height="20" viewBox="0 0 24 24" fill="#444" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="github-stars"></span></a><a target="_blank" href="/playground/" class="download-prompt skip-insta-load" style="margin-top: 10px; font-size: 15px;"><svg style="margin-right: 10px; margin-bottom: -5px" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flask-conical-icon lucide-flask-conical"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg>Open playground</a><a target="_blank" href="/recipes/" class="download-prompt skip-insta-load" style="margin-top: 10px; font-size: 15px;"><svg style="margin-right: 10px; margin-bottom: -5px" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open-icon lucide-book-open"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>Browse recipes</a><a href="/llms.txt" class="download-prompt skip-insta-load" target="_blank"><img src="/assets/img/download.svg"><span style="display: inline-block; margin-top: 3px; font-size: 14px; font-family: monospace;">llms.txt</span></a><div class="section-title">Overview</div><p><a href="/./getting-started/" class="">Getting Started</a></p><p><a href="/./supported-platforms/" class="">Supported Platforms</a></p><p><a href="/./security/" class="">Security and Permissions</a></p><p><a href="/./rate-limits-and-quotas/" class="">Rate Limits and Quotas</a></p><p><a href="/./user-pays-model/" class="">User-Pays Model</a></p><p><a href="/./frameworks/" class="">Framework Integrations</a></p><p><a href="/./mcp/" class="">MCP Server</a></p><p><a href="/./cli/" class="">CLI</a></p><p><a href="/./deployments/" class="">Deployments</a></p><p><a href="/./site-config/" class="">Site Configuration</a></p><p><a href="/./examples/" class="">Examples</a></p><div class="section-title"><img src="/./assets/img/ai.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./AI/" class="">AI</a></div><p><a href="/./AI/chat/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>chat()</code></a></p><p><a href="/./AI/listModels/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listModels()</code></a></p><p><a href="/./AI/listModelProviders/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listModelProviders()</code></a></p><p><a href="/./AI/txt2img/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2img()</code></a></p><p><a href="/./AI/txt2speech/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2speech()</code></a></p><p><a href="/./AI/txt2speech.listEngines/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2speech.listEngines()</code></a></p><p><a href="/./AI/txt2speech.listVoices/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2speech.listVoices()</code></a></p><p><a href="/./AI/txt2vid/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2vid()</code></a></p><p><a href="/./AI/img2txt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>img2txt()</code></a></p><p><a href="/./AI/speech2txt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>speech2txt()</code></a></p><p><a href="/./AI/speech2speech/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>speech2speech()</code></a></p><div class="section-title"><img src="/./assets/img/apps.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Apps/" class="">Apps</a></div><p><a href="/./Apps/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Apps/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Apps/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Apps/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./Apps/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./Apps/checkName/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>checkName()</code></a></p><div class="section-title"><img src="/./assets/img/auth.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Auth/" class="">Auth</a></div><p><a href="/./Auth/signIn/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>signIn()</code></a></p><p><a href="/./Auth/signOut/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>signOut()</code></a></p><p><a href="/./Auth/isSignedIn/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>isSignedIn()</code></a></p><p><a href="/./Auth/getUser/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getUser()</code></a></p><p><a href="/./Auth/getMonthlyUsage/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getMonthlyUsage()</code></a></p><p><a href="/./Auth/getDetailedAppUsage/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getDetailedAppUsage()</code></a></p><div class="section-title"><img src="/./assets/img/fs.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./FS/" class="">Cloud Storage</a></div><p><a href="/./FS/write/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>write()</code></a></p><p><a href="/./FS/read/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>read()</code></a></p><p><a href="/./FS/mkdir/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>mkdir()</code></a></p><p><a href="/./FS/readdir/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>readdir()</code></a></p><p><a href="/./FS/rename/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>rename()</code></a></p><p><a href="/./FS/copy/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>copy()</code></a></p><p><a href="/./FS/move/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>move()</code></a></p><p><a href="/./FS/stat/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>stat()</code></a></p><p><a href="/./FS/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./FS/getReadURL/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getReadURL()</code></a></p><p><a href="/./FS/upload/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>upload()</code></a></p><p><a href="/./FS/share/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>share()</code></a></p><p><a href="/./FS/unshare/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>unshare()</code></a></p><p><a href="/./FS/listShared/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listShared()</code></a></p><p><a href="/./FS/getShares/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getShares()</code></a></p><div class="section-title"><a href="/./Events/" class="">Events</a></div><p><a href="/./Events/onLocal/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onLocal()</code></a></p><p><a href="/./Events/off/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>off()</code></a></p><p><a href="/./Events/onPersistent/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onPersistent()</code></a></p><p><a href="/./Events/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Events/unsubscribe/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>unsubscribe()</code></a></p><p><a href="/./Events/fetch/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>fetch()</code></a></p><p><a href="/./Events/handlers/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>handlers</code></a></p><p><a href="/./Events/workers/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>workers</code></a></p><div class="section-title"><img src="/./assets/img/workers.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Workers/" class="">Serverless Workers</a></div><p><a href="/./Workers/router/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>router</code></a></p><p><a href="/./Workers/types/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;">TypeScript Types</a></p><p><a href="/./Workers/dynamic/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;">Dynamic Workers</a></p><p><a href="/./Workers/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Workers/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Workers/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Workers/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./Workers/exec/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>exec()</code></a></p><div class="section-title"><img src="/./assets/img/hosting.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Hosting/" class="">Hosting</a></div><p><a href="/./Hosting/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Hosting/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Hosting/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Hosting/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./Hosting/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><div class="section-title"><img src="/./assets/img/kv.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./KV/" class="">Key-Value Store</a></div><p><a href="/./KV/set/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>set()</code></a></p><p><a href="/./KV/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./KV/incr/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>incr()</code></a></p><p><a href="/./KV/decr/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>decr()</code></a></p><p><a href="/./KV/add/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>add()</code></a></p><p><a href="/./KV/remove/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>remove()</code></a></p><p><a href="/./KV/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./KV/del/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>del()</code></a></p><p><a href="/./KV/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./KV/flush/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>flush()</code></a></p><p><a href="/./KV/expire/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>expire()</code></a></p><p><a href="/./KV/expireAt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>expireAt()</code></a></p><p><a href="/./KV/MAX_KEY_SIZE/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>MAX_KEY_SIZE</code></a></p><p><a href="/./KV/MAX_VALUE_SIZE/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>MAX_VALUE_SIZE</code></a></p><div class="section-title"><img src="/./assets/img/networking.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Networking/" class="">Networking</a></div><p><a href="/./Networking/Socket/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>Socket</code></a></p><p><a href="/./Networking/TLSSocket/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>TLSSocket</code></a></p><p><a href="/./Networking/fetch/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>fetch()</code></a></p><div class="section-title"><img src="/./assets/img/peer.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Peer/" class="">Peer</a></div><p><a href="/./Peer/serve/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>serve()</code></a></p><p><a href="/./Peer/connect/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>connect()</code></a></p><p><a href="/./Peer/createGuestGrant/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>createGuestGrant()</code></a></p><p><a href="/./Peer/ensureTurnRelays/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ensureTurnRelays()</code></a></p><div class="section-title"><img src="/./assets/img/ui.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./UI/" class="">UI</a></div><p><a href="/./UI/authenticateWithPuter/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>authenticateWithPuter()</code></a></p><p><a href="/./UI/alert/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>alert()</code></a></p><p><a href="/./UI/notify/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>notify()</code></a></p><p><a href="/./UI/contextMenu/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>contextMenu()</code></a></p><p><a href="/./UI/createWindow/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>createWindow()</code></a></p><p><a href="/./UI/exit/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>exit()</code></a></p><p><a href="/./UI/getLanguage/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getLanguage()</code></a></p><p><a href="/./UI/hideWindow/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>hideWindow()</code></a></p><p><a href="/./UI/launchApp/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>launchApp()</code></a></p><p><a href="/./UI/on/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>on()</code></a></p><p><a href="/./UI/onItemsOpened/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onItemsOpened()</code></a></p><p><a href="/./UI/onLaunchedWithItems/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onLaunchedWithItems()</code></a></p><p><a href="/./UI/onWindowClose/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onWindowClose()</code></a></p><p><a href="/./UI/parentApp/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>parentApp()</code></a></p><p><a href="/./UI/prompt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>prompt()</code></a></p><p><a href="/./UI/setMenubar/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setMenubar()</code></a></p><p><a href="/./UI/setWindowHeight/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowHeight()</code></a></p><p><a href="/./UI/setWindowPosition/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowPosition()</code></a></p><p><a href="/./UI/setWindowSize/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowSize()</code></a></p><p><a href="/./UI/setWindowTitle/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowTitle()</code></a></p><p><a href="/./UI/setWindowWidth/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowWidth()</code></a></p><p><a href="/./UI/setWindowX/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowX()</code></a></p><p><a href="/./UI/setWindowY/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowY()</code></a></p><p><a href="/./UI/requestPictureInPicture/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>requestPictureInPicture()</code></a></p><p><a href="/./UI/exitPictureInPicture/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>exitPictureInPicture()</code></a></p><p><a href="/./UI/showColorPicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showColorPicker()</code></a></p><p><a href="/./UI/showDirectoryPicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showDirectoryPicker()</code></a></p><p><a href="/./UI/showFeedbackDialog/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showFeedbackDialog()</code></a></p><p><a href="/./UI/showFontPicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showFontPicker()</code></a></p><p><a href="/./UI/showOpenFilePicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showOpenFilePicker()</code></a></p><p><a href="/./UI/showSaveFilePicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showSaveFilePicker()</code></a></p><p><a href="/./UI/showSpinner/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showSpinner()</code></a></p><p><a href="/./UI/hideSpinner/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>hideSpinner()</code></a></p><p><a href="/./UI/showWindow/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showWindow()</code></a></p><p><a href="/./UI/socialShare/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>socialShare()</code></a></p><p><a href="/./UI/wasLaunchedWithItems/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>wasLaunchedWithItems()</code></a></p><div class="section-title"><img src="/./assets/img/auth.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Perms/" class="">Perms</a></div><p><a href="/./Perms/request/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>request()</code></a></p><p><a href="/./Perms/check/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>check()</code></a></p><p><a href="/./Perms/appData/" class="">Using another app's data</a></p><div class="section-title"><img src="/./assets/img/auth.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Teams/" class="">Teams</a></div><p><a href="/./Teams/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Teams/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Teams/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./Teams/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./Teams/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Teams/listMembers/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listMembers()</code></a></p><p><a href="/./Teams/createMember/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>createMember()</code></a></p><p><a href="/./Teams/resendActivation/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>resendActivation()</code></a></p><p><a href="/./Teams/disableMember/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>disableMember()</code></a></p><p><a href="/./Teams/enableMember/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>enableMember()</code></a></p><p><a href="/./Teams/resetPassword/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>resetPassword()</code></a></p><p><a href="/./Teams/deleteMemberAccount/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>deleteMemberAccount()</code></a></p><p><a href="/./Teams/listAudit/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listAudit()</code></a></p><p><a href="/./Teams/listOwnAudit/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listOwnAudit()</code></a></p><div class="section-title"><a href="/./Utils/" class="">Utilities</a></div><p><a href="/./Utils/appID/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>appID</code></a></p><p><a href="/./Utils/env/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>env</code></a></p><p><a href="/./Utils/print/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>print()</code></a></p><p><a href="/./Utils/randName/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>randName()</code></a></p><div class="section-title"><a href="/./Objects/" class="">Objects</a></div><p><a href="/./Objects/AppConnection/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>AppConnection</code></a></p><p><a href="/./Objects/app/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>App</code></a></p><p><a href="/./Objects/createappresult/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>CreateAppResult</code></a></p><p><a href="/./Objects/chatresponse/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ChatResponse</code></a></p><p><a href="/./Objects/chatresponsechunk/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ChatResponseChunk</code></a></p><p><a href="/./Objects/detailedappusage/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>DetailedAppUsage</code></a></p><p><a href="/./Objects/fsitem/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>FSItem</code></a></p><p><a href="/./Objects/kvpair/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>KVPair</code></a></p><p><a href="/./Objects/kvlistpage/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>KVListPage</code></a></p><p><a href="/./Objects/monthlyusage/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>MonthlyUsage</code></a></p><p><a href="/./Objects/puterpeerconnection/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>PuterPeerConnection</code></a></p><p><a href="/./Objects/puterpeerserver/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>PuterPeerServer</code></a></p><p><a href="/./Objects/signinresult/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>SignInResult</code></a></p><p><a href="/./Objects/speech2txtresult/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>Speech2TxtResult</code></a></p><p><a href="/./Objects/subdomain/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>Subdomain</code></a></p><p><a href="/./Objects/ttsengine/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>TTSEngine</code></a></p><p><a href="/./Objects/ttsvoice/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>TTSVoice</code></a></p><p><a href="/./Objects/toolcall/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ToolCall</code></a></p><p><a href="/./Objects/user/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>User</code></a></p><p><a href="/./Objects/workerdeployment/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>WorkerDeployment</code></a></p><p><a href="/./Objects/workerinfo/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>WorkerInfo</code></a></p></div></div><div id="docs-content-" class="docs-content col-xl-7 col-lg-7 col-md-12 col-sm-12 col-xs-12"><div class="menu-dropdown">
+        <div class="menu-item-main">
+            <div class="menu-item-content" id="menu-copy-page">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy-icon lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy page</span>
+            </div>
+            <div class="dropdown-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+    <div class="menu-dropdown-items" style="display: none;">
+                <div class="menu-item" id="menu-view-markdown">
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Markdown</title><path d="M22.27 19.385H1.73A1.73 1.73 0 010 17.655V6.345a1.73 1.73 0 011.73-1.73h20.54A1.73 1.73 0 0124 6.345v11.308a1.73 1.73 0 01-1.73 1.731zM5.769 15.923v-4.5l2.308 2.885 2.307-2.885v4.5h2.308V8.078h-2.308l-2.307 2.885-2.308-2.885H3.46v7.847zM21.232 12h-2.309V8.077h-2.307V12h-2.308l3.461 4.039z"/></svg>
+                    <span>View as Markdown</span>
+                </div>
+            
+                <div class="menu-item" id="menu-open-chatgpt">
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>OpenAI</title><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
+                    <span>Open in ChatGPT</span>
+                </div>
+            
+                <div class="menu-item" id="menu-open-claude">
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Anthropic</title><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg>
+                    <span>Open in Claude</span>
+                </div>
+            </div></div><h1>Puter.js Documentation</h1><hr class="hr-inset"><p>Puter.js gives you access to auth, cloud storage, databases, and AI (Claude, GPT, Gemini, and 500+ other models) with no API keys and no infrastructure setup. The entire library is a single <code>&lt;script&gt;</code> tag or the <code>@heyputer/puter.js</code> npm module.</p>
+<p>This is also what makes Puter.js work so well as the backend for AI-generated apps. There is nothing to configure: no keys to obtain, no servers to provision, no SDK to initialize. AI coding tools and platforms like Claude Code, Codex, OpenCode, Lovable, and Replit can generate complete, working apps in a single shot with Puter.js. The API is small and consistent enough for language models to use correctly, and the full reference is published as <a href="https://docs.puter.com/llms.txt">llms.txt</a> so AI tools can read it in one request.</p>
+<div class="browser-window">
+    <div class="titlebar">
+        <div class="buttons">
+            <div class="button close"></div>
+            <div class="button minimize"></div>
+            <div class="button maximize"></div>
+        </div>
+    </div>
+    <div class="address-bar" style="display: flex; align-items: center;">
+        <svg style="margin-right: 20px;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-icon lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        <svg style="margin-right: 20px;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        <svg style="margin-right: 20px;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw-icon lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        <span style="flex-grow: 1; padding: 5px; background: white; border-radius: 15px; padding-left: 20px; display: flex; align-items: center; font-size: 13px;">
+            <svg style="margin-right: 5px;" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock-keyhole-icon lucide-lock-keyhole"><rect fill="#00bc2f" x="3" y="10" width="18" height="12" rx="2"/><circle fill="#fff" cx="12" cy="16" r="1"/><path stroke="#00bc2f" d="M7 10V7a5 5 0 0 1 10 0v3"/></svg>
+            https://super-magical-website.com
+        </span>
+    </div>
+    <div class="content" style="position: relative; margin-top: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 40px;">
+        <div style="width: 620px; height: 120px; position: relative; font-weight: 500;">
+            <div style="width: 100px; height: 100px; position: absolute; left:10px;">
+                <div class="feature-name-top">OpenAI</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 100px; height: 65px; position: absolute; left: 120px; bottom: 20px;">
+                <div class="feature-name-top">Cloud Storage</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 150px; height: 100px; position: absolute; left: 230px;">
+                <div class="feature-name-top">Claude</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 100px; height: 70px; position: absolute; left: 400px; bottom: 20px;">
+                <div class="feature-name-top">Gemini</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 100px; height: 100px; position: absolute; left: 500px;">
+                <div class="feature-name-top">NoSQL</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+        </div>
+        <p class="script-tag">&lt;script src=&quot;<span class="url">https://js.puter.com/v2/</span>&quot;&gt;&lt;/script&gt;</p>
+        <div style="width: 620px; height: 120px; position: relative; font-weight: 500;">
+            <div style="width: 150px; height: 100px; position: absolute; left:10px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Hosting API</div>
+            </div>
+            <div style="width: 100px; height: 130px; position: absolute; left:160px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Auth</div>
+            </div>
+            <div style="width: 150px; height: 100px; position: absolute; left:250px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">OCR</div>
+            </div>
+            <div style="width: 100px; height: 150px; position: absolute; left:400px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Networking</div>
+            </div>
+            <div style="width: 105px; height: 100px; position: absolute; left:500px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Text to Speech</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p>Additionally, with Puter.js, you as the developer pay nothing since each user of your app <a href="/user-pays-model/">covers their own Cloud and AI usage</a>. Whether your app has 1 user or 1 million users, it costs you zero to run. Puter.js gives you infinitely scalable infrastructure, completely free.</p>
+<p>Puter.js is powered by <a href="https://github.com/HeyPuter/puter">Puter</a>, the open-source cloud operating system with a heavy focus on privacy. Puter does not use tracking technologies and does not monetize or even collect personal information.</p>
+
+            <h2 class="anchored-heading" id="examples">
+              <a class="anchor" href="#examples"></a>
+              Examples
+            </h2><div style="overflow:hidden; margin-bottom: 30px;">
+    <div class="example-group active" data-section="ai" data-icon="ai_outline" data-icon-active="ai_active"><i class="icon"></i><span>AI</span></div>
+    <div class="example-group" data-section="fs" data-icon="fs_outline" data-icon-active="fs_active"><i class="icon"></i><span>Cloud Storage</span></div>
+    <div class="example-group" data-section="kv" data-icon="kv_outline" data-icon-active="kv_active"><i class="icon"></i><span>NoSQL Database</span></div>
+    <div class="example-group" data-section="hosting" data-icon="hosting_outline" data-icon-active="hosting_active"><i class="icon"></i><span>Hosting</span></div>
+    <div class="example-group" data-section="auth" data-icon="auth_outline" data-icon-active="auth_active"><i class="icon"></i><span>Auth</span></div>
+    <div class="example-group" data-section="networking" data-icon="networking_outline" data-icon-active="networking_active"><i class="icon"></i><span>Networking</span></div>
+</div>
+
+<div class="example-content" data-section="fs">
+
+
+            <h4 class="anchored-heading" id="write-a-file-to-the-cloud">
+              <a class="anchor" href="#write-a-file-to-the-cloud"></a>
+              Write a file to the cloud
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/intro-fs-write/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        // Create a new file called &quot;hello.txt&quot; containing &quot;Hello, world!&quot;
+        puter.fs.write(&apos;hello.txt&apos;, &apos;Hello, world!&apos;).then((file) =&gt; {
+            puter.print(`File written successfully at: ${file.path}`);
+        })
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title" style="margin-top: 40px;">Read a file from the cloud</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/fs-read/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        (async () =&gt; {
+            // (1) Create a random text file
+            let filename = puter.randName() + &quot;.txt&quot;;
+            await puter.fs.write(filename, &quot;Hello world! I&apos;m a file!&quot;);
+            puter.print(`&quot;${filename}&quot; created&lt;br&gt;`);
+
+            // (2) Read the file and print its contents
+            let blob = await puter.fs.read(filename);
+            let content = await blob.text();
+            puter.print(`&quot;${filename}&quot; read (content: &quot;${content}&quot;)&lt;br&gt;`);
+        })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+</div>
+
+<div class="example-content" data-section="kv">
+
+
+            <h4 class="anchored-heading" id="save-user-preference-in-the-cloud-key-value-store">
+              <a class="anchor" href="#save-user-preference-in-the-cloud-key-value-store"></a>
+              Save user preference in the cloud Key-Value Store
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/intro-kv-set/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        // (1) Save user preference
+        puter.kv.set(&apos;userPreference&apos;, &apos;darkMode&apos;).then(() =&gt; {
+            // (2) Get user preference
+            puter.kv.get(&apos;userPreference&apos;).then(value =&gt; {
+                puter.print(`User preference: ${value}`);
+            });
+        })
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+</div>
+
+<div class="example-content" data-section="ai" style="display:block;">
+
+
+            <h4 class="anchored-heading" id="chat-with-gpt-5-6-luna">
+              <a class="anchor" href="#chat-with-gpt-5-6-luna"></a>
+              Chat with GPT-5.6 Luna
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        // Chat with GPT-5.6 Luna
+        puter.ai.chat(`What is life?`, { model: &quot;gpt-5.6-luna&quot; }).then(puter.print);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title" style="margin-top:40px;">Image Analysis</strong></p>
+
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/intro-gpt-vision/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;img src=&quot;https://assets.puter.site/doge.jpeg&quot; style=&quot;display:block;&quot;&gt;
+    &lt;script&gt;
+        puter.ai
+            .chat(`What do you see?`, `https://assets.puter.site/doge.jpeg`, {
+                model: &quot;gpt-5.6-luna&quot;,
+            })
+            .then(puter.print);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title" style="margin-top:40px;">Generate an image of a cat using AI</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-txt2img/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        // Generate an image of a cat using the default model and quality. Please note that testMode is set to true so that you can test this code without using up API credits.
+        puter.ai.txt2img(&apos;A picture of a cat.&apos;, true).then((image)=&gt;{
+            document.body.appendChild(image);
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title" style="margin-top:40px;">Stream the response</strong></p>
+
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-chat-stream/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+    (async () =&gt; {
+        const resp = await puter.ai.chat(&apos;Tell me in detail what Rick and Morty is all about.&apos;, {model: &apos;gemini-3.1-flash-lite&apos;, stream: true });
+        for await ( const part of resp ) puter.print(part?.text?.replaceAll(&apos;\n&apos;, &apos;&lt;br&gt;&apos;));
+    })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+</div>
+
+<div class="example-content" data-section="hosting">
+
+
+            <h4 class="anchored-heading" id="publish-a-static-website">
+              <a class="anchor" href="#publish-a-static-website"></a>
+              Publish a static website
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/intro-hosting/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        (async () =&gt; {
+            // (1) Create a random directory
+            let dirName = puter.randName();
+            await puter.fs.mkdir(dirName)
+
+            // (2) Create &apos;index.html&apos; in the directory with the contents &quot;Hello, world!&quot;
+            await puter.fs.write(`${dirName}/index.html`, &apos;&lt;h1&gt;Hello, world!&lt;/h1&gt;&apos;);
+
+            // (3) Host the directory under a random subdomain
+            let subdomain = puter.randName();
+            const site = await puter.hosting.create(subdomain, dirName)
+
+            puter.print(`Website hosted at: &lt;a href=&quot;https://${site.subdomain}.puter.site&quot; target=&quot;_blank&quot;&gt;https://${site.subdomain}.puter.site&lt;/a&gt;`);
+        })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+</div>
+
+<div class="example-content" data-section="auth">
+
+
+            <h4 class="anchored-heading" id="authenticate-a-user">
+              <a class="anchor" href="#authenticate-a-user"></a>
+              Authenticate a user
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/intro-auth/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;button id=&quot;sign-in&quot;&gt;Sign in&lt;/button&gt;
+    &lt;script&gt;
+        // Because signIn() opens a popup window, it must be called from a user action.
+        document.getElementById(&apos;sign-in&apos;).addEventListener(&apos;click&apos;, async () =&gt; {
+            // signIn() will resolve when the user has signed in.
+            await puter.auth.signIn().then((res) =&gt; {
+                puter.print(&apos;Signed in&lt;br&gt;&apos; + JSON.stringify(res));
+            });
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+</div>
+
+<div class="example-content" data-section="networking">
+
+
+            <h4 class="anchored-heading" id="fetch-a-resource-without-cors-restrictions">
+              <a class="anchor" href="#fetch-a-resource-without-cors-restrictions"></a>
+              Fetch a resource without CORS restrictions
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/net-fetch/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+    (async () =&gt; {
+        // Send a GET request to example.com
+        const request = await puter.net.fetch(&quot;https://example.com&quot;);
+
+        // Get the response body as text
+        const body = await request.text();
+
+        // Print the body as a code block
+        puter.print(body, { code: true });
+    })()
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+</div>
+<div class="next-prev-buttons"><a href="/./getting-started/" class="next-prev-button next-button">
+                                <div class="next-btn-text-wrapper" style="flex-grow:1;">
+                                    <p style="color: #868686; font-weight: 600;">NEXT</p>
+                                    <p class="btn-page-title">Getting Started</p>
+                                </div>
+                                <svg style="margin-left: 15px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right-icon lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+                            </a></div><footer><div><a href="https://puter.com" target="_blank">Puter.com</a><span class="bull">&bull;</span><a href="mailto:hey@puter.com" target="_blank">hey@puter.com</a><span class="bull">&bull;</span><a href="https://twitter.com/heyputer" target="_blank">X (Twitter)</a><span class="bull">&bull;</span><a href="https://github.com/HeyPuter" target="_blank">GitHub</a><span class="bull">&bull;</span><a href="/llms.txt" class="skip-insta-load" target="_blank">llms.txt</a></div><p class="copyright-notice">&copy; 2026 Puter Technologies Inc.</p></footer></div><div class="col-xl-2 col-lg-2 hidden-xs hidden-sm hidden-md" id="toc-wrapper"><div class="table-of-contents"><div class="toc-title">On this page</div><nav class="toc-nav"><a href="#" class="toc-link toc-level-1" data-level="1">Puter.js Documentation</a><a href="#examples" class="toc-link toc-level-1" data-level="1">Examples</a></nav></div></div></div></div>
+        <div class="search-overlay">
+            <div class="search-modal">
+                <div class="search-bar">
+                    <div class="search-bar-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+                    </div>
+                    <input type="text" class="search-input" placeholder="Search documentation..." />
+                </div>
+
+                <div class="search-results">
+                </div>
+            </div>
+        </div>
+    </body>
