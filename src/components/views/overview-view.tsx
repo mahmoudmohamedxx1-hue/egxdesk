@@ -9,6 +9,7 @@ import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
+import { FearGreedCard } from "../market/fear-greed-card";
 import { ChangeCell } from "../market/change-cell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -185,6 +186,9 @@ export function OverviewView() {
           </button>
         ))}
       </section>
+
+      {/* T57 — fear & greed gauge (foudalens parity) */}
+      <FearGreedCard />
 
       {/* WORLD MARKETS & COMMODITIES — international context on the home page */}
       {econ?.world && econ.world.quotes.some((q) => q.price !== null) && (

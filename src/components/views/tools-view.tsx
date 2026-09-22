@@ -6,7 +6,8 @@ import { useLiveData } from "../market/use-live-data";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { Input } from "@/components/ui/input";
-import { Calculator, TrendingUp, Scale, BookOpen, Landmark, PiggyBank } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calculator, TrendingUp, Scale, BookOpen, Landmark, PiggyBank, Hourglass } from "lucide-react";
 import { rowMatchesQuery } from "@/lib/ar-search";
 
 type Row = { ticker: string; name: string; nameAr?: string; close: number; divYield: number | null; changePct?: number | null };
@@ -85,6 +86,10 @@ export function ToolsView() {
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.toolsTitle, lang)}</h1>
         <p className="mt-1 text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.toolsNote, lang)}</p>
       </div>
+
+      <WhatIfCalc />
+
+      <CorrelationMatrix />
 
       <section className="rounded-lg border bg-card">
         <div className="flex items-center gap-2 border-b px-4 py-3">
@@ -376,3 +381,219 @@ const GLOSSARY = [
     },
   },
 ];
+
+// ── T57 — ماذا لو؟ (What-If investment calculator, foudalens parity) ──────────
+// "لو استثمرت X جنيه في السهم Y بتاريخ Z" — answered with REAL price history
+// from the app's own chart API (Yahoo Finance daily candles): shares bought
+// at the first close on/after the chosen date, valued at the latest close,
+// with the exact dates shown. No simulation, no synthetic prices.
+
+type ChartPointLite = { date: string; close: number };
+
+function WhatIfCalc() {
+  const { lang } = useApp();
+  const [query, setQuery] = useState("COMI");
+  const [amount, setAmount] = useState(10000);
+  const [when, setWhen] = useState("2026-01-01");
+  const [res, setRes] = useState<
+    | { ok: true; symbol: string; name: string; nameAr?: string; buyDate: string; buyClose: number; lastDate: string; lastClose: number; shares: number; nowValue: number; pnl: number; pnlPct: number }
+    | { ok: false; why: string }
+    | null
+  >(null);
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    const symbol = query.trim().toUpperCase().slice(0, 12);
+    if (!symbol || !amount || amount <= 0 || !when) return;
+    setBusy(true);
+    setRes(null);
+    try {
+      const r = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&range=5Y`, { cache: "no-store" });
+      const j = (await r.json()) as { points?: ChartPointLite[]; name?: string; nameAr?: string | null };
+      const pts = (j.points ?? []).filter((p) => p && Number.isFinite(p.close) && p.close > 0 && !String(p.date).includes("T"));
+      if (pts.length < 2) {
+        setRes({ ok: false, why: lang === "ar" ? "لا يوجد تاريخ أسعار كافٍ لهذا الرمز." : "not enough price history for this ticker." });
+      } else {
+        const buy = pts.find((p) => p.date >= when) ?? pts[0];
+        const last = pts[pts.length - 1];
+        const shares = amount / buy.close;
+        const nowValue = shares * last.close;
+        const pnl = nowValue - amount;
+        setRes({
+          ok: true,
+          symbol,
+          name: j.name ?? symbol,
+          nameAr: j.nameAr ?? undefined,
+          buyDate: buy.date,
+          buyClose: buy.close,
+          lastDate: last.date,
+          lastClose: last.close,
+          shares,
+          nowValue,
+          pnl,
+          pnlPct: (pnl / amount) * 100,
+        });
+      }
+    } catch {
+      setRes({ ok: false, why: lang === "ar" ? "تعذّر جلب تاريخ الأسعار." : "could not load price history." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fmtEgp = (v: number) => `${v.toLocaleString("en-US", { maximumFractionDigits: 0 })} ${lang === "ar" ? "ج" : "EGP"}`;
+
+  return (
+    <section className="rounded-lg border bg-card">
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <Hourglass className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <h2 className="font-bold">{lang === "ar" ? "ماذا لو؟ — حاسبة الاستثمار" : "What if? — investment calculator"}</h2>
+      </div>
+      <div className="p-4 grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="whatif-ticker" className="text-sm font-medium">{lang === "ar" ? "السهم" : "Stock"}</label>
+            <Input id="whatif-ticker" value={query} onChange={(e) => setQuery(e.target.value.toUpperCase())} placeholder="COMI" className="num" dir="ltr" />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="whatif-amount" className="text-sm font-medium">{lang === "ar" ? "المبلغ (جنيه)" : "Amount (EGP)"}</label>
+            <Input id="whatif-amount" type="number" min={1} className="num" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value) || 0)} dir="ltr" />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="whatif-date" className="text-sm font-medium">{lang === "ar" ? "تاريخ الشراء" : "Buy date"}</label>
+            <Input id="whatif-date" type="date" className="num" value={when} onChange={(e) => setWhen(e.target.value)} dir="ltr" />
+          </div>
+          <Button onClick={run} disabled={busy}>{busy ? (lang === "ar" ? "جارٍ الحساب…" : "calculating…") : lang === "ar" ? "احسب" : "calculate"}</Button>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            {lang === "ar"
+              ? "يُشترى السهم بسعر أول إغلاق في تاريخه أو بعده (بيانات إغلاق يومية حقيقية)، ويُقيَّم بآخر إغلاق — الأسعار مؤجلة وقد تشمل الإغلاقات التاريخية تعديلات توزيعات."
+              : "Buys at the first close on/after the chosen date (real daily closes) and values at the latest close — prices are delayed and historical closes may include dividend adjustments."}
+          </p>
+        </div>
+        <div className="rounded-lg bg-background/60 border p-4 min-h-40 flex flex-col justify-center">
+          {res == null && <p className="text-sm text-muted-foreground">{lang === "ar" ? "أدخل البيانات واضغط احسب." : "fill the inputs and press calculate."}</p>}
+          {res && !res.ok && <p className="text-sm text-down">{res.why}</p>}
+          {res && res.ok && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">
+                {lang === "ar"
+                  ? `لو استثمرت ${fmtEgp(amount)} في ${res.symbol} يوم ${res.buyDate}`
+                  : `If you had invested ${fmtEgp(amount)} in ${res.symbol} on ${res.buyDate}`}
+              </p>
+              <p className="num text-xs text-muted-foreground">
+                {lang === "ar" ? `سعر الشراء ${res.buyClose.toFixed(2)} · عدد الأسهم ${res.shares.toFixed(1)}` : `buy price ${res.buyClose.toFixed(2)} · shares ${res.shares.toFixed(1)}`}
+              </p>
+              <p className="num text-2xl font-bold">{fmtEgp(res.nowValue)}</p>
+              <p className={`num text-sm font-medium ${res.pnl >= 0 ? "text-up" : "text-down"}`}>
+                {res.pnl >= 0 ? "+" : ""}{fmtEgp(res.pnl)} ({res.pnlPct >= 0 ? "+" : ""}{res.pnlPct.toFixed(1)}%) · {res.lastDate}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── T57 — مصفوفة الارتباط (correlation matrix, foudalens parity) ─────────────
+// Pearson correlation of daily returns among the most-traded EGX names,
+// server-computed from the same real daily closes the charts use. The grid
+// is colored red→white→green for -1→0→+1; hover a cell for the exact value.
+
+type CorrPayload = {
+  ok: boolean;
+  months: number;
+  from: string | null;
+  to: string | null;
+  symbols: string[];
+  matrix: (number | null)[][];
+  noteAr: string;
+  noteEn: string;
+};
+
+function corrColor(v: number): string {
+  // -1 → red, 0 → neutral, +1 → green
+  const a = Math.min(1, Math.abs(v));
+  const alpha = 0.12 + a * 0.5;
+  return v >= 0 ? `oklch(0.62 0.15 150 / ${alpha.toFixed(2)})` : `oklch(0.58 0.17 25 / ${alpha.toFixed(2)})`;
+}
+
+function CorrelationMatrix() {
+  const { lang } = useApp();
+  const [d, setD] = useState<CorrPayload | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [hover, setHover] = useState<string>("");
+
+  useEffect(() => {
+    let alive = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBusy(true);
+    fetch("/api/correlation?months=6", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: CorrPayload) => alive && j.ok && setD(j))
+      .catch(() => {})
+      .finally(() => alive && setBusy(false));
+    return () => { alive = false; };
+  }, []);
+
+  if (busy && !d) {
+    return (
+      <section className="rounded-lg border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <h2 className="font-bold">{lang === "ar" ? "مصفوفة الارتباط" : "Correlation matrix"}</h2>
+        </div>
+        <div className="p-4 text-sm text-muted-foreground">{lang === "ar" ? "جارٍ حساب الارتباطات…" : "computing correlations…"}</div>
+      </section>
+    );
+  }
+  if (!d) return null;
+
+  return (
+    <section className="rounded-lg border bg-card">
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <h2 className="font-bold">{lang === "ar" ? "مصفوفة الارتباط — أكثر الأسهم تداولًا (٦ أشهر)" : "Correlation matrix — most-traded names (6 months)"}</h2>
+      </div>
+      <div className="p-4 overflow-x-auto">
+        {hover && <p className="text-xs text-muted-foreground mb-2 num">{hover}</p>}
+        <table className="border-separate border-spacing-0.5 text-[10px] num" dir="ltr">
+          <thead>
+            <tr>
+              <th className="sticky start-0 bg-card px-1.5 py-1 text-left font-medium">{lang === "ar" ? "السهم" : ""}</th>
+              {d.symbols.map((s) => (
+                <th key={s} className="px-1.5 py-1 font-medium text-muted-foreground">{s}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {d.matrix.map((row, i) => (
+              <tr key={d.symbols[i]}>
+                <th className="sticky start-0 bg-card px-1.5 py-1 text-left font-medium whitespace-nowrap">{d.symbols[i]}</th>
+                {row.map((v, j) => {
+                  const label = v == null ? "—" : v.toFixed(2);
+                  return (
+                    <td
+                      key={j}
+                      className="px-1.5 py-1 text-center rounded-sm cursor-default"
+                      style={{ background: v == null ? "var(--secondary)" : corrColor(v), color: Math.abs(v ?? 0) > 0.6 ? "#fff" : undefined }}
+                      onMouseEnter={() => setHover(v == null ? `${d.symbols[i]} / ${d.symbols[j]}: n/a` : `${d.symbols[i]} / ${d.symbols[j]} = ${v.toFixed(3)}`)}
+                      onMouseLeave={() => setHover("")}
+                    >
+                      {label}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">{lang === "ar" ? d.noteAr : d.noteEn}</p>
+        <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><span className="inline-block size-2.5 rounded-sm" style={{ background: corrColor(-0.8) }} /> -1</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block size-2.5 rounded-sm" style={{ background: corrColor(0) }} /> 0</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block size-2.5 rounded-sm" style={{ background: corrColor(0.8) }} /> +1</span>
+          {d.from && d.to && <span className="num">· {d.from} → {d.to}</span>}
+        </div>
+      </div>
+    </section>
+  );
+}

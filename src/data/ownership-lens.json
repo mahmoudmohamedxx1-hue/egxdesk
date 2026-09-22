@@ -1,0 +1,1129 @@
+{
+  "asOf": "2026-09-07",
+  "generatedAt": "2026-09-22",
+  "source": "Official EGX Daily Bulletins & Post-Execution Disclosures",
+  "sourceAr": "إفصاحات البورصة المصرية الرسمية",
+  "basis": "Official exchange disclosures filed under Capital Market Law Articles 29 & 38",
+  "basisAr": "إفصاحات رسمية مودعة لدى البورصة وفق المادتين ٢٩ و٣٨ من قواعد القيد",
+  "noteEn": "Investor relationships reconstructed from official EGX post-execution disclosure filings (Capital Market Law Articles 29 & 38) as captured in the desk's disclosure archive. Edges are DOCUMENTED dealings by the listed related party / major holder in the target company's filings — historical facts with dates and filing links, not live ownership percentages.",
+  "noteAr": "علاقات المستثمرين مبنية على إفصاحات البورصة المصرية الرسمية بعد التنفيذ (مواد 29 و38 من قانون سوق المال) كما وثّقها أرشيف الإفصاحات في المنصة. كل رابط هو تعامل موثق للطرف المتصل/المساهم الرئيسي في إفصاحات الشركة المستهدفة — وقائع تاريخية بتواريخها وروابطها الرسمية، وليست نسب ملكية لحظية.",
+  "investors": [
+    {
+      "id": "cib",
+      "ticker": "COMI",
+      "group": false,
+      "nameEn": "Commercial International Bank (CIB)",
+      "nameAr": "البنك التجاري الدولي (CIB)",
+      "crossHoldings": 2,
+      "filings": 38
+    },
+    {
+      "id": "efg-holding",
+      "ticker": "HRHO",
+      "group": false,
+      "nameEn": "EFG Holding",
+      "nameAr": "المجموعة المالية هيرميس (EFG)",
+      "crossHoldings": 1,
+      "filings": 1
+    },
+    {
+      "id": "qala",
+      "ticker": "CCAP",
+      "group": false,
+      "nameEn": "QALA Financial Investments",
+      "nameAr": "قالة للاستثمارات المالية",
+      "crossHoldings": 0,
+      "filings": 0
+    },
+    {
+      "id": "odin",
+      "ticker": "ODIN",
+      "group": false,
+      "nameEn": "ODIN Investments",
+      "nameAr": "أودين للاستثمارات",
+      "crossHoldings": 2,
+      "filings": 3
+    },
+    {
+      "id": "mohandes",
+      "ticker": "MOIN",
+      "group": false,
+      "nameEn": "Mohandes Insurance",
+      "nameAr": "المهندس للتأمين",
+      "crossHoldings": 1,
+      "filings": 7
+    },
+    {
+      "id": "naeem",
+      "ticker": "NAHO",
+      "group": false,
+      "nameEn": "Naeem Holding",
+      "nameAr": "نعيم القابضة",
+      "crossHoldings": 3,
+      "filings": 4
+    },
+    {
+      "id": "mena-touristic",
+      "ticker": "MENA",
+      "group": false,
+      "nameEn": "Mena Touristic & Real Estate Inv.",
+      "nameAr": "مينا للسياحة والاستثمار العقاري",
+      "crossHoldings": 4,
+      "filings": 9
+    },
+    {
+      "id": "catalyst",
+      "ticker": "CPME",
+      "group": false,
+      "nameEn": "Catalyst Partners (CPME)",
+      "nameAr": "كاتاليست بارتنرز (CPME)",
+      "crossHoldings": 1,
+      "filings": 1
+    },
+    {
+      "id": "oriental-weavers",
+      "ticker": "ORWE",
+      "group": false,
+      "nameEn": "Oriental Weavers",
+      "nameAr": "النساجون الشرقيون",
+      "crossHoldings": 3,
+      "filings": 6
+    },
+    {
+      "id": "alexandria-spinning",
+      "ticker": "SPIN",
+      "group": false,
+      "nameEn": "Alexandria Spinning & Weaving",
+      "nameAr": "الإسكندرية للغزل والنسيج",
+      "crossHoldings": 2,
+      "filings": 7
+    },
+    {
+      "id": "atlas",
+      "ticker": "AIFI",
+      "group": false,
+      "nameEn": "Atlas for Investment & Food",
+      "nameAr": "أطلس للاستثمار والصناعات الغذائية",
+      "crossHoldings": 2,
+      "filings": 4
+    },
+    {
+      "id": "ismailia-food",
+      "ticker": "INFI",
+      "group": false,
+      "nameEn": "Ismailia National Food Industries",
+      "nameAr": "الإسماعيلية الوطنية للصناعات الغذائية",
+      "crossHoldings": 2,
+      "filings": 7
+    },
+    {
+      "id": "egypt-poultry",
+      "ticker": "EPCO",
+      "group": false,
+      "nameEn": "Egypt for Poultry",
+      "nameAr": "مصر للدواجن",
+      "crossHoldings": 1,
+      "filings": 3
+    },
+    {
+      "id": "efinance",
+      "ticker": "EFIH",
+      "group": false,
+      "nameEn": "e-Finance",
+      "nameAr": "إي-فاينانس",
+      "crossHoldings": 2,
+      "filings": 3
+    },
+    {
+      "id": "nozha-hospital",
+      "ticker": "NINH",
+      "group": false,
+      "nameEn": "Nozha International Hospital",
+      "nameAr": "مستشفى النزهة الدولي",
+      "crossHoldings": 1,
+      "filings": 2
+    },
+    {
+      "id": "moed",
+      "ticker": "MOED",
+      "group": false,
+      "nameEn": "Egyptian Modern Education Systems",
+      "nameAr": "المصرية لنظم التعليم الحديثة",
+      "crossHoldings": 1,
+      "filings": 1
+    },
+    {
+      "id": "nile-pharma",
+      "ticker": "NIPH",
+      "group": false,
+      "nameEn": "El-Nile Pharmaceuticals",
+      "nameAr": "النيل للأدوية والصناعات الكيماوية",
+      "crossHoldings": 2,
+      "filings": 5
+    },
+    {
+      "id": "union-pharmacist",
+      "ticker": "UPMS",
+      "group": false,
+      "nameEn": "Union Pharmacist Co.",
+      "nameAr": "الاتحاد للصيادلة",
+      "crossHoldings": 2,
+      "filings": 3
+    },
+    {
+      "id": "icfc",
+      "ticker": "ICFC",
+      "group": false,
+      "nameEn": "International Co. for Fertilizers",
+      "nameAr": "الدولية للأسمدة والكيماويات",
+      "crossHoldings": 2,
+      "filings": 5
+    },
+    {
+      "id": "golden-textiles",
+      "ticker": "GTWL",
+      "group": false,
+      "nameEn": "Golden Textiles & Clothes Wool",
+      "nameAr": "الذهنية للغزل والنسيج",
+      "crossHoldings": 2,
+      "filings": 21
+    },
+    {
+      "id": "eastern-tobacco",
+      "ticker": "EAST",
+      "group": false,
+      "nameEn": "Eastern Tobacco",
+      "nameAr": "الشرقية للدخان",
+      "crossHoldings": 0,
+      "filings": 5
+    },
+    {
+      "id": "mm-group",
+      "ticker": "MTIE",
+      "group": false,
+      "nameEn": "MM Group",
+      "nameAr": "مجموعة محمد ومصطفى",
+      "crossHoldings": 0,
+      "filings": 2
+    },
+    {
+      "id": "tmg-holding",
+      "ticker": "TMGH",
+      "group": true,
+      "nameEn": "TMG Holding",
+      "nameAr": "مجموعة طلعت مصطفى القابضة",
+      "crossHoldings": 0,
+      "filings": 2
+    },
+    {
+      "id": "sinai-cement",
+      "ticker": "SCEM",
+      "group": false,
+      "nameEn": "Sinai Cement",
+      "nameAr": "أسمنت سيناء",
+      "crossHoldings": 0,
+      "filings": 2
+    },
+    {
+      "id": "ferchem",
+      "ticker": "FERC",
+      "group": false,
+      "nameEn": "Ferchem Misr",
+      "nameAr": "فيركيم مصر",
+      "crossHoldings": 2,
+      "filings": 2
+    },
+    {
+      "id": "act-financial",
+      "ticker": "ACTF",
+      "group": false,
+      "nameEn": "Act Financial",
+      "nameAr": "أكت فاينانشال",
+      "crossHoldings": 1,
+      "filings": 4
+    },
+    {
+      "id": "contact-financial",
+      "ticker": "CNFN",
+      "group": false,
+      "nameEn": "Contact Financial Holding",
+      "nameAr": "كونتاكت المالية القابضة",
+      "crossHoldings": 0,
+      "filings": 1
+    },
+    {
+      "id": "ascom",
+      "ticker": "ASCM",
+      "group": false,
+      "nameEn": "ASCOM (Asec Mining)",
+      "nameAr": "أسيم للحفر والتعدين",
+      "crossHoldings": 0,
+      "filings": 4
+    },
+    {
+      "id": "arab-real-estate",
+      "ticker": "RREI",
+      "group": false,
+      "nameEn": "Arab Real Estate Investment (ALICO)",
+      "nameAr": "العربية للاستثمار العقاري (أليكو)",
+      "crossHoldings": 1,
+      "filings": 7
+    }
+  ],
+  "edges": [
+    {
+      "investorId": "efg-holding",
+      "ticker": "PHTV",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 500,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "cib",
+      "ticker": "MOIN",
+      "self": false,
+      "boughtShares": 24000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "mohandes",
+      "ticker": "MOIN",
+      "self": true,
+      "boughtShares": 24000,
+      "soldShares": 627572,
+      "filings": 6,
+      "firstDate": "2026-07-06",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292550",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292505"
+      ]
+    },
+    {
+      "investorId": "mena-touristic",
+      "ticker": "MOIN",
+      "self": false,
+      "boughtShares": 24000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "icfc",
+      "ticker": "ISPH",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 400000,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "icfc",
+      "ticker": "ICFC",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 64000,
+      "filings": 3,
+      "firstDate": "2026-07-06",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292550",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292658"
+      ]
+    },
+    {
+      "investorId": "odin",
+      "ticker": "HELI",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 1500000,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "mena-touristic",
+      "ticker": "COPR",
+      "self": false,
+      "boughtShares": 100000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "cib",
+      "ticker": "COMI",
+      "self": true,
+      "boughtShares": 39922,
+      "soldShares": 206641,
+      "filings": 36,
+      "firstDate": "2026-07-06",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "efinance",
+      "ticker": "ACTF",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 3300000,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "nozha-hospital",
+      "ticker": "ACTF",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 3300000,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "moed",
+      "ticker": "ACTF",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 3300000,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "act-financial",
+      "ticker": "ACTF",
+      "self": true,
+      "boughtShares": 3300000,
+      "soldShares": 3458333,
+      "filings": 3,
+      "firstDate": "2026-08-03",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292447"
+      ]
+    },
+    {
+      "investorId": "alexandria-spinning",
+      "ticker": "ACGC",
+      "self": false,
+      "boughtShares": 5383,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "ismailia-food",
+      "ticker": "ACGC",
+      "self": false,
+      "boughtShares": 5383,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "egypt-poultry",
+      "ticker": "ACGC",
+      "self": false,
+      "boughtShares": 5383,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "golden-textiles",
+      "ticker": "ACGC",
+      "self": false,
+      "boughtShares": 5383,
+      "soldShares": 390000,
+      "filings": 3,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "nile-pharma",
+      "ticker": null,
+      "self": false,
+      "boughtShares": 200000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-19",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293684"
+      ]
+    },
+    {
+      "investorId": "alexandria-spinning",
+      "ticker": "SPIN",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 20190173,
+      "filings": 5,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292505",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292447"
+      ]
+    },
+    {
+      "investorId": "naeem",
+      "ticker": "PHTV",
+      "self": false,
+      "boughtShares": 550,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "nozha-hospital",
+      "ticker": "NINH",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 200000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "mena-touristic",
+      "ticker": "MENA",
+      "self": true,
+      "boughtShares": 167110,
+      "soldShares": 16603,
+      "filings": 3,
+      "firstDate": "2026-08-13",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "atlas",
+      "ticker": "JUFO",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 5000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "ismailia-food",
+      "ticker": "JUFO",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 5000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "golden-textiles",
+      "ticker": "GTWL",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 659703,
+      "filings": 17,
+      "firstDate": "2026-08-03",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "cib",
+      "ticker": "ELEC",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 18450000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "alexandria-spinning",
+      "ticker": "ELEC",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 18450000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "mena-touristic",
+      "ticker": "EHDR",
+      "self": false,
+      "boughtShares": 1,
+      "soldShares": 1444,
+      "filings": 2,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "efinance",
+      "ticker": "EFIH",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 700000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "icfc",
+      "ticker": "EFIC",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 221248,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "mohandes",
+      "ticker": "CANA",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 30000,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "nile-pharma",
+      "ticker": "ADCI",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 21450,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "oriental-weavers",
+      "ticker": "ACGC",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 69095000,
+      "filings": 3,
+      "firstDate": "2026-08-13",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "naeem",
+      "ticker": null,
+      "self": false,
+      "boughtShares": 86266,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-17",
+      "lastDate": "2026-08-17",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293557"
+      ]
+    },
+    {
+      "investorId": "arab-real-estate",
+      "ticker": "RREI",
+      "self": true,
+      "boughtShares": 1584741,
+      "soldShares": 0,
+      "filings": 5,
+      "firstDate": "2026-07-06",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292550",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292505"
+      ]
+    },
+    {
+      "investorId": "nile-pharma",
+      "ticker": "NIPH",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 38300,
+      "filings": 3,
+      "firstDate": "2026-08-12",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077"
+      ]
+    },
+    {
+      "investorId": "naeem",
+      "ticker": "NAHO",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "ismailia-food",
+      "ticker": "INFI",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 301634,
+      "filings": 5,
+      "firstDate": "2026-08-09",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077"
+      ]
+    },
+    {
+      "investorId": "egypt-poultry",
+      "ticker": "EPCO",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 3400000,
+      "filings": 2,
+      "firstDate": "2026-08-13",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "naeem",
+      "ticker": "EHDR",
+      "self": false,
+      "boughtShares": 1,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "act-financial",
+      "ticker": "CNFN",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "contact-financial",
+      "ticker": "CNFN",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "ascom",
+      "ticker": "ASCM",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 1300000,
+      "filings": 4,
+      "firstDate": "2026-08-11",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077"
+      ]
+    },
+    {
+      "investorId": "golden-textiles",
+      "ticker": "ADPC",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 40000,
+      "filings": 1,
+      "firstDate": "2026-08-16",
+      "lastDate": "2026-08-16",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293407"
+      ]
+    },
+    {
+      "investorId": "ferchem",
+      "ticker": "TALM",
+      "self": false,
+      "boughtShares": 3,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-13",
+      "lastDate": "2026-08-13",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "efinance",
+      "ticker": "MENA",
+      "self": false,
+      "boughtShares": 2000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-13",
+      "lastDate": "2026-08-13",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "union-pharmacist",
+      "ticker": "MENA",
+      "self": false,
+      "boughtShares": 2000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-13",
+      "lastDate": "2026-08-13",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340"
+      ]
+    },
+    {
+      "investorId": "mena-touristic",
+      "ticker": "COMI",
+      "self": false,
+      "boughtShares": 39500,
+      "soldShares": 0,
+      "filings": 2,
+      "firstDate": "2026-08-12",
+      "lastDate": "2026-08-13",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077"
+      ]
+    },
+    {
+      "investorId": "arab-real-estate",
+      "ticker": "COMI",
+      "self": false,
+      "boughtShares": 39500,
+      "soldShares": 0,
+      "filings": 2,
+      "firstDate": "2026-08-12",
+      "lastDate": "2026-08-13",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293340",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077"
+      ]
+    },
+    {
+      "investorId": "sinai-cement",
+      "ticker": "SCEM",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 667713,
+      "filings": 2,
+      "firstDate": "2026-08-11",
+      "lastDate": "2026-08-12",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292896"
+      ]
+    },
+    {
+      "investorId": "ferchem",
+      "ticker": "SCEM",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 167713,
+      "filings": 1,
+      "firstDate": "2026-08-12",
+      "lastDate": "2026-08-12",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=293077"
+      ]
+    },
+    {
+      "investorId": "odin",
+      "ticker": null,
+      "self": false,
+      "boughtShares": 39200,
+      "soldShares": 39200,
+      "filings": 2,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-11",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292896",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292427"
+      ]
+    },
+    {
+      "investorId": "union-pharmacist",
+      "ticker": "UPMS",
+      "self": true,
+      "boughtShares": 5000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-10",
+      "lastDate": "2026-08-10",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292773"
+      ]
+    },
+    {
+      "investorId": "eastern-tobacco",
+      "ticker": "EAST",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 610221,
+      "filings": 5,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-10",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292773",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292710",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292550"
+      ]
+    },
+    {
+      "investorId": "atlas",
+      "ticker": "AIFI",
+      "self": true,
+      "boughtShares": 45000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-09",
+      "lastDate": "2026-08-09",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292710"
+      ]
+    },
+    {
+      "investorId": "mm-group",
+      "ticker": "MTIE",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 150000,
+      "filings": 2,
+      "firstDate": "2026-08-04",
+      "lastDate": "2026-08-05",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292550",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292505"
+      ]
+    },
+    {
+      "investorId": "catalyst",
+      "ticker": "AIDC",
+      "self": false,
+      "boughtShares": 27,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-05",
+      "lastDate": "2026-08-05",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292550"
+      ]
+    },
+    {
+      "investorId": "tmg-holding",
+      "ticker": "TMGH",
+      "self": true,
+      "boughtShares": 820000,
+      "soldShares": 0,
+      "filings": 2,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-04",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292505",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292427"
+      ]
+    },
+    {
+      "investorId": "oriental-weavers",
+      "ticker": "ORWE",
+      "self": true,
+      "boughtShares": 0,
+      "soldShares": 30000,
+      "filings": 1,
+      "firstDate": "2026-08-03",
+      "lastDate": "2026-08-03",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292447"
+      ]
+    },
+    {
+      "investorId": "oriental-weavers",
+      "ticker": "SPIN",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 100000,
+      "filings": 1,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-02",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292427"
+      ]
+    },
+    {
+      "investorId": "union-pharmacist",
+      "ticker": "CAED",
+      "self": false,
+      "boughtShares": 3000,
+      "soldShares": 0,
+      "filings": 1,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-02",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292427"
+      ]
+    },
+    {
+      "investorId": "atlas",
+      "ticker": null,
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 12500000,
+      "filings": 2,
+      "firstDate": "2026-08-02",
+      "lastDate": "2026-08-02",
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292427",
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292335"
+      ]
+    },
+    {
+      "investorId": "oriental-weavers",
+      "ticker": "GTWL",
+      "self": false,
+      "boughtShares": 0,
+      "soldShares": 25000,
+      "filings": 1,
+      "firstDate": null,
+      "lastDate": null,
+      "links": [
+        "https://www.egx.com.eg/ar/NewsDetails.aspx?NewsID=292335"
+      ]
+    }
+  ]
+}

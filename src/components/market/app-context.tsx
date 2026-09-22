@@ -83,6 +83,8 @@ const KNOWN_VIEWS = new Set([
   "funds", "lab",
   // T27 — GCC regional markets + paper trading
   "gcc", "paper",
+  // T57 — عدسة الملكية (ownership lens)
+  "lens",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview

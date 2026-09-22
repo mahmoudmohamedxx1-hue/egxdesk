@@ -26,7 +26,7 @@ import {
   Languages, Moon, Sun, ChevronDown, ChevronRight,
   LayoutDashboard, CandlestickChart, SlidersHorizontal, Radar,
   Flame, Layers, Users, Zap, CalendarDays, Scale, PiggyBank,
-  Newspaper, NotebookPen, ListChecks, Wrench, Bot, Globe2, LineChart,
+  Newspaper, NotebookPen, ListChecks, Wrench, Bot, Globe2, LineChart, Telescope,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -52,6 +52,7 @@ const SectorsView = dynamic(() => import("@/components/views/sectors-view").then
 const HeatView = dynamic(() => import("@/components/views/heat-view").then((m) => ({ default: m.HeatView })), { loading: ViewBoot });
 const ActivityView = dynamic(() => import("@/components/views/activity-view").then((m) => ({ default: m.ActivityView })), { loading: ViewBoot });
 const InvestorsView = dynamic(() => import("@/components/views/investors-view").then((m) => ({ default: m.InvestorsView })), { loading: ViewBoot });
+const LensView = dynamic(() => import("@/components/views/lens-view").then((m) => ({ default: m.LensView })), { loading: ViewBoot });
 const NewsView = dynamic(() => import("@/components/views/news-view").then((m) => ({ default: m.NewsView })), { loading: ViewBoot });
 const WatchlistView = dynamic(() => import("@/components/views/watchlist-view").then((m) => ({ default: m.WatchlistView })), { loading: ViewBoot });
 const ToolsView = dynamic(() => import("@/components/views/tools-view").then((m) => ({ default: m.ToolsView })), { loading: ViewBoot });
@@ -86,6 +87,7 @@ const VIEW_IMPORTS: { name: string; load: () => Promise<unknown> }[] = [
   { name: "exchange", load: () => import("@/components/views/exchange-view") },
   { name: "activity", load: () => import("@/components/views/activity-view") },
   { name: "investors", load: () => import("@/components/views/investors-view") },
+  { name: "lens", load: () => import("@/components/views/lens-view") },
   { name: "funds", load: () => import("@/components/views/funds-view") },
   { name: "gcc", load: () => import("@/components/views/gcc-view") },
   { name: "lab", load: () => import("@/components/views/strategy-lab-view") },
@@ -147,6 +149,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Layers,
     items: [
       { view: "heat", t: T.map, icon: Flame },
+      { view: "lens", t: T.lensNav, icon: Telescope },
       { view: "sectors", t: T.sectors, icon: Layers },
       { view: "investors", t: { ar: "المستثمرون", en: "Investors" }, icon: Users },
       { view: "activity", t: T.activity, icon: Zap },
@@ -467,6 +470,7 @@ export function AppShell() {
           {view.name === "heat" && <HeatView />}
           {view.name === "activity" && <ActivityView />}
           {view.name === "investors" && <InvestorsView />}
+          {view.name === "lens" && <LensView />}
           {view.name === "today" && <NewsView />}
           {view.name === "watchlist" && <WatchlistView />}
           {view.name === "tools" && <ToolsView />}

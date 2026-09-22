@@ -26,6 +26,8 @@ export const T = {
   market: { ar: "السوق", en: "Market" },
   activity: { ar: "النشاط", en: "Activity" },
   map: { ar: "الخريطة", en: "Map" },
+  lensNav: { ar: "عدسة الملكية", en: "Ownership Lens" },
+  compositeNote: { ar: "مكونات معلنة من بيانات حقيقية — المعادلة مكشوفة", en: "published components, real data — no black box" },
   sectors: { ar: "القطاعات", en: "Sectors" },
   exchange: { ar: "البورصة", en: "Exchange" },
   investors: { ar: "تدفقات المستثمرين", en: "Investor flows" },
