@@ -1,0 +1,3446 @@
+data: {"type":"step","tool":"compare","args":{"tickers":["COMI","HDBK"]},"ok":true}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"خ"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":"صة"}
+
+data: {"type":"delta","text":":"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" الك"}
+
+data: {"type":"delta","text":"لية"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"45"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" الذي"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"بلغ"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يم"}
+
+data: {"type":"delta","text":"ته"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"125"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"96"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":"ما"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":" السعر"}
+
+data: {"type":"delta","text":" المست"}
+
+data: {"type":"delta","text":"قر"}
+
+data: {"type":"delta","text":" لل"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" تق"}
+
+data: {"type":"delta","text":"ريب"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":"ا"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"غ"}
+
+data: {"type":"delta","text":"لق"}
+
+data: {"type":"delta","text":" عند"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"131"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"5"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" مقابل"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"117"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"63"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"###"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" و"}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" المؤ"}
+
+data: {"type":"delta","text":"شر"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"--------"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"------------------------------"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"----------------------------"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"عر"}
+
+data: {"type":"delta","text":" الح"}
+
+data: {"type":"delta","text":"الي"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"131"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"5"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"117"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"63"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الت"}
+
+data: {"type":"delta","text":"غير"}
+
+data: {"type":"delta","text":" اليوم"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" -"}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"64"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" (-"}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"23"}
+
+data: {"type":"delta","text":"%)"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" -"}
+
+data: {"type":"delta","text":"0"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"91"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" (-"}
+
+data: {"type":"delta","text":"0"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"77"}
+
+data: {"type":"delta","text":"%)"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"45"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"125"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"96"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"م"}
+
+data: {"type":"delta","text":"ض"}
+
+data: {"type":"delta","text":"اع"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":" ال"}
+
+data: {"type":"delta","text":"رب"}
+
+data: {"type":"delta","text":"ح"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"P"}
+
+data: {"type":"delta","text":"/E"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"6"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"32"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"6"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"28"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"م"}
+
+data: {"type":"delta","text":"ض"}
+
+data: {"type":"delta","text":"اع"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الد"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":"تر"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"P"}
+
+data: {"type":"delta","text":"/B"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"88"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"2"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"68"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":" على"}
+
+data: {"type":"delta","text":" حقوق"}
+
+data: {"type":"delta","text":" المس"}
+
+data: {"type":"delta","text":"اهم"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"RO"}
+
+data: {"type":"delta","text":"E"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"34"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"49"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"66"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"وية"}
+
+data: {"type":"delta","text":" لل"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"EPS"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"21"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"16"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"18"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"73"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" الن"}
+
+data: {"type":"delta","text":"قد"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"رب"}
+
+data: {"type":"delta","text":"ح"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"4"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"51"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"37"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الأ"}
+
+data: {"type":"delta","text":"د"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":" خلال"}
+
+data: {"type":"delta","text":" العام"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" +"}
+
+data: {"type":"delta","text":"49"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"12"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" +"}
+
+data: {"type":"delta","text":"27"}
+
+data: {"type":"delta","text":"9"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"57"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الأ"}
+
+data: {"type":"delta","text":"د"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":" منذ"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"دا"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" العام"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" +"}
+
+data: {"type":"delta","text":"27"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"67"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" +"}
+
+data: {"type":"delta","text":"162"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"39"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"###"}
+
+data: {"type":"delta","text":" تح"}
+
+data: {"type":"delta","text":"ليل"}
+
+data: {"type":"delta","text":" المق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"**:"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" بشكل"}
+
+data: {"type":"delta","text":" كبير"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"صل"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يم"}
+
+data: {"type":"delta","text":"ته"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" إلى"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"45"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" وهي"}
+
+data: {"type":"delta","text":" أك"}
+
+data: {"type":"delta","text":"بر"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"غة"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"125"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"96"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" مما"}
+
+data: {"type":"delta","text":" يع"}
+
+data: {"type":"delta","text":"كس"}
+
+data: {"type":"delta","text":" حجم"}
+
+data: {"type":"delta","text":" أك"}
+
+data: {"type":"delta","text":"بر"}
+
+data: {"type":"delta","text":" لل"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"2"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"عر"}
+
+data: {"type":"delta","text":"**:"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"غ"}
+
+data: {"type":"delta","text":"لق"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" عند"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"131"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"5"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":"ما"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"غ"}
+
+data: {"type":"delta","text":"لق"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":" عند"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"117"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"63"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" مما"}
+
+data: {"type":"delta","text":" يع"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":" أن"}
+
+data: {"type":"delta","text":" سعر"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" أع"}
+
+data: {"type":"delta","text":"لى"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"سبة"}
+
+data: {"type":"delta","text":" ح"}
+
+data: {"type":"delta","text":"و"}
+
+data: {"type":"delta","text":"الي"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"11"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"8"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" بس"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"م"}
+
+data: {"type":"delta","text":"ض"}
+
+data: {"type":"delta","text":"اع"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":" ال"}
+
+data: {"type":"delta","text":"رب"}
+
+data: {"type":"delta","text":"ح"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"P"}
+
+data: {"type":"delta","text":"/E"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":":"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"ظهر"}
+
+data: {"type":"delta","text":" ك"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" مض"}
+
+data: {"type":"delta","text":"اع"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":" ر"}
+
+data: {"type":"delta","text":"بح"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" مت"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"ب"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"بلغ"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"6"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"32"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" و"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"6"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"28"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" مما"}
+
+data: {"type":"delta","text":" يش"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" إلى"}
+
+data: {"type":"delta","text":" أن"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" يق"}
+
+data: {"type":"delta","text":"يم"}
+
+data: {"type":"delta","text":" ك"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"فس"}
+
+data: {"type":"delta","text":" المست"}
+
+data: {"type":"delta","text":"وى"}
+
+data: {"type":"delta","text":" تق"}
+
+data: {"type":"delta","text":"ريب"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":"ا"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ال"}
+
+data: {"type":"delta","text":"رب"}
+
+data: {"type":"delta","text":"ح"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"4"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"م"}
+
+data: {"type":"delta","text":"ض"}
+
+data: {"type":"delta","text":"اع"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الد"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":"تر"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"P"}
+
+data: {"type":"delta","text":"/B"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":":"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"ظهر"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":" مض"}
+
+data: {"type":"delta","text":"اع"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" د"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":"تر"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" أع"}
+
+data: {"type":"delta","text":"لى"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"2"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"68"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"88"}
+
+data: {"type":"delta","text":"×"}
+
+data: {"type":"delta","text":")،"}
+
+data: {"type":"delta","text":" مما"}
+
+data: {"type":"delta","text":" قد"}
+
+data: {"type":"delta","text":" يش"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" إلى"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"عات"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"مو"}
+
+data: {"type":"delta","text":" أع"}
+
+data: {"type":"delta","text":"لى"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الد"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":"تر"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"5"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":" على"}
+
+data: {"type":"delta","text":" حقوق"}
+
+data: {"type":"delta","text":" المس"}
+
+data: {"type":"delta","text":"اهم"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"RO"}
+
+data: {"type":"delta","text":"E"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":":"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" هذا"}
+
+data: {"type":"delta","text":" المؤ"}
+
+data: {"type":"delta","text":"شر"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"صل"}
+
+data: {"type":"delta","text":" إلى"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"49"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"66"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"34"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" مما"}
+
+data: {"type":"delta","text":" يع"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":" ك"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":"اءة"}
+
+data: {"type":"delta","text":" أع"}
+
+data: {"type":"delta","text":"لى"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" استخدام"}
+
+data: {"type":"delta","text":" حقوق"}
+
+data: {"type":"delta","text":" المس"}
+
+data: {"type":"delta","text":"اهم"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"تح"}
+
+data: {"type":"delta","text":"قيق"}
+
+data: {"type":"delta","text":" الأ"}
+
+data: {"type":"delta","text":"رب"}
+
+data: {"type":"delta","text":"اح"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"6"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الأ"}
+
+data: {"type":"delta","text":"د"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":" خلال"}
+
+data: {"type":"delta","text":" العام"}
+
+data: {"type":"delta","text":"**:"}
+
+data: {"type":"delta","text":" حق"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":" أد"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":" است"}
+
+data: {"type":"delta","text":"ث"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ائي"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":"ا"}
+
+data: {"type":"delta","text":" خلال"}
+
+data: {"type":"delta","text":" العام"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ار"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"ع"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"سبة"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"27"}
+
+data: {"type":"delta","text":"9"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"57"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" بار"}
+
+data: {"type":"delta","text":"تفاع"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"49"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"12"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" كما"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"ظهر"}
+
+data: {"type":"delta","text":" أد"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"وي"}
+
+data: {"type":"delta","text":" منذ"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"دا"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" العام"}
+
+data: {"type":"delta","text":" (+"}
+
+data: {"type":"delta","text":"162"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"39"}
+
+data: {"type":"delta","text":"%)"}
+
+data: {"type":"delta","text":" مقابل"}
+
+data: {"type":"delta","text":" +"}
+
+data: {"type":"delta","text":"27"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"67"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"7"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"وية"}
+
+data: {"type":"delta","text":" لل"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"EPS"}
+
+data: {"type":"delta","text":")**"}
+
+data: {"type":"delta","text":":"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"لي"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"بلغ"}
+
+data: {"type":"delta","text":" EPS"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"21"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"16"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" مقابل"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"18"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"73"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"8"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" الن"}
+
+data: {"type":"delta","text":"قد"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"**:"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" الن"}
+
+data: {"type":"delta","text":"قد"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"صل"}
+
+data: {"type":"delta","text":" إلى"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"4"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"51"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" مقابل"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"37"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" ل"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"ب"}
+
+data: {"type":"delta","text":"اخ"}
+
+data: {"type":"delta","text":"تص"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" على"}
+
+data: {"type":"delta","text":" الر"}
+
+data: {"type":"delta","text":"غم"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" والع"}
+
+data: {"type":"delta","text":"ائد"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" الن"}
+
+data: {"type":"delta","text":"قد"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" إلا"}
+
+data: {"type":"delta","text":" أن"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"ظهر"}
+
+data: {"type":"delta","text":" أد"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":" است"}
+
+data: {"type":"delta","text":"ث"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ائي"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":"ا"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" مؤ"}
+
+data: {"type":"delta","text":"خر"}
+
+data: {"type":"delta","text":"ً"}
+
+data: {"type":"delta","text":"ا"}
+
+data: {"type":"delta","text":" وك"}
+
+data: {"type":"delta","text":"ف"}
+
+data: {"type":"delta","text":"اءة"}
+
+data: {"type":"delta","text":" أع"}
+
+data: {"type":"delta","text":"لى"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" استخدام"}
+
+data: {"type":"delta","text":" حقوق"}
+
+data: {"type":"delta","text":" المس"}
+
+data: {"type":"delta","text":"اهم"}
+
+data: {"type":"delta","text":"ين"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"RO"}
+
+data: {"type":"delta","text":"E"}
+
+data: {"type":"delta","text":")."}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"خ"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":"صة"}
+
+data: {"type":"delta","text":":"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"تف"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" الك"}
+
+data: {"type":"delta","text":"لية"}
+
+data: {"type":"delta","text":" التي"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"بلغ"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"45"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":"ما"}
+
+data: {"type":"delta","text":" ي"}
+
+data: {"type":"delta","text":"أ"}
+
+data: {"type":"delta","text":"تي"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" بق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" أ"}
+
+data: {"type":"delta","text":"قل"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"ـ"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"125"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"96"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":" أ"}
+
+data: {"type":"delta","text":"ما"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" سعر"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":"غ"}
+
+data: {"type":"delta","text":"لق"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" عند"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"131"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"5"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" مقابل"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"117"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"63"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" لبن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"###"}
+
+data: {"type":"delta","text":" مق"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"نة"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":" أس"}
+
+data: {"type":"delta","text":"عار"}
+
+data: {"type":"delta","text":" الأس"}
+
+data: {"type":"delta","text":"هم"}
+
+data: {"type":"delta","text":" وال"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" المؤ"}
+
+data: {"type":"delta","text":"شر"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":")"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"-------"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"----------------"}
+
+data: {"type":"delta","text":"-------------"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"----------------"}
+
+data: {"type":"delta","text":"-----------"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" سعر"}
+
+data: {"type":"delta","text":" الإ"}
+
+data: {"type":"delta","text":"غ"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":"ق"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"131"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"5"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"117"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"63"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"غير"}
+
+data: {"type":"delta","text":" اليوم"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" -"}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"64"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" (-"}
+
+data: {"type":"delta","text":"1"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"23"}
+
+data: {"type":"delta","text":"%)"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" -"}
+
+data: {"type":"delta","text":"0"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"91"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" (-"}
+
+data: {"type":"delta","text":"0"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"77"}
+
+data: {"type":"delta","text":"%)"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"|"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"45"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"125"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"96"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":" |"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"###"}
+
+data: {"type":"delta","text":" تح"}
+
+data: {"type":"delta","text":"ليل"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"-"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"ال"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"COM"}
+
+data: {"type":"delta","text":"I"}
+
+data: {"type":"delta","text":"):"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" يم"}
+
+data: {"type":"delta","text":"ت"}
+
+data: {"type":"delta","text":"لك"}
+
+data: {"type":"delta","text":" أك"}
+
+data: {"type":"delta","text":"بر"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" س"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" بين"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"وك"}
+
+data: {"type":"delta","text":" الم"}
+
+data: {"type":"delta","text":"صر"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" الم"}
+
+data: {"type":"delta","text":"در"}
+
+data: {"type":"delta","text":"جة"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ور"}
+
+data: {"type":"delta","text":"صة"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"صل"}
+
+data: {"type":"delta","text":" إلى"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"45"}
+
+data: {"type":"delta","text":"3"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"36"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" مما"}
+
+data: {"type":"delta","text":" يع"}
+
+data: {"type":"delta","text":"كس"}
+
+data: {"type":"delta","text":" م"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":"ته"}
+
+data: {"type":"delta","text":" الر"}
+
+data: {"type":"delta","text":"ائ"}
+
+data: {"type":"delta","text":"دة"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":" المص"}
+
+data: {"type":"delta","text":"ري"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"-"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"H"}
+
+data: {"type":"delta","text":"DB"}
+
+data: {"type":"delta","text":"K"}
+
+data: {"type":"delta","text":"):"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"بلغ"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يم"}
+
+data: {"type":"delta","text":"ته"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" **"}
+
+data: {"type":"delta","text":"125"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"96"}
+
+data: {"type":"delta","text":" ملي"}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":" ج"}
+
+data: {"type":"delta","text":"ني"}
+
+data: {"type":"delta","text":"ه"}
+
+data: {"type":"delta","text":"**"}
+
+data: {"type":"delta","text":"،"}
+
+data: {"type":"delta","text":" وهي"}
+
+data: {"type":"delta","text":" أ"}
+
+data: {"type":"delta","text":"قل"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" ق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"سبة"}
+
+data: {"type":"delta","text":" كبيرة"}
+
+data: {"type":"delta","text":" ر"}
+
+data: {"type":"delta","text":"غم"}
+
+data: {"type":"delta","text":" أد"}
+
+data: {"type":"delta","text":"ائه"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"وي"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الف"}
+
+data: {"type":"delta","text":"ترة"}
+
+data: {"type":"delta","text":" الأخ"}
+
+data: {"type":"delta","text":"يرة"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"###"}
+
+data: {"type":"delta","text":" م"}
+
+data: {"type":"delta","text":"لا"}
+
+data: {"type":"delta","text":"ح"}
+
+data: {"type":"delta","text":"ظ"}
+
+data: {"type":"delta","text":"ات"}
+
+data: {"type":"delta","text":" إ"}
+
+data: {"type":"delta","text":"ضاف"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"-"}
+
+data: {"type":"delta","text":" على"}
+
+data: {"type":"delta","text":" الر"}
+
+data: {"type":"delta","text":"غم"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" أن"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ير"}
+
+data: {"type":"delta","text":" والإ"}
+
+data: {"type":"delta","text":"س"}
+
+data: {"type":"delta","text":"كان"}
+
+data: {"type":"delta","text":" يتم"}
+
+data: {"type":"delta","text":"تع"}
+
+data: {"type":"delta","text":" بأ"}
+
+data: {"type":"delta","text":"د"}
+
+data: {"type":"delta","text":"اء"}
+
+data: {"type":"delta","text":" أفضل"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الف"}
+
+data: {"type":"delta","text":"ترة"}
+
+data: {"type":"delta","text":" الأخ"}
+
+data: {"type":"delta","text":"يرة"}
+
+data: {"type":"delta","text":" ("}
+
+data: {"type":"delta","text":"ار"}
+
+data: {"type":"delta","text":"تفاع"}
+
+data: {"type":"delta","text":" بن"}
+
+data: {"type":"delta","text":"سبة"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"162"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"39"}
+
+data: {"type":"delta","text":"%"}
+
+data: {"type":"delta","text":" منذ"}
+
+data: {"type":"delta","text":" ب"}
+
+data: {"type":"delta","text":"دا"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" العام"}
+
+data: {"type":"delta","text":")،"}
+
+data: {"type":"delta","text":" إلا"}
+
+data: {"type":"delta","text":" أن"}
+
+data: {"type":"delta","text":" الق"}
+
+data: {"type":"delta","text":"يمة"}
+
+data: {"type":"delta","text":" الس"}
+
+data: {"type":"delta","text":"وق"}
+
+data: {"type":"delta","text":"ية"}
+
+data: {"type":"delta","text":" لل"}
+
+data: {"type":"delta","text":"بن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ت"}
+
+data: {"type":"delta","text":"ظ"}
+
+data: {"type":"delta","text":"ل"}
+
+data: {"type":"delta","text":" أك"}
+
+data: {"type":"delta","text":"بر"}
+
+data: {"type":"delta","text":" بشكل"}
+
+data: {"type":"delta","text":" مل"}
+
+data: {"type":"delta","text":"حو"}
+
+data: {"type":"delta","text":"ظ"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"delta","text":"\n"}
+
+data: {"type":"delta","text":"-"}
+
+data: {"type":"delta","text":" يع"}
+
+data: {"type":"delta","text":"كس"}
+
+data: {"type":"delta","text":" هذا"}
+
+data: {"type":"delta","text":" الت"}
+
+data: {"type":"delta","text":"فا"}
+
+data: {"type":"delta","text":"وت"}
+
+data: {"type":"delta","text":" حجم"}
+
+data: {"type":"delta","text":" الأ"}
+
+data: {"type":"delta","text":"عمال"}
+
+data: {"type":"delta","text":" وال"}
+
+data: {"type":"delta","text":"است"}
+
+data: {"type":"delta","text":"ث"}
+
+data: {"type":"delta","text":"مار"}
+
+data: {"type":"delta","text":" وال"}
+
+data: {"type":"delta","text":"ث"}
+
+data: {"type":"delta","text":"قة"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"ك"}
+
+data: {"type":"delta","text":" التج"}
+
+data: {"type":"delta","text":"اري"}
+
+data: {"type":"delta","text":" الدول"}
+
+data: {"type":"delta","text":"ي"}
+
+data: {"type":"delta","text":" ك"}
+
+data: {"type":"delta","text":"أ"}
+
+data: {"type":"delta","text":"حد"}
+
+data: {"type":"delta","text":" أك"}
+
+data: {"type":"delta","text":"بر"}
+
+data: {"type":"delta","text":" الب"}
+
+data: {"type":"delta","text":"ن"}
+
+data: {"type":"delta","text":"وك"}
+
+data: {"type":"delta","text":" في"}
+
+data: {"type":"delta","text":" مصر"}
+
+data: {"type":"delta","text":" من"}
+
+data: {"type":"delta","text":" حيث"}
+
+data: {"type":"delta","text":" الأ"}
+
+data: {"type":"delta","text":"صول"}
+
+data: {"type":"delta","text":" وال"}
+
+data: {"type":"delta","text":"عم"}
+
+data: {"type":"delta","text":"ليات"}
+
+data: {"type":"delta","text":"."}
+
+data: {"type":"status","note":"تعذّر تشكيل رد سليم عبر النموذج المجاني — تم توليد ملخص البيانات مباشرة"}
+
+data: {"type":"done","answer":"_ملخّص مولَّد آليًا من بيانات الأدوات المباشرة (تعذّر تشكيل الرد عبر النموذج المجاني)._\n\n### القائمة\n| السهم | الإغلاق | التغير | قيمة التداول |\n|---|---|---|---|\n| COMI | 131.50 | -1.23% | — |\n| HDBK | 117.63 | -0.77% | — |","steps":[{"tool":"compare","args":{"tickers":["COMI","HDBK"]},"ok":true}],"model":"glm-4-plus","modelId":"glm-4-plus","disclaimer":true}
+

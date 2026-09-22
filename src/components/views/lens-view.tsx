@@ -1,26 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { T, dn, type Lang } from "@/lib/i18n";
-import { fmtPct } from "@/lib/format";
+import { holderColor, hashStr } from "@/lib/holder-color";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** عدسة الملكية — the Ownership Lens (T57).
+/** عدسة الملكية — the Ownership Lens (T58 rebuild, esthmr-grade).
  *
- *  A visual map of the whole exchange: every sector as a region sized by its
- *  total market cap, every listed company a bubble inside its sector sized
- *  by its own market cap and colored by today's change. Pick an investor
- *  from the registry and the lens draws curved links to every company that
- *  investor has documented dealings in (official EGX disclosure filings —
- *  dates, share counts and filing links attached), dimming the rest.
+ *  An archipelago map of the whole exchange:
+ *   - every sector is a "lake" — a treemap cell (sized by COMPANY COUNT so
+ *     small issuers keep readable room) with an organic, name-seeded
+ *     coastline that never moves between renders;
+ *   - every company is a DONUT RING placed on a phyllotaxis (sunflower)
+ *     spiral, radius ∝ √market-cap, and the ring's colored slices are each
+ *     FILED holder's exact stake % from the official EGX disclosure forms;
+ *     the grey remainder is ownership nobody had to disclose — NOT free float;
+ *   - click a company → its equity structure opens ON THE SAME PAGE: the
+ *     board dims, the company's holders get seats around it (name + stake %,
+ *     onward lines to every other company they are in) and the right panel
+ *     shows the full ownership profile with bulletin links;
+ *   - click a holder (or a register row) → spokes to every company they
+ *     hold, each ending in a stake-tag pill;
+ *   - the week strip replays 37 weeks of disclosed stake changes: outer
+ *     green/red arcs sized in stake points, halos on moved rings, ▶ plays;
+ *   - the register lists every named party alphabetically BY POLICY (never
+ *     ranked), searchable in Arabic and English.
  *
- *  All data is real: the map comes from the live scanner universe, the
- *  investor edges from the exchange's own disclosure archive. No
- *  percentages are invented — the exchange's live top-10 tables are not one
- *  of our sources, so the lens shows documented relationships instead, each
- *  with its official filing link. */
+ *  Honesty rules baked into the drawing (from the source data):
+ *   undisclosed ≠ free float · percentages belong to ONE company and are
+ *   never summed · every position links to the official EGX bulletin PDF. */
+
+// ── payload types (GET /api/ownership-lens) ─────────────────────────────────
 
 type LensCompany = {
   ticker: string;
@@ -28,207 +40,283 @@ type LensCompany = {
   nameAr: string;
   sectorEn: string;
   sectorAr: string;
-  sectorCode: string;
-  close: number;
+  close: number | null;
   changePct: number;
   marketCap: number | null;
 };
 
-type LensEdge = {
-  investorId: string;
-  ticker: string;
-  self: boolean;
-  boughtShares: number;
-  soldShares: number;
-  filings: number;
-  firstDate: string;
-  lastDate: string;
-  links: string[];
+type NetPerson = { n: string; e?: string; k: "p" | "f" };
+type NetPosition = { h: number; t: string; p: number; a: string | null; b: "r" | "t"; f: string | null; s?: string };
+type NetPeriod = {
+  start: string;
+  end: string;
+  l: string;
+  n: number;
+  m: { h: number; t: string; f: number | null; o: number | null; c: number | null }[];
 };
-
-type LensInvestor = {
-  id: string;
-  ticker: string | null;
-  group: boolean;
-  nameEn: string;
-  nameAr: string;
-  crossHoldings: number;
-  filings: number;
-  listed: boolean;
-};
+type NetCross = { o: string; d: string; p: number | null; v: number | null; f?: string; s?: string };
 
 type LensPayload = {
   ok: boolean;
   asOf: string;
-  generatedAt: string;
-  sourceAr: string;
   source: string;
-  noteAr: string;
-  noteEn: string;
-  total: number;
+  sourceAr: string;
+  bulletinBase: string;
+  people: NetPerson[];
+  positions: NetPosition[];
+  periods: NetPeriod[];
+  cross: NetCross[];
+  refused: { holder: string; t: string; why: string }[];
   companies: LensCompany[];
-  investors: LensInvestor[];
-  edges: LensEdge[];
-  activity: Record<string, number>;
+  counts: Record<string, number>;
 };
 
-// ── deterministic layout ────────────────────────────────────────────────────
+// ── deterministic layout math ───────────────────────────────────────────────
 
-const W = 1180;
+const W = 1200;
 const H = 760;
-const PAD = 6;
-const HEADER = 22;
+const GOLDEN = Math.PI * (3 - Math.sqrt(5)); // ~137.5°
+const RING_MIN = 15;
+const RING_MAX = 34;
+const BAND = 7; // slice band thickness
 
-type Placed = { c: LensCompany; x: number; y: number; r: number };
+/** mulberry32 seeded PRNG — deterministic coastline per sector name. */
+function mulberry32(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-type SectorCell = {
-  code: string;
-  label: string;
-  labelEn: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  cap: number;
-  bubbles: Placed[];
-};
-
-/** Squarified treemap on sector caps — the classic algorithm, deterministic. */
-function squarify(items: { code: string; area: number }[], x: number, y: number, w: number, h: number): { code: string; x: number; y: number; w: number; h: number }[] {
-  const out: { code: string; x: number; y: number; w: number; h: number }[] = [];
+/** Squarified treemap — deterministic, same algorithm family as T57. */
+type Rect = { code: string; x: number; y: number; w: number; h: number };
+function squarify(items: { code: string; area: number }[], x: number, y: number, w: number, h: number): Rect[] {
+  const out: Rect[] = [];
   const total = items.reduce((s, i) => s + i.area, 0) || 1;
-  let scale = (w * h) / total;
+  const scale = (w * h) / total;
   let cx = x;
   let cy = y;
+  let cw = w;
+  let ch = h;
   let rest = [...items];
   while (rest.length) {
-    // worst-case ratio greedy: fill the shorter side
-    const horizontal = w >= h ? false : true; // lay a row along the shorter side
-    const side = horizontal ? w : h;
+    const horizontal = cw >= ch; // lay a row along the SHORTER side
+    const side = horizontal ? ch : cw;
     let row: typeof rest = [];
-    let rowArea = 0;
     let bestRatio = Infinity;
     for (let i = 0; i < rest.length; i++) {
       const cand = rest.slice(0, i + 1);
-      const candArea = cand.reduce((s, it) => s + it.area, 0);
-      const thick = candArea / side / scale;
-      const maxSide = Math.max(side / scale / thick, thick);
-      const ratio = maxSide / Math.min(side / scale / thick, thick);
-      if (ratio <= bestRatio || i === 0) {
-        bestRatio = ratio;
+      const candArea = cand.reduce((s, it) => s + it.area, 0) * scale;
+      const thick = candArea / side;
+      if (thick <= 0) break;
+      const worst = Math.max(...cand.map((it) => {
+        const len = (it.area * scale) / thick;
+        return Math.max(len / thick, thick / len);
+      }));
+      if (worst <= bestRatio || i === 0) {
+        bestRatio = worst;
         row = cand;
-        rowArea = candArea;
       } else break;
     }
-    const thick = (rowArea * scale) / side;
+    const rowArea = row.reduce((s, it) => s + it.area, 0) * scale;
+    const thick = rowArea / side;
     let off = 0;
     for (const it of row) {
       const len = (it.area * scale) / thick;
-      if (horizontal) out.push({ code: it.code, x: cx + off, y: cy, w: len, h: thick });
-      else out.push({ code: it.code, x: cx, y: cy + off, w: thick, h: len });
-      off += horizontal ? len : len;
+      out.push(
+        horizontal
+          ? { code: it.code, x: cx, y: cy + off, w: thick, h: len }
+          : { code: it.code, x: cx + off, y: cy, w: len, h: thick }
+      );
+      off += len;
     }
     if (horizontal) {
-      cy += thick;
-      h -= thick;
-    } else {
       cx += thick;
-      w -= thick;
+      cw -= thick;
+    } else {
+      cy += thick;
+      ch -= thick;
     }
     rest = rest.slice(row.length);
-    scale = (w * h) / (rest.reduce((s, i) => s + i.area, 0) || 1);
   }
   return out;
 }
 
-/** Row-packed circles inside a rect: biggest first, wrapped rows, centered.
- *  rMax is solved from the AREA budget (Σπr² ≤ 68% of the cell) so the pack
- *  can never overflow its box — then capped by the cell height. */
-function packBubbles(rect: { x: number; y: number; w: number; h: number }, rows: LensCompany[], capOf: (c: LensCompany) => number): Placed[] {
-  const innerW = Math.max(10, rect.w - PAD * 2);
-  const innerH = Math.max(10, rect.h - HEADER - PAD * 2);
-  const ox = rect.x + PAD;
-  const oy = rect.y + HEADER + PAD;
-  if (!rows.length || innerW < 24 || innerH < 24) return [];
-  const caps = rows.map(capOf);
-  const maxCap = Math.max(...caps, 1);
-  // area solve: r_i = R·sqrt(cap_i/maxCap) ⇒ Σπ·r_i² = π·R²·Σ(cap_i/maxCap)
-  const relSum = caps.reduce((s, c) => s + Math.sqrt(c / maxCap) ** 2, 0) || 1;
-  let rMax = Math.sqrt((innerW * innerH * 0.68) / (Math.PI * relSum));
-  rMax = Math.min(rMax, innerH / 2.4, innerW / 3.2, 30);
-  rMax = Math.max(rMax, 3);
-
-  const placed: Placed[] = [];
-  const rowsOut: Placed[][] = [];
-  let curRow: Placed[] = [];
-  let px = 0;
-  let py = 0;
-  let rowH = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const r = Math.max(2.6, rMax * Math.sqrt(caps[i] / maxCap));
-    if (px > 0 && px + r * 2 > innerW) {
-      rowsOut.push(curRow);
-      curRow = [];
-      py += rowH + 4;
-      rowH = 0;
-      px = 0;
-    }
-    if (py + r * 2 > innerH) break; // box full — stop, no overflow
-    const p: Placed = { c: rows[i], x: ox + px + r, y: oy + py + r, r };
-    placed.push(p);
-    curRow.push(p);
-    px += r * 2 + 3;
-    rowH = Math.max(rowH, r * 2);
+/** Organic lake coastline: an inset ellipse whose radius wobbles with three
+ *  name-seeded sinusoids — the SAME sector keeps the SAME coastline forever
+ *  ("nothing moves unless the data moved"). Returns an SVG path + the safe
+ *  inner ellipse for ring placement. */
+function lakePath(
+  cell: Rect,
+  seedName: string
+): { path: string; cx: number; cy: number; rx: number; ry: number } {
+  const cx = cell.x + cell.w / 2;
+  const cy = cell.y + cell.h / 2;
+  const rx = Math.max(18, (cell.w / 2) * 0.86);
+  const ry = Math.max(18, (cell.h / 2) * 0.84);
+  const rnd = mulberry32(hashStr(seedName));
+  const p1 = rnd() * Math.PI * 2;
+  const p2 = rnd() * Math.PI * 2;
+  const p3 = rnd() * Math.PI * 2;
+  const a1 = 0.05 + rnd() * 0.05;
+  const a2 = 0.04 + rnd() * 0.05;
+  const a3 = 0.03 + rnd() * 0.04;
+  const N = 56;
+  const pts: [number, number][] = [];
+  for (let i = 0; i < N; i++) {
+    const th = (i / N) * Math.PI * 2;
+    const wob = 1 + a1 * Math.sin(2 * th + p1) + a2 * Math.sin(3 * th + p2) + a3 * Math.sin(5 * th + p3);
+    pts.push([cx + Math.cos(th) * rx * wob, cy + Math.sin(th) * ry * wob]);
   }
-  if (curRow.length) rowsOut.push(curRow);
-  // center each row horizontally, center the whole block vertically
-  const totalH = rowsOut.reduce((s, row) => s + (row.length ? Math.max(...row.map((p) => p.r)) * 2 : 0), 0) + Math.max(0, rowsOut.length - 1) * 4;
-  const dy = (innerH - totalH) / 2;
-  let yy = oy + Math.max(0, dy);
-  for (const row of rowsOut) {
-    if (!row.length) continue;
-    const usedW = row[row.length - 1].x + row[row.length - 1].r - (row[0].x - row[0].r);
-    const shift = (innerW - usedW) / 2;
-    const rRow = Math.max(...row.map((p) => p.r));
-    for (const p of row) {
-      p.x += shift;
-      p.y = yy + rRow;
-    }
-    yy += rRow * 2 + 4;
+  // closed smooth path through midpoints (quadratic)
+  let d = `M ${(pts[0][0] + pts[N - 1][0]) / 2} ${(pts[0][1] + pts[N - 1][1]) / 2}`;
+  for (let i = 0; i < N; i++) {
+    const next = pts[(i + 1) % N];
+    d += ` Q ${pts[i][0]} ${pts[i][1]} ${(pts[i][0] + next[0]) / 2} ${(pts[i][1] + next[1]) / 2}`;
   }
-  return placed;
+  return { path: d + " Z", cx, cy, rx: rx * 0.82, ry: ry * 0.82 };
 }
 
-function heatFill(pct: number, dim = false): string {
-  const p = dim ? pct * 0.25 : pct;
-  if (Math.abs(p) < 0.05) return dim ? "oklch(0.75 0.01 90 / 0.35)" : "oklch(0.75 0.01 90)";
-  const cap = 4;
-  const a = dim ? 0.28 : 0.9;
-  const i = Math.min(Math.abs(p) / cap, 1);
-  if (p > 0) return `oklch(${(0.72 - 0.14 * i).toFixed(2)} ${((0.13 + 0.06 * i) * 1).toFixed(2)} 150 / ${a})`;
-  return `oklch(${(0.7 - 0.12 * i).toFixed(2)} ${((0.14 + 0.06 * i) * 1).toFixed(2)} 25 / ${a})`;
+/** SVG arc path for a ring slice (annular sector). Angles in radians,
+ *  clockwise from the top (-π/2). */
+function arcPath(cx: number, cy: number, r0: number, r1: number, a0: number, a1: number): string {
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  const x0 = cx + Math.cos(a0) * r1;
+  const y0 = cy + Math.sin(a0) * r1;
+  const x1 = cx + Math.cos(a1) * r1;
+  const y1 = cy + Math.sin(a1) * r1;
+  const x2 = cx + Math.cos(a1) * r0;
+  const y2 = cy + Math.sin(a1) * r0;
+  const x3 = cx + Math.cos(a0) * r0;
+  const y3 = cy + Math.sin(a0) * r0;
+  return `M ${x0} ${y0} A ${r1} ${r1} 0 ${large} 1 ${x1} ${y1} L ${x2} ${y2} A ${r0} ${r0} 0 ${large} 0 ${x3} ${y3} Z`;
+}
+
+type Ring = {
+  ticker: string;
+  company: LensCompany;
+  x: number;
+  y: number;
+  r: number;
+};
+
+type SectorLake = {
+  code: string;
+  labelAr: string;
+  labelEn: string;
+  cell: Rect;
+  path: string;
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+  rings: Ring[];
+};
+
+/** Phyllotaxis placement of company rings inside a lake, radius ∝ √cap,
+ *  with a light pairwise anti-collision relaxation pass. */
+function packRings(lake: Omit<SectorLake, "rings">, rows: LensCompany[], maxCap: number): Ring[] {
+  const rings: Ring[] = [...rows]
+    .sort((a, b) => (b.marketCap ?? 1e7) - (a.marketCap ?? 1e7))
+    .map((company) => ({
+      ticker: company.ticker,
+      company,
+      x: lake.cx,
+      y: lake.cy,
+      r: RING_MIN + (RING_MAX - RING_MIN) * Math.sqrt((company.marketCap ?? 1e7) / (maxCap || 1)),
+    }));
+  const spacing = Math.max(9, Math.sqrt((lake.rx * lake.ry) / (rings.length || 1)) * 0.72);
+  rings.forEach((ring, i) => {
+    if (i === 0) {
+      ring.x = lake.cx;
+      ring.y = lake.cy;
+      return;
+    }
+    const th = i * GOLDEN;
+    const rad = spacing * Math.sqrt(i);
+    ring.x = lake.cx + Math.cos(th) * rad * (lake.rx / Math.max(lake.rx, lake.ry));
+    ring.y = lake.cy + Math.sin(th) * rad * (lake.ry / Math.max(lake.rx, lake.ry));
+  });
+  // clamp inside the lake ellipse (with a small margin), then relax overlaps
+  for (const ring of rings) {
+    const dx = (ring.x - lake.cx) / (lake.rx - ring.r - 2 || 1);
+    const dy = (ring.y - lake.cy) / (lake.ry - ring.r - 2 || 1);
+    const m = Math.hypot(dx, dy);
+    if (m > 1) {
+      ring.x = lake.cx + (dx / m) * (lake.rx - ring.r - 2);
+      ring.y = lake.cy + (dy / m) * (lake.ry - ring.r - 2);
+    }
+  }
+  for (let pass = 0; pass < 24; pass++) {
+    let moved = false;
+    for (let i = 0; i < rings.length; i++) {
+      for (let j = i + 1; j < rings.length; j++) {
+        const a = rings[i];
+        const b = rings[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const min = a.r + b.r + 2.5;
+        if (dist < min) {
+          const push = (min - dist) / 2;
+          const ux = dx / dist;
+          const uy = dy / dist;
+          a.x -= ux * push;
+          a.y -= uy * push;
+          b.x += ux * push;
+          b.y += uy * push;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  // final clamp — rings may poke the shore slightly; keep them on the water
+  for (const ring of rings) {
+    const dx = (ring.x - lake.cx) / (lake.rx - ring.r * 0.7 || 1);
+    const dy = (ring.y - lake.cy) / (lake.ry - ring.r * 0.7 || 1);
+    const m = Math.hypot(dx, dy);
+    if (m > 1) {
+      ring.x = lake.cx + (dx / m) * (lake.rx - ring.r * 0.7);
+      ring.y = lake.cy + (dy / m) * (lake.ry - ring.r * 0.7);
+    }
+  }
+  return rings;
 }
 
 const fmtCap = (v: number | null, lang: Lang): string => {
   if (v == null || !Number.isFinite(v)) return "—";
   const b = v / 1e9;
-  if (b >= 1) return `${b.toFixed(1)} ${lang === "ar" ? "مليار ج" : "B EGP"}`;
-  return `${(v / 1e6).toFixed(0)} ${lang === "ar" ? "مليون ج" : "M EGP"}`;
+  if (b >= 1) return `${b.toFixed(1)}${lang === "ar" ? " مليار ج" : "B EGP"}`;
+  return `${(v / 1e6).toFixed(0)}${lang === "ar" ? " مليون ج" : "M EGP"}`;
+};
+const fmtEgp = (v: number | null, lang: Lang): string => {
+  if (v == null || !Number.isFinite(v)) return "—";
+  const b = v / 1e9;
+  if (b >= 1) return `${b.toFixed(2)}${lang === "ar" ? " مليار جنيه" : "B EGP"}`;
+  return `${(v / 1e6).toFixed(1)}${lang === "ar" ? " مليون جنيه" : "M EGP"}`;
 };
 
-const fmtShares = (v: number, lang: Lang): string => {
-  if (v >= 1e6) return `${(v / 1e6).toFixed(2)} ${lang === "ar" ? "مليون سهم" : "M shares"}`;
-  if (v >= 1e3) return `${(v / 1e3).toFixed(1)} ${lang === "ar" ? "ألف سهم" : "K shares"}`;
-  return `${v} ${lang === "ar" ? "سهم" : "shares"}`;
-};
+// ── the view ────────────────────────────────────────────────────────────────
+
+type Focus = { type: "company"; ticker: string } | { type: "holder"; h: number } | null;
+
+type Slice = { h: number; pct: number; a0: number; a1: number; color: string };
 
 export function LensView() {
   const { lang, navigate } = useApp();
   const [data, setData] = useState<LensPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [picked, setPicked] = useState<string>("");
+  const [focus, setFocus] = useState<Focus>(null);
+  const [weekIdx, setWeekIdx] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [view, setView] = useState({ k: 1, x: 0, y: 0 });
+  const [hoverTip, setHoverTip] = useState<{ x: number; y: number; title: string; sub: string } | null>(null);
   const [query, setQuery] = useState("");
-  const [hover, setHover] = useState<Placed | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -245,68 +333,280 @@ export function LensView() {
     };
   }, []);
 
-  // shareable state: ?view=lens&inv=<id> (restored once on mount)
+  // shareable state: ?view=lens&focus=t:COMI|h:123&week=12
   useEffect(() => {
-    const b = bootParam("inv");
-    if (b) {
+    const f = bootParam("focus");
+    const w = bootParam("week");
+    if (f) {
+      const m = f.match(/^t:(\w+)$/) || f.match(/^h:(\d+)$/);
+      if (m) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (f[0] === "t") setFocus({ type: "company", ticker: f.slice(2) });
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        else setFocus({ type: "holder", h: Number(f.slice(2)) });
+      }
+    }
+    if (w && Number.isFinite(Number(w))) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPicked(b);
+      setWeekIdx(Math.max(0, Number(w)));
+    }
+    const z = bootParam("zoom");
+    if (z && Number.isFinite(Number(z))) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setView((v) => ({ ...v, k: Math.min(3, Math.max(0.6, Number(z))) }));
     }
   }, []);
   useEffect(() => {
-    patchUrlParams({ inv: picked || null });
-  }, [picked]);
+    patchUrlParams({
+      focus: focus ? (focus.type === "company" ? `t:${focus.ticker}` : `h:${focus.h}`) : null,
+      week: weekIdx !== null ? String(weekIdx) : null,
+    });
+  }, [focus, weekIdx]);
 
-  const cellMap = useMemo(() => {
-    if (!data) return { sectors: [] as SectorCell[], byTicker: new Map<string, Placed>() };
-    const capOf = (c: LensCompany) => c.marketCap ?? 1e7;
+  // week playback
+  useEffect(() => {
+    if (!playing || !data) return;
+    const id = setInterval(() => {
+      setWeekIdx((w) => {
+        const next = (w ?? -1) + 1;
+        if (next >= data.periods.length) {
+          setPlaying(false);
+          return w;
+        }
+        return next;
+      });
+    }, 1500);
+    return () => clearInterval(id);
+  }, [playing, data]);
+
+  // ── derived layout ──
+  const layout = useMemo(() => {
+    if (!data) return null;
     const bySector = new Map<string, LensCompany[]>();
     for (const c of data.companies) {
-      const g = bySector.get(c.sectorCode) ?? [];
+      const key = c.sectorEn || "Unclassified";
+      const g = bySector.get(key) ?? [];
       g.push(c);
-      bySector.set(c.sectorCode, g);
+      bySector.set(key, g);
     }
-    const items = [...bySector.entries()].map(([code, rows]) => ({
-      code,
-      area: rows.reduce((s, c) => s + capOf(c), 0),
-      rows: [...rows].sort((a, b) => capOf(b) - capOf(a)),
-      label: rows[0]?.sectorAr ?? code,
-      labelEn: rows[0]?.sectorEn ?? code,
-    }));
-    items.sort((a, b) => b.area - a.area);
-    const rects = squarify(items.map((i) => ({ code: i.code, area: i.area })), 0, 0, W, H);
-    const sectors: SectorCell[] = [];
-    const byTicker = new Map<string, Placed>();
-    for (const r of rects) {
-      const it = items.find((i) => i.code === r.code)!;
-      if (r.w < 60 || r.h < 60) {
-        // tiny sector: render as a flat label cell with dots
-        const bubbles: Placed[] = it.rows.slice(0, 8).map((c, i) => ({ c, x: r.x + 14 + (i % 4) * 12, y: r.y + HEADER + 10 + Math.floor(i / 4) * 12, r: 3.2 }));
-        bubbles.forEach((b) => byTicker.set(b.c.ticker, b));
-        sectors.push({ ...r, code: it.code, label: it.label, labelEn: it.labelEn, cap: it.area, bubbles });
-        continue;
+    // treemap by COMPANY COUNT (small issuers keep readable room)
+    const items = [...bySector.entries()]
+      .map(([en, rows]) => ({ code: en, area: rows.length, rows, labelAr: rows[0]?.sectorAr ?? en, labelEn: en }))
+      .sort((a, b) => b.area - a.area);
+    const cells = squarify(items.map((i) => ({ code: i.code, area: i.area })), 0, 0, W, H);
+    const maxCap = Math.max(...data.companies.map((c) => c.marketCap ?? 0), 1);
+    const sectors: SectorLake[] = [];
+    const byTicker = new Map<string, Ring>();
+    for (const cell of cells) {
+      const it = items.find((i) => i.code === cell.code)!;
+      const base = lakePath(cell, it.labelEn);
+      const lake: SectorLake = { ...base, code: it.code, labelAr: it.labelAr, labelEn: it.labelEn, cell, rings: [] };
+      if (cell.w < 70 || cell.h < 70) {
+        // tiny sector: mini dots instead of rings
+        lake.rings = it.rows.slice(0, 10).map((company, i) => ({
+          ticker: company.ticker,
+          company,
+          x: base.cx + (((i % 5) - 2) * 11 * (base.rx / Math.max(base.rx, 1))),
+          y: base.cy + (Math.floor(i / 5) - 1) * 11,
+          r: 3.5,
+        }));
+      } else {
+        lake.rings = packRings(lake, it.rows, maxCap);
       }
-      const bubbles = packBubbles(r, it.rows, capOf);
-      bubbles.forEach((b) => byTicker.set(b.c.ticker, b));
-      sectors.push({ ...r, code: it.code, label: it.label, labelEn: it.labelEn, cap: it.area, bubbles });
+      lake.rings.forEach((r) => byTicker.set(r.ticker, r));
+      sectors.push(lake);
     }
-    return { sectors, byTicker };
+
+    // ring slices: positions grouped per ticker, sorted desc, over-disclosure rescaled
+    const slicesByTicker = new Map<string, { slices: Slice[]; over: boolean; total: number }>();
+    for (const [ticker, list] of data.positions.reduce((m, p) => {
+      const arr = m.get(p.t) ?? [];
+      arr.push(p);
+      m.set(p.t, arr);
+      return m;
+    }, new Map<string, NetPosition[]>())) {
+      const ring = byTicker.get(ticker);
+      if (!ring) continue;
+      const sorted = [...list].sort((a, b) => b.p - a.p);
+      const total = sorted.reduce((s, p) => s + p.p, 0);
+      const over = total > 100.5;
+      const scale = over ? 100 / total : 1;
+      let a = -Math.PI / 2;
+      const slices: Slice[] = [];
+      for (const p of sorted) {
+        const span = (p.p * scale / 100) * Math.PI * 2;
+        if (span > 0.0035) {
+          slices.push({ h: p.h, pct: p.p, a0: a, a1: a + span, color: holderColor(data.people[p.h]?.n ?? String(p.h)) });
+        }
+        a += span;
+      }
+      slicesByTicker.set(ticker, { slices, over, total: Math.round(total * 100) / 100 });
+    }
+
+    // holder → companies (bridges + seats + focus)
+    const holderCompanies = new Map<number, string[]>();
+    for (const p of data.positions) {
+      if (!byTicker.has(p.t)) continue;
+      const arr = holderCompanies.get(p.h) ?? [];
+      if (!arr.includes(p.t)) arr.push(p.t);
+      holderCompanies.set(p.h, arr);
+    }
+
+    // holder → positions (for holder focus %)
+    const holderPositions = new Map<number, NetPosition[]>();
+    for (const p of data.positions) {
+      if (!byTicker.has(p.t)) continue;
+      const arr = holderPositions.get(p.h) ?? [];
+      arr.push(p);
+      holderPositions.set(p.h, arr);
+    }
+
+    // company → positions (profile card + seats)
+    const companyPositions = new Map<string, NetPosition[]>();
+    for (const p of data.positions) {
+      if (!byTicker.has(p.t)) continue;
+      const arr = companyPositions.get(p.t) ?? [];
+      arr.push(p);
+      companyPositions.set(p.t, arr);
+    }
+
+    return { sectors, byTicker, slicesByTicker, holderCompanies, holderPositions, companyPositions, maxCap };
   }, [data]);
 
-  const pickedInvestor = data?.investors.find((i) => i.id === picked) ?? null;
-  const pickedEdges = useMemo(() => (picked ? (data?.edges ?? []).filter((e) => e.investorId === picked && !e.self) : []), [picked, data]);
-  const connected = useMemo(() => new Set(pickedEdges.map((e) => e.ticker)), [pickedEdges]);
+  // ── zoom & pan (non-passive wheel + pointer drag) ──
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setView((v) => {
+        const k = Math.min(3, Math.max(0.6, v.k * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+        const rect = el.getBoundingClientRect();
+        const px = ((e.clientX - rect.left) / rect.width) * W;
+        const py = ((e.clientY - rect.top) / rect.height) * H;
+        return { k, x: px - ((px - v.x) / v.k) * k, y: py - ((py - v.y) / v.k) * k };
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+  const dragRef = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    dragRef.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!dragRef.current || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const sx = W / rect.width;
+    const sy = H / rect.height;
+    setView((v) => ({
+      ...v,
+      x: dragRef.current!.vx + (e.clientX - dragRef.current!.x) * sx,
+      y: dragRef.current!.vy + (e.clientY - dragRef.current!.y) * sy,
+    }));
+  };
+  const onPointerUp = () => {
+    dragRef.current = null;
+  };
 
-  const investors = useMemo(() => {
-    if (!data) return [];
+  // ── week effects ──
+  const weekMoves = useMemo(() => {
+    if (weekIdx === null || !data || !layout) return null;
+    const per = data.periods[weekIdx];
+    if (!per) return null;
+    const byT = new Map<string, { h: number; from: number | null; to: number | null; c: number | null }[]>();
+    for (const m of per.m) {
+      const arr = byT.get(m.t) ?? [];
+      arr.push({ h: m.h, from: m.f, to: m.o, c: m.c });
+      byT.set(m.t, arr);
+    }
+    return { period: per, byT };
+  }, [weekIdx, data, layout]);
+  const movedTickers = useMemo(() => new Set(weekMoves ? [...weekMoves.byT.keys()] : []), [weekMoves]);
+
+  // ── focus derivation ──
+  const focusState = useMemo(() => {
+    if (!layout || !focus) return null;
+    if (focus.type === "company") {
+      const ring = layout.byTicker.get(focus.ticker);
+      if (!ring) return null;
+      const positions = [...(layout.companyPositions.get(focus.ticker) ?? [])].sort((a, b) => b.p - a.p);
+      // seats around the ring, multi-orbit when many holders; labels fan out
+      // RADIALLY from the seat dot so they never stack on one another
+      const seats = positions.map((p, i) => {
+        const per = 8; // seats per orbit → 45° apart minimum
+        const orbit = Math.floor(i / per);
+        const slot = i % per;
+        const R = ring.r + 40 + orbit * 56;
+        const ang = -Math.PI / 2 + (slot / per) * Math.PI * 2 + orbit * (Math.PI / per);
+        return {
+          p,
+          ang,
+          x: ring.x + Math.cos(ang) * R,
+          y: ring.y + Math.sin(ang) * R,
+          color: holderColor(data ? data.people[p.h]?.n ?? String(p.h) : String(p.h)),
+        };
+      });
+      const involved = new Set<number>(positions.map((p) => p.h));
+      return { kind: "company" as const, ring, positions, seats, involved };
+    }
+    const holdings = [...(layout.holderPositions.get(focus.h) ?? [])].sort((a, b) => b.p - a.p);
+    const rings = holdings.map((p) => layout.byTicker.get(p.t)).filter((r): r is Ring => !!r);
+    if (!rings.length) return null;
+    const cx = rings.reduce((s, r) => s + r.x, 0) / rings.length;
+    const cy = rings.reduce((s, r) => s + r.y, 0) / rings.length;
+    // push the holder node off any ring it overlaps
+    let hx = cx;
+    let hy = cy;
+    for (const r of [...rings].sort((a, b) => Math.hypot(hx - a.x, hy - a.y) - Math.hypot(hx - b.x, hy - b.y))) {
+      const d = Math.hypot(hx - r.x, hy - r.y);
+      if (d < r.r + 26) {
+        const ang = Math.atan2(hy - r.y, hx - r.x);
+        hx = r.x + Math.cos(ang) * (r.r + 30);
+        hy = r.y + Math.sin(ang) * (r.r + 30);
+        break;
+      }
+    }
+    const involvedTickers = new Set(rings.map((r) => r.ticker));
+    return { kind: "holder" as const, holdings, rings, hx, hy, involvedTickers, h: focus.h };
+  }, [focus, layout, data]);
+
+  // ── register (alphabetical BY POLICY — never ranked) ──
+  const register = useMemo(() => {
+    if (!data || !layout) return { people: [] as NetPerson[], companies: [] as LensCompany[] };
     const q = query.trim().toLowerCase();
-    return data.investors
-      .filter((i) => i.crossHoldings > 0)
-      .filter((i) => !q || i.nameEn.toLowerCase().includes(q) || i.nameAr.includes(query.trim()) || (i.ticker ?? "").toLowerCase().includes(q))
-      .sort((a, b) => b.crossHoldings - a.crossHoldings || b.filings - a.filings);
-  }, [data, query]);
+    const onBoard = (h: number) => (layout.holderCompanies.get(h)?.length ?? 0) > 0;
+    let people = data.people.filter((_, i) => onBoard(i));
+    if (q) people = people.filter((p) => p.n.toLowerCase().includes(q) || (p.e ?? "").toLowerCase().includes(q));
+    people = [...people].sort((a, b) => a.n.localeCompare(b.n, "ar"));
+    let companies = data.companies;
+    if (q) {
+      companies = companies.filter(
+        (c) =>
+          c.ticker.toLowerCase().includes(q) ||
+          (c.name ?? "").toLowerCase().includes(q) ||
+          (c.nameAr ?? "").includes(query.trim())
+      );
+    }
+    return { people: people.slice(0, 400), peopleTotal: people.length, companies: companies.slice(0, 30) };
+  }, [data, layout, query]);
 
-  const investorNode = { x: W / 2, y: 34 };
+  // header stats
+  const stats = useMemo(() => {
+    if (!data || !layout) return null;
+    let capOfStakes = 0;
+    for (const p of data.positions) {
+      const ring = layout.byTicker.get(p.t);
+      if (ring?.company.marketCap) capOfStakes += (p.p / 100) * ring.company.marketCap;
+    }
+    return {
+      companies: layout.byTicker.size,
+      parties: layout.holderCompanies.size,
+      stakes: data.counts.listedPositions ?? data.positions.length,
+      capOfStakes,
+    };
+  }, [data, layout]);
 
   if (error)
     return (
@@ -319,7 +619,7 @@ export function LensView() {
         </div>
       </div>
     );
-  if (!data || !cellMap.sectors.length) {
+  if (!data || !layout) {
     return (
       <div className="space-y-3 p-4">
         <Skeleton className="h-9 w-64" />
@@ -328,234 +628,699 @@ export function LensView() {
     );
   }
 
-  const sectorLabel = (s: SectorCell) => (lang === "ar" ? s.label : s.labelEn);
+  const personName = (h: number) => {
+    const p = data.people[h];
+    if (!p) return "?";
+    return lang === "ar" || !p.e ? p.n : p.e;
+  };
+  const bulletin = (s?: string) => (s ? `${data.bulletinBase}${s}.pdf` : null);
+  const basisLabel = (b: "r" | "t") => (b === "r" ? (lang === "ar" ? "سجل الملكية" : "register") : lang === "ar" ? "صفقة" : "trade");
+
+  const focusCompanyTicker = focus?.type === "company" ? focus.ticker : null;
+  const focusHolder = focus?.type === "holder" ? focus.h : null;
+  const profilePositions = focusCompanyTicker ? [...(layout.companyPositions.get(focusCompanyTicker) ?? [])].sort((a, b) => b.p - a.p) : [];
+  const profileDisclosed = profilePositions.reduce((s, p) => s + p.p, 0);
+  const profileRing = focusCompanyTicker ? layout.byTicker.get(focusCompanyTicker) : undefined;
+  const crossOut = focusCompanyTicker ? data.cross.filter((c) => c.o === focusCompanyTicker) : [];
+  const crossIn = focusCompanyTicker ? data.cross.filter((c) => c.d === focusCompanyTicker) : [];
+
+  const holderHoldings = focusHolder != null ? (layout.holderPositions.get(focusHolder) ?? []) : [];
 
   return (
-    <div className="space-y-4">
-      {/* heading */}
+    <div className="space-y-4 pb-6">
+      {/* ── heading ── */}
       <div className="px-1">
-        <h1 className="text-xl font-bold tracking-tight">{T.lensNav[lang]}</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
+        <h1 className="text-xl font-bold tracking-tight">
+          {lang === "ar" ? "من اشترى ومن باع من داخل الشركات؟" : "Who bought and who sold from inside the companies?"}
+          <span className="ms-2 text-sm font-normal text-muted-foreground">{T.lensNav[lang]}</span>
+        </h1>
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl mt-1">
           {lang === "ar"
-            ? "خريطة بصرية للبورصة بأكملها: كل قطاع منطقة بمساحة قيمة سوقية، وكل شركة فقاعة بحجم رأس مالها ولون تغيرها اليوم. اختر مستثمرًا من السجل لتضيء الشركات التي له فيها تعاملات موثقة — بروابط الإفصاحات الرسمية."
-            : "A visual map of the whole exchange: every sector a region sized by market cap, every company a bubble sized by its own cap and colored by today's move. Pick an investor from the registry to light up the companies they have documented dealings in — with the official filing links."}
+            ? "أعضاء المجالس وكبار المساهمين يعلنون حين تتغير حصتهم. اختر شركة ليفتح هيكل ملكيتها في نفس الصفحة — كل شريحة على الحلقة حصة مُفصح عنها، وكل نسبة موثقة بالنشرة الرسمية."
+            : "Board members and major shareholders must disclose when their stake changes. Choose a company and its equity structure opens on this same page — every ring slice is a filed stake, every percentage documented by the official bulletin."}
+        </p>
+        {stats && (
+          <div className="flex flex-wrap gap-2 mt-2 text-xs">
+            <span className="rounded-full border bg-card px-2.5 py-1">
+              <b>{stats.companies}</b> {lang === "ar" ? "شركة على الخريطة" : "companies on the board"}
+            </span>
+            <span className="rounded-full border bg-card px-2.5 py-1">
+              <b>{stats.parties}</b> {lang === "ar" ? "طرفًا مذكورًا في الإفصاحات" : "named parties"}
+            </span>
+            <span className="rounded-full border bg-card px-2.5 py-1">
+              <b>{stats.stakes}</b> {lang === "ar" ? "حصة قائمة" : "standing stakes"}
+            </span>
+            <span className="rounded-full border bg-card px-2.5 py-1">
+              {lang === "ar" ? "قيمة الحصص المعلنة" : "value of filed stakes"}: <b>{fmtEgp(stats.capOfStakes, lang)}</b>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── thesis banner ── */}
+      <div className="rounded-xl border bg-card px-4 py-2.5 text-sm flex items-center gap-3">
+        <span className="shrink-0 grid size-7 place-items-center rounded-full bg-primary/15 text-primary font-bold text-xs">%</span>
+        <p className="text-muted-foreground leading-relaxed">
+          {lang === "ar"
+            ? "نسبة الملكية في الشركة أهم من عدد الأسهم: صفقة مليون سهم في شركة رأسمالها 10 ملايين سهم تساوي 10%، وفي شركة رأسمالها 10 مليارات تساوي 0.01%."
+            : "The stake PERCENTAGE matters more than the share count: a 1M-share trade in a 10M-share company is 10%; in a 10B-share company it is 0.01%."}
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        {/* investor rail */}
-        <aside className="space-y-2">
-          <div className="rounded-xl border bg-card p-3">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold">{lang === "ar" ? "سجل المستثمرين" : "Investor registry"}</h2>
-              {picked && (
-                <button className="text-xs text-muted-foreground hover:text-foreground underline" onClick={() => setPicked("")}>
-                  {lang === "ar" ? "مسح" : "clear"}
-                </button>
-              )}
-            </div>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={lang === "ar" ? "ابحث عن مستثمر…" : "search investor…"}
-              className="w-full mb-2 rounded-md border bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
-            />
-            <div className="max-h-[30vh] lg:max-h-[52vh] overflow-auto pr-1 space-y-1">
-              {investors.map((inv) => (
-                <button
-                  key={inv.id}
-                  onClick={() => setPicked(picked === inv.id ? "" : inv.id)}
-                  className={`w-full text-start rounded-lg px-2 py-1.5 text-xs transition-colors border ${
-                    picked === inv.id ? "border-primary bg-primary/10 font-semibold" : "border-transparent hover:bg-accent"
-                  }`}
-                >
-                  <span className="block truncate">{lang === "ar" ? inv.nameAr : inv.nameEn}</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {inv.ticker ? `${inv.ticker} · ` : ""}
-                    {lang === "ar" ? `${inv.crossHoldings} شركة` : `${inv.crossHoldings} companies`} · {inv.filings} {lang === "ar" ? "إفصاح" : "filings"}
-                  </span>
-                </button>
+      {/* ── week strip ── */}
+      <div className="flex items-center gap-2 flex-wrap text-xs">
+        <button
+          className={`rounded-full border px-3 py-1 transition-colors ${weekIdx === null ? "border-primary bg-primary/15 font-semibold" : "bg-card hover:bg-accent"}`}
+          onClick={() => {
+            setPlaying(false);
+            setWeekIdx(null);
+          }}
+        >
+          {lang === "ar" ? "الوضع الحالي · كل ما أُفصح عنه" : "Standing · all disclosures"}
+        </button>
+        <button
+          className="rounded-full border bg-card px-2.5 py-1 hover:bg-accent"
+          title={lang === "ar" ? "تشغيل الأسابيع" : "play weeks"}
+          onClick={() => {
+            setPlaying((p) => !p);
+            if (weekIdx === null) setWeekIdx(0);
+          }}
+        >
+          {playing ? "⏸" : "▶"}
+        </button>
+        <div className="flex items-center gap-1.5 flex-wrap max-h-[72px] overflow-y-auto">
+          {data.periods.map((per, i) => (
+            <button
+              key={per.start}
+              className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+                weekIdx === i ? "border-primary bg-primary/15 font-semibold" : "bg-card/70 hover:bg-accent"
+              }`}
+              onClick={() => {
+                setPlaying(false);
+                setWeekIdx(weekIdx === i ? null : i);
+              }}
+            >
+              {per.l} · {per.n} {lang === "ar" ? "تحرّك" : "moves"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── map + panel ── */}
+      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+        <div className="relative rounded-xl border bg-card overflow-hidden">
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${W} ${H}`}
+            className="w-full touch-none select-none cursor-grab active:cursor-grabbing"
+            style={{ height: "min(72vh, 720px)" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={() => {
+              onPointerUp();
+              setHoverTip(null);
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget || (e.target as Element).getAttribute("data-bg") === "1") {
+                setFocus(null);
+              }
+            }}
+          >
+            <defs>
+              <radialGradient id="lakeWater" cx="50%" cy="50%" r="65%">
+                <stop offset="0%" stopColor="rgba(56,130,246,0.13)" />
+                <stop offset="100%" stopColor="rgba(37,99,235,0.05)" />
+              </radialGradient>
+              <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                <rect width="6" height="6" fill="transparent" />
+                <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,163,184,0.5)" strokeWidth="1.4" />
+              </pattern>
+            </defs>
+            <rect data-bg="1" x="0" y="0" width={W} height={H} fill="transparent" />
+            <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
+              {/* lakes */}
+              {layout.sectors.map((s) => (
+                <g key={s.code}>
+                  <path d={s.path} fill="url(#lakeWater)" stroke="rgba(125,211,252,0.28)" strokeWidth="1" />
+                  <path d={s.path} fill="none" stroke="rgba(125,211,252,0.10)" strokeWidth="4" />
+                  <text
+                    x={s.cell.x + 10}
+                    y={s.cell.y + 18}
+                    fontSize="11"
+                    fill="rgba(125,211,252,0.75)"
+                    className="pointer-events-none"
+                  >
+                    {lang === "ar" ? s.labelAr : s.labelEn} · {s.rings.length}
+                  </text>
+                </g>
               ))}
-              {!investors.length && <p className="text-xs text-muted-foreground py-2">{lang === "ar" ? "لا نتائج." : "no matches."}</p>}
+
+              {/* bridges at rest (holders present in >1 company) */}
+              {!focusState &&
+                [...layout.holderCompanies.entries()].map(([h, tickers]) => {
+                  if (tickers.length < 2) return null;
+                  const rings = tickers.map((t) => layout.byTicker.get(t)!).filter(Boolean);
+                  const hub = rings.reduce((a, b) => ((a.company.marketCap ?? 0) >= (b.company.marketCap ?? 0) ? a : b));
+                  const color = holderColor(data.people[h]?.n ?? String(h));
+                  return rings
+                    .filter((r) => r !== hub)
+                    .map((r) => {
+                      const mx = (hub.x + r.x) / 2 + (r.y - hub.y) * 0.12;
+                      const my = (hub.y + r.y) / 2 - (r.x - hub.x) * 0.12;
+                      return (
+                        <path
+                          key={`br-${h}-${r.ticker}`}
+                          d={`M ${hub.x} ${hub.y} Q ${mx} ${my} ${r.x} ${r.y}`}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth={0.7}
+                          opacity={0.16}
+                          className="pointer-events-none"
+                        />
+                      );
+                    });
+                })}
+
+              {/* rings */}
+              {layout.sectors.map((s) =>
+                s.rings.map((ring) => {
+                  const sliceData = layout.slicesByTicker.get(ring.ticker);
+                  const dimmed =
+                    focusState?.kind === "company"
+                      ? focusState.ring.ticker !== ring.ticker &&
+                        !focusState.positions.some((p) => layout.byTicker.get(p.t)?.ticker === ring.ticker)
+                      : focusState?.kind === "holder"
+                        ? !focusState.involvedTickers.has(ring.ticker)
+                        : false;
+                  const moved = movedTickers.has(ring.ticker);
+                  return (
+                    <g
+                      key={ring.ticker}
+                      opacity={dimmed ? 0.16 : 1}
+                      style={{ transition: "opacity .25s" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFocus({ type: "company", ticker: ring.ticker });
+                      }}
+                      onMouseMove={(e) => {
+                        const svg = svgRef.current;
+                        if (!svg) return;
+                        const rect = svg.getBoundingClientRect();
+                        setHoverTip({
+                          x: ((e.clientX - rect.left) / rect.width) * 100,
+                          y: ((e.clientY - rect.top) / rect.height) * 100,
+                          title: `${ring.ticker} · ${dn(ring.company, lang)}`,
+                          sub: `${fmtCap(ring.company.marketCap, lang)} · ${
+                            sliceData ? `${sliceData.slices.length} ${lang === "ar" ? "مالكًا مُفصحًا" : "filed holders"}` : lang === "ar" ? "بلا إفصاحات ملكية" : "no filed stakes"
+                          }${ring.company.changePct ? ` · ${ring.company.changePct > 0 ? "+" : ""}${ring.company.changePct}%` : ""}`,
+                        });
+                      }}
+                      onMouseLeave={() => setHoverTip(null)}
+                      className="cursor-pointer"
+                    >
+                      {ring.r < 6 ? (
+                        <circle cx={ring.x} cy={ring.y} r={ring.r} fill={ring.company.changePct >= 0 ? "#34d399" : "#f87171"} opacity={0.85} />
+                      ) : (
+                        <>
+                          {/* grey remainder band = undisclosed ownership (NOT free float) */}
+                          <circle
+                            cx={ring.x}
+                            cy={ring.y}
+                            r={ring.r - BAND / 2}
+                            fill="none"
+                            stroke="rgba(100,116,139,0.5)"
+                            strokeWidth={BAND}
+                          />
+                          <circle cx={ring.x} cy={ring.y} r={ring.r} fill="none" stroke="rgba(226,232,240,0.16)" strokeWidth="0.6" />
+                          {/* filed-stake slices */}
+                          {sliceData?.slices.map((sl, i) => (
+                            <path
+                              key={i}
+                              d={arcPath(ring.x, ring.y, ring.r - BAND, ring.r, sl.a0, sl.a1)}
+                              fill={sl.color}
+                              opacity={0.92}
+                            />
+                          ))}
+                          {/* over-disclosure marker */}
+                          {sliceData?.over && (
+                            <circle cx={ring.x} cy={ring.y} r={ring.r + 2} fill="none" stroke="#fbbf24" strokeWidth="1" strokeDasharray="2 2" />
+                          )}
+                          {/* week change arc + halo */}
+                          {moved && (
+                            <>
+                              <circle cx={ring.x} cy={ring.y} r={ring.r + 3} fill="none" stroke="rgba(226,232,240,0.5)" strokeWidth="1" strokeDasharray="3 3" />
+                              {(weekMoves?.byT.get(ring.ticker) ?? []).map((mv, i) => {
+                                const span = Math.min(Math.PI / 4, Math.max(0.12, Math.abs(mv.c ?? 0) * 0.09));
+                                const a0 = -Math.PI / 2 + i * 0.35;
+                                return (
+                                  <path
+                                    key={`wa-${i}`}
+                                    d={arcPath(ring.x, ring.y, ring.r + 3.5, ring.r + 7, a0, a0 + span)}
+                                    fill={(mv.c ?? 0) >= 0 ? "#34d399" : "#f87171"}
+                                    opacity={0.95}
+                                  />
+                                );
+                              })}
+                            </>
+                          )}
+                          {/* ticker + cap labels */}
+                          <text
+                            x={ring.x}
+                            y={ring.y + (ring.r > 22 ? 3 : 2.5)}
+                            textAnchor="middle"
+                            fontSize={ring.r > 26 ? 11 : ring.r > 19 ? 9 : 7.5}
+                            fontWeight={700}
+                            fill="rgba(226,232,240,0.95)"
+                            direction="ltr"
+                            className="pointer-events-none"
+                          >
+                            {ring.ticker}
+                          </text>
+                          {ring.r > 26 && ring.company.marketCap != null && (
+                            <text
+                              x={ring.x}
+                              y={ring.y + ring.r + 9}
+                              textAnchor="middle"
+                              fontSize="7.5"
+                              fill="rgba(148,163,184,0.9)"
+                              className="pointer-events-none"
+                            >
+                              {(ring.company.marketCap / 1e9).toFixed(0)}B
+                            </text>
+                          )}
+                        </>
+                      )}
+                    </g>
+                  );
+                })
+              )}
+
+              {/* company-focus seats: holders around the chosen company */}
+              {focusState?.kind === "company" && (
+                <g className="pointer-events-auto">
+                  {focusState.seats.map((seat) => {
+                    const onward = (layout.holderCompanies.get(seat.p.h) ?? []).filter((t) => t !== focusState.ring.ticker);
+                    return (
+                      <g key={seat.p.h}>
+                        {onward.map((t) => {
+                          const tr = layout.byTicker.get(t);
+                          if (!tr) return null;
+                          return (
+                            <path
+                              key={`on-${t}`}
+                              d={`M ${seat.x} ${seat.y} L ${tr.x} ${tr.y}`}
+                              stroke={seat.color}
+                              strokeWidth={0.8}
+                              opacity={0.35}
+                              strokeDasharray="3 3"
+                              fill="none"
+                              className="pointer-events-none"
+                            />
+                          );
+                        })}
+                        <line x1={seat.x} y1={seat.y} x2={focusState.ring.x} y2={focusState.ring.y} stroke={seat.color} strokeWidth={1.1} opacity={0.8} />
+                        <circle cx={seat.x} cy={seat.y} r={4.5} fill={seat.color} />
+                        <g
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFocus({ type: "holder", h: seat.p.h });
+                          }}
+                          className="cursor-pointer"
+                        >
+                          {(() => {
+                            // label fans out RADIALLY from the seat dot
+                            const label = `${seat.p.p.toFixed(seat.p.p < 10 ? 2 : 1)}% · ${personName(seat.p.h).slice(0, 18)}`;
+                            const lw = Math.max(62, label.length * 5.4 + 8);
+                            const lx = seat.x + Math.cos(seat.ang) * (lw / 2 + 9);
+                            const ly = seat.y + Math.sin(seat.ang) * 12;
+                            return (
+                              <>
+                                <rect
+                                  x={lx - lw / 2}
+                                  y={ly - 8.5}
+                                  width={lw}
+                                  height={15}
+                                  rx={4}
+                                  fill="rgba(15,23,42,0.92)"
+                                  stroke={seat.color}
+                                  strokeWidth={0.7}
+                                />
+                                <text x={lx} y={ly + 2.5} textAnchor="middle" fontSize="8.5" fill="rgba(226,232,240,0.95)" className="pointer-events-none">
+                                  {label}
+                                </text>
+                              </>
+                            );
+                          })()}
+                        </g>
+                      </g>
+                    );
+                  })}
+                  {/* focus halo */}
+                  <circle cx={focusState.ring.x} cy={focusState.ring.y} r={focusState.ring.r + 9} fill="none" stroke="rgba(226,232,240,0.65)" strokeWidth="1.2" />
+                </g>
+              )}
+
+              {/* holder-focus spokes + stake pills */}
+              {focusState?.kind === "holder" && (
+                <g>
+                  <circle cx={focusState.hx} cy={focusState.hy} r={7} fill={holderColor(data.people[focusState.h]?.n ?? "")} stroke="rgba(226,232,240,0.9)" strokeWidth="1.2" />
+                  <text x={focusState.hx} y={focusState.hy - 13} textAnchor="middle" fontSize="10" fontWeight={700} fill="rgba(226,232,240,0.95)">
+                    {personName(focusState.h).slice(0, 26)}
+                  </text>
+                  {focusState.rings.map((r) => {
+                    const pos = focusState.holdings.find((p) => p.t === r.ticker);
+                    const pctv = pos?.p ?? 0;
+                    const dash = weekMoves?.byT.get(r.ticker)?.length ? "4 3" : undefined;
+                    return (
+                      <g key={r.ticker}>
+                        <line
+                          x1={focusState.hx}
+                          y1={focusState.hy}
+                          x2={r.x}
+                          y2={r.y}
+                          stroke={holderColor(data.people[focusState.h]?.n ?? "")}
+                          strokeWidth={1.2}
+                          opacity={0.85}
+                          strokeDasharray={dash}
+                        />
+                        <g
+                          transform={`translate(${focusState.hx + (r.x - focusState.hx) * 0.72},${focusState.hy + (r.y - focusState.hy) * 0.72})`}
+                        >
+                          <rect x={-16} y={-8} width={34} height={15} rx={7.5} fill="rgba(15,23,42,0.95)" stroke="rgba(226,232,240,0.4)" strokeWidth={0.6} />
+                          <text textAnchor="middle" y={2.5} fontSize="9" fontWeight={700} fill="rgba(226,232,240,0.95)" className="pointer-events-none">
+                            {pctv.toFixed(pctv < 10 ? 2 : 1)}%
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
+                </g>
+              )}
+            </g>
+          </svg>
+
+          {/* hover tooltip plate */}
+          {hoverTip && (
+            <div
+              className="pointer-events-none absolute z-10 max-w-[260px] rounded-lg border bg-popover/95 px-2.5 py-1.5 text-xs shadow-lg"
+              style={{ left: `${Math.min(78, hoverTip.x + 1.5)}%`, top: `${Math.max(2, hoverTip.y - 7)}%` }}
+            >
+              <p className="font-semibold leading-snug">{hoverTip.title}</p>
+              <p className="text-muted-foreground mt-0.5 leading-snug">{hoverTip.sub}</p>
             </div>
+          )}
+
+          {/* zoom controls */}
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 text-xs">
+            <button
+              className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent"
+              onClick={() => setView((v) => ({ ...v, k: Math.min(3, v.k * 1.4) }))}
+            >
+              +
+            </button>
+            <button
+              className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent"
+              onClick={() => setView((v) => ({ ...v, k: Math.max(0.6, v.k / 1.4) }))}
+            >
+              −
+            </button>
+            <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => setView({ k: 1, x: 0, y: 0 })}>
+              {view.k.toFixed(1)}× · {lang === "ar" ? "إعادة" : "reset"}
+            </button>
           </div>
 
-          {/* picked investor detail */}
-          {pickedInvestor && (
-            <div className="rounded-xl border bg-card p-3 space-y-2">
-              <h3 className="text-sm font-semibold leading-snug">{lang === "ar" ? pickedInvestor.nameAr : pickedInvestor.nameEn}</h3>
+          {/* legend */}
+          <div className="absolute bottom-2 right-2 max-w-[54%] rounded-lg border bg-card/90 px-2.5 py-1.5 text-[10.5px] leading-relaxed text-muted-foreground">
+            {lang === "ar" ? (
+              <>
+                الحلقة شركة، حجمها بالقيمة السوقية، والشرائح الملوّنة مالكون وردت أسماؤهم في إفصاح.
+                الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليست أسهماً حرة.
+                القوس الخارجي هو ما اكتسبته الحصة أو تخلّت عنه في الأسبوع المختار.
+                اختر شركة ليفتح هيكل ملكيتها في نفس الصفحة.
+              </>
+            ) : (
+              <>
+                A ring is a company, sized by market cap; the colored slices are holders named in disclosures.
+                The grey part is ownership nobody had to disclose — NOT free float.
+                The outer arc is what a stake gained or shed in the chosen week.
+                Pick a company to open its equity structure on this same page.
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── right panel: register / company profile / holder scope ── */}
+        <aside className="space-y-3">
+          {focusState?.kind === "company" ? (
+            <div className="rounded-xl border bg-card p-3 space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold leading-snug">
+                    {lang === "ar" ? "ملف ملكية الشركة" : "Company ownership profile"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {focusState.ring.ticker} · {dn(focusState.ring.company, lang)}
+                  </p>
+                </div>
+                <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setFocus(null)}>
+                  {lang === "ar" ? "رجوع" : "back"}
+                </button>
+              </div>
               <p className="text-[11px] text-muted-foreground">
-                {pickedInvestor.ticker ? `${lang === "ar" ? "مقيد بالبورصة" : "EGX-listed"} · ${pickedInvestor.ticker}` : lang === "ar" ? "مجموعة/جهة مالكة" : "group / parent entity"}
+                {fmtCap(focusState.ring.company.marketCap, lang)} ·{" "}
+                {focusState.ring.company.close != null ? `${focusState.ring.company.close} EGP` : ""} ·{" "}
+                {lang === "ar" ? focusState.ring.company.sectorAr : focusState.ring.company.sectorEn}
               </p>
-              <div className="max-h-[34vh] overflow-auto space-y-1.5 pr-1">
-                {pickedEdges.map((e) => {
-                  const comp = data.companies.find((c) => c.ticker === e.ticker);
+
+              {/* disclosed share bar */}
+              <div>
+                <div className="flex h-4 w-full overflow-hidden rounded-md border">
+                  {profilePositions.slice(0, 8).map((p) => (
+                    <div key={p.h} style={{ width: `${Math.max(0.5, Math.min(100, p.p))}%`, backgroundColor: holderColor(data.people[p.h]?.n ?? "") }} title={`${personName(p.h)} · ${p.p}%`} />
+                  ))}
+                  {100 - profileDisclosed > 0 && (
+                    <div style={{ width: `${Math.max(0, 100 - profileDisclosed)}%` }} className="hatch-bg" title={lang === "ar" ? "غير معلن" : "not disclosed"} />
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {lang === "ar" ? "المعلن" : "disclosed"} <b>{profileDisclosed.toFixed(1)}%</b> ·{" "}
+                  {lang === "ar" ? "غير معلن" : "not disclosed"} <b>{Math.max(0, 100 - profileDisclosed).toFixed(1)}%</b>
+                  {profilePositions[0]?.a ? ` · ${lang === "ar" ? "آخر إفصاح" : "latest"} ${profilePositions[0].a}` : ""}
+                </p>
+              </div>
+
+              {/* holders list */}
+              <div className="max-h-[38vh] overflow-auto space-y-1 pr-1">
+                {profilePositions.map((p) => {
+                  const bl = bulletin(p.s);
                   return (
-                    <div key={`${e.investorId}-${e.ticker}`} className="rounded-lg border bg-background/60 px-2 py-1.5 text-xs">
-                      <button className="font-semibold hover:underline" onClick={() => navigate("company", { ticker: e.ticker })}>
-                        {e.ticker} · {comp ? dn(comp, lang) : ""}
-                      </button>
+                    <div key={`${p.h}-${p.a}`} className="rounded-lg border bg-background/60 px-2 py-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: holderColor(data.people[p.h]?.n ?? "") }} />
+                          <span className="truncate">{personName(p.h)}</span>
+                        </span>
+                        <b className="shrink-0">{p.p.toFixed(p.p < 10 ? 2 : 1)}%</b>
+                      </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {e.boughtShares > 0 && (
-                          <span className="text-up font-medium">
-                            {lang === "ar" ? "شراء" : "bought"} {fmtShares(e.boughtShares, lang)}
-                          </span>
+                        {basisLabel(p.b)} · {p.a ?? "—"}
+                        {p.f ? ` · #${p.f}` : ""}
+                        {bl && (
+                          <>
+                            {" · "}
+                            <a href={bl} target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+                              {lang === "ar" ? "الإفصاح الرسمي ↗" : "bulletin ↗"}
+                            </a>
+                          </>
                         )}
-                        {e.boughtShares > 0 && e.soldShares > 0 && " · "}
-                        {e.soldShares > 0 && (
-                          <span className="text-down font-medium">
-                            {lang === "ar" ? "بيع" : "sold"} {fmtShares(e.soldShares, lang)}
-                          </span>
-                        )}
-                        {" · "}
-                        {e.filings} {lang === "ar" ? "إفصاح" : "filings"} · {e.firstDate}
                       </p>
-                      {e.links[0] && (
-                        <a href={e.links[0]} target="_blank" rel="noreferrer" className="text-[10px] underline text-muted-foreground">
-                          {lang === "ar" ? "الإفصاح الرسمي ↗" : "official filing ↗"}
-                        </a>
-                      )}
                     </div>
                   );
                 })}
               </div>
+
+              {/* cross holdings */}
+              {(crossOut.length > 0 || crossIn.length > 0) && (
+                <div className="space-y-1 text-xs border-t pt-2">
+                  {crossOut.length > 0 && (
+                    <p className="text-muted-foreground">
+                      {lang === "ar" ? "تملك:" : "owns:"}{" "}
+                      {crossOut.map((c) => (
+                        <button key={c.d} className="underline hover:text-foreground" onClick={() => setFocus({ type: "company", ticker: c.d })}>
+                          {c.d}
+                          {c.p != null ? ` (${c.p}%)` : ""}
+                        </button>
+                      ))}
+                    </p>
+                  )}
+                  {crossIn.length > 0 && (
+                    <p className="text-muted-foreground">
+                      {lang === "ar" ? "تملكها:" : "held by:"}{" "}
+                      {crossIn.map((c) => (
+                        <button key={c.o} className="underline hover:text-foreground" onClick={() => setFocus({ type: "company", ticker: c.o })}>
+                          {c.o}
+                          {c.p != null ? ` (${c.p}%)` : ""}
+                        </button>
+                      ))}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <button
+                className="w-full rounded-md border bg-primary/10 px-2 py-1.5 text-xs font-semibold hover:bg-primary/20"
+                onClick={() => navigate("company", { ticker: focusState.ring.ticker })}
+              >
+                {lang === "ar" ? "افتح صفحة الشركة ↗" : "open company page ↗"}
+              </button>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                {lang === "ar"
+                  ? "من رأس مال الشركة، وفق آخر إفصاحات الملكية المنشورة. الجزء غير المعلن ليس أسهماً حرة."
+                  : "Of the company's share capital, per the latest filed ownership disclosures. The undisclosed part is not free float."}
+              </p>
+            </div>
+          ) : focusState?.kind === "holder" ? (
+            <div className="rounded-xl border bg-card p-3 space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-sm font-bold leading-snug">{personName(focusState.h)}</h2>
+                <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setFocus(null)}>
+                  {lang === "ar" ? "رجوع" : "back"}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {data.people[focusState.h]?.k === "f"
+                  ? lang === "ar"
+                    ? "شركة أو صندوق"
+                    : "firm / fund"
+                  : lang === "ar"
+                    ? "شخص"
+                    : "person"}{" "}
+                · {focusState.rings.length} {lang === "ar" ? "شركة" : "companies"}
+              </p>
+              <div className="max-h-[52vh] overflow-auto space-y-1 pr-1">
+                {focusState.holdings.map((p) => {
+                  const ring = layout.byTicker.get(p.t);
+                  const bl = bulletin(p.s);
+                  return (
+                    <div key={`${p.t}-${p.a}`} className="rounded-lg border bg-background/60 px-2 py-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <button className="font-semibold underline hover:text-foreground" onClick={() => setFocus({ type: "company", ticker: p.t })}>
+                          {p.t} · {ring ? dn(ring.company, lang).slice(0, 26) : ""}
+                        </button>
+                        <b>{p.p.toFixed(p.p < 10 ? 2 : 1)}%</b>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {basisLabel(p.b)} · {p.a ?? "—"}
+                        {bl && (
+                          <>
+                            {" · "}
+                            <a href={bl} target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+                              {lang === "ar" ? "الإفصاح ↗" : "bulletin ↗"}
+                            </a>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                {lang === "ar"
+                  ? "النسب تخص كل شركة على حدة ولا تُجمع أبدًا — كل حصة بسعر شركة مختلفة."
+                  : "Percentages belong to each single company and are never summed — each stake prices a different company."}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-card p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold">{lang === "ar" ? "سجل الأطراف" : "Register of parties"}</h2>
+                <span className="text-[10px] text-muted-foreground">{register.peopleTotal ?? 0}</span>
+              </div>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={lang === "ar" ? "ابحث عن شركة أو اسم مودع…" : "search a company or a named party…"}
+                className="w-full mb-2 rounded-md border bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+              />
+              {register.companies.length > 0 && (
+                <div className="mb-2 space-y-1">
+                  {register.companies.map((c) => (
+                    <button
+                      key={c.ticker}
+                      onClick={() => setFocus({ type: "company", ticker: c.ticker })}
+                      className="w-full text-start rounded-lg px-2 py-1.5 text-xs border border-transparent hover:bg-accent"
+                    >
+                      <span className="font-semibold">{c.ticker}</span> · {dn(c, lang)}
+                      <span className="block text-[10px] text-muted-foreground">
+                        {lang === "ar" ? "على الخريطة" : "on the board"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-[52vh] overflow-auto pr-1 space-y-0.5">
+                {register.people.map((p, i) => {
+                  const h = data.people.indexOf(p);
+                  return (
+                    <button
+                      key={`${p.n}-${i}`}
+                      onClick={() => setFocus({ type: "holder", h })}
+                      className="w-full text-start rounded-lg px-2 py-1.5 text-xs border border-transparent hover:bg-accent"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: holderColor(p.n) }} />
+                        <span className="truncate">{lang === "ar" || !p.e ? p.n : p.e}</span>
+                      </span>
+                      <span className="block text-[10px] text-muted-foreground ps-3.5">
+                        {p.k === "f" ? (lang === "ar" ? "شركة أو صندوق" : "firm / fund") : lang === "ar" ? "شخص" : "person"} ·{" "}
+                        {(layout.holderCompanies.get(h)?.length ?? 0)} {lang === "ar" ? "شركة" : "companies"}
+                      </span>
+                    </button>
+                  );
+                })}
+                {register.people.length === 0 && (
+                  <p className="text-xs text-muted-foreground py-2">{lang === "ar" ? "لا نتائج." : "no matches."}</p>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                {lang === "ar"
+                  ? "الترتيب أبجدي بقرار تحريري — هذا المشروع لا ينشر أي ترتيب آخر للأطراف المذكورة."
+                  : "Alphabetical by editorial policy — this project publishes no other ranking of named parties."}
+              </p>
             </div>
           )}
+
+          {/* method / honesty details */}
+          <details className="rounded-xl border bg-card px-3 py-2 text-xs">
+            <summary className="cursor-pointer font-semibold">
+              {lang === "ar" ? "ما الذي تخبرك به هذه الخريطة — وما الذي لا تستطيع" : "What this can — and cannot — tell you"}
+            </summary>
+            <div className="mt-2 space-y-1.5 text-muted-foreground leading-relaxed">
+              <p>
+                {lang === "ar"
+                  ? "هذه خط زمني للإفصاحات وليست سجل مساهمين كاملًا: غياب مبلغ لا يعني عدم وجود نشاط."
+                  : "This is a disclosure timeline, not a complete shareholder register: a missing amount does not mean zero activity."}
+              </p>
+              <p>
+                {lang === "ar"
+                  ? "الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليست أسهماً حرة."
+                  : "The grey remainder is ownership nobody was obliged to disclose — it is NOT free float."}
+              </p>
+              <p>
+                {lang === "ar" ? "المصدر:" : "Source:"} {lang === "ar" ? data.sourceAr : data.source} ({data.asOf}).
+              </p>
+              {data.refused.length > 0 && (
+                <p>
+                  {lang === "ar" ? "إفصاحات مستبعدة:" : "Refused filings:"}{" "}
+                  {data.refused.map((r) => `${r.holder} → ${r.t}`).join(" · ")} ({data.refused[0]?.why})
+                </p>
+              )}
+            </div>
+          </details>
         </aside>
-
-        {/* the map */}
-        <div className="rounded-xl border bg-card overflow-hidden relative">
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none" role="img" aria-label={T.lensNav[lang]}>
-            {/* sector regions */}
-            {cellMap.sectors.map((s) => (
-              <g key={s.code}>
-                <rect
-                  x={s.x + 1.5}
-                  y={s.y + 1.5}
-                  width={Math.max(0, s.w - 3)}
-                  height={Math.max(0, s.h - 3)}
-                  rx={10}
-                  fill="oklch(0.97 0.005 90 / 0.55)"
-                  stroke="oklch(0.85 0.01 90 / 0.8)"
-                  strokeWidth={1}
-                  className="dark:fill-white/5 dark:stroke-white/10"
-                />
-                <text x={s.x + 10} y={s.y + 15} fontSize={11} className="fill-muted-foreground" direction={lang === "ar" ? "rtl" : "ltr"}>
-                  {sectorLabel(s).slice(0, 28)}
-                  {sectorLabel(s).length > 28 ? "…" : ""}
-                </text>
-                <text x={s.x + 10} y={s.y + 15} fontSize={11} className="fill-muted-foreground" style={{ direction: lang === "ar" ? "rtl" : "ltr" }}>
-                  {""}
-                </text>
-                {/* bubbles */}
-                {s.bubbles.map((b) => {
-                  const isConn = picked ? connected.has(b.c.ticker) : false;
-                  const dim = picked !== "" && !isConn;
-                  return (
-                    <g key={b.c.ticker}>
-                      <circle
-                        cx={b.x}
-                        cy={b.y}
-                        r={b.r + (isConn ? 2 : 0)}
-                        fill={heatFill(b.c.changePct, dim)}
-                        stroke={isConn ? "oklch(0.75 0.16 255)" : dim ? "transparent" : "oklch(0.5 0.02 90 / 0.35)"}
-                        strokeWidth={isConn ? 2 : 1}
-                        className="cursor-pointer transition-all"
-                        onClick={() => navigate("company", { ticker: b.c.ticker })}
-                        onMouseEnter={() => setHover(b)}
-                        onMouseLeave={() => setHover(null)}
-                      >
-                        <title>{`${b.c.ticker} · ${dn(b.c, lang)} · ${fmtCap(b.c.marketCap, lang)} · ${fmtPct(b.c.changePct)}`}</title>
-                      </circle>
-                      {b.r > 13 && (
-                        <text x={b.x} y={b.y + 3.5} fontSize={Math.min(10, b.r / 2.6)} textAnchor="middle" className="pointer-events-none fill-foreground/80 font-medium">
-                          {b.c.ticker}
-                        </text>
-                      )}
-                      {/* disclosure-activity pulse */}
-                      {data.activity[b.c.ticker] > 0 && !dim && (
-                        <circle cx={b.x} cy={b.y} r={b.r + 4} fill="none" stroke="oklch(0.75 0.15 85 / 0.9)" strokeWidth={1} strokeDasharray="2 3" className="pointer-events-none" />
-                      )}
-                    </g>
-                  );
-                })}
-              </g>
-            ))}
-
-            {/* investor links */}
-            {pickedInvestor && (
-              <g>
-                <circle cx={investorNode.x} cy={investorNode.y} r={22} fill="oklch(0.55 0.16 255)" stroke="oklch(0.9 0.04 255)" strokeWidth={2} />
-                <text x={investorNode.x} y={investorNode.y - 30} fontSize={13} textAnchor="middle" className="fill-foreground font-semibold">
-                  {(lang === "ar" ? pickedInvestor.nameAr : pickedInvestor.nameEn).slice(0, 34)}
-                </text>
-                {pickedEdges.map((e) => {
-                  const b = cellMap.byTicker.get(e.ticker);
-                  if (!b) return null;
-                  const net = e.boughtShares - e.soldShares;
-                  const col = net >= 0 ? "oklch(0.7 0.16 150 / 0.85)" : "oklch(0.65 0.19 25 / 0.85)";
-                  const wid = 1.4 + Math.min(3.6, Math.log10(1 + Math.max(e.boughtShares, e.soldShares)) / 1.6);
-                  const x0 = investorNode.x;
-                  const y0 = investorNode.y + 22;
-                  const mx = (x0 + b.x) / 2;
-                  return (
-                    <path
-                      key={`lnk-${e.ticker}`}
-                      d={`M ${x0} ${y0} C ${x0} ${(y0 + b.y) / 2}, ${mx} ${b.y - 40}, ${b.x} ${b.y - b.r - 2}`}
-                      fill="none"
-                      stroke={col}
-                      strokeWidth={wid}
-                      strokeOpacity={0.75}
-                      className="pointer-events-none"
-                    />
-                  );
-                })}
-              </g>
-            )}
-          </svg>
-
-          {/* hover tooltip */}
-          {hover && (
-            <div className="absolute bottom-2 start-2 rounded-lg border bg-popover/95 backdrop-blur px-3 py-2 text-xs shadow-lg max-w-[260px]">
-              <p className="font-semibold">
-                {hover.c.ticker} · {dn(hover.c, lang)}
-              </p>
-              <p className="text-muted-foreground">
-                {lang === "ar" ? hover.c.sectorAr : hover.c.sectorEn} · {fmtCap(hover.c.marketCap, lang)}
-              </p>
-              <p className={hover.c.changePct >= 0 ? "text-up" : "text-down"}>{fmtPct(hover.c.changePct)}</p>
-            </div>
-          )}
-
-          {/* legend */}
-          <div className="border-t px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-full" style={{ background: "oklch(0.6 0.16 150)" }} />
-              {lang === "ar" ? "صاعد" : "up"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-full" style={{ background: "oklch(0.58 0.19 25)" }} />
-              {lang === "ar" ? "هابط" : "down"}
-            </span>
-            <span>
-              <span className="inline-block size-2.5 rounded-full border border-dashed align-middle" /> {lang === "ar" ? "إفصاحات داخلية حديثة (٩٠ يومًا)" : "recent insider filings (90d)"}
-            </span>
-            <span>
-              {lang === "ar" ? "حجم الفقاعة = القيمة السوقية · مساحة القطاع = إجمالي قطاعه" : "bubble = market cap · region = sector total"}
-            </span>
-          </div>
-        </div>
       </div>
-
-      {/* provenance */}
-      <p className="text-[11px] leading-relaxed text-muted-foreground px-1 max-w-3xl">
-        {lang === "ar" ? data.noteAr : data.noteEn}{" "}
-        <a href="https://www.egx.com.eg" target="_blank" rel="noreferrer" className="underline">
-          {lang === "ar" ? data.sourceAr : data.source}
-        </a>
-        {" · "}
-        {lang === "ar" ? "بيانات الخريطة حية من ماسح السوق (تأخير ~١٥ دقيقة)" : "map data live from the market scanner (~15 min delayed)"}.
-      </p>
     </div>
   );
 }
+

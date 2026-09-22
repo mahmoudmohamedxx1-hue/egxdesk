@@ -56,7 +56,7 @@ type Ctx = {
   lang: Lang;
   setLang: (l: Lang) => void;
   view: View;
-  navigate: (v: string, extra?: { ticker?: string; panel?: string }) => void;
+  navigate: (v: string, extra?: { ticker?: string; panel?: string; focus?: string }) => void;
   toggleWatch: (ticker: string) => void;
   isWatched: (ticker: string) => boolean;
   toast: (msg: string) => void;
@@ -118,11 +118,12 @@ function viewFromParams(params: URLSearchParams): View {
 
 /** Build the shareable query string for a view (always carries the lang so a
  *  shared link opens in the language the sharer was reading). */
-function viewParams(name: string, extra: { ticker?: string; panel?: string } | undefined, lang: Lang): string {
+function viewParams(name: string, extra: { ticker?: string; panel?: string; focus?: string } | undefined, lang: Lang): string {
   const params = new URLSearchParams();
   params.set("view", name);
   if (extra?.ticker) params.set("ticker", extra.ticker);
   if (extra?.panel) params.set("panel", extra.panel);
+  if (extra?.focus) params.set("focus", extra.focus);
   params.set("lang", lang);
   return params.toString();
 }

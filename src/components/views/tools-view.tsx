@@ -6,6 +6,7 @@ import { useLiveData } from "../market/use-live-data";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { FairValueLab, ZakatCalc, DcaCalc, CertificateYieldCalc } from "../market/fouda-tools";
 import { Button } from "@/components/ui/button";
 import { Calculator, TrendingUp, Scale, BookOpen, Landmark, PiggyBank, Hourglass } from "lucide-react";
 import { rowMatchesQuery } from "@/lib/ar-search";
@@ -90,6 +91,16 @@ export function ToolsView() {
       <WhatIfCalc />
 
       <CorrelationMatrix />
+
+      {/* T58 — FoudaLens Tier-1 calculators (fair value, zakat, DCA, certificates) */}
+      <FairValueLab />
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <ZakatCalc />
+        <CertificateYieldCalc />
+      </div>
+
+      <DcaCalc />
 
       <section className="rounded-lg border bg-card">
         <div className="flex items-center gap-2 border-b px-4 py-3">

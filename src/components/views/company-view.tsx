@@ -12,6 +12,7 @@ import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { PerfChart, RangeBar } from "../market/perf-chart";
 import { PriceChart } from "../market/price-chart";
+import { OwnershipCard } from "../market/ownership-card";
 import { StatementsPanel } from "../market/statements-panel";
 import { TechnicalPanel } from "../market/technical-panel";
 import { DividendsPanel } from "../market/dividends-panel";
@@ -294,6 +295,9 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
               </p>
             )}
           </section>
+
+          {/* T58 — الملكية: top filed holders + undisclosed remainder */}
+          <OwnershipCard ticker={c.ticker} lang={lang} />
         </div>
       )}
 

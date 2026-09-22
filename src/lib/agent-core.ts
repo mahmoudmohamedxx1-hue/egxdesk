@@ -150,8 +150,8 @@ const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown
       indices: indices.map((i) => ({ code: i.code, nameAr: i.nameAr, close: i.close, changePct: r2(i.changePct) })),
       breadth: { up, down, flat: stocks.length - up - down, total: stocks.length },
       movers,
-      bestSector: best ? { nameAr: best.nameAr, changePct: r2(best.capWeightedChangePct) } : null,
-      worstSector: worst ? { nameAr: worst.nameAr, changePct: r2(worst.capWeightedChangePct) } : null,
+      bestSector: best ? { nameAr: best.nameAr, nameEn: best.nameEn, changePct: r2(best.capWeightedChangePct) } : null,
+      worstSector: worst ? { nameAr: worst.nameAr, nameEn: worst.nameEn, changePct: r2(worst.capWeightedChangePct) } : null,
       flows,
       narrative,
     };

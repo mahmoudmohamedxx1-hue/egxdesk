@@ -379,3 +379,12 @@ html {
 .ai-tool-chip {
   font-variant-numeric: tabular-nums;
 }
+
+/* T58 — عدسة الملكية: hatched "not disclosed" remainder in ownership bars */
+.hatch-bg {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(148, 163, 184, 0.55) 0 2px,
+    rgba(148, 163, 184, 0.12) 2px 5px
+  );
+}

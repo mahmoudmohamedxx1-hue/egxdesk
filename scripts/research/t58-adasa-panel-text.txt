@@ -1,0 +1,62 @@
+LIVE DOM capture of esthmr.com عدسة الملكية panel (https://esthmr.com/?view=ownership, session-authenticated, 2026-09-22).
+Captured via agent-browser eval of document.querySelector('.om-panel').innerText in two slices (0-2200, 2200-4200).
+
+=== SLICE 1 (map screen header + week strip + lakes + tickers) ===
+
+من يملك البورصة
+الملكية المعلومة في البورصة، وما الذي تحرّك
+238 · 1396 · 3.08T EGP
+
+كل شركة ورد في إفصاح اسم مالك فيها، بالحصة القائمة اليوم. معظمها من نموذج مجلس الإدارة وهيكل المساهمين، الذي يطبع سجل الشركة كاملاً، وبقيتها من نماذج الإفصاح بعد التنفيذ. أشر إلى مالك لتقرأ اسمه، واختره لترى كل شركاته، واختر أسبوعاً لتضيء الحصص التي تغيّرت فيه. واللوحة نفسها لا تتحرك أبداً.
+
+الوضع الحالي
+كل ما أُفصح عنه
+28 سبتمبر – 2 أكتوبر (4 تحرّك)
+5–8 أكتوبر (4 تحرّك) … [37 weekly chips total, each "N تحرّك", latest: 20–22 سبتمبر (9 تحرّك)]
+▶  −  1.0×  +  ⤢  ⛶
+
+Sector lake labels (28): عقارات · أغذية و مشروبات و تبغ · خدمات مالية غير مصرفية · رعاية صحية و ادوية · موارد أساسية · مقاولات و إنشاءات هندسية · مواد البناء · بنوك · سياحة وترفيه · منسوجات و سللع معمرة · التمويل والخدمات المالية · اتصالات و اعلام و تكنولوجيا المعلومات · تجارة و موزعون · خدمات و منتجات صناعية… · غير مصنّف · الصناعات التحويلية · خدمات تعليمية · خدمات النقل والشحن · ورق ومواد تعبئة… · خدمات تكنولوجية · مرافق · خدمات التوزيع · طاقة وخدما… · خدمات استه… · معادن… · صناعا… · خدمات… · خدمات…
+
+Company ring tickers on the board (238 total): EMFD PRDC OCDI MAAL DAPH IDRE ACAP BONY NARE ORHD ELKA NHPS PHDC HELI ARAB UNIT AMER AIFI TANM TMGH MASR ELSH GIHD OBRI EHDR ZMID UEGC ACAMD ICID MENA CCRS RREI AREH GGRN INFI AFMC GSSC SCFM CEFM SUGR MILS DOMT UEFM ISMA EDFM JUFO WCDF ADPC ZEOT AJWA EFID EAST KRDI OLFI EPCO LUTS MPCO NEDA COSG SNFC ELNA KWIN CICH TWSA MOIN EGREF EBSC RAYA PRMH AMIA CNFN ODIN EASB ATLC BTFH EOSB VALU TYCN OFH GRCA BINV ACTF ASPI NAHO HRHO AIDC CPME AFDI BIOC AXPH AMES OCPH SIPC MIPH CPCI ADCI NIPH MCRO MPCI CLHO MEPA PHAR FCMD RMDA NINH PHGC ISPH SPMD EGAL EGCH ATQA MFPC ISMQ IRON FERC ABUK EFIC MICH ALUM SKPC KZPC ASCM CRST WKOL EALR AALR KORA ORAS IEEC NCCW ENGC GGCC COPR GPIM MCQE SCEM ARCC CERA MBSC ECAP RUBX AMII PRCL LCSW SVCE QNBE SAUD EXPA CIEB CANA HDBK UBEE ADIB COMI MMAT MHOT EGTS PHTV SDTI RTVC ROTO TRTO ELWA CFGH GTEX KABO SPIN ORWE APSW DSCW ACGC GTWL ICLE DEIN SAIB UTOP ADRI GPPL AIH FIRE EGSA DGTZ EFIH OIH ETEL MPRC RACC FWRY MTIE MFSC SMFR IFAP ICFC GOUR GMCI SWDY GDWA MBEG GBCO DTPP ELEC EEII ACRO MKIT HBCO GOCO AIHC KASABF MEGM EPPK BIDI POUL RKAZ SCTS CIRA TALM CAED MOED ALCN CSAG ETRS NAPR RAKT UNIP FTNS VERT AMPI EGAS TAQA IBCT BIGP MOIL AMOC SPHT MISR INEG FNAR UPMS
+
+=== SLICE 2 (holder-focus state text + legend) ===
+
+[After clicking the ALPHA ORYX LIMITED seat (holder of COMI):]
+15.67% ALPHA ORYX LIMITED ألفا أوريكس المحدودة
+ALPHA ORYX LIMITED ألفا أوريكس المحدودة
+شركة أو صندوق
+70.17B EGP — القيمة السوقية للحصص أدناه
+الحصص المملوكة
+COMI · البنك التجارى الدولى — 15.67%
+ALPHA ORYX LIMITED ألفا أوريكس المحدودة · إلغاء
+كل شركة ورد فيها اسم هذا المالك
+COMI · البنك التجارى الدولى
+2025-10-12 · بعد صفقة
+15.67%
+
+Legend (exact Arabic):
+الحلقة شركة، حجمها بالقيمة السوقية، والشرائح الملوّنة ملّاك ذكرهم إفصاح.
+الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليس أسهماً حرة.
+القوس الخارجي هو ما اكتسبته الحصة أو تخلّت عنه في الأسبوع المختار.
+النقطة حصة مالك واحد في شركة واحدة. أشر إليها ليظهر الاسم.
+اختر مالكاً يمتد خط إلى كل شركة هو فيها، معلّماً بحصته منها.
+
+Closing note (exact Arabic):
+الحصة نسبة من شركة واحدة: لا شيء هنا يجمع نسبتين، ومن يملك في ثلاث شركات يُرسم ثلاث مرات بلا نسبة مجمّعة. وكل رقم هو الحصة الختامية في أحدث نموذج أُودع عنها، لا حاصل جمع الصفقات. والشركة التي لا تُنشر قيمتها السوقية تُرسم بأصغر حجم وبمركز متقطع بدلاً من استبعادها.
+
+=== COMPANY SCREEN OWNERSHIP CARD (UNIT, ?view=company&ticker=UNIT&panel=overview) ===
+آخر إفصاح ملكية 2026-06-30
+الملكية
+القاهرة للاسكان والتعمير 23.31%
+بايونيرز بروبرتيز للتنمية العمرانية بي ار اي جروب 19.71%
+مصر لتأمينات الحياة 9.1%
+غير معلن 47.9%
+من رأس مال الشركة
+الحصص المُفصح عنها فقط. الحصة دون حدّ الإفصاح لا تُقدَّم أصلاً، فالباقي ليس نقصاً في هذا السجل — بل جزء لم يُلزَم أحد بتسميته.
+
+=== LIVE COUNTERS (rendered DOM, 2026-09-22) ===
+- 38 period chips (standing + 37 weeks), 1353 register rows, 28 sector lakes,
+  238 company rings, 1613 holder dots, 1492 stake slices, 260 bridge lines (SVG ~1916 g nodes).
+- Clicking the COMI ring → 17 holder seats appear around it + 26 spoke lines; 3290 elements dimmed.
+- Clicking a seat (ALPHA ORYX LIMITED) → 1 holder seat + stake tags on spokes.
+- Picking week "20–22 سبتمبر" → 6 move arcs, 5 moved-rings, 1 dashed (changed) bridge.

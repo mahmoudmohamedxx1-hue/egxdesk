@@ -8,6 +8,9 @@ import { db } from "@/lib/db";
 import { findAiModel, DEFAULT_AI_MODEL_ID, aiModelIdentity, type AiModel } from "@/lib/ai-models";
 import { AGENT_TOOLS } from "@/lib/agent-core";
 import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer, verifyFinalAnswer, verificationRepairMessage, verificationFootnote } from "@/lib/agent-protocol";
+// T58 — deterministic Arabic/English briefing + the language gate the
+// weak keyless tier needed (it answers Arabic questions in Portuguese).
+import { composeBriefing, languageOk, languageRepairMessage, type ToolResultRef } from "@/lib/briefing-composer";
 
 /** POST /api/agent — the in-app EGX analyst agent (inspired by the tool-loop
  *  pattern of open-source agent frameworks like shubhamsaboo/awesome-llm-apps
@@ -520,7 +523,9 @@ export async function POST(req: Request) {
               });
 
       const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
+      const toolResults: ToolResultRef[] = []; // T58 — structured tool outputs for the deterministic composer
       let verifyRetried = false; // T38 — one repair round max per request
+      let langRetried = false; // T58 — one LANGUAGE repair round max per request
       // T38 — the user's own question text: its numbers are trusted
       const userQuestion = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
       try {
@@ -535,7 +540,12 @@ export async function POST(req: Request) {
             // reasoning, not a shallow template. With the composer's
             // extended-thinking toggle ON, round 0 thinks too.
             const deepRound = round > 0 || deep;
-            const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
+            // T58 — never stream raw keyless deltas to the user: the weak tier's
+            // garbage (Portuguese/Telugu soup) used to flash on screen BEFORE
+            // the final answer replaced it. Keyless rounds stream status only;
+            // the clean answer arrives with the done event.
+            const preview =
+              model.provider === "llm7" ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
             raw = await runRound(deepRound ? "enabled" : "disabled", preview);
             usage.llmCalls++;
           } catch (err) {
@@ -596,12 +606,23 @@ export async function POST(req: Request) {
             // as the quota failover) so the user never receives invented
             // numbers; the backbone's own failures ship with an honest
             // verification footnote instead.
+            // T58 — LANGUAGE GATE: the numbers can be perfectly copied while
+            // the answer itself is Portuguese/Spanish/exotic-script soup (the
+            // live "crash text"). languageOk() fails it → one repair round →
+            // then the deterministic composer takes over so NO wrong-language
+            // answer is ever shipped.
             const finalText = parsed.final.trim();
             const verdict = verifyFinalAnswer(finalText, toolJsons, userQuestion);
+            const langOk = languageOk(finalText, lang);
             if (!verdict.ok && !verifyRetried) {
               verifyRetried = true;
               msgs.push({ role: "user", content: verificationRepairMessage(verdict, lang) });
               continue; // same conversation, corrected rewrite requested
+            }
+            if (verdict.ok && !langOk && !langRetried) {
+              langRetried = true;
+              msgs.push({ role: "user", content: languageRepairMessage(lang) });
+              continue; // numbers verified; only the LANGUAGE needs a rewrite
             }
             if (!verdict.ok && model.provider === "llm7" && !failedOver && hasBackbone()) {
               failedOver = true;
@@ -616,6 +637,27 @@ export async function POST(req: Request) {
               msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
               verifyRetried = false; // the backbone gets its own repair budget
               continue; // re-answer the SAME conversation on the backbone
+            }
+            // T58 — LAST GUARD before shipping: a WRONG-LANGUAGE answer is
+            // never usable (any model); a failed number verification on the
+            // WEAK keyless tier is crash-text territory too. In both cases,
+            // when real tool data is on the table, ship the deterministic
+            // briefing — its numbers are copied verbatim from the tools and
+            // its language is templated, so it is correct by construction.
+            // A STRONG model (zai/direct tier) with only re-formatted numbers
+            // keeps the old honest path: rich answer + verification footnote.
+            if (!langOk || (!verdict.ok && model.provider === "llm7")) {
+              const briefing = composeBriefing(lang, toolResults);
+              if (briefing) {
+                send({
+                  type: "status",
+                  note:
+                    lang === "ar"
+                      ? "تعذّر تشكيل رد سليم عبر النموذج المجاني — تم توليد ملخص البيانات مباشرة"
+                      : "The free model could not compose a sound answer — composing the briefing directly from the tool data",
+                });
+                return void done(briefing);
+              }
             }
             const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
             return void done(shipped);
@@ -660,6 +702,7 @@ export async function POST(req: Request) {
 
           msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
           toolJsons.push(JSON.stringify(result).slice(0, 9000));
+          toolResults.push({ tool: toolName, result });
         }
 
         // loop exhausted without a final answer — NEVER waste the collected
@@ -671,15 +714,23 @@ export async function POST(req: Request) {
               'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
           });
           try {
-            const preview = makeFinalPreviewer((text) => send({ type: "delta", text }));
+            // T58 — keyless rounds never stream raw deltas (crash-text guard)
+            const preview =
+              model.provider === "llm7" ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
             const raw = await runRound("enabled", preview);
             usage.llmCalls++;
             if (debug) debugRaw.push(raw.slice(0, 800));
             const parsed = extractJson(raw);
             if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-              // T38 — the forced-synthesis answer passes the same gate
+              // T38/T58 — the forced-synthesis answer passes the SAME gates;
+              // wrong language or weak-tier number failure reroutes to the
+              // deterministic briefing, a strong model keeps its footnote.
               const finalText = parsed.final.trim();
               const verdict = verifyFinalAnswer(finalText, toolJsons, userQuestion);
+              if (!languageOk(finalText, lang) || (!verdict.ok && model.provider === "llm7")) {
+                const briefing = composeBriefing(lang, toolResults);
+                if (briefing) return void done(briefing);
+              }
               return void done(verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang));
             }
           } catch {
@@ -687,7 +738,11 @@ export async function POST(req: Request) {
           }
         }
 
-        // no tools ever ran / synthesis also failed — honest fallback, never invented
+        // no tools ever ran / synthesis also failed — T58: if real tool data
+        // IS on the table, ship the deterministic briefing before the generic
+        // "rephrase" message — the data already answers the question.
+        const briefing = composeBriefing(lang, toolResults);
+        if (briefing) return void done(briefing);
         const fallback =
           lang === "ar"
             ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."

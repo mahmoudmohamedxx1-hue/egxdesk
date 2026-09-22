@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://foudalens.com/sitemap/core.xml</loc>
+    <lastmod>2026-09-22T00:00:00.000Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://foudalens.com/sitemap/stocks.xml</loc>
+    <lastmod>2026-09-22T00:00:00.000Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://foudalens.com/sitemap/news.xml</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://foudalens.com/sitemap/articles.xml</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://foudalens.com/sitemap/feed.xml</loc>
+  </sitemap>
+</sitemapindex>

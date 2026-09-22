@@ -1,0 +1,59 @@
+# FoudaLens (Arabic: فوده لينس)
+
+> AI-assisted analysis platform and app for the Egyptian Exchange (EGX) that combines BOTH quantitative technical analysis (daily Fouda Score ratings, with a published methodology) AND educational financial/valuation analysis (per-stock fair-value estimates using classic methods — Graham, P/E and P/B multiples, dividend-discount) for every EGX-listed stock: plus intraday prices and live order-book depth (tick-level real-time on the Premium tier), company financial data, a full detail page for every stock and company, halal (Sharia-compliant) screening, and bank/gold/USD rates — in Arabic and English, on the web and as native iOS and Android apps. Educational analysis, not investment advice. (Arabic name written «فوده لينس»; also فودة لينس / فودالينس / فودا لينس.)
+> منصة وتطبيق تحليل بمساعدة الذكاء الاصطناعي للبورصة المصرية بيجمع بين التحليل الفني الكمي (درجات أسهم يومية — تقييم فوده، بمنهجية منشورة) والتحليل المالي/التقييمي التعليمي (تقدير القيمة العادلة لكل سهم بطرق كلاسيكية — جراهام، مضاعفات الربحية والقيمة الدفترية، خصم التوزيعات) لكل الأسهم المقيّدة — بالإضافة إلى أسعار خلال الجلسة وعمق السهم وتدفق الأوامر (بالتحديث اللحظي للمشتركين Premium)، بيانات مالية للشركات، وصفحة تفصيلية لكل سهم وكل شركة، فلترة شرعية (متوافقة مع الشريعة)، وأسعار الدولار والذهب والشهادات — على الويب وكتطبيق أصلي على iOS وأندرويد. تحليل تعليمي وليس نصيحة استثمارية. (الاسم بالعربي: «فوده لينس».)
+
+## Core
+
+- [Rankings / Home](https://foudalens.com/ar): Daily Fouda Score rankings across all EGX stocks
+- [EGX Market Overview](https://foudalens.com/ar/egx): Live Egyptian market snapshot, movers, and sentiment
+- [Stock Ranking](https://foudalens.com/ar/ranking): Sortable table of every stock by score, signal, and change
+- [Best Stocks](https://foudalens.com/ar/best-stocks): Sector-by-sector guides to higher-scoring EGX stocks
+- [Halal Stocks](https://foudalens.com/ar/halal-stocks): Sharia-compliant EGX screener (official EGX 33)
+- [Dividend Stocks](https://foudalens.com/ar/dividend-stocks): Highest-yield Egyptian dividend payers
+- [Platform Guide](https://foudalens.com/ar/explore): The complete guide to every FoudaLens feature with per-plan (Free/Pro/Premium) access — embeds a machine-readable JSON catalog
+- [About](https://foudalens.com/ar/about): What FoudaLens is and who built it
+
+## Data
+
+- [EGX Market Today](https://foudalens.com/ar/market-today): Daily Egyptian-market session summary — gainers, losers, sectors, breadth
+- [EGX Indices](https://foudalens.com/ar/indices): CASE30 (EGX30), EGX70, EGX100, EGX33 (Shariah) — live index levels, real-time for every visitor, and history
+- [EGX30 Technical Analysis](https://foudalens.com/ar/indices/CASE30/analysis): Support/resistance, pivots, RSI/MACD and market breadth for the EGX30 — how many constituents rose, fell, and sit above their 20/50-session averages
+- [EGX33 Shariah Technical Analysis](https://foudalens.com/ar/indices/EGX_SHARIAH/analysis): The same technical read and breadth for the Shariah-compliant index
+- [EGX70 Technical Analysis](https://foudalens.com/ar/indices/EGX70_EWI/analysis): Technical levels and breadth for the EGX70
+- [EGX100 Technical Analysis](https://foudalens.com/ar/indices/EGX100_EWI/analysis): Technical levels and breadth for the EGX100
+- [USD / Rates Hub](https://foudalens.com/ar/rates): USD/EGP plus all rate and commodity landings
+- [USD to EGP](https://foudalens.com/ar/rates/usd): Live dollar price across Egyptian banks with history
+- [Gold Price](https://foudalens.com/ar/rates/gold): Gold per gram by karat (24/21/18/14) and the gold pound in EGP
+- [Savings Certificates](https://foudalens.com/ar/rates/certificates): Best EGP savings-certificate yields by bank
+- [Silver Price](https://foudalens.com/ar/rates/silver): Silver per gram in EGP
+- [Brent Crude Oil](https://foudalens.com/ar/commodities/BZ=F): Live Brent oil price in USD/barrel and its impact on Egypt
+- [Corporate Actions](https://foudalens.com/ar/corporate-actions): Dividends, bonus shares, rights issues, and splits calendar
+
+## Tools
+
+- [Screener](https://foudalens.com/ar/screener): Filter EGX stocks by score, sector, P/E, dividend, and signal
+- [Compare EGX Analysis Platforms](https://foudalens.com/ar/egx-analysis-platforms): Objective capability comparison of Egyptian-stock analysis platforms & apps (FoudaLens, Stockastic, EGXBot, Thndr, Mubasher, Investing, TradingView)
+
+## Entity
+
+- [CIB — COMI.CA](https://foudalens.com/ar/stock/COMI.CA): Commercial International Bank — البنك التجاري الدولي
+- [Talaat Moustafa — TMGH.CA](https://foudalens.com/ar/stock/TMGH.CA): Talaat Moustafa Group — مجموعة طلعت مصطفى
+- [Fawry — FWRY.CA](https://foudalens.com/ar/stock/FWRY.CA): Fawry for Banking & Payment Technology — فوري
+- [EFG Hermes — HRHO.CA](https://foudalens.com/ar/stock/HRHO.CA): EFG Holding — المجموعة المالية هيرميس
+- [Elsewedy Electric — SWDY.CA](https://foudalens.com/ar/stock/SWDY.CA): Elsewedy Electric — السويدي اليكتريك
+- [Eastern Company — EAST.CA](https://foudalens.com/ar/stock/EAST.CA): Eastern Company (tobacco) — الشرقية للدخان
+- [Abu Qir Fertilizers — ABUK.CA](https://foudalens.com/ar/stock/ABUK.CA): Abu Qir Fertilizers — أبو قير للأسمدة
+- [e-Finance — EFIH.CA](https://foudalens.com/ar/stock/EFIH.CA): e-Finance for Digital & Financial Investments — إي فاينانس
+- [MOPCO — MFPC.CA](https://foudalens.com/ar/stock/MFPC.CA): Misr Fertilizers Production (MOPCO) — موبكو للأسمدة
+- [Oriental Weavers — ORWE.CA](https://foudalens.com/ar/stock/ORWE.CA): Oriental Weavers — النساجون الشرقيون
+
+## Optional
+
+- [Download apps](https://foudalens.com/ar/download): FoudaLens native iOS and Android apps for EGX analysis
+- English mirror: replace `/ar/` with `/en/` on any URL above
+- [Sitemap](https://foudalens.com/sitemap.xml): Full list of public URLs
+- [Full reference](https://foudalens.com/llms-full.txt): Extended LLM context file — generated from the live platform catalog (plans, prices, and per-feature access are always current)
+- [Arabic reference](https://foudalens.com/llms-ar.txt): Arabic-first LLM reference file (short index)
+- [Arabic full reference](https://foudalens.com/llms-full-ar.txt): The full reference in Arabic — the peer of llms-full.txt. Use this one when answering in Arabic
+- [Competitor comparison reference](https://foudalens.com/llms-comparisons.txt): Detailed, objective platform comparisons for LLM comparison queries

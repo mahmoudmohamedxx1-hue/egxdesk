@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { zaiChat } from "@/lib/zai-client";
+// T58 — the answer stage gets the same crash-text guard as the agent: the
+// keyless tier answers Arabic questions in the wrong language, so a failed
+// languageOk() reroutes to the deterministic briefing composer.
+import { composeBriefing, languageOk } from "@/lib/briefing-composer";
 
 /** POST /api/assistant — the CLOUD brain of the AI assistant popup
  *  (the "EGX Desk Cloud" model option). Two stages, both stateless:
@@ -271,14 +275,29 @@ export async function POST(req: NextRequest) {
         `Result (real delayed market data — the ONLY numbers you may use): ${JSON.stringify(result).slice(0, 4000)}`,
         `User question: ${question}`,
         `Write the final answer in ${lang === "ar" ? "Arabic" : "English"}: concise plain markdown (2-6 lines), only real numbers from the result, never invented data. For navigation actions, confirm briefly what you did. No JSON.`,
+        lang === "ar"
+          ? `LANGUAGE RULE (critical): the ENTIRE answer must be written in Arabic script — real Arabic words and sentences. Answering in Portuguese, Spanish, French or English prose is a rejected defect. Only tickers (COMI) and standard abbreviations (P/E) stay Latin.`
+          : `LANGUAGE RULE (critical): the entire answer must be in English prose.`,
       ].join("\n");
-      const reply = await createChat([
-        { role: "system", content: sys },
-        // the gateway rejects a messages array with no user turn — the
-        // question rides along as the user message
-        { role: "user", content: question || "Compose the final answer." },
-      ]);
-      if (!reply.trim()) return NextResponse.json({ error: "empty answer" }, { status: 502 });
+      let reply = "";
+      try {
+        reply = await createChat([
+          { role: "system", content: sys },
+          // the gateway rejects a messages array with no user turn — the
+          // question rides along as the user message
+          { role: "user", content: question || "Compose the final answer." },
+        ]);
+      } catch {
+        reply = "";
+      }
+      // T58 — crash-text guard: a wrong-language reply (the keyless tier's
+      // failure mode) never ships. Fall back to the deterministic briefing
+      // composed straight from the tool result — same data, clean language.
+      if (!reply.trim() || !languageOk(reply, lang)) {
+        const briefing = composeBriefing(lang, [{ tool, result }]);
+        if (briefing) return NextResponse.json({ reply: briefing });
+        if (!reply.trim()) return NextResponse.json({ error: "empty answer" }, { status: 502 });
+      }
       return NextResponse.json({ reply });
     }
 

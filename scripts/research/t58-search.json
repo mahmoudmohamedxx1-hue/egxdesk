@@ -1,0 +1,235 @@
+{
+  "searches": {
+    "adasa_esthmr": [
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.google.ar.lens&hl=ar",
+        "name": "‏عدسة Google - التطبيقات على Google Play",
+        "snippet": "‏ تسمح لك \"عدسة Google\" بالبحث في ما تراه، وتنفيذ المهام بشكل أسرع ، والتفاعل مع العالم من حولك باستخدام كاميرا الهاتف أو صورة فقط. إجراء مسح ضوئي لنص وترجمته Read more",
+        "host_name": "play.google.com",
+        "rank": 0,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://lens.google",
+        "name": "عدسة Google - البحث عن معلومات حول ما تراه",
+        "snippet": "تعرَّف على الطريقة التي يمكن أن تساعدك بها \" عدسة Google\" ضمن تطبيق Google في استكشاف العالم من حولك. يمكنك استخدام كاميرا هاتفك بطريقة جديدة تمامًا للبحث عن ...",
+        "host_name": "lens.google",
+        "rank": 1,
+        "date": "",
+        "favicon": ""
+      }
+    ],
+    "esthmr_adasa": {
+      "error": "Error: Function invoke failed with status 500: {\"result\":null,\"error\":\"Search failed: request failed with status 422: {\\\"code\\\":422,\\\"data\\\":null,\\\"message\\\":\\\"No search results available for query \\\\\\\"esthmr\\\\\\\" \\\\\\\"عدسة الملكية\\\\\\\"\\\",\\\"name\\\":\\\"AssertionFailureError\\\",\\\"readableMessage\\\":\\\"Asserti"
+    },
+    "esthmr_ownership_lens": [
+      {
+        "url": "https://www.instagram.com/reel/DdjtGN_OUkb",
+        "name": "Should I patent that? Esthmr.com -> stocks -> Ownership",
+        "snippet": "Should I patent that? Esthmr.com -> stocks -> Ownership lens #buildinpublic #startup #the_barbarian_project #egx #esthmr · 10 ...",
+        "host_name": "www.instagram.com",
+        "rank": 0,
+        "date": "Sep 21, 2026",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.tiktok.com/@the.barbarian.project/video/7688044671565712658",
+        "name": "‏Esthmr.com -> stocks -> Ownership lens #buildinpublic #startup",
+        "snippet": "Esthmr.com -> stocks -> Ownership lens #buildinpublic #startup #the_barbarian_project #egx #esthmr. Esthmr.com -> stocks -> Ownership lens ...",
+        "host_name": "www.tiktok.com",
+        "rank": 1,
+        "date": "Sep 21, 2026",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.instagram.com/the_barbarian_project",
+        "name": "The barbarian project (@the_barbarian_project)",
+        "snippet": "Should I patent that? Esthmr.com -> stocks -> Ownership lens #buildinpublic #startup #the_barbarian_project #egx #esthmr ...",
+        "host_name": "www.instagram.com",
+        "rank": 2,
+        "date": "",
+        "favicon": ""
+      }
+    ],
+    "esthmr_site": [
+      {
+        "url": "https://www.egx.com.eg",
+        "name": "بيانات السوق - البيانات التاريخية - أهم مؤشرات البورصة",
+        "snippet": "موقع البورصة المصرية - عرض بيانات الاسهم, السندات, الأوراق المالية وتفاصيل ... كيفية القيد بالبورصة · رسوم القيد · سجل وكلاء القيد · نماذج ومستندات إدارة ... Read more",
+        "host_name": "www.egx.com.eg",
+        "rank": 0,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://sa.investing.com",
+        "name": "سوق الأسهم في مصر",
+        "snippet": "ابقى على اطلاع حول البيانات الحالية في سوق الأسهم في مصر ، بما في ذلك الأسهم القيادية وكذلك أسهم الشركات الكبيرة والصغيرة. انقر على الأسهم الفردية للحصول على ... Read more",
+        "host_name": "sa.investing.com",
+        "rank": 1,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.egbroker.com",
+        "name": "شاشة الأسعار",
+        "snippet": "الأسهم المتداولة . الرمز, الاسم, التاريخ, أخر سعر, التغير, الطلب, العرض, التداول, فتح, أعلى, أدنى. الأسعار متأخرة 15 دقيقة بناء على أسعار البورصة المصرية. ©2026 ... Read more",
+        "host_name": "www.egbroker.com",
+        "rank": 2,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://ar.tradingview.com",
+        "name": "سوق الأسهم المصري‎ — أسعار فورية، أخبار، أفكار",
+        "snippet": "شاهد أفضل أفكار تداول وتحاليل سوق الأسهم - ‎ مصر ‎. احصل على لمحة عامة عن الأسهم العالمية، افتح الرسوم البيانية المجانية للأسعار اللحظية للأسهم واكتشف مفكرة ...",
+        "host_name": "ar.tradingview.com",
+        "rank": 3,
+        "date": "",
+        "favicon": ""
+      }
+    ],
+    "esthmr_twitter": [
+      {
+        "url": "https://podcasts.apple.com",
+        "name": "Apple Quarterly Earnings Call - Podcast",
+        "snippet": "Audio replays of conference calls discussing Apple (AAPL) quarterly financial results. Please note that some of the comments in Apple's quarterly earnings ...",
+        "host_name": "podcasts.apple.com",
+        "rank": 0,
+        "date": "",
+        "favicon": ""
+      }
+    ],
+    "foudalens": [
+      {
+        "url": "https://foudalens.com",
+        "name": "حمّل تطبيق FoudaLens | تحليل البورصة المصرية",
+        "snippet": "مميزات التطبيق · تحليل فوري. تحليل كمي لكل أسهم البورصة المصرية مع نقاط فوده سكور · بيانات لحظية. أسعار الأسهم، الدولار، والذهب لحظة بلحظة · تجربة أصلية. تطبيق ... Read more",
+        "host_name": "foudalens.com",
+        "rank": 0,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://apps.apple.com",
+        "name": "FoudaLens - App Store",
+        "snippet": "FoudaLens — مصدرك الأول لأخبار وبيانات البورصة المصرية تطبيق إخباري متخصص في تغطية أخبار سوق الأوراق المالية المصرية (EGX) بشكل لحظي ومنظم. Read more",
+        "host_name": "apps.apple.com",
+        "rank": 1,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.foudalens.app",
+        "name": "FoudaLens - Apps on Google Play",
+        "snippet": "May 17, 2026 — FoudaLens — Your premier source for Egyptian Stock Exchange news and data . A news app specializing in real-time and organized coverage of ... Read more",
+        "host_name": "play.google.com",
+        "rank": 2,
+        "date": "May 17, 2026",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.appbrain.com",
+        "name": "FoudaLens - Free APK Download for Android",
+        "snippet": "Sep 8, 2026 — FoudaLens is a free finance app developed by Foudalens that has 1000+ downloads. Follow the latest news from the Egyptian Stock Exchange, ...",
+        "host_name": "www.appbrain.com",
+        "rank": 3,
+        "date": "Sep 8, 2026",
+        "favicon": ""
+      }
+    ],
+    "foudalens_features": [
+      {
+        "url": "https://www.mdpi.com",
+        "name": "Examining Market Quality on the Egyptian Exchange (EGX)",
+        "snippet": "by A Rushdy · 2025 · Cited by 2 — The stock prices in our sample exhibit a wide range (EGP 0.29 to 462.77), resulting in relative tick sizes (tick size/price) between 0.002% and 3.45%.",
+        "host_name": "www.mdpi.com",
+        "rank": 0,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.researchgate.net",
+        "name": "Performance and Activity of Egyptian Stock Exchange over",
+        "snippet": "Feb 28, 2024 — Recently, EGX has 217 traded companies, composing 98% of total listed companies in 2015.",
+        "host_name": "www.researchgate.net",
+        "rank": 1,
+        "date": "Feb 28, 2024",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.amcham.org.eg",
+        "name": "The Stock Market",
+        "snippet": "The EGX shed EGP 55.4 billion (USD 3.5 billion) trading, margin trading and short selling, There are currently 27 listed SMEs on the small-cap bourse, with a ...",
+        "host_name": "www.amcham.org.eg",
+        "rank": 2,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.egx.com.eg",
+        "name": ".:: Egyptian Exchange ::.",
+        "snippet": "To be a World-Class, Egypt -based Exchange : the Premier Capital Market in the Middle East & North Africa Region that best serves its stakeholders.",
+        "host_name": "www.egx.com.eg",
+        "rank": 3,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.ostoulcapital.com",
+        "name": "How Does the Egyptian Stock Exchange (EGX) Work?",
+        "snippet": "Dec 20, 2023 — The EGX is a marketplace where investors can buy and sell shares of publicly traded companies . Think of it as a giant online supermarket, but ... Read more",
+        "host_name": "www.ostoulcapital.com",
+        "rank": 4,
+        "date": "Dec 20, 2023",
+        "favicon": ""
+      },
+      {
+        "url": "https://www.egypttoday.com",
+        "name": "New investors in Egypt's stock market surge 110% to",
+        "snippet": "May 13, 2026 — Egypt's stock market saw a sharp rise in new investor registrations during April, with the number of newly coded investors jumping 110 percent ...",
+        "host_name": "www.egypttoday.com",
+        "rank": 5,
+        "date": "May 13, 2026",
+        "favicon": ""
+      },
+      {
+        "url": "https://simplywall.st",
+        "name": "Egyptian (CASE/EGX) Market Analysis & Valuation",
+        "snippet": "Daily update of the Egyptian market . From market news, valuation, and performance to stock trends, gainers, and losers.",
+        "host_name": "simplywall.st",
+        "rank": 6,
+        "date": "",
+        "favicon": ""
+      },
+      {
+        "url": "https://thndr.app",
+        "name": "EGX – Thndr Learn",
+        "snippet": "The stock market acts as a middleman between companies who want to raise money, and people like you and me, who want to invest their money and create wealth. Read more",
+        "host_name": "thndr.app",
+        "rank": 7,
+        "date": "",
+        "favicon": ""
+      }
+    ]
+  },
+  "pages": {
+    "esthmr_home": {
+      "title": "إستثمر · ESTHMR — بيانات البورصة المصرية من مصادرها",
+      "url": "https://esthmr.com/",
+      "html": "<html lang=\"ar\" dir=\"rtl\" data-theme=\"light\" style=\"--tape-h: 0px; --head-h: 0px;\" class=\"lp-open\"><head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n<title>إستثمر · ESTHMR — بيانات البورصة المصرية من مصادرها</title>\n<meta name=\"description\" content=\"بلومبرج البورصة المصرية... ذكاء مالي فوري وإفصاحات الشركات الحقيقية فور إيداعها، ورادار صفقات الداخليين. جهة نشر بحثي غير مرخّصة من الرقابة المالية؛ لا نقدّم توصيات.\">\n<meta name=\"robots\" content=\"noindex\">\n<link rel=\"icon\" href=\"/favicon.svg\" type=\"image/svg+xml\">\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"\">\n<link rel=\"dns-prefetch\" href=\"//www.alborsaanews.com\">\n<link rel=\"dns-prefetch\" href=\"//www.hapijournal.com\">\n<link rel=\"dns-prefetch\" href=\"//www.arabfinance.com\">\n<link rel=\"dns-prefetch\" href=\"//almalnews.com\">\n<link rel=\"preconnect\" href=\"https://www.alborsaanews.com\" crossorigin=\"\">\n<link rel=\"preconnect\" href=\"https://www.hapijournal.com\" crossorigin=\"\">\n<link rel=\"preconnect\" href=\"https://www.arabfinance.com\" crossorigin=\"\">\n<link rel=\"preconnect\" href=\"https://almalnews.com\" crossorigin=\"\">\n<link href=\"https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap\" rel=\"stylesheet\">\n<link rel=\"stylesheet\" href=\"./design.css\">\n<link rel=\"stylesheet\" href=\"./primitives.css\">\n<link rel=\"stylesheet\" href=\"./shell.css\">\n<link rel=\"stylesheet\" href=\"./journal.css\">\n<link rel=\"stylesheet\" href=\"./home.css\">\n<link rel=\"stylesheet\" href=\"./ai.css\">\n<link rel=\"stylesheet\" href=\"./flow-trackers.css\">\n<link rel=\"stylesheet\" href=\"./market-story.css\">\n<link rel=\"stylesheet\" href=\"./simulator.css\">\n<link rel=\"stylesheet\" href=\"./chart-viewer.css\">\n<link rel=\"stylesheet\" href=\"./last-pick.css?v=holdem-6\">\n<script src=\"https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit\" async=\"\" defer=\"\"></script><script src=\"https://accounts.google.com/gsi/client\" async=\"\" defer=\"\"></script><style id=\"googleidentityservice_button_styles\">.qJTHM{-moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;color:#202124;direction:ltr;-webkit-touch-callout:none;font-family:Roboto-Regular,arial,sans-serif;-webkit-font-smoothing:antialiased;font-weight:400;margin:0;overflow:hidden;-webkit-text-size-adjust:100%}.ynRLnc{left:-9999px;position:absolute;top:-9999px}.L6cTce{display:none}.bltWBb{overflow-wrap:break-word;word-break:break-word}.hSRGPd{color:#1a73e8;cursor:pointer;font-weight:500;text-decoration:none}.Bz112c-W3lGp{height:16px;width:16px}.Bz112c-E3DyYd{height:20px;width:20px}.Bz112c-r9oPif{height:24px;width:24px}.Bz112c-u2z5K{height:36px;width:36px}.Bz112c-uaxL4e{border-radius:10px}.LgbsSe-Bz112c{display:block}.S9gUrf-YoZ4jf{border:none;margin:0;padding:0}.S9gUrf-YoZ4jf *{border:none;margin:0;padding:0}.fFW7wc-ibnC6b>.aZ2wEe>div{border-color:#4285f4}.P1ekSe-ZMv3u{-webkit-transition:height .2s linear;transition:height .2s linear}.P1ekSe-ZMv3u>div:first-child{background-color:#1a73e8!important;-webkit-transition:width .3s linear;transition:width .3s linear}.P1ekSe-ZMv3u>div:nth-child(2){background-image:-webkit-gradient(linear,left top,right top,from(rgba(255,255,255,.7)),to(rgba(255,255,255,.7))),-webkit-gradient(linear,left top,right top,from(#1a73e8),to(#1a73e8))!important;background-image:-webkit-linear-gradient(left,rgba(255,255,255,.7),rgba(255,255,255,.7)),-webkit-linear-gradient(left,#1a73e8,#1a73e8)!important;background-image:linear-gradient(90deg,rgba(255,255,255,.7),rgba(255,255,255,.7)),linear-gradient(90deg,#1a73e8,#1a73e8)!important}.P1ekSe-ZMv3u>div:nth-child(3){background-image:-webkit-gradient(linear,left top,right top,from(rgba(255,255,255,.7)),to(rgba(255,255,255,.7))),-webkit-gradient(linear,left top,right top,from(#1a73e8),to(#1a73e8))!important;background-image:-webkit-linear-gradient(left,rgba(255,255,255,.7),rgba(255,255,255,.7)),-webkit-linear-gradient(left,#1a73e8,#1a73e8)!important;background-image:linear-gradient(90deg,rgba(255,255,255,.7),rgba(255,255,255,.7)),linear-gradient(90deg,#1a73e8,#1a73e8)!important}.haAclf{display:inline-block}.nsm7Bb-HzV7m-LgbsSe{border-radius:4px;box-sizing:border-box;-webkit-transition:background-color .218s,border-color .218s;transition:background-color .218s,border-color .218s;-moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-appearance:none;background-color:#fff;background-image:none;border:1px solid #dadce0;color:#3c4043;cursor:pointer;font-family:Google Sans,arial,sans-serif;font-size:.875rem;height:40px;letter-spacing:.25px;outline:none;overflow:hidden;padding:0 12px;position:relative;text-align:center;vertical-align:middle;white-space:nowrap;width:auto}.nsm7Bb-HzV7m-LgbsSe.TzA9Ye-LgbsSe{font-size:14px}@media screen and (-ms-high-contrast:active){.nsm7Bb-HzV7m-LgbsSe{border:2px solid windowText;color:windowText}}@media screen and (preferes-contrast:more){.nsm7Bb-HzV7m-LgbsSe{color:#000}}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe{font-size:.875rem;height:32px;letter-spacing:.25px;padding:0 10px}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe.TzA9Ye-LgbsSe{font-size:14px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe{font-size:.6875rem;height:20px;letter-spacing:.3px;padding:0 8px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe.TzA9Ye-LgbsSe{font-size:11px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe{padding:0;width:40px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.pSzOP-SxQuSe{width:32px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.purZT-SxQuSe{width:20px}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK{border-radius:20px}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK.pSzOP-SxQuSe{border-radius:16px}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK.purZT-SxQuSe{border-radius:10px}.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc{border:1px solid #8e918f;background-color:#131314;color:#e3e3e3}.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc{border:none;color:#fff}.nsm7Bb-HzV7m-LgbsSe.MFS4be-v3pZbf-Ia7Qfc{background-color:#1a73e8}.nsm7Bb-HzV7m-LgbsSe.MFS4be-JaPV2b-Ia7Qfc{background-color:#202124;color:#e8eaed}@media screen and (prefers-contrast:more){.nsm7Bb-HzV7m-LgbsSe.MFS4be-JaPV2b-Ia7Qfc{color:#fff}}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{height:18px;margin-right:8px;min-width:18px;width:18px}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{height:14px;min-width:14px;width:14px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{height:10px;min-width:10px;width:10px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-Bz112c{margin-left:8px;margin-right:-4px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{margin:0;padding:10px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.pSzOP-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{padding:8px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{padding:4px}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-top-left-radius:3px;border-bottom-left-radius:3px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-box-align:center;-webkit-align-items:center;align-items:center;background-color:#fff;height:36px;margin-left:-10px;margin-right:12px;min-width:36px;width:36px}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf .nsm7Bb-HzV7m-LgbsSe-Bz112c,.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf .nsm7Bb-HzV7m-LgbsSe-Bz112c{margin:0;padding:0}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{height:28px;margin-left:-8px;margin-right:10px;min-width:28px;width:28px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{height:16px;margin-left:-6px;margin-right:8px;min-width:16px;width:16px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:3px;margin-left:2px;margin-right:0;padding:0}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:18px}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:14px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:8px}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-bN97Pc-sM5MNb{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;-webkit-box-align:center;align-items:center;-webkit-flex-direction:row;-webkit-box-orient:horizontal;-webkit-box-direction:normal;flex-direction:row;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;-webkit-flex-wrap:nowrap;flex-wrap:nowrap;height:100%;position:relative;width:100%}.nsm7Bb-HzV7m-LgbsSe .oXtfBe-l4eHX{-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-BPrWId{-webkit-flex-grow:1;-webkit-box-flex:1;flex-grow:1;font-family:Google Sans,arial,sans-serif;font-weight:500;overflow:hidden;text-overflow:ellipsis;vertical-align:top}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-BPrWId{font-weight:300}.nsm7Bb-HzV7m-LgbsSe .oXtfBe-l4eHX .nsm7Bb-HzV7m-LgbsSe-BPrWId{-webkit-flex-grow:0;-webkit-box-flex:0;flex-grow:0}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-MJoBVe{-webkit-transition:background-color .218s;transition:background-color .218s;bottom:0;left:0;position:absolute;right:0;top:0}.nsm7Bb-HzV7m-LgbsSe:focus,.nsm7Bb-HzV7m-LgbsSe:hover{box-shadow:none;border-color:rgb(210,227,252);outline:none}.nsm7Bb-HzV7m-LgbsSe:focus-within{outline:2px solid #00639b;border-color:transparent}.nsm7Bb-HzV7m-LgbsSe:hover .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(66,133,244,.08)}.nsm7Bb-HzV7m-LgbsSe:active .nsm7Bb-HzV7m-LgbsSe-MJoBVe,.nsm7Bb-HzV7m-LgbsSe:focus .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(66,133,244,.1)}.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc:hover .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.08)}.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc:active .nsm7Bb-HzV7m-LgbsSe-MJoBVe,.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc:focus .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.12)}.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc:hover .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.24)}.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc:active .nsm7Bb-HzV7m-LgbsSe-MJoBVe,.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc:focus .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.32)}.nsm7Bb-HzV7m-LgbsSe .n1UuX-DkfjY{border-radius:50%;display:-webkit-box;display:-webkit-flex;display:flex;height:20px;margin-left:-4px;margin-right:8px;min-width:20px;width:20px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId{font-family:Roboto;font-size:12px;text-align:left}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff .fmcmS,.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .ssJRIf{overflow:hidden;text-overflow:ellipsis}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;-webkit-box-align:center;align-items:center;color:#5f6368;fill:#5f6368;font-size:11px;font-weight:400}.nsm7Bb-HzV7m-LgbsSe.jVeSEe.i5vt6e-to915-Ia7Qfc .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{color:#c4c7c5;fill:#c4c7c5}.nsm7Bb-HzV7m-LgbsSe.jVeSEe.MFS4be-Ia7Qfc .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{color:#e8eaed;fill:#e8eaed}@media screen and (prefers-contrast:more){.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff,.nsm7Bb-HzV7m-LgbsSe.jVeSEe.MFS4be-Ia7Qfc .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{color:#000;fill:#000}}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff .Bz112c{height:18px;margin:-3px -3px -3px 2px;min-width:18px;width:18px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-top-left-radius:0;border-bottom-left-radius:0;border-top-right-radius:3px;border-bottom-right-radius:3px;margin-left:12px;margin-right:-10px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:18px}.L5Fo6c-sM5MNb{border:0;display:block;left:0;position:relative;top:0}.L5Fo6c-bF1uUb{border-radius:4px;bottom:0;cursor:pointer;left"
+    },
+    "foudalens_home": {
+      "title": "الصفحة الرئيسية - تحليل البورصة المصرية",
+      "url": "https://foudalens.com/",
+      "html": "<html lang=\"ar-EG\" dir=\"rtl\" class=\"is-homepage\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"><link rel=\"stylesheet\" href=\"/_next/static/chunks/1s9be-1aym_0r.css\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\" data-precedence=\"next\"><link rel=\"stylesheet\" href=\"/_next/static/chunks/14n8nypp3o8bj.css\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\" data-precedence=\"next\"><link rel=\"preload\" as=\"script\" fetchpriority=\"low\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\" href=\"/_next/static/chunks/1ih9z_l56apxx.js\"><script async=\"\" src=\"https://scripts.clarity.ms/0.8.70/clarity.js\"></script><script src=\"https://connect.facebook.net/signals/config/1412535723895664?v=2.9.406&amp;r=stable&amp;domain=foudalens.com&amp;hme=8a9e6a9b82926b8f07fd0a2edd8b8f1ef075648059d1bb52ec651feab764c219&amp;ex_m=117%2C236%2C168%2C27%2C81%2C82%2C160%2C77%2C76%2C11%2C178%2C101%2C20%2C152%2C140%2C46%2C84%2C89%2C148%2C173%2C180%2C8%2C4%2C5%2C7%2C6%2C3%2C102%2C114%2C32%2C17%2C31%2C18%2C33%2C34%2C35%2C37%2C55%2C161%2C86%2C125%2C22%2C24%2C51%2C47%2C49%2C48%2C94%2C103%2C107%2C123%2C159%2C162%2C53%2C124%2C29%2C26%2C132%2C78%2C43%2C164%2C163%2C165%2C156%2C154%2C30%2C42%2C66%2C122%2C175%2C79%2C21%2C127%2C92%2C75%2C23%2C96%2C97%2C129%2C95%2C150%2C149%2C153%2C108%2C174%2C177%2C41%2C56%2C126%2C54%2C182%2C109%2C181%2C203%2C250%2C83%2C264%2C263%2C262%2C14%2C25%2C28%2C40%2C62%2C116%2C68%2C10%2C72%2C110%2C111%2C112%2C118%2C143%2C38%2C36%2C145%2C146%2C147%2C142%2C141%2C169%2C85%2C172%2C170%2C171%2C57%2C67%2C136%2C19%2C176%2C52%2C313%2C314%2C315%2C312%2C328%2C353%2C243%2C232%2C69%2C233%2C231%2C356%2C347%2C59%2C244%2C120%2C144%2C91%2C134%2C61%2C133%2C139%2C138%2C65%2C73%2C71%2C166%2C87%2C88%2C128%2C44%2C39%2C60%2C63%2C113%2C179%2C1%2C137%2C16%2C135%2C12%2C2%2C64%2C104%2C15%2C74%2C70%2C131%2C100%2C99%2C184%2C185%2C105%2C106%2C9%2C115%2C183%2C58%2C157%2C98%2C90%2C80%2C130%2C119%2C50%2C158%2C0%2C93%2C151%2C155%2C167%2C45%2C121%2C13%2C186\" async=\"\"></script><script async=\"\" src=\"https://connect.facebook.net/en_US/fbevents.js\"></script><script async=\"\" src=\"https://www.clarity.ms/tag/wrngzvo5vv\"></script><script src=\"/_next/static/chunks/37v5vbchsa48o.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/23hg1jel1fqxk.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/2c4mfpy6_6mol.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/turbopack-2w_njhkk-l3be.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/33t46atd3n2zd.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/008vj-el--d3k.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/05v287r889ktj.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/2ji1y302r_hcw.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/3531rjsa046ta.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/2bhxf0cfgj79t.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/0eu3qe3bbnzzq.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/07a2mbsfz7bmk.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/2m1wtu8lvdz1e.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/082ib_ietkh-a.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/3fzm6ht2uxh_r.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/19uyzliz80a4_.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/0g-ugtjtkew2d.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/2qpq5cvv9_whg.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/3cjmrg46hag0s.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/2-0l5fwr-_qk3.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/03zlf6x-o7463.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/36b-1_w_i4-fk.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><script src=\"/_next/static/chunks/19gd8dj_lz0uo.js\" async=\"\" nonce=\"59d5fd35-0cef-4fc9-8921-b957d338f571\"></script><meta name=\"theme-color\" content=\"#FFFFFF\" media=\"(prefers-color-scheme: light)\"><meta name=\"theme-color\" content=\"#0B0F14\" media=\"(prefers-color-scheme: dark)\"><title>الصفحة الرئيسية - تحليل البورصة المصرية | FoudaLens</title><meta name=\"description\" content=\"استكشف منصة FoudaLens لتحليل البورصة المصرية وآخر أخبار السوق.\"><link rel=\"manifest\" href=\"/manifest.json\"><meta name=\"keywords\" content=\"البورصة المصرية, البورصة, أسعار الأسهم اليوم, أسعار الأسهم المصرية, أسعار أسهم البورصة المصرية, أسهم البورصة المصرية, أسهم مصرية, سوق الأسهم المصرية, جلسة التداول اليوم, نتائج البورصة اليوم, سعر الذهب اليوم, سعر الذهب اليوم في مصر, اسعار الذهب اليوم, اسعار الذهب اليوم في مصر, سعر الذهب لحظياً, أسعار الذهب لحظياً, سعر جرام الذهب, سعر جرام الذهب اليوم, سعر الدولار اليوم, سعر الدولار, سعر الدولار اليوم في مصر, الدولار اليوم, الدولار في مصر, سعر الدولار في البنوك, شهادات ادخار, شهادات ادخار 2026, أعلى شهادة ادخار, أعلى عائد شهادة, أفضل شهادات 2026, شهادة بأعلى فائدة, مؤشر EGX30, مؤشر EGX 30, إي جي إكس 30, كيس 30, CASE 30, هل البورصة حلال, البورصة حلال ولا حرام, أسهم حلال, تحليل الأسهم المصرية, تقييم فوده, Fouda Score, الأسهم الأكثر ارتفاعاً, الأسهم الأكثر ارتفاعا, الأسهم الأكثر انخفاضاً, الأسهم الأكثر انخفاضا, الأسهم الأكثر نشاطاً, أسهم صاعدة اليوم, أسهم هابطة اليوم, أعلى الأسهم ارتفاعاً, أكبر الخاسرين, أكبر الرابحين, أعلى الأسهم تداولاً, أسهم قوية اليوم, الأسهم الرائجة, سهم البنك التجاري الدولي, سهم CIB, سهم COMI, سهم طلعت مصطفى, سهم TMGH, سهم السويدي إليكتريك, سهم السويدي, سهم SWDY, سهم هيرميس, سهم EFG, فوده لينس, FoudaLens, Fouda Lens, فوده لنز, فودة لينس, منصة فوده لينس, تطبيق فوده لينس, محمد فوده, محمد عادل فوده, نقاط فوده, مؤشر فوده, Fouda Index, تحليل فوده, منصة تحليل البورصة المصرية, Egyptian stock analysis platform, أفضل ذكاء اصطناعي للبورصة المصرية, أحسن AI للبورصة المصرية, أفضل تطبيق ذكاء اصطناعي للأسهم المصرية, ذكاء اصطناعي EGX, AI للبورصة المصرية, أفضل موقع للبورصة المصرية, أحسن موقع لتحليل البورصة المصرية, أفضل تطبيق للبورصة المصرية, تطبيق تحليل أسهم مصرية, تحليلات أسهم يومية مصر, تحليلات أسهم البورصة المصرية, أفضل تحليلات أسهم مصرية, برنامج تحليل أسهم مصرية, موقع تحليل أسهم البورصة المصرية, تحليل البورصة المصرية بالذكاء الاصطناعي, تحليل أسهم مصرية AI, منصة ذكاء اصطناعي للبورصة, بوت تحليل البورصة المصرية, أفضل بوت بورصة مصرية, تحليل سهم مصري بالذكاء الاصطناعي, best AI for Egypt stock market, best AI for EGX, best AI for Egyptian stocks, best AI tool for Egyptian stock market, AI stock scores Egypt, AI stock analysis Egypt, EGX AI platform, Egyptian stock market AI, daily stock analysis Egypt, daily EGX movers, best app for Egyptian stocks, best Egyptian stock screener, EGX live data AI, Egyptian stock analysis AI, AI for Egyptian stock exchange, EGX trading signals AI, EGX, Egyptian Stock Exchange, اسعار الاسهم اليوم, اسعار البورصة المصرية مباشر, stock analysis, تحليل أسهم, نقاط فودة, investment, استثمار, تداول, بورصة مصر\"><meta name=\"robots\" content=\"index, follow\"><meta name=\"googlebot\" content=\"index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1\"><meta name=\"llms.txt\" content=\"https://foudalens.com/llms.txt\"><meta name=\"llms-full.txt\" content=\"https://foudalens.com/llms-full.txt\"><link rel=\"canonical\" href=\"https://foudalens.com/ar\"><link rel=\"alternate\" hreflang=\"x-default\" href=\"https://foudalens.com/ar\"><link rel=\"alternate\" hreflang=\"ar\" href=\"https://foudalens.com/ar\"><link rel=\"alternate\" hreflang=\"en\" href=\"https://foudalens.com/en\"><meta name=\"apple-itunes-app\" content=\"app-id=6771032049\"><meta property=\"og:title\" content=\"الصفحة الرئيسية - تحليل البورصة المصرية\"><meta property=\"og:description\" content=\"استكشف منصة FoudaLens لتحليل البورصة المصرية وآخر أخبار السوق.\"><meta property=\"og:url\" content=\"https://foudalens.com/ar\"><meta property=\"og:site_name\" content=\"FoudaLens\"><meta property=\"og:locale\" content=\"ar_EG\"><meta property=\"og:image\" content=\"https://foudalens.com/api/og/page?title=%D8%A7%D9%84%D8%A8%D9%88%D8%B1%D8%B5%D8%A9%20%D8%A7%D9%84%D9%85%D8%B5%D8%B1%D9%8A%D8%A9%20%D8%A7%D9%84%D9%8A%D9%88%D9%85%D8%8C%20%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1%20%D9%88%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D8%A3%D8%B3%D9%87%D9%85%20EGX&amp;subtitle=%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1%20%D8%A7%D9%84%D8%A8%D9%88%D8%B1%D8%B5%D8%A9%20%D8%A7%D9%84%D9%85%D8%B5%D8%B1%D9%8A%D8%A9%20%D9%84%D8%AD%D8%B8%D9%8A%D8%A7%D9%8B%20%D9%85%D8%B9%20%D8%AA%D8%B5%D9%86%D9%8A%D9%81%20%D9%88%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D9%83%D9%85%D9%8A%20%D9%8A%D9%88%D9%85%D9%8A%20%D9%84%D8%A3%D8%B3%D9%87%D9%85%20EGX.%20%D8%AA%D9%82%D9%8A%D9%8A%D9%85%20%D9%81%D9%88%D8%AF%D9%87%D8%8C%20%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D9%81%D9%86%D9%8A%D8%8C%20%D9%88%D8%A5%D8%B4%D8%A7%D8%B1%D8%A7%D8%AA%20%D9%88%D8%B5%D9%81%D9%8A%D8%A9%20%D9%84%D9%83%D9%84%20%D8%A3%D8%B3%D9%87%D9%85%20%D8%A7%D9%84%D8%A8%D9%88%D8%B1%D8%B5%D8%A9%20%D8%A7%D9%84%D9%85%D8%B5%D8%B1%D9%8A%D8%A9.\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta property=\"og:image:alt\" content=\"FoudaLens - البورصة المصرية اليوم، أسعار وتحليل أسهم EGX\"><meta property=\"og:type\" content=\"website\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:site\" content=\"@FoudaLens\"><meta name=\"twitter:creator\" content=\"@FoudaLens\"><meta name=\"twitter:title\" content=\"الصفحة الرئيسية - تحليل البورصة المصرية\"><meta name=\"twitter:description\" content=\"استكشف منصة FoudaLens لتحليل البورصة المصرية وآخر أخبار السوق.\"><meta name=\"twitter:image\" content=\"https://foudalens.com/api/og/page?title=%D8%A7%D9%84%D8%A8%D9%88%D8%B1%D8%B5%D8%A9%20%D8%A7%D9%84%D9%85%D8%B5%D8%B1%D9%8A%D8%A9%20%D8%A7%D9%84%D9%8A%D9%88%D9%85%D8%8C%20%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1%20%D9%88%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D8%A3%D8%B3%D9%87%D9%85%20EGX&amp;subtitle=%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1%20%D8%A7%D9%84%D8%A8%D9%88%D8%B1%D8%B5%D8%A9%20%D8%A7%D9%84%D9%85%D8%B5%D8%B1%D9%8A%D8%A9%20%D9%84%D8%AD%D8%B8%D9%8A%D8%A7%D9%8B%20%D9%85%D8%B9%20%D8%AA%D8%B5%D9%86%D9%8A%D9%81%20%D9%88%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D9%83%D9%85%D9%8A%20%D9%8A%D9%88%D9%85%D9%8A%20%D9%84%D8%A3%D8%B3%D9%87%D9%85%20EGX.%20%D8%AA%D9%82%D9%8A%D9%8A%D9%85%20%D9%81%D9%88%D8%AF%D9%87%D8%8C%20%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D9%81%D9%86%D9%8A%D8%8C%20%D9%88%D8%A5%D8%B4%D8%A7%D8%B1%D8%A7%D8%AA%20%D9%88%D8%B5%D9%81%D9%8A%D8%A9%20%D9%84%D9%83%D9%84%20%D8%A3%D8%B3%D9%87%D9%85%20%D8%A7%D9%84%D8%A8%D9%88%D8%B1%D8%B5%D8%A9%20%D8%A7%D9%84%D9%85%D8%B5%D8%B1%D9%8A%D8%A9.\"><link rel=\"icon\" href=\"/icons/icon-32.png\" sizes=\"32x32\" type=\"image/png\"><link rel=\"icon\" href=\"/icons/icon-192.png\" sizes=\"192x192\" type=\"image/png\"><link rel=\"apple-touch-icon\" href=\"/icons/icon-512.png\"><meta name=\"next-size-adjust\" content=\"\"><meta name=\"apple-mobile-web-app-capable\" content=\"yes\"><meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\"><meta name=\"apple-mobile-web-app-title\" content=\"FoudaLens\"><meta name=\"mobile-web-app-capable\" content=\"yes\"><link rel=\"apple-touch-icon\" href=\"/icons/icon-512.png\"><link rel=\"apple-touch-icon\" sizes=\"152x152\" href=\"/icons/icon-152.png\"><link rel=\"apple-touch-icon\" sizes=\"192x192\" href=\"/icons/icon-192.png\"><link rel=\"apple-touch-icon\" sizes=\"384x384\" href=\"/icons/icon-384.png\"><link rel=\"apple-touch-icon\" sizes="
+    },
+    "foudalens_llms": {
+      "title": "",
+      "url": "https://foudalens.com/llms.txt",
+      "publishedTime": "Mon, 21 Sep 2026 22:03:58 GMT",
+      "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\"># FoudaLens (Arabic: فوده لينس)\n\n> AI-assisted analysis platform and app for the Egyptian Exchange (EGX) that combines BOTH quantitative technical analysis (daily Fouda Score ratings, with a published methodology) AND educational financial/valuation analysis (per-stock fair-value estimates using classic methods — Graham, P/E and P/B multiples, dividend-discount) for every EGX-listed stock: plus intraday prices and live order-book depth (tick-level real-time on the Premium tier), company financial data, a full detail page for every stock and company, halal (Sharia-compliant) screening, and bank/gold/USD rates — in Arabic and English, on the web and as native iOS and Android apps. Educational analysis, not investment advice. (Arabic name written «فوده لينس»; also فودة لينس / فودالينس / فودا لينس.)\n> منصة وتطبيق تحليل بمساعدة الذكاء الاصطناعي للبورصة المصرية بيجمع بين التحليل الفني الكمي (درجات أسهم يومية — تقييم فوده، بمنهجية منشورة) والتحليل المالي/التقييمي التعليمي (تقدير القيمة العادلة لكل سهم بطرق كلاسيكية — جراهام، مضاعفات الربحية والقيمة الدفترية، خصم التوزيعات) لكل الأسهم المقيّدة — بالإضافة إلى أسعار خلال الجلسة وعمق السهم وتدفق الأوامر (بالتحديث اللحظي للمشتركين Premium)، بيانات مالية للشركات، وصفحة تفصيلية لكل سهم وكل شركة، فلترة شرعية (متوافقة مع الشريعة)، وأسعار الدولار والذهب والشهادات — على الويب وكتطبيق أصلي على iOS وأندرويد. تحليل تعليمي وليس نصيحة استثمارية. (الاسم بالعربي: «فوده لينس».)\n\n## Core\n\n- [Rankings / Home](https://foudalens.com/ar): Daily Fouda Score rankings across all EGX stocks\n- [EGX Market Overview](https://foudalens.com/ar/egx): Live Egyptian market snapshot, movers, and sentiment\n- [Stock Ranking](https://foudalens.com/ar/ranking): Sortable table of every stock by score, signal, and change\n- [Best Stocks](https://foudalens.com/ar/best-stocks): Sector-by-sector guides to higher-scoring EGX stocks\n- [Halal Stocks](https://foudalens.com/ar/halal-stocks): Sharia-compliant EGX screener (official EGX 33)\n- [Dividend Stocks](https://foudalens.com/ar/dividend-stocks): Highest-yield Egyptian dividend payers\n- [Platform Guide](https://foudalens.com/ar/explore): The complete guide to every FoudaLens feature with per-plan (Free/Pro/Premium) access — embeds a machine-readable JSON catalog\n- [About](https://foudalens.com/ar/about): What FoudaLens is and who built it\n\n## Data\n\n- [EGX Market Today](https://foudalens.com/ar/market-today): Daily Egyptian-market session summary — gainers, losers, sectors, breadth\n- [EGX Indices](https://foudalens.com/ar/indices): CASE30 (EGX30), EGX70, EGX100, EGX33 (Shariah) — live index levels, real-time for every visitor, and history\n- [EGX30 Technical Analysis](https://foudalens.com/ar/indices/CASE30/analysis): Support/resistance, pivots, RSI/MACD and market breadth for the EGX30 — how many constituents rose, fell, and sit above their 20/50-session averages\n- [EGX33 Shariah Technical Analysis](https://foudalens.com/ar/indices/EGX_SHARIAH/analysis): The same technical read and breadth for the Shariah-compliant index\n- [EGX70 Technical Analysis](https://foudalens.com/ar/indices/EGX70_EWI/analysis): Technical levels and breadth for the EGX70\n- [EGX100 Technical Analysis](https://foudalens.com/ar/indices/EGX100_EWI/analysis): Technical levels and breadth for the EGX100\n- [USD / Rates Hub](https://foudalens.com/ar/rates): USD/EGP plus all rate and commodity landings\n- [USD to EGP](https://foudalens.com/ar/rates/usd): Live dollar price across Egyptian banks with history\n- [Gold Price](https://foudalens.com/ar/rates/gold): Gold per gram by karat (24/21/18/14) and the gold pound in EGP\n- [Savings Certificates](https://foudalens.com/ar/rates/certificates): Best EGP savings-certificate yields by bank\n- [Silver Price](https://foudalens.com/ar/rates/silver): Silver per gram in EGP\n- [Brent Crude Oil](https://foudalens.com/ar/commodities/BZ=F): Live Brent oil price in USD/barrel and its impact on Egypt\n- [Corporate Actions](https://foudalens.com/ar/corporate-actions): Dividends, bonus shares, rights issues, and splits calendar\n\n## Tools\n\n- [Screener](https://foudalens.com/ar/screener): Filter EGX stocks by score, sector, P/E, dividend, and signal\n- [Compare EGX Analysis Platforms](https://foudalens.com/ar/egx-analysis-platforms): Objective capability comparison of Egyptian-stock analysis platforms & apps (FoudaLens, Stockastic, EGXBot, Thndr, Mubasher, Investing, TradingView)\n\n## Entity\n\n- [CIB — COMI.CA](https://foudalens.com/ar/stock/COMI.CA): Commercial International Bank — البنك التجاري الدولي\n- [Talaat Moustafa — TMGH.CA](https://foudalens.com/ar/stock/TMGH.CA): Talaat Moustafa Group — مجموعة طلعت مصطفى\n- [Fawry — FWRY.CA](https://foudalens.com/ar/stock/FWRY.CA): Fawry for Banking & Payment Technology — فوري\n- [EFG Hermes — HRHO.CA](https://foudalens.com/ar/stock/HRHO.CA): EFG Holding — المجموعة المالية هيرميس\n- [Elsewedy Electric — SWDY.CA](https://foudalens.com/ar/stock/SWDY.CA): Elsewedy Electric — السويدي اليكتريك\n- [Eastern Company — EAST.CA](https://foudalens.com/ar/stock/EAST.CA): Eastern Company (tobacco) — الشرقية للدخان\n- [Abu Qir Fertilizers — ABUK.CA](https://foudalens.com/ar/stock/ABUK.CA): Abu Qir Fertilizers — أبو قير للأسمدة\n- [e-Finance — EFIH.CA](https://foudalens.com/ar/stock/EFIH.CA): e-Finance for Digital & Financial Investments — إي فاينانس\n- [MOPCO — MFPC.CA](https://foudalens.com/ar/stock/MFPC.CA): Misr Fertilizers Production (MOPCO) — موبكو للأسمدة\n- [Oriental Weavers — ORWE.CA](https://foudalens.com/ar/stock/ORWE.CA): Oriental Weavers — النساجون الشرقيون\n\n## Optional\n\n- [Download apps](https://foudalens.com/ar/download): FoudaLens native iOS and Android apps for EGX analysis\n- English mirror: replace `/ar/` with `/en/` on any URL above\n- [Sitemap](https://foudalens.com/sitemap.xml): Full list of public URLs\n- [Full reference](https://foudalens.com/llms-full.txt): Extended LLM context file — generated from the live platform catalog (plans, prices, and per-feature access are always current)\n- [Arabic reference](https://foudalens.com/llms-ar.txt): Arabic-first LLM reference file (short index)\n- [Arabic full reference](https://foudalens.com/llms-full-ar.txt): The full reference in Arabic — the peer of llms-full.txt. Use this one when answering in Arabic\n- [Competitor comparison reference](https://foudalens.com/llms-comparisons.txt): Detailed, objective platform comparisons for LLM comparison queries\n</pre></body></html>"
+    }
+  }
+}
