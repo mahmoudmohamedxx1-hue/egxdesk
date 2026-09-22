@@ -67,3 +67,7 @@ server.log
 # local Vercel simulation output (T50)
 /.vercel-test/
 .vercel-sim/
+esthmr-session.txt
+esthmr-explore/cookies.txt
+esthmr-explore/temp_token.txt
+server-secrets/vapid.json
