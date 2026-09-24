@@ -67,3 +67,30 @@
 - brain: glm-4-plus
 - journal: Today, 'Volume Surge' and 'Whale Watch' strategies showed strength in identifying leaders with positive foreign inflows. The learning memory confirms the timing accuracy for these strategies. I will monitor their performance in upcoming sessions.
 
+## 2026-09-23 19:45:21Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-23 19:46:21Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-23 19:51:21Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-24 13:39:41Z — post-close run — OK
+- market bias: neutral (conviction 3/5)
+- picks: MOIL long ×3
+- brain: glm-4-plus
+- journal: Today, 'Volume Surge' and 'Whale Watch' strategies showed strength in identifying leaders with positive foreign inflows. The learning memory confirms the timing accuracy for these strategies. I will monitor the performance of EXPA, MOIL, and SAIB in upcoming sessions.
+
+## 2026-09-24 13:40:41Z — midday run — OK
+- market bias: neutral (conviction 3/5)
+- picks: MOIL long ×3, CPCI long ×3
+- brain: glm-4-plus
+- journal: Today, 'Volume Surge' and 'Whale Watch' strategies showed strength in identifying leaders with positive inflows. The learning memory confirms the timing accuracy of these strategies. I will monitor these stocks' performance in upcoming sessions.
+
+## 2026-09-24 13:45:41Z — pre-open run — OK
+- market bias: neutral (conviction 3/5)
+- picks: MOIL long ×3, CPCI long ×3
+- brain: glm-4-plus
+- journal: Today, Volume Surge and Whale Watch strategies showed strength in identifying leaders with positive inflows. The learning memory confirms the timing accuracy of these strategies. I will monitor the performance of selected stocks in upcoming sessions.
+

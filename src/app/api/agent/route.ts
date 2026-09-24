@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
 
 import { ZAI_API_KEY, zaiChatStream } from "@/lib/zai-client";
+import { pollinationsRound } from "@/lib/pollinations";
+import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID } from "@/lib/ai-models";
 
 type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 import { db } from "@/lib/db";
@@ -339,10 +341,11 @@ export async function POST(req: Request) {
   // default instead of erroring, so old clients and hand-crafted requests
   // never break
   const picked: AiModel | null = findAiModel(body.model);
-  // T37 — `let`: when the keyless LLM7 pool is quota-exhausted the loop
-  // transparently re-routes to the always-on GLM backbone (auto-failover)
+  // T37 — `let`: when a keyless pool is quota-exhausted the loop
+  // transparently re-routes to the backbone / the next keyless tier
+  // (auto-failover)
   let model: AiModel =
-    picked && (picked.provider === "zai" || picked.provider === "llm7")
+    picked && (picked.provider === "zai" || picked.provider === "llm7" || picked.provider === "pollinations")
       ? picked
       : findAiModel(DEFAULT_AI_MODEL_ID)!;
 
@@ -471,24 +474,40 @@ export async function POST(req: Request) {
             type: "status",
             note:
               lang === "ar"
-                ? "النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر السحابة المجانية بلا تسجيل"
-                : "backbone model unavailable on this host — answering via the keyless free cloud",
+                ? "النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر GPT-OSS المجاني (بلا تسجيل)"
+                : "backbone model unavailable on this host — answering via the keyless GPT-OSS free cloud",
           });
-          model = findAiModel("llm7:mistral-Nemo-Instruct-2407")!;
+          // T59 — the keyless backbone is now Pollinations GPT-OSS-20B
+          // (excellent Arabic, follows the JSON protocol). The old llm7
+          // mistral sink answered Arabic questions in Portuguese soup —
+          // the "crash text" the user reported.
+          model = findAiModel(KEYLESS_MODEL_ID)!;
           msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
         }
       }
-      // T56 — the backbone the failovers re-route to: SDK GLM-4-Plus in the
-      // sandbox, direct GLM-4.7-Flash on keyed hosts, keyless cloud otherwise.
+      // T56/T59 — the backbone the failovers re-route to: SDK GLM-4-Plus in
+      // the sandbox, direct GLM-4.7-Flash on keyed hosts, Pollinations
+      // GPT-OSS-20B (keyless, strong Arabic) otherwise; llm7 mistral is the
+      // LAST keyless resort when Pollinations is busy.
       const backboneModel = (): AiModel =>
-        zai ? findAiModel(DEFAULT_AI_MODEL_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel("llm7:mistral-Nemo-Instruct-2407")!;
+        zai ? findAiModel(DEFAULT_AI_MODEL_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel(KEYLESS_MODEL_ID)!;
+      const keylessFallbackModel = (): AiModel => findAiModel(KEYLESS_FALLBACK_MODEL_ID)!;
       const hasBackbone = () => zai !== null || ZAI_API_KEY.length > 0;
+      // T59 — keyless tiers never stream raw deltas (crash-text guard)
+      const isKeyless = () => model.provider === "llm7" || model.provider === "pollinations";
       // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
       // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
       // gets the system prompt as a proper "system" role (no thinking
       // toggle — the anonymous tier doesn't support one).
       const runRound = (thinking: "enabled" | "disabled", onDelta?: DeltaFn): Promise<string> =>
-        model.provider === "llm7" || (!zai && !ZAI_API_KEY)
+        model.provider === "pollinations"
+          ? pollinationsRound({
+              messages: msgs.map((m, i) => (i === 0 ? { role: "system" as const, content: m.content } : m)),
+              model: model.providerModel,
+              onStatus: (note) => send({ type: "status", note }),
+              onServedModel: noteServedModel,
+            })
+          : model.provider === "llm7" || (!zai && !ZAI_API_KEY)
           ? llm7Round(
               model.providerModel,
               {
@@ -545,30 +564,33 @@ export async function POST(req: Request) {
             // the final answer replaced it. Keyless rounds stream status only;
             // the clean answer arrives with the done event.
             const preview =
-              model.provider === "llm7" ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
+              isKeyless() ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
             raw = await runRound(deepRound ? "enabled" : "disabled", preview);
             usage.llmCalls++;
           } catch (err) {
-            // T37 — AUTO-FAILOVER: LLM7.io's anonymous tier is one globally
-            // shared daily token pool (500k tokens/24h for EVERY anonymous
-            // user on the internet), so it can be exhausted by total
-            // strangers at any moment. Instead of failing the request, the
-            // conversation transparently re-routes to the always-on
-            // GLM-4-Plus backbone: an honest status note is streamed, the
-            // system prompt is rebuilt with the fallback identity, and the
-            // done event reports the model that ACTUALLY served the answer.
-            if (model.provider === "llm7" && !failedOver && hasBackbone()) {
+            // T37/T59 — AUTO-FAILOVER: a keyless pool (LLM7's globally shared
+            // anonymous quota / Pollinations' shared tier) can be exhausted
+            // by total strangers at any moment. Instead of failing the
+            // request, the conversation transparently re-routes: to the
+            // always-on GLM backbone when one exists (sandbox SDK or the
+            // direct key), otherwise Pollinations ⇄ llm7 mistral keep the
+            // answer coming. An honest status note is streamed and the done
+            // event reports the model that ACTUALLY served the answer.
+            if (isKeyless() && !failedOver) {
               failedOver = true;
-              send({
-                type: "status",
-                note:
-                  lang === "ar"
-                    ? "حصة السحابة المجانية المشتركة (LLM7) مستنفدة حاليًا — سيتم الرد تلقائيًا عبر نموذج GLM القوي"
-                    : "The shared free LLM7 cloud quota is exhausted right now — answering automatically via the strong GLM backbone",
-              });
-              model = backboneModel();
-              msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
-              continue; // retry the SAME round on the backbone
+              const next = hasBackbone() ? backboneModel() : keylessFallbackModel();
+              if (next.id !== model.id) {
+                send({
+                  type: "status",
+                  note:
+                    lang === "ar"
+                      ? "السحابة المجانية مشغولة حاليًا — سيتم الرد تلقائيًا عبر نموذج بديل"
+                      : "The free cloud tier is busy right now — answering automatically via a backup model",
+                });
+                model = next;
+                msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+                continue; // retry the SAME round on the backup tier
+              }
             }
             // gateway 429s retry with backoff inside createChatStream; if
             // throttling persists, answer honestly instead of a bare error
@@ -624,7 +646,7 @@ export async function POST(req: Request) {
               msgs.push({ role: "user", content: languageRepairMessage(lang) });
               continue; // numbers verified; only the LANGUAGE needs a rewrite
             }
-            if (!verdict.ok && model.provider === "llm7" && !failedOver && hasBackbone()) {
+            if (!verdict.ok && isKeyless() && !failedOver && hasBackbone()) {
               failedOver = true;
               send({
                 type: "status",
@@ -638,15 +660,17 @@ export async function POST(req: Request) {
               verifyRetried = false; // the backbone gets its own repair budget
               continue; // re-answer the SAME conversation on the backbone
             }
-            // T58 — LAST GUARD before shipping: a WRONG-LANGUAGE answer is
-            // never usable (any model); a failed number verification on the
-            // WEAK keyless tier is crash-text territory too. In both cases,
-            // when real tool data is on the table, ship the deterministic
-            // briefing — its numbers are copied verbatim from the tools and
-            // its language is templated, so it is correct by construction.
+            // T58/T59 — LAST GUARD before shipping: a WRONG-LANGUAGE answer is
+            // never usable (any model); a failed number verification on a
+            // KEYLESS tier is crash-text territory too. In both cases, when
+            // real tool data is on the table, ship the deterministic briefing —
+            // its numbers are copied verbatim from the tools and its language
+            // is templated, so it is correct by construction. With NO tool
+            // data (a general knowledge question), a wrong-language answer is
+            // STILL never shipped: the honest degrade message replaces it.
             // A STRONG model (zai/direct tier) with only re-formatted numbers
             // keeps the old honest path: rich answer + verification footnote.
-            if (!langOk || (!verdict.ok && model.provider === "llm7")) {
+            if (!langOk || (!verdict.ok && isKeyless())) {
               const briefing = composeBriefing(lang, toolResults);
               if (briefing) {
                 send({
@@ -657,6 +681,15 @@ export async function POST(req: Request) {
                       : "The free model could not compose a sound answer — composing the briefing directly from the tool data",
                 });
                 return void done(briefing);
+              }
+              if (!langOk) {
+                // T59 — no tool data + wrong language = unusable raw text.
+                // Never ship it; degrade honestly instead.
+                return void done(
+                  lang === "ar"
+                    ? "عذرًا — تعذّر تكوين رد سليم بالعربية عبر النموذج المجاني الآن. أسئلة البيانات (السوق والأسهم والمؤشرات والتدفقات) تعمل كاملة — جرّب واحدة، أو أعد المحاولة بعد قليل."
+                    : "Sorry — the free cloud model could not compose a sound answer right now. Data questions (market, quotes, indices, flows) work fully — try one, or retry shortly."
+                );
               }
             }
             const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
@@ -716,7 +749,7 @@ export async function POST(req: Request) {
           try {
             // T58 — keyless rounds never stream raw deltas (crash-text guard)
             const preview =
-              model.provider === "llm7" ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
+              isKeyless() ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
             const raw = await runRound("enabled", preview);
             usage.llmCalls++;
             if (debug) debugRaw.push(raw.slice(0, 800));
@@ -727,7 +760,7 @@ export async function POST(req: Request) {
               // deterministic briefing, a strong model keeps its footnote.
               const finalText = parsed.final.trim();
               const verdict = verifyFinalAnswer(finalText, toolJsons, userQuestion);
-              if (!languageOk(finalText, lang) || (!verdict.ok && model.provider === "llm7")) {
+              if (!languageOk(finalText, lang) || (!verdict.ok && isKeyless())) {
                 const briefing = composeBriefing(lang, toolResults);
                 if (briefing) return void done(briefing);
               }

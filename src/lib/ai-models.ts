@@ -26,7 +26,7 @@
  *  route and the client composer can import it. Puter runtime helpers
  *  live in src/lib/assistant-models.ts (client-only). */
 
-export type AiModelProvider = "zai" | "puter" | "llm7";
+export type AiModelProvider = "zai" | "puter" | "llm7" | "pollinations";
 
 export type AiModel = {
   /** the id the client persists/selects: "glm-4-plus" or "puter:<putterId>" */
@@ -53,6 +53,17 @@ export const AI_MODELS: AiModel[] = [
     labelAr: "GLM-4-Plus",
     note: "The app's own server model — always on, no sign-in",
     noteAr: "نموذج خادم التطبيق — متاح دائمًا بلا تسجيل",
+  },
+  {
+    id: "pollinations:gpt-oss-20b",
+    provider: "pollinations",
+    providerModel: "openai-fast",
+    label: "GPT-OSS 20B (keyless)",
+    labelAr: "GPT-OSS 20B (بلا تسجيل)",
+    newest: true,
+    ctx: 131_072,
+    note: "Keyless cloud, strong Arabic — no sign-in, no key. Free shared tier; auto-falls back to Mistral Nemo when busy",
+    noteAr: "سحابة بلا تسجيل ولا مفاتيح — عربية قوية. حصة مجانية مشتركة، وعند انشغالها يتحول تلقائيًا إلى Mistral Nemo",
   },
   {
     id: "llm7:codestral-latest",
@@ -284,6 +295,15 @@ export const AI_MODELS: AiModel[] = [
 
 export const DEFAULT_AI_MODEL_ID = "glm-4-plus";
 
+/** T59 — the default KEYLESS backbone on hosts without the SDK gateway and
+ *  without ZAI_API_KEY (the public Vercel deployment): Pollinations'
+ *  GPT-OSS-20B, whose Modern Standard Arabic is excellent — the old llm7
+ *  mistral sink answered Arabic questions in Portuguese soup (crash text). */
+export const KEYLESS_MODEL_ID = "pollinations:gpt-oss-20b";
+
+/** The last-resort keyless tier after Pollinations is busy/exhausted. */
+export const KEYLESS_FALLBACK_MODEL_ID = "llm7:mistral-Nemo-Instruct-2407";
+
 export function findAiModel(id: unknown): AiModel | null {
   if (typeof id !== "string" || id.length === 0) return null;
   return AI_MODELS.find((m) => m.id === id) ?? null;
@@ -309,7 +329,9 @@ export function aiModelIdentity(m: AiModel): string {
     ? "a REAL large language model (GLM-4-Plus, by Z.ai)"
     : m.provider === "llm7"
       ? `a REAL large language model (${m.label} — served keyless via the free LLM7.io cloud)`
-      : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
+      : m.provider === "pollinations"
+        ? `a REAL large language model (GPT-OSS-20B, OpenAI open weights — served keyless via the free Pollinations cloud)`
+        : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
 }
 
 /** Client-side localStorage persistence helper (never throws). */

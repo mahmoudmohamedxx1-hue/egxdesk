@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { zaiChat } from "@/lib/zai-client";
+import { pollinationsRound } from "@/lib/pollinations";
 // T58 — the answer stage gets the same crash-text guard as the agent: the
 // keyless tier answers Arabic questions in the wrong language, so a failed
 // languageOk() reroutes to the deterministic briefing composer.
@@ -47,7 +48,7 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-// ── the brain: THREE layered providers, whichever answers first wins ──
+// ── the brain: FOUR layered providers, whichever answers first wins ──
 //  T50: the popup must stay snappy on EVERY host, including during the free
 //  tier's 1305 overload windows (which can run minutes):
 //   1. direct Z.AI chat (glm-4.7-flash via the app's own key) — works on
@@ -55,9 +56,12 @@ function rateLimited(ip: string): boolean {
 //      overload window fails over fast instead of hanging the popup.
 //   2. the sandbox SDK's GLM-4-Plus — instant when available, throws
 //      immediately outside the sandbox.
-//   3. LLM7.io keyless cloud (Mistral Nemo) — no key, no sign-in, works on
-//      any host from a shared anonymous quota; last resort.
-//  All three fail honestly → the client shows its generic error card.
+//   3. Pollinations keyless cloud (GPT-OSS-20B) — no key, no sign-in; T59:
+//      excellent Modern Standard Arabic (the llm7 mistral tier answered
+//      Arabic questions in Portuguese soup — the "crash text").
+//   4. LLM7.io keyless cloud (Mistral Nemo) — no key, no sign-in; last
+//      resort when Pollinations' shared tier is busy.
+//  All four fail honestly → the client shows its generic error card.
 
 const WHY = (err: unknown): string => (err instanceof Error ? err.message : String(err)).slice(0, 140);
 
@@ -132,6 +136,12 @@ async function llm7Round(messages: { role: "system" | "user" | "assistant"; cont
   }
 }
 
+// 3 — keyless Pollinations (GPT-OSS-20B, strong Arabic; T59). JSON/plain
+// rounds, non-streaming is fine.
+async function pollinationsTier(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  return await pollinationsRound({ messages, timeoutMs: 45_000 });
+}
+
 async function createChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
   try {
     return await zaiDirectRound(messages);
@@ -142,6 +152,11 @@ async function createChat(messages: { role: "system" | "user" | "assistant"; con
     return await sdkRound(messages);
   } catch (err) {
     console.warn("[assistant] sdk tier unavailable:", WHY(err));
+  }
+  try {
+    return await pollinationsTier(messages);
+  } catch (err) {
+    console.warn("[assistant] pollinations tier unavailable:", WHY(err));
   }
   return await llm7Round(messages);
 }

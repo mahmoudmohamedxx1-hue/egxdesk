@@ -27,6 +27,7 @@ import {
   LayoutDashboard, CandlestickChart, SlidersHorizontal, Radar,
   Flame, Layers, Users, Zap, CalendarDays, Scale, PiggyBank,
   Newspaper, NotebookPen, ListChecks, Wrench, Bot, Globe2, LineChart, Telescope,
+  FileText, Link2, GitCompareArrows, Landmark, FlaskConical, ShieldAlert,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -68,6 +69,16 @@ const AgentView = dynamic(() => import("@/components/views/agent-view").then((m)
 const ReportsView = dynamic(() => import("@/components/views/reports-view").then((m) => ({ default: m.ReportsView })), { loading: ViewBoot });
 const GccView = dynamic(() => import("@/components/views/gcc-view").then((m) => ({ default: m.GccView })), { loading: ViewBoot });
 const PaperView = dynamic(() => import("@/components/views/paper-view").then((m) => ({ default: m.PaperView })), { loading: ViewBoot });
+// T60 — المستجدات (Updates) + المزيد (More)
+const UpdatesNewsView = dynamic(() => import("@/components/views/updates-news-view").then((m) => ({ default: m.UpdatesNewsView })), { loading: ViewBoot });
+const DisclosuresView = dynamic(() => import("@/components/views/disclosures-view").then((m) => ({ default: m.DisclosuresView })), { loading: ViewBoot });
+const CrossingsView = dynamic(() => import("@/components/views/crossings-view").then((m) => ({ default: m.CrossingsView })), { loading: ViewBoot });
+const ValuationView = dynamic(() => import("@/components/views/valuation-view").then((m) => ({ default: m.ValuationView })), { loading: ViewBoot });
+const PairsView = dynamic(() => import("@/components/views/pairs-view").then((m) => ({ default: m.PairsView })), { loading: ViewBoot });
+const WorldView = dynamic(() => import("@/components/views/world-view").then((m) => ({ default: m.WorldView })), { loading: ViewBoot });
+const ScenariosView = dynamic(() => import("@/components/views/scenarios-view").then((m) => ({ default: m.ScenariosView })), { loading: ViewBoot });
+const FragilityView = dynamic(() => import("@/components/views/fragility-view").then((m) => ({ default: m.FragilityView })), { loading: ViewBoot });
+const ResearchView = dynamic(() => import("@/components/views/research-view").then((m) => ({ default: m.ResearchView })), { loading: ViewBoot });
 
 /* The same import specifiers the dynamic() loaders use — firing one in idle
  * time warms exactly the chunk dynamic() will need, without rendering it. */
@@ -75,7 +86,7 @@ const VIEW_IMPORTS: { name: string; load: () => Promise<unknown> }[] = [
   { name: "market", load: () => import("@/components/views/market-view") },
   { name: "screener", load: () => import("@/components/views/screener-view") },
   { name: "signals", load: () => import("@/components/views/signals-view") },
-  { name: "today", load: () => import("@/components/views/news-view") },
+  { name: "today", load: () => import("@/components/views/updates-news-view") },
   { name: "company", load: () => import("@/components/views/company-view") },
   { name: "agent", load: () => import("@/components/views/agent-view") },
   { name: "watchlist", load: () => import("@/components/views/watchlist-view") },
@@ -138,11 +149,23 @@ const DIRECT_NAV: NavItem[] = [
   { view: "market", t: T.market, icon: CandlestickChart },
   { view: "screener", t: { ar: "الفرز", en: "Screener" }, icon: SlidersHorizontal },
   { view: "signals", t: T.signalsNav, icon: Radar },
-  { view: "today", t: T.news, icon: Newspaper },
   { view: "agent", t: T.agentNav, icon: Bot },
 ];
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    /* T60 — المستجدات (the Updates group): the three screens the source
+     * terminal groups under its Updates destination — the multi-outlet
+     * news feed, the filed-disclosures agenda, and connecting the dots. */
+    key: "updates",
+    t: { ar: "المستجدات", en: "Updates" },
+    icon: Newspaper,
+    items: [
+      { view: "today", t: { ar: "الأخبار", en: "News" }, icon: Newspaper },
+      { view: "disclosures", t: { ar: "الإفصاحات", en: "Disclosures" }, icon: FileText },
+      { view: "crossings", t: { ar: "ربط النقاط", en: "Connecting the dots" }, icon: Link2 },
+    ],
+  },
   {
     key: "markets",
     t: { ar: "الأسواق", en: "Markets" },
@@ -169,20 +192,31 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "tools",
-    t: { ar: "أدواتي", en: "My tools" },
+    /* T60 — المزيد (the More group): the screens the source terminal groups
+     * under its More destination — calculators, the valuation & debt map,
+     * pairs, the world monitor, the model lab, the exchange dashboard, the
+     * crash-warning research, and the published methodology notes. */
+    key: "more",
+    t: { ar: "المزيد", en: "More" },
     icon: ListChecks,
     items: [
+      { view: "valuation", t: { ar: "التقييم والديون", en: "Valuation & debt" }, icon: Scale },
+      { view: "pairs", t: { ar: "فروق الأسعار", en: "Pairs" }, icon: GitCompareArrows },
+      { view: "world", t: { ar: "مرصد العالم", en: "World monitor" }, icon: Globe2 },
+      { view: "exchange", t: { ar: "البورصة", en: "Exchange" }, icon: Landmark },
+      { view: "scenarios", t: { ar: "مختبر النماذج", en: "Model lab" }, icon: FlaskConical },
+      { view: "fragility", t: { ar: "إنذار الانهيارات", en: "Crash warning" }, icon: ShieldAlert },
+      { view: "research", t: { ar: "الأبحاث", en: "Research" }, icon: NotebookPen },
+      { view: "tools", t: T.tools, icon: Wrench },
       { view: "watchlist", t: T.watchlist, icon: ListChecks },
       { view: "paper", t: { ar: "تجريبي", en: "Paper" }, icon: Wrench },
-      { view: "tools", t: T.tools, icon: Wrench },
     ],
   },
 ];
 
 /** Which nav surface (direct tab or group) is highlighted for a view. */
 function navActive(navView: string, current: string): boolean {
-  if (navView === "home") return current === "home" || current === "exchange";
+  if (navView === "home") return current === "home";
   if (navView === "market") return current === "market" || current === "company";
   return navView === current;
 }
@@ -471,7 +505,7 @@ export function AppShell() {
           {view.name === "activity" && <ActivityView />}
           {view.name === "investors" && <InvestorsView />}
           {view.name === "lens" && <LensView />}
-          {view.name === "today" && <NewsView />}
+          {view.name === "today" && <UpdatesNewsView />}
           {view.name === "watchlist" && <WatchlistView />}
           {view.name === "tools" && <ToolsView />}
           {view.name === "company" && <CompanyView ticker={view.ticker ?? "COMI"} panel={view.panel ?? "overview"} />}
@@ -486,6 +520,16 @@ export function AppShell() {
           {view.name === "reports" && <ReportsView />}
           {view.name === "agent" && <AgentView />}
           {view.name === "api" && <ApiDocsView />}
+          {/* T60 — المستجدات */}
+          {view.name === "disclosures" && <DisclosuresView />}
+          {view.name === "crossings" && <CrossingsView />}
+          {/* T60 — المزيد */}
+          {view.name === "valuation" && <ValuationView />}
+          {view.name === "pairs" && <PairsView />}
+          {view.name === "world" && <WorldView />}
+          {view.name === "scenarios" && <ScenariosView />}
+          {view.name === "fragility" && <FragilityView />}
+          {view.name === "research" && <ResearchView />}
         </div>
       </main>
 

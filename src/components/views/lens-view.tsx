@@ -7,7 +7,7 @@ import { T, dn, type Lang } from "@/lib/i18n";
 import { holderColor, hashStr } from "@/lib/holder-color";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** عدسة الملكية — the Ownership Lens (T58 rebuild, esthmr-grade).
+/** عدسة الملكية — the Ownership Lens (T59: dynamic, theme-aware, auto-updated).
  *
  *  An archipelago map of the whole exchange:
  *   - every sector is a "lake" — a treemap cell (sized by COMPANY COUNT so
@@ -17,16 +17,26 @@ import { Skeleton } from "@/components/ui/skeleton";
  *     spiral, radius ∝ √market-cap, and the ring's colored slices are each
  *     FILED holder's exact stake % from the official EGX disclosure forms;
  *     the grey remainder is ownership nobody had to disclose — NOT free float;
- *   - click a company → its equity structure opens ON THE SAME PAGE: the
- *     board dims, the company's holders get seats around it (name + stake %,
- *     onward lines to every other company they are in) and the right panel
- *     shows the full ownership profile with bulletin links;
- *   - click a holder (or a register row) → spokes to every company they
- *     hold, each ending in a stake-tag pill;
- *   - the week strip replays 37 weeks of disclosed stake changes: outer
+ *     companies with NO filed disclosure yet wear a dotted outline;
+ *   - click a company → the camera FLIES to it and its equity structure
+ *     opens ON THE SAME PAGE: holders get seats around it (pop-in, name +
+ *     stake %, onward lines to every other company they are in) and the
+ *     right panel shows the full ownership profile with bulletin links;
+ *   - click a holder (register row / seat / spoke) → his investments across
+ *     the stocks light up: spokes draw in with stake pills, his companies
+ *     wear his color halo, the camera frames the whole portfolio, and the
+ *     INVESTOR PORTFOLIO panel lists every holding with stake %, estimated
+ *     stake value (pct × market cap), sector and the official filing link;
+ *   - the week strip replays every disclosed week of stake changes: outer
  *     green/red arcs sized in stake points, halos on moved rings, ▶ plays;
  *   - the register lists every named party alphabetically BY POLICY (never
- *     ranked), searchable in Arabic and English.
+ *     ranked), searchable in Arabic and English;
+ *   - the camera is touchpad-first: two-finger scroll pans the board 1:1
+ *     with the fingers (both axes, momentum included), pinch / ctrl+scroll
+ *     zooms at the cursor, a mouse notch still zooms, and a soft edge clamp
+ *     keeps the map from ever being flung off-screen;
+ *   - the data refreshes itself daily (GitHub Action → EGX disclosure
+ *     archive rebuild → deploy) — the badge in the header shows the stamp.
  *
  *  Honesty rules baked into the drawing (from the source data):
  *   undisclosed ≠ free float · percentages belong to ONE company and are
@@ -299,10 +309,26 @@ const fmtEgp = (v: number | null, lang: Lang): string => {
   if (b >= 1) return `${b.toFixed(2)}${lang === "ar" ? " مليار جنيه" : "B EGP"}`;
   return `${(v / 1e6).toFixed(1)}${lang === "ar" ? " مليون جنيه" : "M EGP"}`;
 };
+const fmtPct = (p: number): string => (p < 10 ? p.toFixed(2) : p.toFixed(1));
 
 // ── the view ────────────────────────────────────────────────────────────────
 
 type Focus = { type: "company"; ticker: string } | { type: "holder"; h: number } | null;
+type View = { k: number; x: number; y: number };
+
+/** Soft camera clamp: the board (W×H scaled by k) may slide at most ~18% of
+ *  the viewport past each edge — scrolling feels free, but the map can never
+ *  be flung off-screen and lost (the reset button still flies home). */
+const clampView = (v: View): View => {
+  const k = Math.min(3, Math.max(0.6, v.k));
+  const padX = W * 0.18;
+  const padY = H * 0.18;
+  return {
+    k,
+    x: Math.min(padX, Math.max(W - W * k - padX, v.x)),
+    y: Math.min(padY, Math.max(H - H * k - padY, v.y)),
+  };
+};
 
 type Slice = { h: number; pct: number; a0: number; a1: number; color: string };
 
@@ -313,7 +339,7 @@ export function LensView() {
   const [focus, setFocus] = useState<Focus>(null);
   const [weekIdx, setWeekIdx] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [view, setView] = useState({ k: 1, x: 0, y: 0 });
+  const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
   const [hoverTip, setHoverTip] = useState<{ x: number; y: number; title: string; sub: string } | null>(null);
   const [query, setQuery] = useState("");
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -340,20 +366,15 @@ export function LensView() {
     if (f) {
       const m = f.match(/^t:(\w+)$/) || f.match(/^h:(\d+)$/);
       if (m) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         if (f[0] === "t") setFocus({ type: "company", ticker: f.slice(2) });
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         else setFocus({ type: "holder", h: Number(f.slice(2)) });
       }
     }
     if (w && Number.isFinite(Number(w))) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setWeekIdx(Math.max(0, Number(w)));
-    }
-    const z = bootParam("zoom");
-    if (z && Number.isFinite(Number(z))) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setView((v) => ({ ...v, k: Math.min(3, Math.max(0.6, Number(z))) }));
     }
   }, []);
   useEffect(() => {
@@ -452,7 +473,7 @@ export function LensView() {
       holderCompanies.set(p.h, arr);
     }
 
-    // holder → positions (for holder focus %)
+    // holder → positions (for holder focus % + portfolio values)
     const holderPositions = new Map<number, NetPosition[]>();
     for (const p of data.positions) {
       if (!byTicker.has(p.t)) continue;
@@ -470,29 +491,132 @@ export function LensView() {
       companyPositions.set(p.t, arr);
     }
 
-    return { sectors, byTicker, slicesByTicker, holderCompanies, holderPositions, companyPositions, maxCap };
+    return {
+      sectors,
+      byTicker,
+      slicesByTicker,
+      holderCompanies,
+      holderPositions,
+      companyPositions,
+      maxCap,
+      coverage: { withStakes: slicesByTicker.size, total: byTicker.size },
+    };
   }, [data]);
 
-  // ── zoom & pan (non-passive wheel + pointer drag) ──
+  // ── camera: touchpad two-finger scroll pans · pinch/ctrl-scroll & mouse
+  //    notch zoom at the cursor · drag pans · eased fly-to · soft clamp ────
+  const viewRef = useRef<View>({ k: 1, x: 0, y: 0 });
+  const rafRef = useRef<number | null>(null);
+  const cancelFlight = () => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  };
+  const applyView = (v: View) => {
+    const c = clampView(v);
+    viewRef.current = c;
+    setView(c);
+  };
+  const flyTo = (target: View) => {
+    cancelFlight();
+    const from = { ...viewRef.current };
+    const t0 = performance.now();
+    const dur = 560;
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / dur);
+      const e = ease(t);
+      applyView({
+        k: from.k + (target.k - from.k) * e,
+        x: from.x + (target.x - from.x) * e,
+        y: from.y + (target.y - from.y) * e,
+      });
+      rafRef.current = t < 1 ? requestAnimationFrame(step) : null;
+    };
+    rafRef.current = requestAnimationFrame(step);
+  };
+  useEffect(() => cancelFlight, []);
+
   useEffect(() => {
+    // dep on !!data: at cold mount the skeleton is showing (no <svg> yet), so
+    // this must re-run when the map actually renders — otherwise the camera
+    // listeners never attach and wheel/scroll does nothing on a fresh load.
+    if (!data) return;
     const el = svgRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      setView((v) => {
-        const k = Math.min(3, Math.max(0.6, v.k * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
-        const rect = el.getBoundingClientRect();
+      cancelFlight();
+      const v = viewRef.current;
+      const rect = el.getBoundingClientRect();
+      // A real mouse notch: line-mode deltas (Firefox/Safari) or big integer
+      // pixel steps (Chrome) → zoom, as map muscle memory expects. Everything
+      // else — a touchpad two-finger scroll, fractional pixel deltas, any
+      // horizontal deltaX — pans the board 1:1 with the fingers, exactly like
+      // scrolling a page: scroll down reveals what is below.
+      const notch =
+        e.deltaMode === 1 ||
+        (e.deltaMode === 0 && e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40);
+      if (e.ctrlKey || e.metaKey || notch) {
+        // pinch (browsers send ctrl+wheel) or a wheel notch → zoom at cursor
+        const raw = notch ? (e.deltaY < 0 ? 1.12 : 1 / 1.12) : Math.exp(-e.deltaY * 0.012);
+        const k = Math.min(3, Math.max(0.6, v.k * Math.min(1.25, Math.max(0.8, raw))));
         const px = ((e.clientX - rect.left) / rect.width) * W;
         const py = ((e.clientY - rect.top) / rect.height) * H;
-        return { k, x: px - ((px - v.x) / v.k) * k, y: py - ((py - v.y) / v.k) * k };
-      });
+        applyView({ k, x: px - ((px - v.x) / v.k) * k, y: py - ((py - v.y) / v.k) * k });
+      } else {
+        // touchpad scroll → pan (page-style direction, both axes, shift+wheel
+        // is horizontal the way most browsers deliver it)
+        let dx = e.deltaX;
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) {
+          dx *= 16;
+          dy *= 16;
+        } else if (e.deltaMode === 2) {
+          dx *= rect.width;
+          dy *= rect.height;
+        }
+        if (e.shiftKey && dx === 0) {
+          dx = dy;
+          dy = 0;
+        }
+        const s = W / rect.width;
+        applyView({ k: v.k, x: v.x - dx * s, y: v.y - dy * s });
+      }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+    // Safari reports touchpad pinch as proprietary gesture* events instead of
+    // ctrl+wheel — support them so pinch-zoom works there too.
+    let gestureK = 1;
+    const onGestureStart = (e: Event) => {
+      e.preventDefault();
+      cancelFlight();
+      gestureK = viewRef.current.k;
+    };
+    const onGestureChange = (e: Event) => {
+      const ge = e as Event & { scale?: number; clientX?: number; clientY?: number };
+      e.preventDefault();
+      const k = Math.min(3, Math.max(0.6, gestureK * (ge.scale ?? 1)));
+      const v = viewRef.current;
+      const rect = el.getBoundingClientRect();
+      // anchor at the gesture point when Safari reports one, else at center
+      const px = Number.isFinite(ge.clientX) ? ((ge.clientX! - rect.left) / rect.width) * W : W / 2;
+      const py = Number.isFinite(ge.clientY) ? ((ge.clientY! - rect.top) / rect.height) * H : H / 2;
+      applyView({ k, x: px - ((px - v.x) / v.k) * k, y: py - ((py - v.y) / v.k) * k });
+    };
+    el.addEventListener("gesturestart", onGestureStart, { passive: false });
+    el.addEventListener("gesturechange", onGestureChange, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("gesturestart", onGestureStart);
+      el.removeEventListener("gesturechange", onGestureChange);
+    };
+  }, [data]);
   const dragRef = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    dragRef.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
+    cancelFlight();
+    dragRef.current = { x: e.clientX, y: e.clientY, vx: viewRef.current.x, vy: viewRef.current.y };
     (e.target as Element).setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -500,14 +624,22 @@ export function LensView() {
     const rect = svgRef.current.getBoundingClientRect();
     const sx = W / rect.width;
     const sy = H / rect.height;
-    setView((v) => ({
-      ...v,
-      x: dragRef.current!.vx + (e.clientX - dragRef.current!.x) * sx,
-      y: dragRef.current!.vy + (e.clientY - dragRef.current!.y) * sy,
-    }));
+    applyView({
+      k: viewRef.current.k,
+      x: dragRef.current.vx + (e.clientX - dragRef.current.x) * sx,
+      y: dragRef.current.vy + (e.clientY - dragRef.current.y) * sy,
+    });
   };
   const onPointerUp = () => {
     dragRef.current = null;
+  };
+
+  /** zoom around the viewport center — the +/− buttons */
+  const zoomStep = (f: number) => {
+    cancelFlight();
+    const v = viewRef.current;
+    const k = Math.min(3, Math.max(0.6, v.k * f));
+    applyView({ k, x: W / 2 - ((W / 2 - v.x) / v.k) * k, y: H / 2 - ((H / 2 - v.y) / v.k) * k });
   };
 
   // ── week effects ──
@@ -572,6 +704,40 @@ export function LensView() {
     return { kind: "holder" as const, holdings, rings, hx, hy, involvedTickers, h: focus.h };
   }, [focus, layout, data]);
 
+  // ── camera follows the focus: company → frame it + its seats; holder →
+  // frame the WHOLE portfolio; cleared → home. Manual zoom/pan cancels it. ──
+  useEffect(() => {
+    if (!layout || layout.byTicker.size === 0) return;
+    const pad = 56;
+    if (!focusState) {
+      if (viewRef.current.k !== 1 || viewRef.current.x !== 0 || viewRef.current.y !== 0) flyTo({ k: 1, x: 0, y: 0 });
+      return;
+    }
+    if (focusState.kind === "company") {
+      const { ring } = focusState;
+      const margin = ring.r + 96 + (focusState.seats.length > 8 ? 56 : 0);
+      const k = Math.min(2.2, Math.max(0.75, Math.min(W / (margin * 2 + pad * 2), H / (margin * 2 + pad * 2))));
+      flyTo({ k, x: W / 2 - k * ring.x, y: H / 2 - k * ring.y });
+      return;
+    }
+    // holder: bounding box of every company he holds (+ the node itself)
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (const r of [...focusState.rings, { x: focusState.hx, y: focusState.hy, r: 10 } as Ring]) {
+      x0 = Math.min(x0, r.x - r.r);
+      y0 = Math.min(y0, r.y - r.r);
+      x1 = Math.max(x1, r.x + r.r);
+      y1 = Math.max(y1, r.y + r.r);
+    }
+    const bw = Math.max(80, x1 - x0) + pad * 2;
+    const bh = Math.max(80, y1 - y0) + pad * 2;
+    const k = Math.min(2.2, Math.max(0.6, Math.min(W / bw, H / bh)));
+    flyTo({ k, x: W / 2 - k * (x0 + x1) / 2, y: H / 2 - k * (y0 + y1) / 2 });
+     
+  }, [focusState, layout]);
+
   // ── register (alphabetical BY POLICY — never ranked) ──
   const register = useMemo(() => {
     if (!data || !layout) return { people: [] as NetPerson[], companies: [] as LensCompany[] };
@@ -592,7 +758,7 @@ export function LensView() {
     return { people: people.slice(0, 400), peopleTotal: people.length, companies: companies.slice(0, 30) };
   }, [data, layout, query]);
 
-  // header stats
+  // header stats + auto-update stamp
   const stats = useMemo(() => {
     if (!data || !layout) return null;
     let capOfStakes = 0;
@@ -600,11 +766,16 @@ export function LensView() {
       const ring = layout.byTicker.get(p.t);
       if (ring?.company.marketCap) capOfStakes += (p.p / 100) * ring.company.marketCap;
     }
+    const asOfMs = Date.parse(data.asOf);
+    const ageHours = Number.isFinite(asOfMs) ? (Date.now() - asOfMs) / 36e5 : Infinity;
     return {
       companies: layout.byTicker.size,
       parties: layout.holderCompanies.size,
       stakes: data.counts.listedPositions ?? data.positions.length,
       capOfStakes,
+      coverage: layout.coverage,
+      asOf: data.asOf,
+      fresh: ageHours < 48,
     };
   }, [data, layout]);
 
@@ -644,16 +815,51 @@ export function LensView() {
   const crossOut = focusCompanyTicker ? data.cross.filter((c) => c.o === focusCompanyTicker) : [];
   const crossIn = focusCompanyTicker ? data.cross.filter((c) => c.d === focusCompanyTicker) : [];
 
-  const holderHoldings = focusHolder != null ? (layout.holderPositions.get(focusHolder) ?? []) : [];
+  // holder portfolio rows: stake % + ESTIMATED VALUE (pct × market cap)
+  const holderPortfolio = (() => {
+    if (focusState?.kind !== "holder") return null;
+    const rows = focusState.holdings
+      .map((p) => {
+        const ring = layout.byTicker.get(p.t);
+        const cap = ring?.company.marketCap ?? null;
+        const value = cap != null ? (p.p / 100) * cap : null;
+        return { p, ring, value };
+      })
+      .sort((a, b) => (b.value ?? -1) - (a.value ?? -1) || b.p.p - a.p.p);
+    const totalValue = rows.reduce((s, r) => s + (r.value ?? 0), 0);
+    const valuedCount = rows.filter((r) => r.value != null).length;
+    return { rows, totalValue, valuedCount };
+  })();
+
+  const holderColorOf = (h: number) => holderColor(data.people[h]?.n ?? String(h));
 
   return (
     <div className="space-y-4 pb-6">
-      {/* ── heading ── */}
+      {/* ── heading + auto-update stamp ── */}
       <div className="px-1">
-        <h1 className="text-xl font-bold tracking-tight">
-          {lang === "ar" ? "من اشترى ومن باع من داخل الشركات؟" : "Who bought and who sold from inside the companies?"}
-          <span className="ms-2 text-sm font-normal text-muted-foreground">{T.lensNav[lang]}</span>
-        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight">
+            {lang === "ar" ? "من اشترى ومن باع من داخل الشركات؟" : "Who bought and who sold from inside the companies?"}
+            <span className="ms-2 text-sm font-normal text-muted-foreground">{T.lensNav[lang]}</span>
+          </h1>
+          {stats && (
+            <span
+              className={`lens-badge inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] ${
+                stats.fresh
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              }`}
+              title={
+                lang === "ar"
+                  ? "تُحدَّث بيانات الملكية تلقائيًا كل يوم من نماذج الإفصاح الرسمية"
+                  : "ownership data refreshes automatically every day from the official disclosure forms"
+              }
+            >
+              <span className={`size-1.5 rounded-full ${stats.fresh ? "animate-pulse bg-emerald-500" : "bg-amber-500"}`} />
+              {lang === "ar" ? "تحديث تلقائي يومي · آخر تحديث" : "auto daily · updated"} <b>{stats.asOf.slice(0, 10)}</b>
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl mt-1">
           {lang === "ar"
             ? "أعضاء المجالس وكبار المساهمين يعلنون حين تتغير حصتهم. اختر شركة ليفتح هيكل ملكيتها في نفس الصفحة — كل شريحة على الحلقة حصة مُفصح عنها، وكل نسبة موثقة بالنشرة الرسمية."
@@ -673,18 +879,34 @@ export function LensView() {
             <span className="rounded-full border bg-card px-2.5 py-1">
               {lang === "ar" ? "قيمة الحصص المعلنة" : "value of filed stakes"}: <b>{fmtEgp(stats.capOfStakes, lang)}</b>
             </span>
+            <span
+              className="rounded-full border bg-card px-2.5 py-1"
+              title={
+                lang === "ar"
+                  ? "الشركات التي ورد اسم مالك لها في نموذج إفصاح — الباقي ملكيته غير معلنة، وليست بلا مالك"
+                  : "companies with a named holder in a filed form — the rest is undisclosed ownership, not ownerless"
+              }
+            >
+              <b>
+                {stats.coverage.withStakes}/{stats.coverage.total}
+              </b>{" "}
+              {lang === "ar" ? "شركة لها إفصاحات ملكية" : "companies with filed stakes"}
+            </span>
           </div>
         )}
       </div>
 
-      {/* ── thesis banner ── */}
-      <div className="rounded-xl border bg-card px-4 py-2.5 text-sm flex items-center gap-3">
-        <span className="shrink-0 grid size-7 place-items-center rounded-full bg-primary/15 text-primary font-bold text-xs">%</span>
-        <p className="text-muted-foreground leading-relaxed">
-          {lang === "ar"
-            ? "نسبة الملكية في الشركة أهم من عدد الأسهم: صفقة مليون سهم في شركة رأسمالها 10 ملايين سهم تساوي 10%، وفي شركة رأسمالها 10 مليارات تساوي 0.01%."
-            : "The stake PERCENTAGE matters more than the share count: a 1M-share trade in a 10M-share company is 10%; in a 10B-share company it is 0.01%."}
-        </p>
+      {/* ── how to read the map ── */}
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+        <span className="rounded-full border bg-card px-2.5 py-1">
+          {lang === "ar" ? "① اختر شركة → يفتح هيكل ملكيتها هنا" : "① pick a company → its equity opens here"}
+        </span>
+        <span className="rounded-full border bg-card px-2.5 py-1">
+          {lang === "ar" ? "② اختر مستثمرًا → تظهر استثماراته عبر الأسهم" : "② pick an investor → their stakes across stocks light up"}
+        </span>
+        <span className="rounded-full border bg-card px-2.5 py-1">
+          {lang === "ar" ? "③ ▶ شغّل الأسابيع لرؤية تحركات الحصص" : "③ ▶ play the weeks to replay stake moves"}
+        </span>
       </div>
 
       {/* ── week strip ── */}
@@ -708,7 +930,7 @@ export function LensView() {
         >
           {playing ? "⏸" : "▶"}
         </button>
-        <div className="flex items-center gap-1.5 flex-wrap max-h-[72px] overflow-y-auto">
+        <div className="flex items-center gap-1.5 flex-wrap max-h-[72px] overflow-y-auto thin-scroll">
           {data.periods.map((per, i) => (
             <button
               key={per.start}
@@ -727,8 +949,8 @@ export function LensView() {
       </div>
 
       {/* ── map + panel ── */}
-      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
-        <div className="relative rounded-xl border bg-card overflow-hidden">
+      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+        <div className="relative rounded-xl border overflow-hidden lens-map">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
@@ -749,12 +971,12 @@ export function LensView() {
           >
             <defs>
               <radialGradient id="lakeWater" cx="50%" cy="50%" r="65%">
-                <stop offset="0%" stopColor="rgba(56,130,246,0.13)" />
-                <stop offset="100%" stopColor="rgba(37,99,235,0.05)" />
+                <stop offset="0%" style={{ stopColor: "var(--lens-water-1)" }} />
+                <stop offset="100%" style={{ stopColor: "var(--lens-water-2)" }} />
               </radialGradient>
               <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
                 <rect width="6" height="6" fill="transparent" />
-                <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(148,163,184,0.5)" strokeWidth="1.4" />
+                <line x1="0" y1="0" x2="0" y2="6" style={{ stroke: "var(--lens-remainder)" }} strokeWidth="1.4" />
               </pattern>
             </defs>
             <rect data-bg="1" x="0" y="0" width={W} height={H} fill="transparent" />
@@ -762,13 +984,14 @@ export function LensView() {
               {/* lakes */}
               {layout.sectors.map((s) => (
                 <g key={s.code}>
-                  <path d={s.path} fill="url(#lakeWater)" stroke="rgba(125,211,252,0.28)" strokeWidth="1" />
-                  <path d={s.path} fill="none" stroke="rgba(125,211,252,0.10)" strokeWidth="4" />
+                  <path d={s.path} fill="url(#lakeWater)" style={{ stroke: "var(--lens-coast)" }} strokeWidth="1" />
+                  <path d={s.path} fill="none" style={{ stroke: "var(--lens-coast)" }} strokeWidth="4" opacity={0.28} />
                   <text
                     x={s.cell.x + 10}
                     y={s.cell.y + 18}
                     fontSize="11"
-                    fill="rgba(125,211,252,0.75)"
+                    fontWeight={600}
+                    style={{ fill: "var(--lens-sector)" }}
                     className="pointer-events-none"
                   >
                     {lang === "ar" ? s.labelAr : s.labelEn} · {s.rings.length}
@@ -782,7 +1005,7 @@ export function LensView() {
                   if (tickers.length < 2) return null;
                   const rings = tickers.map((t) => layout.byTicker.get(t)!).filter(Boolean);
                   const hub = rings.reduce((a, b) => ((a.company.marketCap ?? 0) >= (b.company.marketCap ?? 0) ? a : b));
-                  const color = holderColor(data.people[h]?.n ?? String(h));
+                  const color = holderColorOf(h);
                   return rings
                     .filter((r) => r !== hub)
                     .map((r) => {
@@ -795,7 +1018,7 @@ export function LensView() {
                           fill="none"
                           stroke={color}
                           strokeWidth={0.7}
-                          opacity={0.16}
+                          opacity={0.18}
                           className="pointer-events-none"
                         />
                       );
@@ -814,11 +1037,15 @@ export function LensView() {
                         ? !focusState.involvedTickers.has(ring.ticker)
                         : false;
                   const moved = movedTickers.has(ring.ticker);
+                  const holderHalo =
+                    focusState?.kind === "holder" && focusState.involvedTickers.has(ring.ticker)
+                      ? holderColorOf(focusState.h)
+                      : null;
                   return (
                     <g
                       key={ring.ticker}
-                      opacity={dimmed ? 0.16 : 1}
-                      style={{ transition: "opacity .25s" }}
+                      opacity={dimmed ? 0.14 : 1}
+                      className={ring.r >= 6 ? "lens-ring cursor-pointer" : "cursor-pointer"}
                       onClick={(e) => {
                         e.stopPropagation();
                         setFocus({ type: "company", ticker: ring.ticker });
@@ -832,36 +1059,60 @@ export function LensView() {
                           y: ((e.clientY - rect.top) / rect.height) * 100,
                           title: `${ring.ticker} · ${dn(ring.company, lang)}`,
                           sub: `${fmtCap(ring.company.marketCap, lang)} · ${
-                            sliceData ? `${sliceData.slices.length} ${lang === "ar" ? "مالكًا مُفصحًا" : "filed holders"}` : lang === "ar" ? "بلا إفصاحات ملكية" : "no filed stakes"
+                            sliceData
+                              ? `${sliceData.slices.length} ${lang === "ar" ? "مالكًا مُفصحًا" : "filed holders"}`
+                              : lang === "ar"
+                                ? "لا إفصاحات ملكية بعد"
+                                : "no filed stakes yet"
                           }${ring.company.changePct ? ` · ${ring.company.changePct > 0 ? "+" : ""}${ring.company.changePct}%` : ""}`,
                         });
                       }}
                       onMouseLeave={() => setHoverTip(null)}
-                      className="cursor-pointer"
                     >
                       {ring.r < 6 ? (
                         <circle cx={ring.x} cy={ring.y} r={ring.r} fill={ring.company.changePct >= 0 ? "#34d399" : "#f87171"} opacity={0.85} />
                       ) : (
                         <>
-                          {/* grey remainder band = undisclosed ownership (NOT free float) */}
-                          <circle
-                            cx={ring.x}
-                            cy={ring.y}
-                            r={ring.r - BAND / 2}
-                            fill="none"
-                            stroke="rgba(100,116,139,0.5)"
-                            strokeWidth={BAND}
-                          />
-                          <circle cx={ring.x} cy={ring.y} r={ring.r} fill="none" stroke="rgba(226,232,240,0.16)" strokeWidth="0.6" />
-                          {/* filed-stake slices */}
-                          {sliceData?.slices.map((sl, i) => (
-                            <path
-                              key={i}
-                              d={arcPath(ring.x, ring.y, ring.r - BAND, ring.r, sl.a0, sl.a1)}
-                              fill={sl.color}
-                              opacity={0.92}
+                          {/* holder-focus halo: his companies wear his color */}
+                          {holderHalo && (
+                            <circle className="lens-halo" cx={ring.x} cy={ring.y} r={ring.r + 5} fill="none" stroke={holderHalo} strokeWidth={1.2} opacity={0.6} />
+                          )}
+                          {sliceData ? (
+                            <>
+                              {/* grey remainder band = undisclosed ownership (NOT free float) */}
+                              <circle
+                                cx={ring.x}
+                                cy={ring.y}
+                                r={ring.r - BAND / 2}
+                                fill="none"
+                                style={{ stroke: "var(--lens-remainder)" }}
+                                strokeWidth={BAND}
+                              />
+                              {/* filed-stake slices */}
+                              {sliceData.slices.map((sl, i) => (
+                                <path
+                                  key={i}
+                                  d={arcPath(ring.x, ring.y, ring.r - BAND, ring.r, sl.a0, sl.a1)}
+                                  fill={sl.color}
+                                  opacity={0.92}
+                                />
+                              ))}
+                            </>
+                          ) : (
+                            /* no disclosure filed yet — a DOTTED outline so the
+                             * company stays on the board, honestly marked */
+                            <circle
+                              cx={ring.x}
+                              cy={ring.y}
+                              r={ring.r - BAND / 2}
+                              fill="none"
+                              style={{ stroke: "var(--lens-remainder)" }}
+                              strokeWidth={1.2}
+                              strokeDasharray="1.6 3"
+                              opacity={0.75}
                             />
-                          ))}
+                          )}
+                          <circle cx={ring.x} cy={ring.y} r={ring.r} fill="none" style={{ stroke: "var(--lens-ring)" }} strokeWidth="0.6" />
                           {/* over-disclosure marker */}
                           {sliceData?.over && (
                             <circle cx={ring.x} cy={ring.y} r={ring.r + 2} fill="none" stroke="#fbbf24" strokeWidth="1" strokeDasharray="2 2" />
@@ -869,7 +1120,7 @@ export function LensView() {
                           {/* week change arc + halo */}
                           {moved && (
                             <>
-                              <circle cx={ring.x} cy={ring.y} r={ring.r + 3} fill="none" stroke="rgba(226,232,240,0.5)" strokeWidth="1" strokeDasharray="3 3" />
+                              <circle cx={ring.x} cy={ring.y} r={ring.r + 3} fill="none" style={{ stroke: "var(--lens-ring)" }} strokeWidth="1" strokeDasharray="3 3" />
                               {(weekMoves?.byT.get(ring.ticker) ?? []).map((mv, i) => {
                                 const span = Math.min(Math.PI / 4, Math.max(0.12, Math.abs(mv.c ?? 0) * 0.09));
                                 const a0 = -Math.PI / 2 + i * 0.35;
@@ -891,7 +1142,8 @@ export function LensView() {
                             textAnchor="middle"
                             fontSize={ring.r > 26 ? 11 : ring.r > 19 ? 9 : 7.5}
                             fontWeight={700}
-                            fill="rgba(226,232,240,0.95)"
+                            style={{ fill: "var(--lens-ink)" }}
+                            opacity={sliceData ? 1 : 0.55}
                             direction="ltr"
                             className="pointer-events-none"
                           >
@@ -903,7 +1155,7 @@ export function LensView() {
                               y={ring.y + ring.r + 9}
                               textAnchor="middle"
                               fontSize="7.5"
-                              fill="rgba(148,163,184,0.9)"
+                              style={{ fill: "var(--lens-ink-soft)" }}
                               className="pointer-events-none"
                             >
                               {(ring.company.marketCap / 1e9).toFixed(0)}B
@@ -919,102 +1171,126 @@ export function LensView() {
               {/* company-focus seats: holders around the chosen company */}
               {focusState?.kind === "company" && (
                 <g className="pointer-events-auto">
-                  {focusState.seats.map((seat) => {
+                  {/* focus halo breathes */}
+                  <circle className="lens-pulse" cx={focusState.ring.x} cy={focusState.ring.y} r={focusState.ring.r + 9} fill="none" style={{ stroke: "var(--lens-ink)" }} strokeWidth="1.2" opacity={0.65} />
+                  {focusState.seats.map((seat, i) => {
                     const onward = (layout.holderCompanies.get(seat.p.h) ?? []).filter((t) => t !== focusState.ring.ticker);
+                    const seatLen = Math.hypot(seat.x - focusState.ring.x, seat.y - focusState.ring.y);
+                    const label = `${fmtPct(seat.p.p)}% · ${personName(seat.p.h).slice(0, 18)}`;
+                    const lw = Math.max(62, label.length * 5.4 + 8);
+                    const lx = seat.x + Math.cos(seat.ang) * (lw / 2 + 9);
+                    const ly = seat.y + Math.sin(seat.ang) * 12;
                     return (
                       <g key={seat.p.h}>
-                        {onward.map((t) => {
+                        {/* onward ties fade in (staggered) */}
+                        {onward.map((t, j) => {
                           const tr = layout.byTicker.get(t);
                           if (!tr) return null;
                           return (
                             <path
                               key={`on-${t}`}
+                              className="lens-fade"
+                              style={{ animationDelay: `${180 + i * 40 + j * 25}ms` }}
                               d={`M ${seat.x} ${seat.y} L ${tr.x} ${tr.y}`}
                               stroke={seat.color}
                               strokeWidth={0.8}
                               opacity={0.35}
                               strokeDasharray="3 3"
                               fill="none"
-                              className="pointer-events-none"
                             />
                           );
                         })}
-                        <line x1={seat.x} y1={seat.y} x2={focusState.ring.x} y2={focusState.ring.y} stroke={seat.color} strokeWidth={1.1} opacity={0.8} />
-                        <circle cx={seat.x} cy={seat.y} r={4.5} fill={seat.color} />
+                        {/* the seat's tie to the company draws itself in */}
+                        <line
+                          className="lens-draw"
+                          style={{ ["--lens-dash" as string]: seatLen } as React.CSSProperties}
+                          x1={seat.x}
+                          y1={seat.y}
+                          x2={focusState.ring.x}
+                          y2={focusState.ring.y}
+                          stroke={seat.color}
+                          strokeWidth={1.1}
+                          strokeDasharray={seatLen}
+                          strokeDashoffset={seatLen}
+                          opacity={0.85}
+                        />
+                        {/* seat dot + name pill pop in */}
                         <g
+                          className="lens-seat"
+                          style={{ animationDelay: `${i * 45}ms` }}
                           onClick={(e) => {
                             e.stopPropagation();
                             setFocus({ type: "holder", h: seat.p.h });
                           }}
-                          className="cursor-pointer"
                         >
-                          {(() => {
-                            // label fans out RADIALLY from the seat dot
-                            const label = `${seat.p.p.toFixed(seat.p.p < 10 ? 2 : 1)}% · ${personName(seat.p.h).slice(0, 18)}`;
-                            const lw = Math.max(62, label.length * 5.4 + 8);
-                            const lx = seat.x + Math.cos(seat.ang) * (lw / 2 + 9);
-                            const ly = seat.y + Math.sin(seat.ang) * 12;
-                            return (
-                              <>
-                                <rect
-                                  x={lx - lw / 2}
-                                  y={ly - 8.5}
-                                  width={lw}
-                                  height={15}
-                                  rx={4}
-                                  fill="rgba(15,23,42,0.92)"
-                                  stroke={seat.color}
-                                  strokeWidth={0.7}
-                                />
-                                <text x={lx} y={ly + 2.5} textAnchor="middle" fontSize="8.5" fill="rgba(226,232,240,0.95)" className="pointer-events-none">
-                                  {label}
-                                </text>
-                              </>
-                            );
-                          })()}
-                        </g>
-                      </g>
-                    );
-                  })}
-                  {/* focus halo */}
-                  <circle cx={focusState.ring.x} cy={focusState.ring.y} r={focusState.ring.r + 9} fill="none" stroke="rgba(226,232,240,0.65)" strokeWidth="1.2" />
-                </g>
-              )}
-
-              {/* holder-focus spokes + stake pills */}
-              {focusState?.kind === "holder" && (
-                <g>
-                  <circle cx={focusState.hx} cy={focusState.hy} r={7} fill={holderColor(data.people[focusState.h]?.n ?? "")} stroke="rgba(226,232,240,0.9)" strokeWidth="1.2" />
-                  <text x={focusState.hx} y={focusState.hy - 13} textAnchor="middle" fontSize="10" fontWeight={700} fill="rgba(226,232,240,0.95)">
-                    {personName(focusState.h).slice(0, 26)}
-                  </text>
-                  {focusState.rings.map((r) => {
-                    const pos = focusState.holdings.find((p) => p.t === r.ticker);
-                    const pctv = pos?.p ?? 0;
-                    const dash = weekMoves?.byT.get(r.ticker)?.length ? "4 3" : undefined;
-                    return (
-                      <g key={r.ticker}>
-                        <line
-                          x1={focusState.hx}
-                          y1={focusState.hy}
-                          x2={r.x}
-                          y2={r.y}
-                          stroke={holderColor(data.people[focusState.h]?.n ?? "")}
-                          strokeWidth={1.2}
-                          opacity={0.85}
-                          strokeDasharray={dash}
-                        />
-                        <g
-                          transform={`translate(${focusState.hx + (r.x - focusState.hx) * 0.72},${focusState.hy + (r.y - focusState.hy) * 0.72})`}
-                        >
-                          <rect x={-16} y={-8} width={34} height={15} rx={7.5} fill="rgba(15,23,42,0.95)" stroke="rgba(226,232,240,0.4)" strokeWidth={0.6} />
-                          <text textAnchor="middle" y={2.5} fontSize="9" fontWeight={700} fill="rgba(226,232,240,0.95)" className="pointer-events-none">
-                            {pctv.toFixed(pctv < 10 ? 2 : 1)}%
+                          <circle cx={seat.x} cy={seat.y} r={4.5} fill={seat.color} style={{ stroke: "var(--lens-pill-bg)" }} strokeWidth={1} />
+                          <rect
+                            x={lx - lw / 2}
+                            y={ly - 8.5}
+                            width={lw}
+                            height={15}
+                            rx={4}
+                            style={{ fill: "var(--lens-pill-bg)", stroke: seat.color }}
+                            strokeWidth={0.7}
+                          />
+                          <text x={lx} y={ly + 2.5} textAnchor="middle" fontSize="8.5" style={{ fill: "var(--lens-pill-ink)" }} className="pointer-events-none">
+                            {label}
                           </text>
                         </g>
                       </g>
                     );
                   })}
+                </g>
+              )}
+
+              {/* holder-focus: node + spokes + stake pills — his investments
+               *  across the stocks light up and draw in */}
+              {focusState?.kind === "holder" && (
+                <g>
+                  {focusState.rings.map((r, i) => {
+                    const pos = focusState.holdings.find((p) => p.t === r.ticker);
+                    const pctv = pos?.p ?? 0;
+                    const len = Math.hypot(r.x - focusState.hx, r.y - focusState.hy);
+                    const changed = weekMoves?.byT.get(r.ticker)?.length ? "4 3" : undefined;
+                    return (
+                      <g key={r.ticker}>
+                        <line
+                          className={changed ? "lens-fade" : "lens-draw"}
+                          style={
+                            changed
+                              ? { animationDelay: `${i * 60}ms` }
+                              : ({ ["--lens-dash" as string]: len, animationDelay: `${i * 60}ms` } as React.CSSProperties)
+                          }
+                          x1={focusState.hx}
+                          y1={focusState.hy}
+                          x2={r.x}
+                          y2={r.y}
+                          stroke={holderColorOf(focusState.h)}
+                          strokeWidth={1.2 + Math.min(1.6, pctv / 12)}
+                          opacity={0.85}
+                          strokeDasharray={changed ?? len}
+                          strokeDashoffset={changed ? undefined : len}
+                        />
+                        <g
+                          className="lens-fade"
+                          style={{ animationDelay: `${240 + i * 60}ms` }}
+                          transform={`translate(${focusState.hx + (r.x - focusState.hx) * 0.72},${focusState.hy + (r.y - focusState.hy) * 0.72})`}
+                        >
+                          <rect x={-17} y={-8} width={35} height={15} rx={7.5} style={{ fill: "var(--lens-pill-bg)", stroke: "var(--lens-pill-border)" }} strokeWidth={0.6} />
+                          <text textAnchor="middle" y={2.5} fontSize="9" fontWeight={700} style={{ fill: "var(--lens-pill-ink)" }} className="pointer-events-none">
+                            {fmtPct(pctv)}%
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
+                  {/* the investor node itself */}
+                  <g className="lens-seat">
+                    <circle cx={focusState.hx} cy={focusState.hy} r={7} fill={holderColorOf(focusState.h)} style={{ stroke: "var(--lens-ink)" }} strokeWidth={1.2} />
+                    <text x={focusState.hx} y={focusState.hy - 13} textAnchor="middle" fontSize="10" fontWeight={700} style={{ fill: "var(--lens-ink)" }}>
+                      {personName(focusState.h).slice(0, 26)}
+                    </text>
+                  </g>
                 </g>
               )}
             </g>
@@ -1035,42 +1311,51 @@ export function LensView() {
           <div className="absolute bottom-2 left-2 flex items-center gap-1 text-xs">
             <button
               className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent"
-              onClick={() => setView((v) => ({ ...v, k: Math.min(3, v.k * 1.4) }))}
+              onClick={() => zoomStep(1.4)}
             >
               +
             </button>
             <button
               className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent"
-              onClick={() => setView((v) => ({ ...v, k: Math.max(0.6, v.k / 1.4) }))}
+              onClick={() => zoomStep(1 / 1.4)}
             >
               −
             </button>
-            <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => setView({ k: 1, x: 0, y: 0 })}>
+            <button
+              className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent"
+              onClick={() => {
+                setFocus(null);
+                setWeekIdx(null);
+                flyTo({ k: 1, x: 0, y: 0 });
+              }}
+            >
               {view.k.toFixed(1)}× · {lang === "ar" ? "إعادة" : "reset"}
             </button>
           </div>
 
           {/* legend */}
-          <div className="absolute bottom-2 right-2 max-w-[54%] rounded-lg border bg-card/90 px-2.5 py-1.5 text-[10.5px] leading-relaxed text-muted-foreground">
+          <div className="absolute bottom-2 right-2 max-w-[56%] rounded-lg border bg-card/90 px-2.5 py-1.5 text-[10.5px] leading-relaxed text-muted-foreground">
             {lang === "ar" ? (
               <>
+                التمرير بإصبعين يتنقّل في اللوحة، و ctrl/⌘ مع التمرير أو القرص للتكبير (والسحب بالمؤشر يتنقّل أيضاً).
                 الحلقة شركة، حجمها بالقيمة السوقية، والشرائح الملوّنة مالكون وردت أسماؤهم في إفصاح.
+                الحد المنقّط = شركة لم يرد لها إفصاح ملكية بعد (كل شركة عامة لها مالكون — الإفصاح لم يذكرهم).
                 الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليست أسهماً حرة.
-                القوس الخارجي هو ما اكتسبته الحصة أو تخلّت عنه في الأسبوع المختار.
-                اختر شركة ليفتح هيكل ملكيتها في نفس الصفحة.
+                القوس الخارجي ما اكتسبته الحصة أو تخلّت عنه في الأسبوع المختار.
               </>
             ) : (
               <>
+                Two-finger scroll pans the board · ctrl/⌘ + scroll or pinch zooms · drag pans too.
                 A ring is a company, sized by market cap; the colored slices are holders named in disclosures.
+                A dotted outline = no disclosure filed for that company yet (every public company has owners — the filings just have not named them).
                 The grey part is ownership nobody had to disclose — NOT free float.
                 The outer arc is what a stake gained or shed in the chosen week.
-                Pick a company to open its equity structure on this same page.
               </>
             )}
           </div>
         </div>
 
-        {/* ── right panel: register / company profile / holder scope ── */}
+        {/* ── right panel: company profile / investor portfolio / register ── */}
         <aside className="space-y-3">
           {focusState?.kind === "company" ? (
             <div className="rounded-xl border bg-card p-3 space-y-2.5">
@@ -1093,52 +1378,63 @@ export function LensView() {
                 {lang === "ar" ? focusState.ring.company.sectorAr : focusState.ring.company.sectorEn}
               </p>
 
-              {/* disclosed share bar */}
-              <div>
-                <div className="flex h-4 w-full overflow-hidden rounded-md border">
-                  {profilePositions.slice(0, 8).map((p) => (
-                    <div key={p.h} style={{ width: `${Math.max(0.5, Math.min(100, p.p))}%`, backgroundColor: holderColor(data.people[p.h]?.n ?? "") }} title={`${personName(p.h)} · ${p.p}%`} />
-                  ))}
-                  {100 - profileDisclosed > 0 && (
-                    <div style={{ width: `${Math.max(0, 100 - profileDisclosed)}%` }} className="hatch-bg" title={lang === "ar" ? "غير معلن" : "not disclosed"} />
-                  )}
+              {profilePositions.length === 0 ? (
+                /* T59 — honest empty state: public company, no filed owners yet */
+                <div className="rounded-lg border border-dashed bg-background/60 px-2.5 py-3 text-[11px] text-muted-foreground leading-relaxed">
+                  {lang === "ar"
+                    ? `لا توجد إفصاحات ملكية منشورة لهذه الشركة حتى ${data.asOf.slice(0, 10)}. كل شركة عامة لها مالكون بالتأكيد — لكن لم يذكر أي نموذج إفصاح رسمي أسماءهم بعد، فتبقى ملكيتها كلها ضمن الجزء غير المعلن (وليست أسهماً حرة بالضرورة).`
+                    : `No ownership disclosures have been filed for this company as of ${data.asOf.slice(0, 10)}. A public company certainly has owners — no official disclosure form has named them yet, so all of its ownership sits in the undisclosed part (not necessarily free float).`}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {lang === "ar" ? "المعلن" : "disclosed"} <b>{profileDisclosed.toFixed(1)}%</b> ·{" "}
-                  {lang === "ar" ? "غير معلن" : "not disclosed"} <b>{Math.max(0, 100 - profileDisclosed).toFixed(1)}%</b>
-                  {profilePositions[0]?.a ? ` · ${lang === "ar" ? "آخر إفصاح" : "latest"} ${profilePositions[0].a}` : ""}
-                </p>
-              </div>
-
-              {/* holders list */}
-              <div className="max-h-[38vh] overflow-auto space-y-1 pr-1">
-                {profilePositions.map((p) => {
-                  const bl = bulletin(p.s);
-                  return (
-                    <div key={`${p.h}-${p.a}`} className="rounded-lg border bg-background/60 px-2 py-1.5 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-1.5 min-w-0">
-                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: holderColor(data.people[p.h]?.n ?? "") }} />
-                          <span className="truncate">{personName(p.h)}</span>
-                        </span>
-                        <b className="shrink-0">{p.p.toFixed(p.p < 10 ? 2 : 1)}%</b>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {basisLabel(p.b)} · {p.a ?? "—"}
-                        {p.f ? ` · #${p.f}` : ""}
-                        {bl && (
-                          <>
-                            {" · "}
-                            <a href={bl} target="_blank" rel="noreferrer" className="underline hover:text-foreground">
-                              {lang === "ar" ? "الإفصاح الرسمي ↗" : "bulletin ↗"}
-                            </a>
-                          </>
-                        )}
-                      </p>
+              ) : (
+                <>
+                  {/* disclosed share bar */}
+                  <div>
+                    <div className="flex h-4 w-full overflow-hidden rounded-md border">
+                      {profilePositions.slice(0, 8).map((p) => (
+                        <div key={p.h} style={{ width: `${Math.max(0.5, Math.min(100, p.p))}%`, backgroundColor: holderColorOf(p.h) }} title={`${personName(p.h)} · ${fmtPct(p.p)}%`} />
+                      ))}
+                      {100 - profileDisclosed > 0 && (
+                        <div style={{ width: `${Math.max(0, 100 - profileDisclosed)}%` }} className="hatch-bg" title={lang === "ar" ? "غير معلن" : "not disclosed"} />
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {lang === "ar" ? "المعلن" : "disclosed"} <b>{profileDisclosed.toFixed(1)}%</b> ·{" "}
+                      {lang === "ar" ? "غير معلن" : "not disclosed"} <b>{Math.max(0, 100 - profileDisclosed).toFixed(1)}%</b>
+                      {profilePositions[0]?.a ? ` · ${lang === "ar" ? "آخر إفصاح" : "latest"} ${profilePositions[0].a}` : ""}
+                    </p>
+                  </div>
+
+                  {/* holders list */}
+                  <div className="max-h-[38vh] overflow-auto space-y-1 pr-1 thin-scroll">
+                    {profilePositions.map((p) => {
+                      const bl = bulletin(p.s);
+                      return (
+                        <div key={`${p.h}-${p.a}`} className="rounded-lg border bg-background/60 px-2 py-1.5 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: holderColorOf(p.h) }} />
+                              <span className="truncate">{personName(p.h)}</span>
+                            </span>
+                            <b className="shrink-0">{fmtPct(p.p)}%</b>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {basisLabel(p.b)} · {p.a ?? "—"}
+                            {p.f ? ` · #${p.f}` : ""}
+                            {bl && (
+                              <>
+                                {" · "}
+                                <a href={bl} target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+                                  {lang === "ar" ? "الإفصاح الرسمي ↗" : "bulletin ↗"}
+                                </a>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
 
               {/* cross holdings */}
               {(crossOut.length > 0 || crossIn.length > 0) && (
@@ -1180,35 +1476,71 @@ export function LensView() {
                   : "Of the company's share capital, per the latest filed ownership disclosures. The undisclosed part is not free float."}
               </p>
             </div>
-          ) : focusState?.kind === "holder" ? (
+          ) : focusState?.kind === "holder" && holderPortfolio ? (
+            /* ── T59 — INVESTOR PORTFOLIO: his investments across the stocks ── */
             <div className="rounded-xl border bg-card p-3 space-y-2.5">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-sm font-bold leading-snug">{personName(focusState.h)}</h2>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-bold leading-snug truncate">
+                    <span className="inline-block size-2.5 rounded-full me-1.5 align-middle" style={{ backgroundColor: holderColorOf(focusState.h) }} />
+                    {personName(focusState.h)}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {data.people[focusState.h]?.k === "f"
+                      ? lang === "ar"
+                        ? "شركة أو صندوق"
+                        : "firm / fund"
+                      : lang === "ar"
+                        ? "شخص"
+                        : "person"}{" "}
+                    · {focusState.rings.length} {lang === "ar" ? "شركة مدرجة" : "listed companies"}
+                  </p>
+                </div>
                 <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setFocus(null)}>
                   {lang === "ar" ? "رجوع" : "back"}
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                {data.people[focusState.h]?.k === "f"
-                  ? lang === "ar"
-                    ? "شركة أو صندوق"
-                    : "firm / fund"
-                  : lang === "ar"
-                    ? "شخص"
-                    : "person"}{" "}
-                · {focusState.rings.length} {lang === "ar" ? "شركة" : "companies"}
-              </p>
-              <div className="max-h-[52vh] overflow-auto space-y-1 pr-1">
-                {focusState.holdings.map((p) => {
-                  const ring = layout.byTicker.get(p.t);
+
+              {/* portfolio headline: total estimated value of the filed stakes */}
+              <div className="rounded-lg border bg-background/60 px-2.5 py-2">
+                <p className="text-[10px] text-muted-foreground">{lang === "ar" ? "قيمة الحصص المعلنة (تقدير بالسعر الحالي)" : "value of filed stakes (at current prices)"}</p>
+                <p className="text-base font-bold tabular-nums mt-0.5">
+                  {fmtEgp(holderPortfolio.totalValue, lang)}
+                  {holderPortfolio.valuedCount < holderPortfolio.rows.length && (
+                    <span className="text-[10px] font-normal text-muted-foreground ms-1.5">
+                      ({holderPortfolio.valuedCount}/{holderPortfolio.rows.length} {lang === "ar" ? "مقيّمة" : "valued"})
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              {/* holdings, sorted by stake value */}
+              <div className="max-h-[46vh] overflow-auto space-y-1 pr-1 thin-scroll">
+                {holderPortfolio.rows.map(({ p, ring, value }) => {
                   const bl = bulletin(p.s);
+                  const rel = holderPortfolio.totalValue > 0 && value != null ? value / holderPortfolio.totalValue : 0;
+                  const changed = weekMoves?.byT.get(p.t)?.length;
                   return (
                     <div key={`${p.t}-${p.a}`} className="rounded-lg border bg-background/60 px-2 py-1.5 text-xs">
                       <div className="flex items-center justify-between gap-2">
-                        <button className="font-semibold underline hover:text-foreground" onClick={() => setFocus({ type: "company", ticker: p.t })}>
-                          {p.t} · {ring ? dn(ring.company, lang).slice(0, 26) : ""}
+                        <button
+                          className="font-semibold underline decoration-muted-foreground/40 hover:text-foreground text-start truncate"
+                          onClick={() => setFocus({ type: "company", ticker: p.t })}
+                          title={ring ? dn(ring.company, lang) : p.t}
+                        >
+                          {p.t}
+                          {changed ? <span className="ms-1 text-[9px] text-emerald-600 dark:text-emerald-400">● {lang === "ar" ? "تحرك هذا الأسبوع" : "moved"}</span> : null}
                         </button>
-                        <b>{p.p.toFixed(p.p < 10 ? 2 : 1)}%</b>
+                        <b className="shrink-0 tabular-nums">{fmtPct(p.p)}%</b>
+                      </div>
+                      {ring && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{dn(ring.company, lang)} · {lang === "ar" ? ring.company.sectorAr : ring.company.sectorEn}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, rel * 100)}%`, backgroundColor: holderColorOf(focusState.h) }} />
+                        </div>
+                        <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">{fmtEgp(value, lang)}</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {basisLabel(p.b)} · {p.a ?? "—"}
@@ -1227,8 +1559,8 @@ export function LensView() {
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 {lang === "ar"
-                  ? "النسب تخص كل شركة على حدة ولا تُجمع أبدًا — كل حصة بسعر شركة مختلفة."
-                  : "Percentages belong to each single company and are never summed — each stake prices a different company."}
+                  ? "قيمة كل حصة = النسبة المفصح عنها × القيمة السوقية الحالية للشركة — تقدير يتغير مع السعر. النسب تخص كل شركة على حدة ولا تُجمع أبدًا."
+                  : "Each stake value = filed percentage × the company's current market cap — an estimate that moves with the price. Percentages belong to each single company and are never summed."}
               </p>
             </div>
           ) : (
@@ -1253,13 +1585,19 @@ export function LensView() {
                     >
                       <span className="font-semibold">{c.ticker}</span> · {dn(c, lang)}
                       <span className="block text-[10px] text-muted-foreground">
-                        {lang === "ar" ? "على الخريطة" : "on the board"}
+                        {layout.slicesByTicker.has(c.ticker)
+                          ? lang === "ar"
+                            ? "على الخريطة"
+                            : "on the board"
+                          : lang === "ar"
+                            ? "بلا إفصاحات ملكية بعد"
+                            : "no filed stakes yet"}
                       </span>
                     </button>
                   ))}
                 </div>
               )}
-              <div className="max-h-[52vh] overflow-auto pr-1 space-y-0.5">
+              <div className="max-h-[52vh] overflow-auto pr-1 space-y-0.5 thin-scroll">
                 {register.people.map((p, i) => {
                   const h = data.people.indexOf(p);
                   return (
@@ -1308,6 +1646,11 @@ export function LensView() {
                   : "The grey remainder is ownership nobody was obliged to disclose — it is NOT free float."}
               </p>
               <p>
+                {lang === "ar"
+                  ? `تتحدث البيانات تلقائيًا يوميًا من نماذج الإفصاح الرسمية — آخر تحديث ${data.asOf.slice(0, 10)}.`
+                  : `The data refreshes automatically every day from the official disclosure forms — last update ${data.asOf.slice(0, 10)}.`}
+              </p>
+              <p>
                 {lang === "ar" ? "المصدر:" : "Source:"} {lang === "ar" ? data.sourceAr : data.source} ({data.asOf}).
               </p>
               {data.refused.length > 0 && (
@@ -1323,4 +1666,3 @@ export function LensView() {
     </div>
   );
 }
-

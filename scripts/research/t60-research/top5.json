@@ -1,0 +1,7232 @@
+{
+ "schemaVersion": 1,
+ "builtAt": "2026-09-23T18:43:57Z",
+ "topCount": 5,
+ "minimumSessions": 5,
+ "horizons": [
+  1,
+  5,
+  20
+ ],
+ "dates": [
+  "2026-08-20",
+  "2026-08-23",
+  "2026-08-24",
+  "2026-08-25",
+  "2026-08-26",
+  "2026-08-30",
+  "2026-08-31",
+  "2026-09-02",
+  "2026-09-03",
+  "2026-09-13",
+  "2026-09-14",
+  "2026-09-15",
+  "2026-09-16",
+  "2026-09-17",
+  "2026-09-20",
+  "2026-09-21",
+  "2026-09-22",
+  "2026-09-23"
+ ],
+ "latest": {
+  "basisSession": "2026-09-23",
+  "ranAt": "2026-09-23T18:04:44Z",
+  "universeSize": 235,
+  "forecasters": 13,
+  "readings": 16,
+  "rerankedAt": "2026-09-23T18:36:00Z",
+  "rerankReads": [
+   "filings",
+   "news",
+   "rulebook"
+  ]
+ },
+ "what": "For each model, the 5 companies it ranked highest on a session, and what those returned against what everything it scored returned. Every forecast was frozen before the outcome existed. A horizon whose answer already existed when the forecast was written is not counted.",
+ "reading": "5 companies over a handful of sessions is a very small sample. `sessions` is how many nights are behind each average and `ahead` how many of them the model's five beat the market on; both are the size of the evidence and the average means nothing without them. Below 5 sessions the screen shows the count and not the average.",
+ "benchmark": "The market figure is the equal-weighted return of every company the model scored that session — not an index.",
+ "notAdvice": "A record of forecasting models. It names no security and recommends nothing.",
+ "models": {
+  "rerank": {
+   "label": "Gemini re-rank",
+   "labelAr": "إعادة ترتيب Gemini",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.5187,
+     "meanMarket": -0.194,
+     "meanAdvantage": -0.3246,
+     "ahead": 2,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 0.2822,
+       "marketReturn": 0.3899,
+       "advantage": -0.1077,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.7163,
+       "marketReturn": 0.4758,
+       "advantage": -1.1921,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 1.5664,
+       "marketReturn": 0.8722,
+       "advantage": 0.6942,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.0685,
+       "marketReturn": -0.2253,
+       "advantage": -0.8432,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.8529,
+       "marketReturn": -2.2944,
+       "advantage": -0.5584,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": 0.3401,
+       "marketReturn": 0.0464,
+       "advantage": 0.2937,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.1816,
+       "marketReturn": -0.6229,
+       "advantage": -0.5586,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.6581,
+     "t": -1.305,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": 0.5298,
+     "meanMarket": -1.2242,
+     "meanAdvantage": 1.7539,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 1.4791,
+       "marketReturn": -0.5983,
+       "advantage": 2.0774,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.7189,
+       "marketReturn": -1.1605,
+       "advantage": -0.5584,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 1.8292,
+       "marketReturn": -1.9137,
+       "advantage": 3.7428,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 2.1688,
+     "t": 1.401,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "kronos": {
+   "label": "Kronos-small",
+   "labelAr": "Kronos-small",
+   "group": "neural",
+   "nights": 18,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": 0.5358,
+     "meanMarket": 0.1729,
+     "meanAdvantage": 0.3629,
+     "ahead": 8,
+     "signChanges": 10,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 3.4892,
+       "marketReturn": 1.4814,
+       "advantage": 2.0077,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 228,
+       "chosenReturn": -2.9446,
+       "marketReturn": -0.2558,
+       "advantage": -2.6888,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 3.0152,
+       "marketReturn": 0.6693,
+       "advantage": 2.3459,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": 4.0091,
+       "marketReturn": 0.7027,
+       "advantage": 3.3064,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -1.3181,
+       "marketReturn": -0.7268,
+       "advantage": -0.5913,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -1.3547,
+       "marketReturn": 0.8451,
+       "advantage": -2.1999,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 212,
+       "chosenReturn": 1.3461,
+       "marketReturn": 0.3576,
+       "advantage": 0.9885,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 205,
+       "chosenReturn": -2.4526,
+       "marketReturn": 0.8948,
+       "advantage": -3.3474,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": -0.5088,
+       "marketReturn": 0.379,
+       "advantage": -0.8878,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 2.1464,
+       "marketReturn": 0.4758,
+       "advantage": 1.6706,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -1.7199,
+       "marketReturn": 0.8722,
+       "advantage": -2.5921,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 3.3032,
+       "marketReturn": -0.2253,
+       "advantage": 3.5285,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -3.2648,
+       "marketReturn": -2.2944,
+       "advantage": -0.9703,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 2.3166,
+       "marketReturn": 0.0401,
+       "advantage": 2.2765,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 1.9744,
+       "marketReturn": -0.6229,
+       "advantage": 2.5973,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 2.3711,
+     "t": 0.593,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": 0.4142,
+     "meanMarket": 0.6589,
+     "meanAdvantage": -0.2447,
+     "ahead": 7,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 2.4068,
+       "marketReturn": 2.036,
+       "advantage": 0.3708,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 228,
+       "chosenReturn": 3.6897,
+       "marketReturn": 0.0733,
+       "advantage": 3.6164,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 150,
+       "chosenReturn": -3.9044,
+       "marketReturn": 2.1346,
+       "advantage": -6.0389,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -1.5817,
+       "marketReturn": 1.5349,
+       "advantage": -3.1165,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": -1.2669,
+       "marketReturn": 1.426,
+       "advantage": -2.6929,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 3.7157,
+       "marketReturn": 1.7186,
+       "advantage": 1.997,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 9.4258,
+       "marketReturn": 2.6335,
+       "advantage": 6.7923,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.0369,
+       "marketReturn": 0.5906,
+       "advantage": -0.6276,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 204,
+       "chosenReturn": -6.1694,
+       "marketReturn": 0.2101,
+       "advantage": -6.3795,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.6952,
+       "marketReturn": -0.0962,
+       "advantage": -0.599,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.1029,
+       "marketReturn": -0.6219,
+       "advantage": 0.7248,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 0.203,
+       "marketReturn": -1.1605,
+       "advantage": 1.3635,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -0.505,
+       "marketReturn": -1.9137,
+       "advantage": 1.4087,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 3.6721,
+     "t": -0.24,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "kronos_egx": {
+   "label": "Kronos-small, retrained on EGX candles",
+   "labelAr": "Kronos-small، بعد تدريبه على شموع البورصة المصرية",
+   "group": "neural",
+   "nights": 4,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 3,
+     "meanReturn": -0.9345,
+     "meanMarket": -0.9591,
+     "meanAdvantage": 0.0246,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.1943,
+       "marketReturn": -2.2944,
+       "advantage": 0.1002,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.0648,
+       "marketReturn": 0.0401,
+       "advantage": -0.1049,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.5443,
+       "marketReturn": -0.6229,
+       "advantage": 0.0786,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.1127,
+     "t": 0.378,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "chronos2": {
+   "label": "Chronos-2",
+   "labelAr": "Chronos-2",
+   "group": "neural",
+   "nights": 9,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.8653,
+     "meanMarket": -0.197,
+     "meanAdvantage": -0.6683,
+     "ahead": 3,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.8151,
+       "marketReturn": 0.3758,
+       "advantage": 1.4392,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -2.4453,
+       "marketReturn": 0.4758,
+       "advantage": -2.9211,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -1.8893,
+       "marketReturn": 0.8722,
+       "advantage": -2.7615,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.3898,
+       "marketReturn": -0.2253,
+       "advantage": -1.1645,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.5296,
+       "marketReturn": -2.2944,
+       "advantage": 0.7648,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.092,
+       "marketReturn": 0.0401,
+       "advantage": -1.1321,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 0.474,
+       "marketReturn": -0.6229,
+       "advantage": 1.097,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.8041,
+     "t": -0.98,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 4,
+     "meanReturn": -5.1637,
+     "meanMarket": -0.9481,
+     "meanAdvantage": -4.2156,
+     "ahead": 0,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -2.6734,
+       "marketReturn": -0.0962,
+       "advantage": -2.5773,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -7.6238,
+       "marketReturn": -0.6219,
+       "advantage": -7.0019,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -5.8997,
+       "marketReturn": -1.1605,
+       "advantage": -4.7392,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -4.4577,
+       "marketReturn": -1.9137,
+       "advantage": -2.544,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 2.1226,
+     "t": -3.972,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "timesfm25": {
+   "label": "TimesFM 2.5",
+   "labelAr": "TimesFM 2.5",
+   "group": "neural",
+   "nights": 9,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.2537,
+     "meanMarket": -0.197,
+     "meanAdvantage": -0.0568,
+     "ahead": 3,
+     "signChanges": 3,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.3059,
+       "marketReturn": 0.3758,
+       "advantage": 0.93,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.5995,
+       "marketReturn": 0.4758,
+       "advantage": 0.1237,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 0.419,
+       "marketReturn": 0.8722,
+       "advantage": -0.4532,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.6066,
+       "marketReturn": -0.2253,
+       "advantage": 0.8318,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -3.6414,
+       "marketReturn": -2.2944,
+       "advantage": -1.347,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.0946,
+       "marketReturn": 0.0401,
+       "advantage": -0.1347,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.971,
+       "marketReturn": -0.6229,
+       "advantage": -0.3481,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.7862,
+     "t": -0.191,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 4,
+     "meanReturn": -1.1942,
+     "meanMarket": -0.9481,
+     "meanAdvantage": -0.2461,
+     "ahead": 2,
+     "signChanges": 3,
+     "byDate": [
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.9501,
+       "marketReturn": -0.0962,
+       "advantage": -1.8539,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.1437,
+       "marketReturn": -0.6219,
+       "advantage": 0.7656,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.6028,
+       "marketReturn": -1.1605,
+       "advantage": -0.4423,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.3676,
+       "marketReturn": -1.9137,
+       "advantage": 0.5461,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.1937,
+     "t": -0.412,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "toto2": {
+   "label": "Toto 2.0",
+   "labelAr": "Toto 2.0",
+   "group": "neural",
+   "nights": 7,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 6,
+     "meanReturn": -0.196,
+     "meanMarket": -0.2924,
+     "meanAdvantage": 0.0964,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 1.5271,
+       "marketReturn": 0.4758,
+       "advantage": 1.0513,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -1.1764,
+       "marketReturn": 0.8722,
+       "advantage": -2.0486,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.7361,
+       "marketReturn": -0.2253,
+       "advantage": -0.5108,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.4815,
+       "marketReturn": -2.2944,
+       "advantage": -0.187,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.1645,
+       "marketReturn": 0.0401,
+       "advantage": -0.2046,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 1.8553,
+       "marketReturn": -0.6229,
+       "advantage": 2.4782,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.5314,
+     "t": 0.154,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 2,
+     "meanReturn": -1.0373,
+     "meanMarket": -1.5371,
+     "meanAdvantage": 0.4997,
+     "ahead": 1,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -3.4557,
+       "marketReturn": -1.1605,
+       "advantage": -2.2953,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 1.3811,
+       "marketReturn": -1.9137,
+       "advantage": 3.2948,
+       "beatTheMarket": true
+      }
+     ],
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "sundial": {
+   "label": "Sundial",
+   "labelAr": "Sundial",
+   "group": "neural",
+   "nights": 7,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 6,
+     "meanReturn": -0.7259,
+     "meanMarket": -0.2924,
+     "meanAdvantage": -0.4335,
+     "ahead": 3,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.5102,
+       "marketReturn": 0.4758,
+       "advantage": 0.0344,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -0.2268,
+       "marketReturn": 0.8722,
+       "advantage": -1.099,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -2.0354,
+       "marketReturn": -0.2253,
+       "advantage": -1.8102,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.1786,
+       "marketReturn": -2.2944,
+       "advantage": 1.1158,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.9845,
+       "marketReturn": 0.0401,
+       "advantage": -1.0247,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.4402,
+       "marketReturn": -0.6229,
+       "advantage": 0.1827,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.0665,
+     "t": -0.996,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 2,
+     "meanReturn": -2.2087,
+     "meanMarket": -1.5371,
+     "meanAdvantage": -0.6716,
+     "ahead": 1,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -2.9995,
+       "marketReturn": -1.1605,
+       "advantage": -1.839,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.4179,
+       "marketReturn": -1.9137,
+       "advantage": 0.4958,
+       "beatTheMarket": true
+      }
+     ],
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "momentum20": {
+   "label": "Momentum, 20 sessions",
+   "labelAr": "الزخم، 20 جلسة",
+   "group": "baseline",
+   "nights": 18,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": -0.1408,
+     "meanMarket": 0.1735,
+     "meanAdvantage": -0.3144,
+     "ahead": 7,
+     "signChanges": 9,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 3.8449,
+       "marketReturn": 1.4814,
+       "advantage": 2.3635,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -5.4456,
+       "marketReturn": -0.2588,
+       "advantage": -5.1868,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 4.1523,
+       "marketReturn": 0.6776,
+       "advantage": 3.4747,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 7.7267,
+       "marketReturn": 0.6878,
+       "advantage": 7.0389,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -5.165,
+       "marketReturn": -0.7163,
+       "advantage": -4.4487,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": 1.3296,
+       "marketReturn": 0.8486,
+       "advantage": 0.481,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.5206,
+       "marketReturn": 0.3571,
+       "advantage": 0.1635,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -2.352,
+       "marketReturn": 0.9042,
+       "advantage": -3.2562,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 0.9887,
+       "marketReturn": 0.3758,
+       "advantage": 0.6129,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.2929,
+       "marketReturn": 0.4758,
+       "advantage": -0.1828,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -2.1501,
+       "marketReturn": 0.8722,
+       "advantage": -3.0223,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -2.7339,
+       "marketReturn": -0.2253,
+       "advantage": -2.5087,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -4.1714,
+       "marketReturn": -2.2944,
+       "advantage": -1.877,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 2.1955,
+       "marketReturn": 0.0401,
+       "advantage": 2.1554,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.1456,
+       "marketReturn": -0.6229,
+       "advantage": -0.5227,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 3.2465,
+     "t": -0.375,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": -3.9521,
+     "meanMarket": 0.6632,
+     "meanAdvantage": -4.6152,
+     "ahead": 0,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": -2.3234,
+       "marketReturn": 2.036,
+       "advantage": -4.3594,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -11.0351,
+       "marketReturn": 0.0707,
+       "advantage": -11.1058,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 149,
+       "chosenReturn": -0.0365,
+       "marketReturn": 2.1478,
+       "advantage": -2.1843,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -2.157,
+       "marketReturn": 1.5336,
+       "advantage": -3.6906,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": -5.5258,
+       "marketReturn": 1.4178,
+       "advantage": -6.9437,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -8.5595,
+       "marketReturn": 1.7348,
+       "advantage": -10.2943,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": -1.6916,
+       "marketReturn": 2.637,
+       "advantage": -4.3287,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": -0.9667,
+       "marketReturn": 0.6064,
+       "advantage": -1.5731,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": -0.0918,
+       "marketReturn": 0.2292,
+       "advantage": -0.321,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -4.0827,
+       "marketReturn": -0.0962,
+       "advantage": -3.9865,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -5.9609,
+       "marketReturn": -0.6219,
+       "advantage": -5.339,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -7.0298,
+       "marketReturn": -1.1605,
+       "advantage": -5.8693,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.9159,
+       "marketReturn": -1.9137,
+       "advantage": -0.0023,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 3.3934,
+     "t": -4.904,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 4,
+     "meanReturn": -10.6697,
+     "meanMarket": -0.2264,
+     "meanAdvantage": -10.4432,
+     "ahead": 0,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 167,
+       "chosenReturn": -8.9248,
+       "marketReturn": 2.6196,
+       "advantage": -11.5444,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -14.9364,
+       "marketReturn": -1.1493,
+       "advantage": -13.7871,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 142,
+       "chosenReturn": -6.6813,
+       "marketReturn": -0.9014,
+       "advantage": -5.7799,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": -12.1363,
+       "marketReturn": -1.4746,
+       "advantage": -10.6616,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 3.3758,
+     "t": -6.187,
+     "waiting": [
+      {
+       "basisSession": "2026-08-26",
+       "sessionsClosed": 19
+      },
+      {
+       "basisSession": "2026-08-30",
+       "sessionsClosed": 18
+      },
+      {
+       "basisSession": "2026-08-31",
+       "sessionsClosed": 17
+      },
+      {
+       "basisSession": "2026-09-02",
+       "sessionsClosed": 15
+      },
+      {
+       "basisSession": "2026-09-03",
+       "sessionsClosed": 14
+      },
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "momentum60": {
+   "label": "Momentum, 60 sessions",
+   "labelAr": "الزخم، 60 جلسة",
+   "group": "baseline",
+   "nights": 18,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": -0.3075,
+     "meanMarket": 0.1735,
+     "meanAdvantage": -0.481,
+     "ahead": 4,
+     "signChanges": 7,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 2.1447,
+       "marketReturn": 1.4814,
+       "advantage": 0.6633,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.2935,
+       "marketReturn": -0.2588,
+       "advantage": -1.0347,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -0.067,
+       "marketReturn": 0.6776,
+       "advantage": -0.7446,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 4.9243,
+       "marketReturn": 0.6878,
+       "advantage": 4.2365,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -4.667,
+       "marketReturn": -0.7163,
+       "advantage": -3.9507,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": -2.3423,
+       "marketReturn": 0.8486,
+       "advantage": -3.1909,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.0717,
+       "marketReturn": 0.3571,
+       "advantage": -1.4288,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 0.5747,
+       "marketReturn": 0.9042,
+       "advantage": -0.3295,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": -0.0544,
+       "marketReturn": 0.3758,
+       "advantage": -0.4302,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 3.0782,
+       "marketReturn": 0.4758,
+       "advantage": 2.6024,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 0.4224,
+       "marketReturn": 0.8722,
+       "advantage": -0.4498,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.921,
+       "marketReturn": -0.2253,
+       "advantage": -0.6957,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -3.3682,
+       "marketReturn": -2.2944,
+       "advantage": -1.0738,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 1.1584,
+       "marketReturn": 0.0401,
+       "advantage": 1.1183,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -3.1302,
+       "marketReturn": -0.6229,
+       "advantage": -2.5073,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 2.0842,
+     "t": -0.894,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": -2.1735,
+     "meanMarket": 0.6632,
+     "meanAdvantage": -2.8367,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 4.7984,
+       "marketReturn": 2.036,
+       "advantage": 2.7625,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 2.0288,
+       "marketReturn": 0.0707,
+       "advantage": 1.958,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 149,
+       "chosenReturn": -7.5386,
+       "marketReturn": 2.1478,
+       "advantage": -9.6864,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -4.4768,
+       "marketReturn": 1.5336,
+       "advantage": -6.0104,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": -2.9734,
+       "marketReturn": 1.4178,
+       "advantage": -4.3912,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -6.894,
+       "marketReturn": 1.7348,
+       "advantage": -8.6289,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": -3.0278,
+       "marketReturn": 2.637,
+       "advantage": -5.6648,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": -1.5139,
+       "marketReturn": 0.6064,
+       "advantage": -2.1202,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": 0.7123,
+       "marketReturn": 0.2292,
+       "advantage": 0.4831,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -2.5653,
+       "marketReturn": -0.0962,
+       "advantage": -2.4691,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -1.0408,
+       "marketReturn": -0.6219,
+       "advantage": -0.4189,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 0.0748,
+       "marketReturn": -1.1605,
+       "advantage": 1.2353,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -5.8398,
+       "marketReturn": -1.9137,
+       "advantage": -3.9261,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 3.9852,
+     "t": -2.566,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 4,
+     "meanReturn": -11.2868,
+     "meanMarket": -0.2264,
+     "meanAdvantage": -11.0603,
+     "ahead": 0,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 167,
+       "chosenReturn": -8.8363,
+       "marketReturn": 2.6196,
+       "advantage": -11.4559,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -7.0207,
+       "marketReturn": -1.1493,
+       "advantage": -5.8714,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 142,
+       "chosenReturn": -14.4501,
+       "marketReturn": -0.9014,
+       "advantage": -13.5487,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": -14.8401,
+       "marketReturn": -1.4746,
+       "advantage": -13.3654,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 3.5864,
+     "t": -6.168,
+     "waiting": [
+      {
+       "basisSession": "2026-08-26",
+       "sessionsClosed": 19
+      },
+      {
+       "basisSession": "2026-08-30",
+       "sessionsClosed": 18
+      },
+      {
+       "basisSession": "2026-08-31",
+       "sessionsClosed": 17
+      },
+      {
+       "basisSession": "2026-09-02",
+       "sessionsClosed": 15
+      },
+      {
+       "basisSession": "2026-09-03",
+       "sessionsClosed": 14
+      },
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "reversal1": {
+   "label": "Reversal, 1 session",
+   "labelAr": "الانعكاس، جلسة",
+   "group": "baseline",
+   "nights": 18,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": -0.3319,
+     "meanMarket": 0.1735,
+     "meanAdvantage": -0.5054,
+     "ahead": 5,
+     "signChanges": 8,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 4.7669,
+       "marketReturn": 1.4814,
+       "advantage": 3.2855,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -3.1322,
+       "marketReturn": -0.2588,
+       "advantage": -2.8734,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -1.9183,
+       "marketReturn": 0.6776,
+       "advantage": -2.5959,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 4.9997,
+       "marketReturn": 0.6878,
+       "advantage": 4.312,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -6.0101,
+       "marketReturn": -0.7163,
+       "advantage": -5.2939,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": -1.7058,
+       "marketReturn": 0.8486,
+       "advantage": -2.5544,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 1.0204,
+       "marketReturn": 0.3571,
+       "advantage": 0.6633,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -0.1799,
+       "marketReturn": 0.9042,
+       "advantage": -1.0841,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": -0.4559,
+       "marketReturn": 0.3758,
+       "advantage": -0.8318,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 2.9496,
+       "marketReturn": 0.4758,
+       "advantage": 2.4738,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -0.7857,
+       "marketReturn": 0.8722,
+       "advantage": -1.6579,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -2.6995,
+       "marketReturn": -0.2253,
+       "advantage": -2.4742,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.4537,
+       "marketReturn": -2.2944,
+       "advantage": -0.1592,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.3383,
+       "marketReturn": 0.0401,
+       "advantage": -1.3784,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 1.965,
+       "marketReturn": -0.6229,
+       "advantage": 2.5879,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 2.6862,
+     "t": -0.729,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": -0.7798,
+     "meanMarket": 0.6632,
+     "meanAdvantage": -1.443,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 13.4216,
+       "marketReturn": 2.036,
+       "advantage": 11.3856,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 5.2274,
+       "marketReturn": 0.0707,
+       "advantage": 5.1566,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 149,
+       "chosenReturn": -3.1668,
+       "marketReturn": 2.1478,
+       "advantage": -5.3146,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -1.3404,
+       "marketReturn": 1.5336,
+       "advantage": -2.874,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": 5.254,
+       "marketReturn": 1.4178,
+       "advantage": 3.8362,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -2.3941,
+       "marketReturn": 1.7348,
+       "advantage": -4.129,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": -2.3459,
+       "marketReturn": 2.637,
+       "advantage": -4.9829,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": -6.2548,
+       "marketReturn": 0.6064,
+       "advantage": -6.8612,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": -6.0523,
+       "marketReturn": 0.2292,
+       "advantage": -6.2815,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -2.9572,
+       "marketReturn": -0.0962,
+       "advantage": -2.8611,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.3716,
+       "marketReturn": -0.6219,
+       "advantage": 0.9935,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -3.7893,
+       "marketReturn": -1.1605,
+       "advantage": -2.6288,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -6.1117,
+       "marketReturn": -1.9137,
+       "advantage": -4.1981,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 5.3424,
+     "t": -0.974,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 4,
+     "meanReturn": -2.5168,
+     "meanMarket": -0.2264,
+     "meanAdvantage": -2.2904,
+     "ahead": 1,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 167,
+       "chosenReturn": 1.5889,
+       "marketReturn": 2.6196,
+       "advantage": -1.0307,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -6.0943,
+       "marketReturn": -1.1493,
+       "advantage": -4.945,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 142,
+       "chosenReturn": -6.9212,
+       "marketReturn": -0.9014,
+       "advantage": -6.0198,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": 1.3593,
+       "marketReturn": -1.4746,
+       "advantage": 2.8339,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 4.0332,
+     "t": -1.136,
+     "waiting": [
+      {
+       "basisSession": "2026-08-26",
+       "sessionsClosed": 19
+      },
+      {
+       "basisSession": "2026-08-30",
+       "sessionsClosed": 18
+      },
+      {
+       "basisSession": "2026-08-31",
+       "sessionsClosed": 17
+      },
+      {
+       "basisSession": "2026-09-02",
+       "sessionsClosed": 15
+      },
+      {
+       "basisSession": "2026-09-03",
+       "sessionsClosed": 14
+      },
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "reversal5": {
+   "label": "Reversal, 5 sessions",
+   "labelAr": "الانعكاس، 5 جلسات",
+   "group": "baseline",
+   "nights": 18,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": 0.7632,
+     "meanMarket": 0.1735,
+     "meanAdvantage": 0.5897,
+     "ahead": 8,
+     "signChanges": 6,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 9.3781,
+       "marketReturn": 1.4814,
+       "advantage": 7.8967,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 1.9182,
+       "marketReturn": -0.2588,
+       "advantage": 2.177,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 2.0534,
+       "marketReturn": 0.6776,
+       "advantage": 1.3758,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 1.7092,
+       "marketReturn": 0.6878,
+       "advantage": 1.0215,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 1.3144,
+       "marketReturn": -0.7163,
+       "advantage": 2.0307,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": -1.0576,
+       "marketReturn": 0.8486,
+       "advantage": -1.9062,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.0122,
+       "marketReturn": 0.3571,
+       "advantage": -0.3693,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -4.01,
+       "marketReturn": 0.9042,
+       "advantage": -4.9142,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 0.2354,
+       "marketReturn": 0.3758,
+       "advantage": -0.1405,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 4.5089,
+       "marketReturn": 0.4758,
+       "advantage": 4.0331,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -0.4167,
+       "marketReturn": 0.8722,
+       "advantage": -1.2889,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -2.5297,
+       "marketReturn": -0.2253,
+       "advantage": -2.3045,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.7885,
+       "marketReturn": -2.2944,
+       "advantage": 0.506,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.2331,
+       "marketReturn": 0.0401,
+       "advantage": -1.2732,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 1.3786,
+       "marketReturn": -0.6229,
+       "advantage": 2.0015,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 3.0,
+     "t": 0.761,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": -0.6609,
+     "meanMarket": 0.6632,
+     "meanAdvantage": -1.324,
+     "ahead": 7,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 3.0121,
+       "marketReturn": 2.036,
+       "advantage": 0.9762,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 0.5843,
+       "marketReturn": 0.0707,
+       "advantage": 0.5136,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 149,
+       "chosenReturn": 5.8227,
+       "marketReturn": 2.1478,
+       "advantage": 3.675,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 2.0049,
+       "marketReturn": 1.5336,
+       "advantage": 0.4714,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": 1.9186,
+       "marketReturn": 1.4178,
+       "advantage": 0.5008,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 6.4529,
+       "marketReturn": 1.7348,
+       "advantage": 4.7181,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": 3.7968,
+       "marketReturn": 2.637,
+       "advantage": 1.1598,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": -5.8586,
+       "marketReturn": 0.6064,
+       "advantage": -6.465,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": -9.6472,
+       "marketReturn": 0.2292,
+       "advantage": -9.8764,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -7.7866,
+       "marketReturn": -0.0962,
+       "advantage": -7.6904,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.709,
+       "marketReturn": -0.6219,
+       "advantage": -0.0871,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.9309,
+       "marketReturn": -1.1605,
+       "advantage": -0.7705,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -6.2512,
+       "marketReturn": -1.9137,
+       "advantage": -4.3375,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 4.415,
+     "t": -1.081,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 4,
+     "meanReturn": -4.4961,
+     "meanMarket": -0.2264,
+     "meanAdvantage": -4.2697,
+     "ahead": 1,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 167,
+       "chosenReturn": -8.8391,
+       "marketReturn": 2.6196,
+       "advantage": -11.4586,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -7.9865,
+       "marketReturn": -1.1493,
+       "advantage": -6.8372,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 142,
+       "chosenReturn": -1.6599,
+       "marketReturn": -0.9014,
+       "advantage": -0.7585,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": 0.5011,
+       "marketReturn": -1.4746,
+       "advantage": 1.9757,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 6.0444,
+     "t": -1.413,
+     "waiting": [
+      {
+       "basisSession": "2026-08-26",
+       "sessionsClosed": 19
+      },
+      {
+       "basisSession": "2026-08-30",
+       "sessionsClosed": 18
+      },
+      {
+       "basisSession": "2026-08-31",
+       "sessionsClosed": 17
+      },
+      {
+       "basisSession": "2026-09-02",
+       "sessionsClosed": 15
+      },
+      {
+       "basisSession": "2026-09-03",
+       "sessionsClosed": 14
+      },
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "reversal90": {
+   "label": "Reversion to the 90-session average",
+   "labelAr": "الارتداد إلى متوسط 90 جلسة",
+   "group": "baseline",
+   "nights": 4,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 3,
+     "meanReturn": 0.1868,
+     "meanMarket": -0.9591,
+     "meanAdvantage": 1.1458,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": 0.1433,
+       "marketReturn": -2.2944,
+       "advantage": 2.4377,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.3828,
+       "marketReturn": 0.0401,
+       "advantage": -1.4229,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 1.7998,
+       "marketReturn": -0.6229,
+       "advantage": 2.4227,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 2.2246,
+     "t": 0.892,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "drift": {
+   "label": "Drift",
+   "labelAr": "الانجراف",
+   "group": "baseline",
+   "nights": 18,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": -0.9369,
+     "meanMarket": 0.1735,
+     "meanAdvantage": -1.1105,
+     "ahead": 4,
+     "signChanges": 7,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 2.1447,
+       "marketReturn": 1.4814,
+       "advantage": 0.6633,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.9947,
+       "marketReturn": -0.2588,
+       "advantage": -0.7359,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -0.3605,
+       "marketReturn": 0.6776,
+       "advantage": -1.0381,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 2.7449,
+       "marketReturn": 0.6878,
+       "advantage": 2.0572,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -8.7021,
+       "marketReturn": -0.7163,
+       "advantage": -7.9858,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": -2.3423,
+       "marketReturn": 0.8486,
+       "advantage": -3.1909,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -2.2414,
+       "marketReturn": 0.3571,
+       "advantage": -2.5985,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 0.5747,
+       "marketReturn": 0.9042,
+       "advantage": -0.3295,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": -0.0544,
+       "marketReturn": 0.3758,
+       "advantage": -0.4302,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 3.0782,
+       "marketReturn": 0.4758,
+       "advantage": 2.6024,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": -1.64,
+       "marketReturn": 0.8722,
+       "advantage": -2.5123,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.921,
+       "marketReturn": -0.2253,
+       "advantage": -0.6957,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -3.3682,
+       "marketReturn": -2.2944,
+       "advantage": -1.0738,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 1.1584,
+       "marketReturn": 0.0401,
+       "advantage": 1.1183,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -3.1302,
+       "marketReturn": -0.6229,
+       "advantage": -2.5073,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 2.5503,
+     "t": -1.686,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": -3.77,
+     "meanMarket": 0.6632,
+     "meanAdvantage": -4.4331,
+     "ahead": 3,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 4.7984,
+       "marketReturn": 2.036,
+       "advantage": 2.7625,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -3.472,
+       "marketReturn": 0.0707,
+       "advantage": -3.5428,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 149,
+       "chosenReturn": -3.9124,
+       "marketReturn": 2.1478,
+       "advantage": -6.0602,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -9.2643,
+       "marketReturn": 1.5336,
+       "advantage": -10.7978,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": -7.9191,
+       "marketReturn": 1.4178,
+       "advantage": -9.337,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -14.6859,
+       "marketReturn": 1.7348,
+       "advantage": -16.4207,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": -3.0278,
+       "marketReturn": 2.637,
+       "advantage": -5.6648,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": -3.5782,
+       "marketReturn": 0.6064,
+       "advantage": -4.1846,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": 0.7123,
+       "marketReturn": 0.2292,
+       "advantage": 0.4831,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.8549,
+       "marketReturn": -0.0962,
+       "advantage": -1.7587,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -1.0408,
+       "marketReturn": -0.6219,
+       "advantage": -0.4189,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 0.0748,
+       "marketReturn": -1.1605,
+       "advantage": 1.2353,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -5.8398,
+       "marketReturn": -1.9137,
+       "advantage": -3.9261,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 5.361,
+     "t": -2.982,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 4,
+     "meanReturn": -11.9275,
+     "meanMarket": -0.2264,
+     "meanAdvantage": -11.701,
+     "ahead": 0,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 167,
+       "chosenReturn": -8.8363,
+       "marketReturn": 2.6196,
+       "advantage": -11.4559,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -12.9187,
+       "marketReturn": -1.1493,
+       "advantage": -11.7694,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 142,
+       "chosenReturn": -11.1148,
+       "marketReturn": -0.9014,
+       "advantage": -10.2134,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": -14.8401,
+       "marketReturn": -1.4746,
+       "advantage": -13.3654,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.2972,
+     "t": -18.041,
+     "waiting": [
+      {
+       "basisSession": "2026-08-26",
+       "sessionsClosed": 19
+      },
+      {
+       "basisSession": "2026-08-30",
+       "sessionsClosed": 18
+      },
+      {
+       "basisSession": "2026-08-31",
+       "sessionsClosed": 17
+      },
+      {
+       "basisSession": "2026-09-02",
+       "sessionsClosed": 15
+      },
+      {
+       "basisSession": "2026-09-03",
+       "sessionsClosed": 14
+      },
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  },
+  "flat": {
+   "label": "Flat, says nothing",
+   "labelAr": "ثابت، لا يقول شيئًا",
+   "group": "baseline",
+   "nights": 18,
+   "distinguishes": false,
+   "horizons": {
+    "1": {
+     "sessions": 15,
+     "meanReturn": 0.0912,
+     "meanMarket": 0.1735,
+     "meanAdvantage": -0.0824,
+     "ahead": 7,
+     "signChanges": 8,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": 1.8048,
+       "marketReturn": 1.4814,
+       "advantage": 0.3234,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.1505,
+       "marketReturn": -0.2588,
+       "advantage": 0.1083,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 0.1508,
+       "marketReturn": 0.6776,
+       "advantage": -0.5268,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 0.1049,
+       "marketReturn": 0.6878,
+       "advantage": -0.5828,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -0.2837,
+       "marketReturn": -0.7163,
+       "advantage": 0.4326,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 236,
+       "chosenReturn": 2.2416,
+       "marketReturn": 0.8486,
+       "advantage": 1.393,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.338,
+       "marketReturn": 0.3571,
+       "advantage": -0.6952,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 0.5096,
+       "marketReturn": 0.9042,
+       "advantage": -0.3946,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": -1.245,
+       "marketReturn": 0.3758,
+       "advantage": -1.6209,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 1.4481,
+       "marketReturn": 0.4758,
+       "advantage": 0.9723,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 0.4583,
+       "marketReturn": 0.8722,
+       "advantage": -0.4139,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.1077,
+       "marketReturn": -0.2253,
+       "advantage": 0.333,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.3266,
+       "marketReturn": -2.2944,
+       "advantage": -0.0322,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.6854,
+       "marketReturn": 0.0401,
+       "advantage": -0.7256,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.4293,
+       "marketReturn": -0.6229,
+       "advantage": 0.1936,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.7473,
+     "t": -0.427,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 13,
+     "meanReturn": 1.4316,
+     "meanMarket": 0.6632,
+     "meanAdvantage": 0.7684,
+     "ahead": 8,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 168,
+       "chosenReturn": -1.1,
+       "marketReturn": 2.036,
+       "advantage": -3.136,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.5233,
+       "marketReturn": 0.0707,
+       "advantage": -0.594,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 149,
+       "chosenReturn": 3.9945,
+       "marketReturn": 2.1478,
+       "advantage": 1.8468,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 3.2004,
+       "marketReturn": 1.5336,
+       "advantage": 1.6668,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-26",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": 3.8593,
+       "marketReturn": 1.4178,
+       "advantage": 2.4415,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-30",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 5.097,
+       "marketReturn": 1.7348,
+       "advantage": 3.3622,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-31",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": 5.7711,
+       "marketReturn": 2.637,
+       "advantage": 3.134,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-02",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": 1.2509,
+       "marketReturn": 0.6064,
+       "advantage": 0.6445,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-03",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": 2.7381,
+       "marketReturn": 0.2292,
+       "advantage": 2.509,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-13",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.3231,
+       "marketReturn": -0.0962,
+       "advantage": -0.2269,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -1.5502,
+       "marketReturn": -0.6219,
+       "advantage": -0.9283,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.9829,
+       "marketReturn": -1.1605,
+       "advantage": 0.1776,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -2.8213,
+       "marketReturn": -1.9137,
+       "advantage": -0.9076,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.9206,
+     "t": 1.442,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 4,
+     "meanReturn": 2.2064,
+     "meanMarket": -0.2264,
+     "meanAdvantage": 2.4329,
+     "ahead": 3,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-08-20",
+       "followed": 5,
+       "scored": 167,
+       "chosenReturn": 2.3487,
+       "marketReturn": 2.6196,
+       "advantage": -0.2708,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-08-23",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 2.1356,
+       "marketReturn": -1.1493,
+       "advantage": 3.2848,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-24",
+       "followed": 5,
+       "scored": 142,
+       "chosenReturn": 2.9102,
+       "marketReturn": -0.9014,
+       "advantage": 3.8117,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-08-25",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": 1.4312,
+       "marketReturn": -1.4746,
+       "advantage": 2.9058,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.8403,
+     "t": 2.644,
+     "waiting": [
+      {
+       "basisSession": "2026-08-26",
+       "sessionsClosed": 19
+      },
+      {
+       "basisSession": "2026-08-30",
+       "sessionsClosed": 18
+      },
+      {
+       "basisSession": "2026-08-31",
+       "sessionsClosed": 17
+      },
+      {
+       "basisSession": "2026-09-02",
+       "sessionsClosed": 15
+      },
+      {
+       "basisSession": "2026-09-03",
+       "sessionsClosed": 14
+      },
+      {
+       "basisSession": "2026-09-13",
+       "sessionsClosed": 8
+      },
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   }
+  }
+ },
+ "readings": {
+  "models": {
+   "label": "rerank:models",
+   "labelAr": "rerank:models",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.081,
+     "meanMarket": -0.197,
+     "meanAdvantage": 0.1159,
+     "ahead": 5,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": -0.0314,
+       "marketReturn": 0.3758,
+       "advantage": -0.4073,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4758,
+       "advantage": -1.1664,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 2.0781,
+       "marketReturn": 0.8722,
+       "advantage": 1.2058,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.1027,
+       "marketReturn": -0.2253,
+       "advantage": 0.328,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.0915,
+       "marketReturn": -2.2944,
+       "advantage": 0.2029,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.0913,
+       "marketReturn": 0.0401,
+       "advantage": 0.0512,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.0259,
+       "marketReturn": -0.6229,
+       "advantage": 0.597,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.7521,
+     "t": 0.408,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -1.4395,
+     "meanMarket": -1.232,
+     "meanAdvantage": -0.2075,
+     "ahead": 2,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -2.3057,
+       "marketReturn": -0.6219,
+       "advantage": -1.6838,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.1605,
+       "advantage": 0.1042,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -0.9565,
+       "marketReturn": -1.9137,
+       "advantage": 0.9572,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.3478,
+     "t": -0.267,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": []
+  },
+  "filings": {
+   "label": "rerank:filings",
+   "labelAr": "rerank:filings",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.2532,
+     "meanMarket": -0.2416,
+     "meanAdvantage": -0.0116,
+     "ahead": 3,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 81,
+       "chosenReturn": 0.2332,
+       "marketReturn": 0.1002,
+       "advantage": 0.133,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4582,
+       "advantage": -1.1487,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 2.1405,
+       "marketReturn": 0.8675,
+       "advantage": 1.273,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.5536,
+       "marketReturn": -0.2253,
+       "advantage": -0.3283,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.7505,
+       "marketReturn": -2.2944,
+       "advantage": 0.544,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 204,
+       "chosenReturn": -0.2196,
+       "marketReturn": 0.029,
+       "advantage": -0.2486,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 197,
+       "chosenReturn": -0.9318,
+       "marketReturn": -0.6261,
+       "advantage": -0.3057,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.7655,
+     "t": -0.04,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.1304,
+     "meanMarket": -1.3691,
+     "meanAdvantage": 1.2387,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 80,
+       "chosenReturn": 1.1123,
+       "marketReturn": -0.9732,
+       "advantage": 2.0854,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.2204,
+       "advantage": 0.1641,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -0.4471,
+       "marketReturn": -1.9137,
+       "advantage": 1.4666,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.9807,
+     "t": 2.188,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings"
+   ]
+  },
+  "news": {
+   "label": "rerank:news",
+   "labelAr": "rerank:news",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.2705,
+     "meanMarket": -0.1944,
+     "meanAdvantage": -0.0762,
+     "ahead": 4,
+     "signChanges": 3,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 0.2332,
+       "marketReturn": 0.3749,
+       "advantage": -0.1417,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4855,
+       "advantage": -1.1761,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 2.0781,
+       "marketReturn": 0.8815,
+       "advantage": 1.1965,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.3457,
+       "marketReturn": -0.2253,
+       "advantage": -1.1205,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.1885,
+       "marketReturn": -2.2944,
+       "advantage": 0.1059,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.3401,
+       "marketReturn": 0.0401,
+       "advantage": 0.2999,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.3204,
+       "marketReturn": -0.6229,
+       "advantage": 0.3025,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.8409,
+     "t": -0.24,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.3002,
+     "meanMarket": -1.2317,
+     "meanAdvantage": 0.9315,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": 1.1123,
+       "marketReturn": -0.6436,
+       "advantage": 1.7559,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.1593,
+       "advantage": 0.103,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": -0.9565,
+       "marketReturn": -1.8921,
+       "advantage": 0.9357,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.8265,
+     "t": 1.952,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "news"
+   ]
+  },
+  "rulebook": {
+   "label": "rerank:rulebook",
+   "labelAr": "rerank:rulebook",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.3209,
+     "meanMarket": -0.1999,
+     "meanAdvantage": 0.5208,
+     "ahead": 5,
+     "signChanges": 3,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.7897,
+       "marketReturn": 0.3758,
+       "advantage": 1.4139,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4539,
+       "advantage": -1.1445,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 2.0084,
+       "marketReturn": 0.8722,
+       "advantage": 1.1362,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 206,
+       "chosenReturn": 0.1066,
+       "marketReturn": -0.2238,
+       "advantage": 0.3304,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.1493,
+       "marketReturn": -2.2944,
+       "advantage": 1.1451,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 1.2011,
+       "marketReturn": 0.0401,
+       "advantage": 1.161,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.0195,
+       "marketReturn": -0.6229,
+       "advantage": -0.3965,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.9684,
+     "t": 1.423,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": 0.1035,
+     "meanMarket": -1.2505,
+     "meanAdvantage": 1.354,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.0468,
+       "marketReturn": -0.6219,
+       "advantage": 0.6687,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.2159,
+       "advantage": 0.1596,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 1.3199,
+       "marketReturn": -1.9137,
+       "advantage": 3.2336,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.6476,
+     "t": 1.423,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "rulebook"
+   ]
+  },
+  "measures": {
+   "label": "rerank:measures",
+   "labelAr": "rerank:measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.1037,
+     "meanMarket": -0.1938,
+     "meanAdvantage": 0.2975,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.6852,
+       "marketReturn": 0.3758,
+       "advantage": 1.3094,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": -0.9401,
+       "marketReturn": 0.4841,
+       "advantage": -1.4241,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 1.804,
+       "marketReturn": 0.8722,
+       "advantage": 0.9317,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.2791,
+       "marketReturn": -0.2253,
+       "advantage": -0.0539,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -0.8413,
+       "marketReturn": -2.2944,
+       "advantage": 1.4532,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 1.0755,
+       "marketReturn": 0.0401,
+       "advantage": 1.0353,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 194,
+       "chosenReturn": -1.7784,
+       "marketReturn": -0.609,
+       "advantage": -1.1694,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.1934,
+     "t": 0.66,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.6659,
+     "meanMarket": -1.2173,
+     "meanAdvantage": 0.5514,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.1382,
+       "marketReturn": -0.6219,
+       "advantage": 0.7601,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 222,
+       "chosenReturn": -1.1795,
+       "marketReturn": -1.1163,
+       "advantage": -0.0632,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -0.9565,
+       "marketReturn": -1.9137,
+       "advantage": 0.9572,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.5413,
+     "t": 1.764,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "measures"
+   ]
+  },
+  "filings-news": {
+   "label": "rerank:filings-news",
+   "labelAr": "rerank:filings-news",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.2638,
+     "meanMarket": -0.1962,
+     "meanAdvantage": 0.46,
+     "ahead": 5,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 0.2332,
+       "marketReturn": 0.3758,
+       "advantage": -0.1427,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -0.5639,
+       "marketReturn": 0.4809,
+       "advantage": -1.0449,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 2.0084,
+       "marketReturn": 0.8722,
+       "advantage": 1.1362,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.2191,
+       "marketReturn": -0.2253,
+       "advantage": 0.4443,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -0.8629,
+       "marketReturn": -2.2944,
+       "advantage": 1.4316,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.4325,
+       "marketReturn": 0.0401,
+       "advantage": 0.3923,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": 0.3799,
+       "marketReturn": -0.6229,
+       "advantage": 1.0029,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.8494,
+     "t": 1.433,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.2606,
+     "meanMarket": -1.2276,
+     "meanAdvantage": 0.967,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 1.1123,
+       "marketReturn": -0.6219,
+       "advantage": 1.7342,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": -0.5082,
+       "marketReturn": -1.1473,
+       "advantage": 0.6391,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.386,
+       "marketReturn": -1.9137,
+       "advantage": 0.5276,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.6668,
+     "t": 2.512,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "news"
+   ]
+  },
+  "filings-rulebook": {
+   "label": "rerank:filings-rulebook",
+   "labelAr": "rerank:filings-rulebook",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.3319,
+     "meanMarket": -0.1963,
+     "meanAdvantage": 0.5283,
+     "ahead": 6,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.6852,
+       "marketReturn": 0.3758,
+       "advantage": 1.3094,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -0.6813,
+       "marketReturn": 0.4803,
+       "advantage": -1.1616,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 2.1355,
+       "marketReturn": 0.8722,
+       "advantage": 1.2633,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.1027,
+       "marketReturn": -0.2253,
+       "advantage": 0.328,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -0.8566,
+       "marketReturn": -2.2944,
+       "advantage": 1.4378,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.4125,
+       "marketReturn": 0.0401,
+       "advantage": 0.3724,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.4745,
+       "marketReturn": -0.6229,
+       "advantage": 0.1485,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.9167,
+     "t": 1.525,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.0486,
+     "meanMarket": -1.2458,
+     "meanAdvantage": 1.1972,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.1382,
+       "marketReturn": -0.6219,
+       "advantage": 0.7601,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -1.3126,
+       "marketReturn": -1.2019,
+       "advantage": -0.1107,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 1.0285,
+       "marketReturn": -1.9137,
+       "advantage": 2.9422,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.5727,
+     "t": 1.319,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "rulebook"
+   ]
+  },
+  "filings-measures": {
+   "label": "rerank:filings-measures",
+   "labelAr": "rerank:filings-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.2118,
+     "meanMarket": -0.1995,
+     "meanAdvantage": 0.4113,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.6852,
+       "marketReturn": 0.3758,
+       "advantage": 1.3094,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 222,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4272,
+       "advantage": -1.1178,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 233,
+       "chosenReturn": 2.0084,
+       "marketReturn": 0.9031,
+       "advantage": 1.1053,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.5065,
+       "marketReturn": -0.2253,
+       "advantage": -0.2812,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -0.4676,
+       "marketReturn": -2.2944,
+       "advantage": 1.8268,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.5458,
+       "marketReturn": 0.0401,
+       "advantage": 0.5057,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.0921,
+       "marketReturn": -0.6229,
+       "advantage": -0.4691,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.0719,
+     "t": 1.015,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.6879,
+     "meanMarket": -1.2692,
+     "meanAdvantage": 0.5813,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.1382,
+       "marketReturn": -0.6219,
+       "advantage": 0.7601,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 221,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.2265,
+       "advantage": 0.1702,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 199,
+       "chosenReturn": -1.1456,
+       "marketReturn": -1.9592,
+       "advantage": 0.8135,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.357,
+     "t": 2.82,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "measures"
+   ]
+  },
+  "news-rulebook": {
+   "label": "rerank:news-rulebook",
+   "labelAr": "rerank:news-rulebook",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.194,
+     "meanMarket": -0.194,
+     "meanAdvantage": 0.0,
+     "ahead": 3,
+     "signChanges": 3,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.6852,
+       "marketReturn": 0.3758,
+       "advantage": 1.3094,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.7163,
+       "marketReturn": 0.4758,
+       "advantage": -1.1921,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 0.8265,
+       "marketReturn": 0.8831,
+       "advantage": -0.0566,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.07,
+       "marketReturn": -0.2253,
+       "advantage": -0.8447,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 207,
+       "chosenReturn": -1.4122,
+       "marketReturn": -2.2848,
+       "advantage": 0.8726,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.4325,
+       "marketReturn": 0.0401,
+       "advantage": 0.3923,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.1037,
+       "marketReturn": -0.6229,
+       "advantage": -0.4807,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.9128,
+     "t": 0.0,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -1.4271,
+     "meanMarket": -1.2164,
+     "meanAdvantage": -0.2107,
+     "ahead": 1,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 0.1382,
+       "marketReturn": -0.6219,
+       "advantage": 0.7601,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.7189,
+       "marketReturn": -1.1605,
+       "advantage": -0.5584,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": -2.7005,
+       "marketReturn": -1.8669,
+       "advantage": -0.8337,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.8519,
+     "t": -0.428,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "news",
+    "rulebook"
+   ]
+  },
+  "news-measures": {
+   "label": "rerank:news-measures",
+   "labelAr": "rerank:news-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.0761,
+     "meanMarket": -0.1907,
+     "meanAdvantage": 0.1146,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 235,
+       "chosenReturn": 0.8981,
+       "marketReturn": 0.3764,
+       "advantage": 0.5217,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4758,
+       "advantage": -1.1664,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 234,
+       "chosenReturn": 1.804,
+       "marketReturn": 0.9152,
+       "advantage": 0.8888,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.301,
+       "marketReturn": -0.2253,
+       "advantage": -0.0757,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.07,
+       "marketReturn": -2.2944,
+       "advantage": 1.2245,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.3401,
+       "marketReturn": 0.0401,
+       "advantage": 0.2999,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.5136,
+       "marketReturn": -0.6229,
+       "advantage": -0.8906,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.8868,
+     "t": 0.342,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -1.5453,
+     "meanMarket": -1.2309,
+     "meanAdvantage": -0.3143,
+     "ahead": 2,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": -2.623,
+       "marketReturn": -0.6724,
+       "advantage": -1.9507,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.1605,
+       "advantage": 0.1042,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 201,
+       "chosenReturn": -0.9565,
+       "marketReturn": -1.8599,
+       "advantage": 0.9035,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.4724,
+     "t": -0.37,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "news",
+    "measures"
+   ]
+  },
+  "rulebook-measures": {
+   "label": "rerank:rulebook-measures",
+   "labelAr": "rerank:rulebook-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.2181,
+     "meanMarket": -0.1951,
+     "meanAdvantage": 0.4132,
+     "ahead": 3,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 0.0583,
+       "marketReturn": 0.3758,
+       "advantage": -0.3175,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -0.9401,
+       "marketReturn": 0.485,
+       "advantage": -1.4251,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 2.4052,
+       "marketReturn": 0.8759,
+       "advantage": 1.5293,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.2791,
+       "marketReturn": -0.2253,
+       "advantage": -0.0539,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": 0.5164,
+       "marketReturn": -2.2944,
+       "advantage": 2.8109,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.7266,
+       "marketReturn": 0.0401,
+       "advantage": 0.6864,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.9608,
+       "marketReturn": -0.6229,
+       "advantage": -0.3378,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.4003,
+     "t": 0.781,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -1.2947,
+     "meanMarket": -1.2277,
+     "meanAdvantage": -0.0671,
+     "ahead": 1,
+     "signChanges": 1,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -1.5423,
+       "marketReturn": -0.6219,
+       "advantage": -0.9204,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -1.1795,
+       "marketReturn": -1.1474,
+       "advantage": -0.0321,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.1623,
+       "marketReturn": -1.9137,
+       "advantage": 0.7513,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.8364,
+     "t": -0.139,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "rulebook",
+    "measures"
+   ]
+  },
+  "filings-news-rulebook": {
+   "label": "Gemini re-rank",
+   "labelAr": "إعادة ترتيب Gemini",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.5187,
+     "meanMarket": -0.194,
+     "meanAdvantage": -0.3246,
+     "ahead": 2,
+     "signChanges": 4,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 0.2822,
+       "marketReturn": 0.3899,
+       "advantage": -0.1077,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.7163,
+       "marketReturn": 0.4758,
+       "advantage": -1.1921,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 1.5664,
+       "marketReturn": 0.8722,
+       "advantage": 0.6942,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -1.0685,
+       "marketReturn": -0.2253,
+       "advantage": -0.8432,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -2.8529,
+       "marketReturn": -2.2944,
+       "advantage": -0.5584,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": 0.3401,
+       "marketReturn": 0.0464,
+       "advantage": 0.2937,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.1816,
+       "marketReturn": -0.6229,
+       "advantage": -0.5586,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 0.6581,
+     "t": -1.305,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": 0.5298,
+     "meanMarket": -1.2242,
+     "meanAdvantage": 1.7539,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 1.4791,
+       "marketReturn": -0.5983,
+       "advantage": 2.0774,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.7189,
+       "marketReturn": -1.1605,
+       "advantage": -0.5584,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": 1.8292,
+       "marketReturn": -1.9137,
+       "advantage": 3.7428,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 2.1688,
+     "t": 1.401,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "news",
+    "rulebook"
+   ]
+  },
+  "filings-news-measures": {
+   "label": "rerank:filings-news-measures",
+   "labelAr": "rerank:filings-news-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.1405,
+     "meanMarket": -0.1958,
+     "meanAdvantage": 0.3363,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 0.7069,
+       "marketReturn": 0.3758,
+       "advantage": 0.331,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 225,
+       "chosenReturn": -0.975,
+       "marketReturn": 0.4836,
+       "advantage": -1.4587,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 3.1501,
+       "marketReturn": 0.8722,
+       "advantage": 2.2779,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.6664,
+       "marketReturn": -0.2253,
+       "advantage": -0.4412,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -0.8177,
+       "marketReturn": -2.2944,
+       "advantage": 1.4767,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.3401,
+       "marketReturn": 0.0401,
+       "advantage": 0.2999,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.7546,
+       "marketReturn": -0.6229,
+       "advantage": -0.1317,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.2327,
+     "t": 0.722,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.0047,
+     "meanMarket": -1.2327,
+     "meanAdvantage": 1.228,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 2.0957,
+       "marketReturn": -0.6219,
+       "advantage": 2.7176,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -1.5858,
+       "marketReturn": -1.1625,
+       "advantage": -0.4232,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -0.5241,
+       "marketReturn": -1.9137,
+       "advantage": 1.3896,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.5766,
+     "t": 1.349,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "news",
+    "measures"
+   ]
+  },
+  "filings-rulebook-measures": {
+   "label": "rerank:filings-rulebook-measures",
+   "labelAr": "rerank:filings-rulebook-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.0325,
+     "meanMarket": -0.1981,
+     "meanAdvantage": 0.1656,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.9646,
+       "marketReturn": 0.3758,
+       "advantage": 1.5888,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -0.7231,
+       "marketReturn": 0.4849,
+       "advantage": -1.2081,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 0.9858,
+       "marketReturn": 0.8552,
+       "advantage": 0.1307,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": -0.4841,
+       "marketReturn": -0.2253,
+       "advantage": -0.2588,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -0.9896,
+       "marketReturn": -2.2944,
+       "advantage": 1.3049,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.378,
+       "marketReturn": 0.0401,
+       "advantage": 0.3379,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -1.3589,
+       "marketReturn": -0.6229,
+       "advantage": -0.736,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.0194,
+     "t": 0.43,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.087,
+     "meanMarket": -1.2268,
+     "meanAdvantage": 1.1397,
+     "ahead": 2,
+     "signChanges": 2,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 2.7013,
+       "marketReturn": -0.6219,
+       "advantage": 3.3232,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": -1.2681,
+       "marketReturn": -1.1448,
+       "advantage": -0.1234,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.6942,
+       "marketReturn": -1.9137,
+       "advantage": 0.2194,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.8987,
+     "t": 1.04,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "rulebook",
+    "measures"
+   ]
+  },
+  "news-rulebook-measures": {
+   "label": "rerank:news-rulebook-measures",
+   "labelAr": "rerank:news-rulebook-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": -0.0353,
+     "meanMarket": -0.1918,
+     "meanAdvantage": 0.1566,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 238,
+       "chosenReturn": 1.7863,
+       "marketReturn": 0.3962,
+       "advantage": 1.3902,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": -0.6906,
+       "marketReturn": 0.4758,
+       "advantage": -1.1664,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 2.4082,
+       "marketReturn": 0.8794,
+       "advantage": 1.5288,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 208,
+       "chosenReturn": -2.0683,
+       "marketReturn": -0.2169,
+       "advantage": -1.8514,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.07,
+       "marketReturn": -2.2944,
+       "advantage": 1.2245,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 210,
+       "chosenReturn": 0.3401,
+       "marketReturn": 0.0401,
+       "advantage": 0.2999,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 198,
+       "chosenReturn": -0.9525,
+       "marketReturn": -0.6229,
+       "advantage": -0.3295,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.3282,
+     "t": 0.312,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": -0.1581,
+     "meanMarket": -1.2192,
+     "meanAdvantage": 1.0612,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": 1.2434,
+       "marketReturn": -0.5907,
+       "advantage": 1.8341,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 226,
+       "chosenReturn": -1.0563,
+       "marketReturn": -1.1605,
+       "advantage": 0.1042,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 202,
+       "chosenReturn": -0.6613,
+       "marketReturn": -1.9065,
+       "advantage": 1.2452,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 0.8795,
+     "t": 2.09,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "news",
+    "rulebook",
+    "measures"
+   ]
+  },
+  "filings-news-rulebook-measures": {
+   "label": "rerank:filings-news-rulebook-measures",
+   "labelAr": "rerank:filings-news-rulebook-measures",
+   "group": "rerank",
+   "nights": 8,
+   "distinguishes": true,
+   "horizons": {
+    "1": {
+     "sessions": 7,
+     "meanReturn": 0.0084,
+     "meanMarket": -0.181,
+     "meanAdvantage": 0.1894,
+     "ahead": 4,
+     "signChanges": 5,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 239,
+       "chosenReturn": 1.9646,
+       "marketReturn": 0.3758,
+       "advantage": 1.5888,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 224,
+       "chosenReturn": -0.6306,
+       "marketReturn": 0.488,
+       "advantage": -1.1187,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 237,
+       "chosenReturn": 2.0084,
+       "marketReturn": 0.8552,
+       "advantage": 1.1533,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-17",
+       "followed": 5,
+       "scored": 207,
+       "chosenReturn": -1.4174,
+       "marketReturn": -0.2141,
+       "advantage": -1.2033,
+       "beatTheMarket": false
+      },
+      {
+       "basisSession": "2026-09-20",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": -1.07,
+       "marketReturn": -2.2944,
+       "advantage": 1.2245,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-21",
+       "followed": 5,
+       "scored": 209,
+       "chosenReturn": 0.3076,
+       "marketReturn": 0.0479,
+       "advantage": 0.2598,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-22",
+       "followed": 5,
+       "scored": 178,
+       "chosenReturn": -1.1037,
+       "marketReturn": -0.5253,
+       "advantage": -0.5784,
+       "beatTheMarket": false
+      }
+     ],
+     "sd": 1.1693,
+     "t": 0.429,
+     "waiting": [
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "5": {
+     "sessions": 3,
+     "meanReturn": 0.5091,
+     "meanMarket": -1.2421,
+     "meanAdvantage": 1.7512,
+     "ahead": 3,
+     "signChanges": 0,
+     "byDate": [
+      {
+       "basisSession": "2026-09-14",
+       "followed": 5,
+       "scored": 227,
+       "chosenReturn": 2.7013,
+       "marketReturn": -0.6219,
+       "advantage": 3.3232,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-15",
+       "followed": 5,
+       "scored": 223,
+       "chosenReturn": 0.212,
+       "marketReturn": -1.1908,
+       "advantage": 1.4028,
+       "beatTheMarket": true
+      },
+      {
+       "basisSession": "2026-09-16",
+       "followed": 5,
+       "scored": 203,
+       "chosenReturn": -1.386,
+       "marketReturn": -1.9137,
+       "advantage": 0.5276,
+       "beatTheMarket": true
+      }
+     ],
+     "sd": 1.43,
+     "t": 2.121,
+     "waiting": [
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    },
+    "20": {
+     "sessions": 0,
+     "meanReturn": null,
+     "meanMarket": null,
+     "meanAdvantage": null,
+     "ahead": 0,
+     "byDate": [],
+     "waiting": [
+      {
+       "basisSession": "2026-09-14",
+       "sessionsClosed": 7
+      },
+      {
+       "basisSession": "2026-09-15",
+       "sessionsClosed": 6
+      },
+      {
+       "basisSession": "2026-09-16",
+       "sessionsClosed": 5
+      },
+      {
+       "basisSession": "2026-09-17",
+       "sessionsClosed": 4
+      },
+      {
+       "basisSession": "2026-09-20",
+       "sessionsClosed": 3
+      },
+      {
+       "basisSession": "2026-09-21",
+       "sessionsClosed": 2
+      },
+      {
+       "basisSession": "2026-09-22",
+       "sessionsClosed": 1
+      },
+      {
+       "basisSession": "2026-09-23",
+       "sessionsClosed": 0
+      }
+     ]
+    }
+   },
+   "layers": [
+    "filings",
+    "news",
+    "rulebook",
+    "measures"
+   ]
+  }
+ },
+ "publicationId": "5dc5cc434081ddd546ad69c29699575562e491c4c80bcf8fcdc2ba638e50c5bf"
+}

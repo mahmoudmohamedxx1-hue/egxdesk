@@ -11,9 +11,13 @@
  *    refused[]   honesty list (filings the parser rejected and why)
  */
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const SRC = "/home/z/my-project/scripts/research/t58-esthmr-live";
-const OUT = "/home/z/my-project/src/data/ownership-network.json";
+// repo-relative (works in the sandbox AND in CI checkouts)
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SRC = path.join(ROOT, "scripts", "research", "t58-esthmr-live");
+const OUT = path.join(ROOT, "src", "data", "ownership-network.json");
 
 const ip = JSON.parse(fs.readFileSync(`${SRC}/insider-people.json`, "utf8"));
 const so = JSON.parse(fs.readFileSync(`${SRC}/sector-ownership.json`, "utf8"));

@@ -33,7 +33,7 @@ export const T = {
   investors: { ar: "تدفقات المستثمرين", en: "Investor flows" },
   // data provenance
   liveNote: {
-    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار، Yahoo Finance لتاريخ الأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وأموال الغد) — لا بيانات تجريبية.",
+    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار، Yahoo Finance لتاريخ الأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وحابي وعرب فاينانس والمال وإنتربرايز وأموال الغد) — لا بيانات تجريبية.",
     en: "Every figure is live from public sources (TradingView for quotes; Yahoo Finance for price history; Sigma Capital for investor-category flows; EGXBot for participation; Alborsaa & Amwal Alghad for news) — no demo data.",
   },
   errorLoad: { ar: "تعذر تحميل البيانات الآن", en: "Could not load the data right now" },
@@ -1481,7 +1481,7 @@ export const T = {
 
   // footer
   footerNote: {
-    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والقوائم المالية من stockanalysis.com، والصرف والذهب والأسواق العالمية من er-api و gold-api و Yahoo، والأخبار من جريدة البورصة وأموال الغد، والأسماء العربية الرسمية وإفصاحات الداخليين وتاريخ المؤشرات الموسّع من مستندات منشورة لـ esthmr.com — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
+    ar: "EGX ديسك قارئ بيانات لأغراض تعليمية، غير مرخّص لتقديم مشورة استثمارية. الأسعار من TradingView، وتاريخ الأسعار من Yahoo Finance، وتعاملات فئات المستثمرين من سيجما كابيتال، وتوزيع الجنسيات وأغلاق المؤشرات من EGXBot، والقوائم المالية من stockanalysis.com، والصرف والذهب والأسواق العالمية من er-api و gold-api و Yahoo، والأخبار من جريدة البورصة وحابي وعرب فاينانس والمال وإنتربرايز وأموال الغد، وإفصاحات الشركات من نشرة البورصة نفسها، والأسماء العربية الرسمية وإفصاحات الداخليين وتاريخ المؤشرات الموسّع من مستندات منشورة لـ esthmr.com — وقد تكون مؤجلة. لا شيء هنا توصية بالتعامل في أي ورقة مالية.",
     en: "EGX Desk is an educational data reader, not licensed to give investment advice. Quotes from TradingView; price history from Yahoo Finance; investor-category flows from Sigma Capital; nationality participation and index closes from EGXBot; financial statements from stockanalysis.com; FX, gold and world markets from er-api, gold-api and Yahoo; news from Alborsaa and Amwal Alghad; official Arabic company names, the insider-dealings log and the extended index history from esthmr.com's published documents — and may be delayed. Nothing here is a recommendation to trade any security.",
   },
 } as const;

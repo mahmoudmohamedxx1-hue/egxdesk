@@ -1,16 +1,16 @@
 {
  "schemaVersion": 1,
- "generated": "2026-09-22T13:23:23+00:00",
+ "generated": "2026-09-22T16:03:48+00:00",
  "source": "EGX post-execution disclosure forms (نموذج إفصاح بعد التنفيذ) and board & shareholder-structure forms (نموذج إفصاح عن مجلس الإدارة وهيكل المساهمين)",
  "basis": "Read from the scanned filings themselves, which are the only documents that name the party: a post-execution form states the stake one trade left behind, and a structure form states the register. The daily EGX summary gives the relationship and never the name.",
  "basisAr": "مقروءة من الإفصاحات الممسوحة نفسها، وهي المستندات الوحيدة التي تذكر الأسماء: نموذج ما بعد التنفيذ يذكر الحصة بعد الصفقة، ونموذج هيكل المساهمين يذكر السجل. الملخص اليومي للبورصة يذكر صفة المتعامل ولا يذكر اسمه.",
  "peopleCount": 1396,
- "tradeCount": 424,
+ "tradeCount": 429,
  "tickerCount": 238,
  "tradedTickerCount": 109,
  "firmCount": 461,
  "personCount": 935,
- "aliasCount": 173,
+ "aliasCount": 174,
  "registerCount": 236,
  "overDisclosed": [],
  "supersededByRegister": [
@@ -1565,71 +1565,6 @@
      "stakeBefore": 8.16,
      "stakeAfter": 0.0,
      "source": "https://www.egx.com.eg/downloads/Bulletins/341339_1.pdf"
-    }
-   ]
-  },
-  {
-   "id": "زياد محمد علي حسن عبد العزيز",
-   "name": "زياد محمد علي حسن عبد العزيز",
-   "nameEn": "Ziad Mohamed Ali Hassan Abdel Aziz",
-   "script": "ar",
-   "kind": "person",
-   "aliases": null,
-   "tickers": [
-    "EPCO"
-   ],
-   "tradeCount": 3,
-   "boughtCount": 1,
-   "soldCount": 2,
-   "value": 108983323.22,
-   "singleCompanyMove": {
-    "ticker": "EPCO",
-    "from": 7.85,
-    "to": 0,
-    "change": -7.85
-   },
-   "trades": [
-    {
-     "filingId": "283210",
-     "date": "2026-02-08",
-     "ticker": "EPCO",
-     "company": null,
-     "companyAr": "المصرية للدواجن",
-     "action": "buy",
-     "shares": 2850000,
-     "price": 8.92,
-     "value": 25422000.0,
-     "stakeBefore": 7.85,
-     "stakeAfter": 12.577,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/333698_1.pdf"
-    },
-    {
-     "filingId": "283364",
-     "date": "2026-02-10",
-     "ticker": "EPCO",
-     "company": null,
-     "companyAr": "المصرية للدواجن",
-     "action": "sell",
-     "shares": 3990000,
-     "price": 11.24,
-     "value": 44847600.0,
-     "stakeBefore": 12.4,
-     "stakeAfter": 5.98,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/333839_1.pdf"
-    },
-    {
-     "filingId": "283490",
-     "date": "2026-02-15",
-     "ticker": "EPCO",
-     "company": null,
-     "companyAr": "المصرية للدواجن",
-     "action": "sell",
-     "shares": 3465866,
-     "price": 11.17,
-     "value": 38713723.22,
-     "stakeBefore": 8.1,
-     "stakeAfter": 0,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/333926_1.pdf"
     }
    ]
   },
@@ -5542,6 +5477,45 @@
    ]
   },
   {
+   "id": "ميرفت محمد عزت عبدالوهاب",
+   "name": "ميرفت محمد عزت عبدالوهاب",
+   "nameEn": "Mervat Mohamed Ezzat Abdelwahab",
+   "script": "ar",
+   "kind": "person",
+   "aliases": [
+    "ميرفت محمد عزت عبد الوهاب"
+   ],
+   "tickers": [
+    "PRMH"
+   ],
+   "tradeCount": 1,
+   "boughtCount": 0,
+   "soldCount": 1,
+   "value": 826380.0,
+   "singleCompanyMove": {
+    "ticker": "PRMH",
+    "from": 5.56,
+    "to": 4.53,
+    "change": -1.03
+   },
+   "trades": [
+    {
+     "filingId": "282907",
+     "date": "2026-02-01",
+     "ticker": "PRMH",
+     "company": null,
+     "companyAr": "برايم القابضة للاستثمارات المالية",
+     "action": "sell",
+     "shares": 360000,
+     "price": 2.2955,
+     "value": 826380.0,
+     "stakeBefore": 5.56,
+     "stakeAfter": 4.53,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333456_1.pdf"
+    }
+   ]
+  },
+  {
    "id": "محمد عزت زكى الأغا",
    "name": "محمد عزت زكى الأغا",
    "nameEn": "Mohamed Ezzat Zaki El Agha",
@@ -6888,6 +6862,85 @@
      "stakeBefore": 0.6019,
      "stakeAfter": 0.25153,
      "source": "https://www.egx.com.eg/downloads/Bulletins/343611_1.pdf"
+    }
+   ]
+  },
+  {
+   "id": "زياد محمد علي حسن عبد العزيز",
+   "name": "زياد محمد علي حسن عبد العزيز",
+   "nameEn": "Ziad Mohamed Ali Hassan Abdel Aziz",
+   "script": "ar",
+   "kind": "person",
+   "aliases": null,
+   "tickers": [
+    "EPCO"
+   ],
+   "tradeCount": 4,
+   "boughtCount": 2,
+   "soldCount": 2,
+   "value": 132341766.26,
+   "singleCompanyMove": {
+    "ticker": "EPCO",
+    "from": 0.35,
+    "to": 0,
+    "change": -0.35
+   },
+   "trades": [
+    {
+     "filingId": "283118",
+     "date": "2026-02-04",
+     "ticker": "EPCO",
+     "company": null,
+     "companyAr": "المصرية للدواجن",
+     "action": "buy",
+     "shares": 3204176,
+     "price": 7.29,
+     "value": 23358443.04,
+     "stakeBefore": 0.35,
+     "stakeAfter": 7.85,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333647_1.pdf"
+    },
+    {
+     "filingId": "283210",
+     "date": "2026-02-08",
+     "ticker": "EPCO",
+     "company": null,
+     "companyAr": "المصرية للدواجن",
+     "action": "buy",
+     "shares": 2850000,
+     "price": 8.92,
+     "value": 25422000.0,
+     "stakeBefore": 7.85,
+     "stakeAfter": 12.577,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333698_1.pdf"
+    },
+    {
+     "filingId": "283364",
+     "date": "2026-02-10",
+     "ticker": "EPCO",
+     "company": null,
+     "companyAr": "المصرية للدواجن",
+     "action": "sell",
+     "shares": 3990000,
+     "price": 11.24,
+     "value": 44847600.0,
+     "stakeBefore": 12.4,
+     "stakeAfter": 5.98,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333839_1.pdf"
+    },
+    {
+     "filingId": "283490",
+     "date": "2026-02-15",
+     "ticker": "EPCO",
+     "company": null,
+     "companyAr": "المصرية للدواجن",
+     "action": "sell",
+     "shares": 3465866,
+     "price": 11.17,
+     "value": 38713723.22,
+     "stakeBefore": 8.1,
+     "stakeAfter": 0,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333926_1.pdf"
     }
    ]
   },
@@ -8606,12 +8659,26 @@
     "OBRI",
     "UEGC"
    ],
-   "tradeCount": 11,
-   "boughtCount": 5,
+   "tradeCount": 12,
+   "boughtCount": 6,
    "soldCount": 6,
-   "value": 123146299.37,
+   "value": 125016192.67,
    "singleCompanyMove": null,
    "trades": [
+    {
+     "filingId": "282945",
+     "date": "2026-02-01",
+     "ticker": "OBRI",
+     "company": null,
+     "companyAr": "العبور للاستثمار العقارى",
+     "action": "buy",
+     "shares": 59741,
+     "price": 31.3,
+     "value": 1869893.3,
+     "stakeBefore": 19.995,
+     "stakeAfter": 20.144,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333492_1.pdf"
+    },
     {
      "filingId": "286224",
      "date": "2026-04-09",
@@ -10002,6 +10069,102 @@
    ]
   },
   {
+   "id": "شركة مجموعة الجارحي للاستثمار والتطوير",
+   "name": "شركة مجموعة الجارحي للاستثمار والتطوير",
+   "nameEn": "Sharikat Majmou'at Al Garhy Lil Istithmar Wal Tatweer",
+   "script": "ar",
+   "kind": "firm",
+   "aliases": [
+    "شركة مجموعه الجارحي للاستثمار والتطوير (الوحدة للتنمية الصناعية سابقاً)",
+    "مجموعة الجارحي للإستثمار والتطوير",
+    "مجموعة الجارحي للاستثمار والتطوير",
+    "مجموعه الجارحي للاستثمار والتطوير"
+   ],
+   "tickers": [
+    "ARAB",
+    "ATQA",
+    "HRHO",
+    "PHAR"
+   ],
+   "tradeCount": 5,
+   "boughtCount": 4,
+   "soldCount": 1,
+   "value": 2030636058.08,
+   "singleCompanyMove": null,
+   "trades": [
+    {
+     "filingId": "277391",
+     "date": "2025-10-12",
+     "ticker": "ATQA",
+     "company": null,
+     "companyAr": "مصر الوطنية للصلب ش م م (عتاقة)",
+     "action": "sell",
+     "shares": 315000000,
+     "price": 6.04,
+     "value": 1902600000.0,
+     "stakeBefore": 89.041147,
+     "stakeAfter": 62.791147,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/328700_1.pdf"
+    },
+    {
+     "filingId": "282817",
+     "date": "2026-01-28",
+     "ticker": "HRHO",
+     "company": null,
+     "companyAr": "مجموعة إي اف جي القابضة EFG HOLDING",
+     "action": "buy",
+     "shares": 1354546,
+     "price": 28.935,
+     "value": 39193788.51,
+     "stakeBefore": 3.789,
+     "stakeAfter": 3.884,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333449_1.pdf"
+    },
+    {
+     "filingId": "285023",
+     "date": "2026-03-17",
+     "ticker": "HRHO",
+     "company": null,
+     "companyAr": "مجموعة إي اف جي القابضة EFG HOLDING",
+     "action": "buy",
+     "shares": 1750000,
+     "price": 24.99,
+     "value": 43732500.0,
+     "stakeBefore": 4.95,
+     "stakeAfter": 5.074,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/335411_1.pdf"
+    },
+    {
+     "filingId": "285431",
+     "date": "2026-03-29",
+     "ticker": "ARAB",
+     "company": null,
+     "companyAr": "المطورون العرب القابضة",
+     "action": "buy",
+     "shares": 157514154,
+     "price": 0.231,
+     "value": 36385769.574,
+     "stakeBefore": 5.673,
+     "stakeAfter": 6.806,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/335832_1.pdf"
+    },
+    {
+     "filingId": "287877",
+     "date": "2026-05-10",
+     "ticker": "PHAR",
+     "company": null,
+     "companyAr": "المصرية الدولية للصناعات الدوائية - ايبيكو",
+     "action": "buy",
+     "shares": 100000,
+     "price": 87.24,
+     "value": 8724000.0,
+     "stakeBefore": 0.68,
+     "stakeAfter": 0.739,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/337969_1.pdf"
+    }
+   ]
+  },
+  {
    "id": "فهد بن حمد بن ابراهيم الحرقان",
    "name": "فهد بن حمد بن ابراهيم الحرقان",
    "nameEn": "Fahad bin Hamad bin Ibrahim Al-Harqan",
@@ -10183,6 +10346,97 @@
    ]
   },
   {
+   "id": "مشارق للاستثمار العقاري",
+   "name": "مشارق للاستثمار العقاري",
+   "nameEn": "Mashareq Real Estate Investment",
+   "script": "ar",
+   "kind": "firm",
+   "aliases": [
+    "شركة مشارق للاستثمار العقارى ش . م .م"
+   ],
+   "tickers": [
+    "ELEC",
+    "ELKA"
+   ],
+   "tradeCount": 5,
+   "boughtCount": 0,
+   "soldCount": 5,
+   "value": 257234843.02,
+   "singleCompanyMove": null,
+   "trades": [
+    {
+     "filingId": "282993",
+     "date": "2026-02-02",
+     "ticker": "ELEC",
+     "company": null,
+     "companyAr": "الكابلات الكهربائية المصرية",
+     "action": "sell",
+     "shares": 3200000,
+     "price": 2.257,
+     "value": 7222400.0,
+     "stakeBefore": 3.095,
+     "stakeAfter": 2.999,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333566_1.pdf"
+    },
+    {
+     "filingId": "283496",
+     "date": "2026-02-15",
+     "ticker": "ELEC",
+     "company": null,
+     "companyAr": "الكابلات الكهربائية المصرية",
+     "action": "sell",
+     "shares": 37084238,
+     "price": 2.332,
+     "value": 86480443.01599999,
+     "stakeBefore": 2.999,
+     "stakeAfter": 1.88,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/333932_1.pdf"
+    },
+    {
+     "filingId": "283826",
+     "date": "2026-02-22",
+     "ticker": "ELEC",
+     "company": null,
+     "companyAr": "الكابلات الكهربائية المصرية",
+     "action": "sell",
+     "shares": 16500000,
+     "price": 2.208,
+     "value": 36432000.0,
+     "stakeBefore": 1.27,
+     "stakeAfter": 0.77,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/334263_1.pdf"
+    },
+    {
+     "filingId": "283978",
+     "date": "2026-02-24",
+     "ticker": "ELKA",
+     "company": null,
+     "companyAr": "القاهرة للاسكان والتعمير",
+     "action": "sell",
+     "shares": 50000000,
+     "price": 1.17,
+     "value": 58500000.0,
+     "stakeBefore": 24.01,
+     "stakeAfter": 21.32,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/334412_1.pdf"
+    },
+    {
+     "filingId": "285814",
+     "date": "2026-04-02",
+     "ticker": "ELKA",
+     "company": null,
+     "companyAr": "القاهرة للاسكان والتعمير",
+     "action": "sell",
+     "shares": 70000000,
+     "price": 0.98,
+     "value": 68600000.0,
+     "stakeBefore": 21.32,
+     "stakeAfter": 17.55,
+     "source": "https://www.egx.com.eg/downloads/Bulletins/336092_1.pdf"
+    }
+   ]
+  },
+  {
    "id": "نواف بن عبد الله بن ابراهيم بن دايل",
    "name": "نواف بن عبد الله بن ابراهيم بن دايل",
    "nameEn": "Nawaf bin Abdullah bin Ibrahim bin Dayel",
@@ -10337,165 +10591,6 @@
      "stakeBefore": 3.097,
      "stakeAfter": 5.022,
      "source": "https://www.egx.com.eg/downloads/Bulletins/343684_1.pdf"
-    }
-   ]
-  },
-  {
-   "id": "شركة مجموعة الجارحي للاستثمار والتطوير",
-   "name": "شركة مجموعة الجارحي للاستثمار والتطوير",
-   "nameEn": "Sharikat Majmou'at Al Garhy Lil Istithmar Wal Tatweer",
-   "script": "ar",
-   "kind": "firm",
-   "aliases": [
-    "شركة مجموعه الجارحي للاستثمار والتطوير (الوحدة للتنمية الصناعية سابقاً)",
-    "مجموعة الجارحي للإستثمار والتطوير",
-    "مجموعة الجارحي للاستثمار والتطوير",
-    "مجموعه الجارحي للاستثمار والتطوير"
-   ],
-   "tickers": [
-    "ARAB",
-    "ATQA",
-    "HRHO",
-    "PHAR"
-   ],
-   "tradeCount": 4,
-   "boughtCount": 3,
-   "soldCount": 1,
-   "value": 1991442269.57,
-   "singleCompanyMove": null,
-   "trades": [
-    {
-     "filingId": "277391",
-     "date": "2025-10-12",
-     "ticker": "ATQA",
-     "company": null,
-     "companyAr": "مصر الوطنية للصلب ش م م (عتاقة)",
-     "action": "sell",
-     "shares": 315000000,
-     "price": 6.04,
-     "value": 1902600000.0,
-     "stakeBefore": 89.041147,
-     "stakeAfter": 62.791147,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/328700_1.pdf"
-    },
-    {
-     "filingId": "285023",
-     "date": "2026-03-17",
-     "ticker": "HRHO",
-     "company": null,
-     "companyAr": "مجموعة إي اف جي القابضة EFG HOLDING",
-     "action": "buy",
-     "shares": 1750000,
-     "price": 24.99,
-     "value": 43732500.0,
-     "stakeBefore": 4.95,
-     "stakeAfter": 5.074,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/335411_1.pdf"
-    },
-    {
-     "filingId": "285431",
-     "date": "2026-03-29",
-     "ticker": "ARAB",
-     "company": null,
-     "companyAr": "المطورون العرب القابضة",
-     "action": "buy",
-     "shares": 157514154,
-     "price": 0.231,
-     "value": 36385769.574,
-     "stakeBefore": 5.673,
-     "stakeAfter": 6.806,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/335832_1.pdf"
-    },
-    {
-     "filingId": "287877",
-     "date": "2026-05-10",
-     "ticker": "PHAR",
-     "company": null,
-     "companyAr": "المصرية الدولية للصناعات الدوائية - ايبيكو",
-     "action": "buy",
-     "shares": 100000,
-     "price": 87.24,
-     "value": 8724000.0,
-     "stakeBefore": 0.68,
-     "stakeAfter": 0.739,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/337969_1.pdf"
-    }
-   ]
-  },
-  {
-   "id": "مشارق للاستثمار العقاري",
-   "name": "مشارق للاستثمار العقاري",
-   "nameEn": "Mashareq Real Estate Investment",
-   "script": "ar",
-   "kind": "firm",
-   "aliases": [
-    "شركة مشارق للاستثمار العقارى ش . م .م"
-   ],
-   "tickers": [
-    "ELEC",
-    "ELKA"
-   ],
-   "tradeCount": 4,
-   "boughtCount": 0,
-   "soldCount": 4,
-   "value": 250012443.02,
-   "singleCompanyMove": null,
-   "trades": [
-    {
-     "filingId": "283496",
-     "date": "2026-02-15",
-     "ticker": "ELEC",
-     "company": null,
-     "companyAr": "الكابلات الكهربائية المصرية",
-     "action": "sell",
-     "shares": 37084238,
-     "price": 2.332,
-     "value": 86480443.01599999,
-     "stakeBefore": 2.999,
-     "stakeAfter": 1.88,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/333932_1.pdf"
-    },
-    {
-     "filingId": "283826",
-     "date": "2026-02-22",
-     "ticker": "ELEC",
-     "company": null,
-     "companyAr": "الكابلات الكهربائية المصرية",
-     "action": "sell",
-     "shares": 16500000,
-     "price": 2.208,
-     "value": 36432000.0,
-     "stakeBefore": 1.27,
-     "stakeAfter": 0.77,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/334263_1.pdf"
-    },
-    {
-     "filingId": "283978",
-     "date": "2026-02-24",
-     "ticker": "ELKA",
-     "company": null,
-     "companyAr": "القاهرة للاسكان والتعمير",
-     "action": "sell",
-     "shares": 50000000,
-     "price": 1.17,
-     "value": 58500000.0,
-     "stakeBefore": 24.01,
-     "stakeAfter": 21.32,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/334412_1.pdf"
-    },
-    {
-     "filingId": "285814",
-     "date": "2026-04-02",
-     "ticker": "ELKA",
-     "company": null,
-     "companyAr": "القاهرة للاسكان والتعمير",
-     "action": "sell",
-     "shares": 70000000,
-     "price": 0.98,
-     "value": 68600000.0,
-     "stakeBefore": 21.32,
-     "stakeAfter": 17.55,
-     "source": "https://www.egx.com.eg/downloads/Bulletins/336092_1.pdf"
     }
    ]
   },
@@ -16117,21 +16212,6 @@
   {
    "id": "محمد ماهر محمد علي",
    "name": "محمد ماهر محمد علي",
-   "nameEn": null,
-   "script": null,
-   "kind": "person",
-   "aliases": null,
-   "tickers": [],
-   "tradeCount": 0,
-   "boughtCount": 0,
-   "soldCount": 0,
-   "value": null,
-   "singleCompanyMove": null,
-   "trades": []
-  },
-  {
-   "id": "ميرفت محمد عزت عبد الوهاب",
-   "name": "ميرفت محمد عزت عبد الوهاب",
    "nameEn": null,
    "script": null,
    "kind": "person",
@@ -39729,9 +39809,13 @@
    "filingId": "291397",
    "source": "https://www.egx.com.eg/downloads/Bulletins/341113_1.pdf",
    "shares": 81565942,
-   "openedAt": "2026-03-17",
-   "openingPercent": 4.95,
+   "openedAt": "2026-01-28",
+   "openingPercent": 3.789,
    "history": [
+    {
+     "date": "2026-01-28",
+     "percent": 3.884
+    },
     {
      "date": "2026-03-17",
      "percent": 5.074
@@ -41925,7 +42009,7 @@
    "history": []
   },
   {
-   "holder": "ميرفت محمد عزت عبد الوهاب",
+   "holder": "ميرفت محمد عزت عبدالوهاب",
    "kind": "person",
    "ticker": "PRMH",
    "percent": 4.33,
@@ -41934,9 +42018,14 @@
    "filingId": "291243",
    "source": "https://www.egx.com.eg/downloads/Bulletins/340820_1.pdf",
    "shares": 15148776,
-   "openedAt": null,
-   "openingPercent": null,
-   "history": []
+   "openedAt": "2026-02-01",
+   "openingPercent": 5.56,
+   "history": [
+    {
+     "date": "2026-02-01",
+     "percent": 4.53
+    }
+   ]
   },
   {
    "holder": "أية محمود عبد الحميد عتلم",
@@ -42007,9 +42096,13 @@
    "basis": "trade",
    "filingId": "292479",
    "source": "https://www.egx.com.eg/downloads/Bulletins/342099_1.pdf",
-   "openedAt": "2026-06-07",
-   "openingPercent": 20.175,
+   "openedAt": "2026-02-01",
+   "openingPercent": 19.995,
    "history": [
+    {
+     "date": "2026-02-01",
+     "percent": 20.144
+    },
     {
      "date": "2026-06-07",
      "percent": 19.475
@@ -46763,9 +46856,13 @@
    "basis": "trade",
    "filingId": "283826",
    "source": "https://www.egx.com.eg/downloads/Bulletins/334263_1.pdf",
-   "openedAt": "2026-02-15",
-   "openingPercent": 2.999,
+   "openedAt": "2026-02-02",
+   "openingPercent": 3.095,
    "history": [
+    {
+     "date": "2026-02-02",
+     "percent": 2.999
+    },
     {
      "date": "2026-02-15",
      "percent": 1.88
@@ -53198,9 +53295,13 @@
    "basis": "trade",
    "filingId": "283490",
    "source": "https://www.egx.com.eg/downloads/Bulletins/333926_1.pdf",
-   "openedAt": "2026-02-08",
-   "openingPercent": 7.85,
+   "openedAt": "2026-02-04",
+   "openingPercent": 0.35,
    "history": [
+    {
+     "date": "2026-02-04",
+     "percent": 7.85
+    },
     {
      "date": "2026-02-08",
      "percent": 12.577
@@ -53574,15 +53675,47 @@
    ]
   },
   {
+   "start": "2026-01-25",
+   "end": "2026-01-28",
+   "label": "25–28 Jan",
+   "labelAr": "25–28 يناير",
+   "sessions": 1,
+   "buys": 1,
+   "sells": 0,
+   "value": 39193788.51,
+   "moves": [
+    {
+     "holder": "شركة مجموعة الجارحي للاستثمار والتطوير",
+     "kind": "firm",
+     "ticker": "HRHO",
+     "from": 3.789,
+     "to": 3.884,
+     "trades": 1,
+     "value": 39193788.51,
+     "change": 0.095
+    }
+   ]
+  },
+  {
    "start": "2026-02-01",
    "end": "2026-02-05",
    "label": "1–5 Feb",
    "labelAr": "1–5 فبراير",
-   "sessions": 2,
-   "buys": 1,
-   "sells": 3,
-   "value": 99781530.15,
+   "sessions": 4,
+   "buys": 3,
+   "sells": 5,
+   "value": 133058646.49,
    "moves": [
+    {
+     "holder": "زياد محمد علي حسن عبد العزيز",
+     "kind": "person",
+     "ticker": "EPCO",
+     "from": 0.35,
+     "to": 7.85,
+     "trades": 1,
+     "value": 23358443.04,
+     "change": 7.5
+    },
     {
      "holder": "سيف محمود حسن جاب الله",
      "kind": "person",
@@ -53612,6 +53745,36 @@
      "trades": 1,
      "value": 50000000.0,
      "change": -1.79
+    },
+    {
+     "holder": "ميرفت محمد عزت عبدالوهاب",
+     "kind": "person",
+     "ticker": "PRMH",
+     "from": 5.56,
+     "to": 4.53,
+     "trades": 1,
+     "value": 826380.0,
+     "change": -1.03
+    },
+    {
+     "holder": "محمد اشرف عمر عمر",
+     "kind": "person",
+     "ticker": "OBRI",
+     "from": 19.995,
+     "to": 20.144,
+     "trades": 1,
+     "value": 1869893.3,
+     "change": 0.149
+    },
+    {
+     "holder": "مشارق للاستثمار العقاري",
+     "kind": "firm",
+     "ticker": "ELEC",
+     "from": 3.095,
+     "to": 2.999,
+     "trades": 1,
+     "value": 7222400.0,
+     "change": -0.096
     }
    ]
   },

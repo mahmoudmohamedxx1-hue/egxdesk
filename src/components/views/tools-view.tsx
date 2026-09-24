@@ -102,6 +102,11 @@ export function ToolsView() {
 
       <DcaCalc />
 
+      {/* T60 — esthmr tools parity: the fees simulator + the ratios guide */}
+      <FeesSimulator />
+
+      <RatiosGuide />
+
       <section className="rounded-lg border bg-card">
         <div className="flex items-center gap-2 border-b px-4 py-3">
           <Calculator className="h-4 w-4 text-muted-foreground" aria-hidden />
@@ -605,6 +610,270 @@ function CorrelationMatrix() {
           {d.from && d.to && <span className="num">· {d.from} → {d.to}</span>}
         </div>
       </div>
+    </section>
+  );
+}
+
+// ── T60 — محاكي الرسوم والأداء (fees & performance simulator, daily level) ──
+// The source model's trading-fee simulator, rebuilt honestly on DAILY
+// closes (no free source serves EGX half-hour candles): compare a one-shot
+// buy-and-hold against recurring equal-value entries on the SAME price
+// path, with and without the Thndr Trader subscription — commissions,
+// order counts and the subscription all printed, nothing hidden.
+type ChartPtLite = { date: string; close: number };
+
+function FeesSimulator() {
+  const { lang } = useApp();
+  const [query, setQuery] = useState("SWDY");
+  const [amount, setAmount] = useState(25000);
+  const [period, setPeriod] = useState<"6M" | "1Y" | "2Y" | "5Y">("1Y");
+  const [freq, setFreq] = useState(5); // one entry every N sessions
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<
+    | {
+        ok: true;
+        symbol: string;
+        sessions: number;
+        from: string;
+        to: string;
+        orders: number;
+        hold: { gross: number; netNoSub: number; netSub: number };
+        recur: { gross: number; netNoSub: number; netSub: number; commissions: number; subscriptionCost: number };
+        firstClose: number;
+        lastClose: number;
+      }
+    | { ok: false; why: string }
+    | null
+  >(null);
+
+  const run = async () => {
+    const symbol = query.trim().toUpperCase().slice(0, 12);
+    if (!symbol || !amount) return;
+    setBusy(true);
+    setRes(null);
+    try {
+      const r = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&range=${period === "6M" ? "6M" : period}`, { cache: "no-store" });
+      const j = (await r.json()) as { points?: ChartPtLite[] };
+      const pts = (j.points ?? []).filter((p) => p && Number.isFinite(p.close) && p.close > 0 && !String(p.date).includes("T"));
+      if (pts.length < 40) {
+        setRes({ ok: false, why: lang === "ar" ? "لا يوجد تاريخ أسعار كافٍ." : "not enough price history." });
+        return;
+      }
+      // fee model (Thndr's published schedule, printed on the card):
+      //  - بدون اشتراك: عمولة ١٫٢٥٪ لكل أمر (حد أدنى ١٠ ج)
+      //  - ثندر تريدر (٢٤٥ ج / ٣٠ يومًا): بلا عمولة حتى ٥٠ أمرًا في الدورة،
+      //    والاشتراك يُدفع خارج ميزانية التداول
+      const COMM = 0.0125;
+      const MIN_COMM = 10;
+      const SUB_MONTHLY = 245;
+      const commission = (notional: number) => Math.max(MIN_COMM, notional * COMM);
+      const months = Math.max(1, Math.round(pts.length / 21));
+      const subscriptionCost = SUB_MONTHLY * months;
+
+      // one-shot: whole budget at the first close, sell at the last
+      const sharesHold = amount / pts[0].close;
+      const holdGross = sharesHold * pts[pts.length - 1].close;
+      const holdNetNoSub = holdGross - commission(amount) - commission(holdGross);
+
+      // recurring: one equal-value entry every `freq` sessions
+      const entries: number[] = [];
+      for (let i = 0; i < pts.length; i += freq) entries.push(pts[i].close);
+      const slice = amount / entries.length;
+      let sharesRecur = 0;
+      let commissions = 0;
+      for (const c of entries) {
+        const comm = commission(slice);
+        commissions += comm;
+        sharesRecur += (slice - comm) / c;
+      }
+      const recurGross = sharesRecur * pts[pts.length - 1].close;
+      const sellComm = commission(recurGross);
+      commissions += sellComm;
+      const recurNetNoSub = recurGross - sellComm; // entries' commissions already paid inside
+
+      setRes({
+        ok: true,
+        symbol,
+        sessions: pts.length,
+        from: pts[0].date,
+        to: pts[pts.length - 1].date,
+        orders: entries.length + 1,
+        hold: { gross: holdGross, netNoSub: holdNetNoSub, netSub: holdGross - subscriptionCost },
+        recur: { gross: recurGross, netNoSub: recurNetNoSub, netSub: recurNetNoSub - subscriptionCost, commissions, subscriptionCost },
+        firstClose: pts[0].close,
+        lastClose: pts[pts.length - 1].close,
+      });
+    } catch {
+      setRes({ ok: false, why: lang === "ar" ? "تعذّر جلب تاريخ الأسعار." : "could not load price history." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fmtEgp = (v: number) => `${v.toLocaleString("en-US", { maximumFractionDigits: 0 })} ${lang === "ar" ? "ج" : "EGP"}`;
+  const pct = (v: number) => `${v >= 0 ? "+" : ""}${((v / amount) * 100).toFixed(2)}%`;
+
+  return (
+    <section className="rounded-lg border bg-card">
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <Landmark className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <h2 className="font-bold">{lang === "ar" ? "محاكي الرسوم والأداء (تواتر يومي)" : "Fees & performance simulator (daily)"}</h2>
+      </div>
+      <div className="p-4 grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="fees-ticker">{lang === "ar" ? "السهم" : "Stock"}</label>
+            <Input id="fees-ticker" value={query} onChange={(e) => setQuery(e.target.value.toUpperCase())} className="num" dir="ltr" placeholder="SWDY" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">{lang === "ar" ? "رأس المال المخصص للتداول (جنيه)" : "Trading budget (EGP)"}</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[10000, 25000, 50000, 100000, 250000, 500000].map((v) => (
+                <button key={v} onClick={() => setAmount(v)} className={`rounded-full border px-2.5 py-1 text-xs tabular-nums ${amount === v ? "bg-secondary font-semibold" : "text-muted-foreground hover:bg-accent"}`}>
+                  {v.toLocaleString("en-US")}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">{lang === "ar" ? "الفترة" : "Period"}</label>
+            <div className="flex gap-1.5">
+              {(["6M", "1Y", "2Y", "5Y"] as const).map((p) => (
+                <button key={p} onClick={() => setPeriod(p)} className={`rounded-full border px-2.5 py-1 text-xs ${period === p ? "bg-secondary font-semibold" : "text-muted-foreground hover:bg-accent"}`}>
+                  {p === "6M" ? (lang === "ar" ? "٦ أشهر" : "6M") : p === "1Y" ? (lang === "ar" ? "سنة" : "1Y") : p === "2Y" ? (lang === "ar" ? "سنتان" : "2Y") : lang === "ar" ? "٥ سنوات" : "5Y"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="fees-freq">
+              {lang === "ar" ? "تكرار الدخول: أمر كل كم جلسة؟" : "Entry cadence: one order every N sessions"}
+            </label>
+            <Input id="fees-freq" type="number" min={1} max={60} value={freq} onChange={(e) => setFreq(Math.max(1, Math.min(60, Number(e.target.value) || 1)))} className="num" dir="ltr" />
+          </div>
+          <Button onClick={run} disabled={busy}>{busy ? (lang === "ar" ? "…يجري" : "running…") : lang === "ar" ? "شغّل المحاكاة" : "Run"}</Button>
+          <p className="text-[10px] leading-relaxed text-muted-foreground">
+            {lang === "ar"
+              ? "نموذج الرسوم: عمولة ١٫٢٥٪ لكل أمر (حد أدنى ١٠ ج) بدون اشتراك؛ ومع «ثندر تريدر» (٢٤٥ ج / ٣٠ يومًا) بلا عمولة حتى ٥٠ أمرًا في الدورة، والاشتراك يُدفع خارج ميزانية التداول ويُخصم من النتيجة."
+              : "Fee model: 1.25% per order (10 EGP minimum) without a subscription; with Thndr Trader (245 EGP / 30 days) commission-free up to 50 orders per cycle, the subscription paid outside the trading budget and deducted from the result."}
+          </p>
+        </div>
+        <div>
+          {res?.ok && (
+            <div className="space-y-3 text-sm">
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {res.symbol} · {res.sessions} {lang === "ar" ? "جلسة" : "sessions"} · {res.from} → {res.to} ·{" "}
+                {lang === "ar" ? "من" : "from"} {res.firstClose.toFixed(2)} {lang === "ar" ? "إلى" : "to"} {res.lastClose.toFixed(2)}
+              </p>
+              <div className="grid gap-2">
+                {(
+                  [
+                    [lang === "ar" ? "دفعة واحدة — بدون اشتراك" : "One-shot — no subscription", res.hold.netNoSub],
+                    [lang === "ar" ? "دفعة واحدة — مع الاشتراك" : "One-shot — with subscription", res.hold.netSub],
+                    [lang === "ar" ? `دخول متكرر كل ${freq} جلسات — بدون اشتراك (${res.orders} أمرًا)` : `Recurring every ${freq} sessions — no subscription (${res.orders} orders)`, res.recur.netNoSub],
+                    [lang === "ar" ? `دخول متكرر كل ${freq} جلسات — مع الاشتراك` : `Recurring every ${freq} sessions — with subscription`, res.recur.netSub],
+                  ] as [string, number][]
+                ).map(([label, v]) => (
+                  <div key={label} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/50 px-3 py-2">
+                    <span className="text-xs">{label}</span>
+                    <span className="text-end">
+                      <b className="tabular-nums">{fmtEgp(v)}</b>
+                      <span className={`ms-2 text-xs tabular-nums font-semibold ${v >= amount ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        {pct(v - amount)}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground tabular-nums">
+                {lang === "ar" ? `عمولات المتكرر بدون اشتراك: ${fmtEgp(res.recur.commissions)} · اشتراك الدورة: ${fmtEgp(res.recur.subscriptionCost)}` : `Recurring commissions (no sub): ${fmtEgp(res.recur.commissions)} · subscription for the window: ${fmtEgp(res.recur.subscriptionCost)}`}
+              </p>
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                {lang === "ar"
+                  ? "محاكاة على إغلاقات يومية: التنفيذ عند إغلاق الجلسة وليس لحظة داخلها، والتوزيعات وإجراءات الشركات خارج النموذج. النتائج محاكاة لا عائدًا تاريخيًا موثقًا."
+                  : "Simulated on daily closes: execution at the session close, not intraday; distributions and corporate actions are outside the model. Results are a simulation, not a documented historical return."}
+              </p>
+            </div>
+          )}
+          {res && !res.ok && <p className="text-sm text-muted-foreground">{res.why}</p>}
+          {!res && <p className="text-sm text-muted-foreground">{lang === "ar" ? "اضبط المدخلات ثم شغّل المحاكاة." : "Set the inputs and run."}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── T60 — دليل النسب والمكررات (the ratios guide) ────────────────────────────
+// Four plain-language cards — P/E, P/B, ROE and earnings quality — each with
+// its details & caveats expander and the Capital Market Law 95/1992 footer,
+// exactly the furniture of the source model's guide.
+function RatiosGuide() {
+  const { lang } = useApp();
+  const [open, setOpen] = useState<string | null>(null);
+  const cards = [
+    {
+      id: "pe",
+      titleAr: "مكرر الربحية (P/E)",
+      titleEn: "P/E",
+      lineAr: "كم سنة من ربح الشركة الحالي يساوي سعر سهمها اليوم: سهم بعشرة جنيهات يربح جنيهاً في السنة مكرره عشرة.",
+      lineEn: "How many years of the company's current earnings its share price equals today: a 10-pound share earning a pound a year trades at ten times.",
+      caveatsAr: "المكرر يقارن التوقعات لا الماضي فقط — ربح استثنائي واحد (بيع أصل مثلًا) يخفض المكرر شكليًا دون تحسن حقيقي. والمقارنة الصحيحة مع قطاع الشركة ومكررها تاريخيها، لا مع السوق كله. وشركات النمو تحمل مكررات عالية بطبيعتها.",
+      caveatsEn: "The multiple prices expectations, not just the past — a single exceptional profit (an asset sale) lowers it cosmetically without real improvement. Compare against the company's sector and its own history, never the whole market alone; growth companies naturally carry high multiples.",
+    },
+    {
+      id: "pb",
+      titleAr: "مضاعف القيمة الدفترية (P/B)",
+      titleEn: "P/B",
+      lineAr: "سعر الشركة في السوق مقابل ما يتبقى لأصحابها في دفاترها بعد سداد كل الالتزامات.",
+      lineEn: "The market's price for the company against what remains for its owners in the books after every obligation is paid.",
+      caveatsAr: "القيمة الدفترية تاريخية المحاسبة لا قيمة سوقية — أرض اشتريت قبل عقود مسجلة بتكلفتها القديمة، ومحفظة عقارية في شركة قابضة قد تساوي أضعاف دفاترها. المكرر المنخفض جدًا قد يعني أن السوق لا يصدق الدفاتر نفسها.",
+      caveatsEn: "Book value is accounting history, not market value — land bought decades ago sits at old cost, and a property portfolio may be worth multiples of its books. A very low multiple can mean the market does not believe the books themselves.",
+    },
+    {
+      id: "roe",
+      titleAr: "العائد على حقوق الملكية (ROE)",
+      titleEn: "ROE",
+      lineAr: "كم جنيهاً تربحه الشركة في السنة على كل مئة جنيه تركها أصحابها فيها.",
+      lineEn: "How many pounds the company earns a year on every hundred its owners left in it.",
+      caveatsAr: "الرافعة تضخّم العائد: شركة مقترضة بشدة قد تحقق عائدًا مرتفعًا على ملكية صغيرة مع مخاطرة كبيرة. اقرأه مع الدين/الملكية معًا — وهذا بالضبط ما تفعله خريطة التقييم والديون في مجموعة «المزيد».",
+      caveatsEn: "Leverage inflates it: a heavily borrowed company can earn a high return on a small equity base with real risk. Read it beside debt/equity — which is exactly what the valuation & debt map in the More group does.",
+    },
+    {
+      id: "quality",
+      titleAr: "جودة الأرباح والتدفق النقدي",
+      titleEn: "Earnings quality",
+      lineAr: "من كل جنيه ربح أعلنته الشركة، كم جنيهاً وصل فعلاً نقداً من نشاطها.",
+      lineEn: "Of every pound of declared profit, how many actually arrived as cash from the business.",
+      caveatsAr: "الربح المحاسبي تقدير يسبق النقد: مبيعات آجلة تُسجّل اليوم وتُحصّل لاحقًا أو لا تُحصّل. الفجوة المستمرة بين الربح والتدفق التشغيلي هي أشهر إنذارات تدهور الجودة — والقوائم المالية في صفحة كل شركة تريك الطرفين.",
+      caveatsEn: "Accounting profit is an estimate that precedes cash: credit sales booked today may be collected later, or never. A persistent gap between profit and operating cash flow is the classic earnings-quality warning — and every company page shows both sides.",
+    },
+  ];
+  return (
+    <section className="rounded-lg border bg-card">
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <BookOpen className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <h2 className="font-bold">{lang === "ar" ? "دليل النسب والمكررات" : "Ratios & multiples guide"}</h2>
+      </div>
+      <div className="p-4 grid gap-3 md:grid-cols-2">
+        {cards.map((c) => {
+          const isOpen = open === c.id;
+          return (
+            <div key={c.id} className="rounded-lg border bg-secondary/30 p-3">
+              <button onClick={() => setOpen(isOpen ? null : c.id)} className="flex w-full items-center justify-between gap-2 text-start">
+                <h3 className="text-sm font-bold">{lang === "ar" ? c.titleAr : c.titleEn}</h3>
+                <span className="text-[10px] text-muted-foreground">{isOpen ? (lang === "ar" ? "▲ أقل" : "▲ less") : lang === "ar" ? "التفاصيل والتحفظات ▼" : "details & caveats ▼"}</span>
+              </button>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{lang === "ar" ? c.lineAr : c.lineEn}</p>
+              {isOpen && <p className="mt-2 rounded-md bg-secondary p-2 text-[11px] leading-relaxed">{lang === "ar" ? c.caveatsAr : c.caveatsEn}</p>}
+            </div>
+          );
+        })}
+      </div>
+      <p className="border-t px-4 py-2.5 text-[10px] leading-relaxed text-muted-foreground">
+        {lang === "ar"
+          ? "هذه الشروح تعليمية استرشادية بناءً على تعريفات النسب المالية، ولا تمثل توصية بشراء أو بيع أي ورقة مالية وفقاً للمادة ٨ من قانون سوق رأس المال رقم ٩٥ لسنة ١٩٩٢."
+          : "These explanations are educational, based on standard financial-ratio definitions, and are not a recommendation to buy or sell any security under Article 8 of Capital Market Law 95/1992."}
+      </p>
     </section>
   );
 }

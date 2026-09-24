@@ -85,6 +85,11 @@ const KNOWN_VIEWS = new Set([
   "gcc", "paper",
   // T57 — عدسة الملكية (ownership lens)
   "lens",
+  // T60 — المستجدات (the Updates group): news + disclosures + crossings
+  "disclosures", "crossings",
+  // T60 — المزيد (the More group): valuation map, pairs, world monitor,
+  // model lab, crash-warning research, research notes
+  "valuation", "pairs", "world", "scenarios", "fragility", "research",
 ]);
 
 /** Public URL aliases -> internal view names. ?view=news and ?view=overview
@@ -100,6 +105,10 @@ const VIEW_ALIASES: Record<string, string> = {
   regional: "gcc",
   gulf: "gcc",
   simulator: "paper",
+  // T60 friendlier public spellings
+  updates: "today",
+  model: "scenarios",
+  crash: "fragility",
 };
 
 function normalizeView(v: string | null): string {
