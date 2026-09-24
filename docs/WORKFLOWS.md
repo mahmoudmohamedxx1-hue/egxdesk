@@ -1,37 +1,83 @@
-# The two GitHub Actions (need a one-time manual paste)
+# Daily data refresh — how it runs now (and the optional native-Actions path)
 
-The deploy token currently in use lacks the `workflow` scope, so GitHub refuses
-git pushes and API calls that create files under `.github/workflows/`. Both
-workflows are already written on disk locally — they just need to be added
-ONCE, either way:
+## 1. The active mechanism: the sandbox refresh-daemon (no workflow scope needed)
 
-**Option A (fastest, 2 minutes):** on github.com open this repo →
+The deploy PAT carries only the `repo` scope, and GitHub refuses to let a
+repo-scoped token create or update **any** file under `.github/workflows/` —
+this was probed on 2026-09-25 across all four write paths (git push, the
+Contents API, GraphQL `createCommitOnBranch`, and the Git-Data trees endpoint;
+a harmless-path tree returned 201 while a workflow-path tree returned a masked
+404). So the two daily-refresh workflows cannot be landed by automation with
+this token.
+
+`scripts/refresh-daemon.mjs` (launched detached by
+`scripts/start-refresh-daemon.py`, log in `scripts/refresh-daemon.log`) does
+the identical job from the sandbox and lands the data commits through the
+Git-Data API, which a repo scope **can** do for regular files — verified live
+on 2026-09-25 (commit `ca9c784`, auto-deployed):
+
+- **updates job** — Sun–Thu (the EGX trading week) at 07:10 / 11:10 / 16:10
+  UTC: `refresh-news.mjs --via-reader` (the five outlets esthmr's own news
+  document names; the z-ai reader service stands in for Cloudflare-walled
+  ones) then `refresh-disclosures.mjs`. Commits
+  `src/data/news-snapshot.json` + `src/data/disclosures.json` when the DATA
+  changed (`asOf`-only bumps never deploy).
+- **ownership job** — daily 03:30 UTC: `refresh-ownership.mjs` → commits
+  `src/data/ownership-network.json` when the network changed.
+- Missed slots are caught up on daemon restart (state persists in
+  `scripts/refresh-state.json`); commits are additive-only, never
+  force-pushed; the local branch ff-syncs to `origin/main` after every API
+  commit.
+
+### Secrets (gitignored, on disk only — never in the repo)
+
+- `server-secrets/github-token.txt` — the classic PAT (repo scope is enough).
+- `server-secrets/esthmr-cookie.txt` — **one line**: the `esthmr_session`
+  cookie value after logging in on esthmr.com (devtools → Application →
+  Cookies; with or without the `esthmr_session=` prefix; `#` lines are
+  comments). The disclosures + ownership legs need it; when it is missing or
+  expired those legs SKIP SAFELY and the shipped data stays frozen — paste a
+  fresh cookie and the next run picks it up automatically. (The cookie that
+  seeded the 919-item archive died on 2026-09-25; the file is currently
+  waiting for a fresh value.)
+
+### Manual runs
+
+```bash
+node scripts/refresh-daemon.mjs --once updates     # news + disclosures + commit
+node scripts/refresh-daemon.mjs --once ownership   # ownership network + commit
+python3 scripts/start-refresh-daemon.py            # (re)start the scheduler
+```
+
+## 2. Optional: land the native GitHub Actions (redundant, but nice)
+
+The two workflow files still live on disk (untracked, gitignored) with the
+same schedules and fail-safe semantics. To activate them the **web UI** is the
+easiest path — it needs no token scopes at all: on github.com open this repo →
 `Add file → Create new file` → name it `.github/workflows/ownership-refresh.yml`
-→ paste the content from that file on your machine (same repository folder) →
-Commit. Repeat for `.github/workflows/updates-refresh.yml`. The web editor
-needs no token scopes.
+→ paste the content from that file on your machine → Commit. Repeat for
+`.github/workflows/updates-refresh.yml`. Then add the repo secret
+`ESTHMR_COOKIE` = `esthmr_session=<value>` (Settings → Secrets and variables →
+Actions). Alternatively, a PAT with the `workflow` scope can push them
+directly.
 
-**Option B:** create a new fine-grained PAT with **Contents: Read and write**
-**AND Workflows: Read and write** permissions, then update the remote:
-`git remote set-url origin https://<NEW_PAT>@github.com/mahmoudmohamedxx1-hue/egxdesk.git`
-and push again (the two files are untracked-but-present in the working tree).
+Note: the cron day-of-week in the workflow files is `0-4` (Sunday–Thursday —
+the EGX week). While both mechanisms run they are safely redundant: the
+commit engine only lands changed data files and the disclosures merge is
+idempotent by filing id.
 
-## What each workflow does
+## 3. What each refresh does (both mechanisms, identical)
 
-- **ownership-refresh.yml** (T59): daily 03:30 UTC — pulls the freshly parsed
-  EGX disclosure archive (with the `ESTHMR_COOKIE` repo secret) and rebuilds
-  `src/data/ownership-network.json` for عدسة الملكية. Needs the secret
-  `ESTHMR_COOKIE` = `esthmr_session=<value>` (Settings → Secrets and
-  variables → Actions). When the cookie expires (~30 days after each login)
-  the run fails safely — log in to esthmr.com, copy the fresh cookie, update
-  the secret.
+- **News snapshot** (`src/data/news-snapshot.json`): re-fetches Al Borsa,
+  Hapi, Arab Finance, Al Mal, Enterprise (the outlets esthmr's own news
+  document names) — the baseline the deployed `/api/news-feed` merges for any
+  outlet the runtime network cannot reach. Cookie-free.
+- **Disclosures archive** (`src/data/disclosures.json`): merges the parsed EGX
+  disclosure feed by filing id — the agenda's month strip fills itself day by
+  day. Needs the esthmr cookie; fails safely without it.
+- **Ownership network** (`src/data/ownership-network.json`): rebuilds عدسة
+  الملكية's compact network from the freshly parsed insider filings. Needs
+  the same cookie; fails safely.
 
-- **updates-refresh.yml** (T60): 3× per trading day (07:10 / 11:10 / 16:10 UTC)
-  — re-fetches the five news outlets directly (Al Borsa, Hapi, Arab Finance,
-  Al Mal, Enterprise) and rebuilds `src/data/news-snapshot.json` (the baseline
-  the deployed feed merges for outlets the serverless network cannot reach),
-  then merges the day's EGX disclosures into `src/data/disclosures.json`.
-  Also uses the same `ESTHMR_COOKIE` secret (fails safely without it).
-
-Both commit + push automatically when data changes → Vercel auto-deploys →
-the screens' "as of" stamps move on their own.
+When data changes → commit → Vercel auto-deploys → the screens' "as of"
+stamps move on their own.

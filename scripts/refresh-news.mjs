@@ -243,11 +243,36 @@ async function main() {
   const ids = ["alborsa", "hapi", "arabfinance", "almal", "enterprise", "amwal"];
   const outcomes = await Promise.all(ids.map(fetchOutlet));
   const cutoff = Date.now() - FRESH_HOURS * 3600_000;
+
+  // First-observation stability: arabfinance times derive from "منذ XسYد"
+  // relative text (fallback = now) and almal images flicker between runs —
+  // rewriting them on every re-fetch would make the snapshot "change" (and
+  // deploy) even when nothing real happened. For items we already shipped,
+  // the previously recorded published/image stand.
+  let prevByLink = new Map();
+  try {
+    const old = JSON.parse(fs.readFileSync(OUT, "utf8"));
+    for (const list of Object.values(old.outlets || {})) {
+      for (const x of list) if (x?.link) prevByLink.set(x.link, x);
+    }
+  } catch {}
+
   const outlets = {};
   const unreachable = [];
   let total = 0;
   for (const o of outcomes) {
-    const fresh = o.items.filter((x) => Date.parse(x.published) >= cutoff);
+    const fresh = o.items
+      .filter((x) => Date.parse(x.published) >= cutoff)
+      .map((x) => {
+        const p = prevByLink.get(x.link);
+        if (!p) return x;
+        return {
+          ...x,
+          published: p.published ?? x.published,
+          image: p.image ?? x.image ?? null, // first non-null wins — the
+          // outlets' own listing pages rotate image URLs between fetches
+        };
+      });
     if (fresh.length) {
       outlets[o.outlet] = fresh;
       total += fresh.length;
