@@ -12,14 +12,18 @@
  *  data commits through the Git-Data API — which a repo scope CAN do for
  *  regular data files (proven live).
  *
- *  WHAT IT DOES (identical to the designed Actions):
- *    · updates job   — Sun–Thu (the EGX trading week) at 07:10 / 11:10 /
- *                      16:10 UTC: `refresh-news.mjs --via-reader` (the five
- *                      outlets, reader fallback for Cloudflare-walled ones)
- *                      then `refresh-disclosures.mjs` (needs the esthmr
- *                      cookie; fails SAFE — the shipped archive stays).
+ *  WHAT IT DOES (backstopping the NATIVE GitHub Actions — they are the
+ *  primary mechanism since 2026-09-25, landed with a workflow-scoped token
+ *  and verified green; this daemon runs +30 min AFTER each Action slot so
+ *  the two can never race on the same commit):
+ *    · updates job   — Sun–Thu (the EGX trading week) at 07:40 / 11:40 /
+ *                      16:40 UTC: `refresh-news.mjs --via-reader` — the ONLY
+ *                      path that can refresh hapi (Cloudflare walls its RSS
+ *                      to GitHub-runner AND Vercel IPs; the sandbox reader
+ *                      service passes) — then `refresh-disclosures.mjs`
+ *                      (needs the local esthmr cookie file; fails SAFE).
  *                      Commits news-snapshot.json + disclosures.json.
- *    · ownership job — daily 03:30 UTC: `refresh-ownership.mjs` (same
+ *    · ownership job — daily 04:00 UTC: `refresh-ownership.mjs` (same
  *                      cookie; fails SAFE). Commits ownership-network.json.
  *    · Only commits when the DATA changed (asOf stamps are ignored in the
  *      diff), never force-pushes, never deletes anything, and syncs the
@@ -333,11 +337,11 @@ async function jobOwnership(state) {
 
 // ── scheduler ───────────────────────────────────────────────────────────────
 const UPDATES_SLOTS = [
-  { h: 7, m: 10 },
-  { h: 11, m: 10 },
-  { h: 16, m: 10 },
+  { h: 7, m: 40 },
+  { h: 11, m: 40 },
+  { h: 16, m: 40 },
 ];
-const OWNERSHIP_SLOT = { h: 3, m: 30 };
+const OWNERSHIP_SLOT = { h: 4, m: 0 };
 
 const utc = (d) => ({ day: d.getUTCDay(), date: d.toISOString().slice(0, 10), hm: d.getUTCHours() * 60 + d.getUTCMinutes() });
 const isTradingDay = (day) => day >= 0 && day <= 4; // Sunday..Thursday — the EGX week
@@ -415,6 +419,6 @@ if (once) {
   process.exit(0);
 }
 
-log("scheduler: refresh-daemon started (updates Sun–Thu 07:10/11:10/16:10 UTC · ownership daily 03:30 UTC · catch-up on start)");
+log("scheduler: refresh-daemon started (updates Sun–Thu 07:40/11:40/16:40 UTC · ownership daily 04:00 UTC · +30min after each Action slot · catch-up on start)");
 setInterval(runDue, 20_000);
 runDue().catch((e) => log(`scheduler: tick error ${String(e).slice(0, 160)}`));
