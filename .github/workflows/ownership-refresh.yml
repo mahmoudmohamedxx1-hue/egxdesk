@@ -1,0 +1,54 @@
+# T59 — عدسة الملكية daily auto-refresh.
+#
+# Every day at 03:30 UTC (after the EGX session close and the evening
+# disclosure-file parse), pull the freshly parsed EGX disclosure archive and
+# rebuild src/data/ownership-network.json. When the compact network changes,
+# commit + push → Vercel auto-deploys → the lens badge shows the new date.
+#
+# The esthmr session cookie lives in the ESTHMR_COOKIE repo secret
+# ("esthmr_session=<value>"). It expires ~30 days after the last login:
+# when it does, this workflow fails SAFELY (the shipped data stays as-is and
+# the lens badge turns amber) — log in to esthmr.com, copy the fresh
+# esthmr_session cookie, and update the secret at
+# Settings → Secrets and variables → Actions → ESTHMR_COOKIE.
+
+name: ownership-daily-refresh
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ownership-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: fetch + rebuild the ownership network
+        run: node scripts/refresh-ownership.mjs
+        env:
+          ESTHMR_COOKIE: ${{ secrets.ESTHMR_COOKIE }}
+
+      - name: commit the compact network if it changed
+        run: |
+          git config user.name  "egx-desk-bot"
+          git config user.email "4189820+actions[bot]@users.noreply.github.com"
+          git add src/data/ownership-network.json
+          if git diff --cached --quiet; then
+            echo "no ownership changes today — nothing to commit"
+          else
+            git commit -m "data: ownership lens daily refresh ($(date -u +%F))"
+            git push
+          fi

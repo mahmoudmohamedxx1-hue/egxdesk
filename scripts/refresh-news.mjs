@@ -250,9 +250,11 @@ async function main() {
   // deploy) even when nothing real happened. For items we already shipped,
   // the previously recorded published/image stand.
   let prevByLink = new Map();
+  let prevOutlets = {};
   try {
     const old = JSON.parse(fs.readFileSync(OUT, "utf8"));
-    for (const list of Object.values(old.outlets || {})) {
+    prevOutlets = old.outlets || {};
+    for (const list of Object.values(prevOutlets)) {
       for (const x of list) if (x?.link) prevByLink.set(x.link, x);
     }
   } catch {}
@@ -278,6 +280,16 @@ async function main() {
       total += fresh.length;
     } else {
       unreachable.push({ id: o.outlet, why: o.why ?? "no fresh items" });
+      // Outlet-level stability: an outlet THIS run could not reach keeps its
+      // previously shipped items (still within the freshness window) instead
+      // of being wiped from the snapshot — the deployed feed keeps serving
+      // its last known state honestly, mirroring the runtime's own
+      // live-∪-snapshot union. Items age out naturally after FRESH_HOURS.
+      const carried = (prevOutlets[o.outlet] || []).filter((x) => Date.parse(x.published) >= cutoff);
+      if (carried.length) {
+        outlets[o.outlet] = carried;
+        total += carried.length;
+      }
     }
   }
   const body = { asOf: new Date().toISOString(), freshHours: FRESH_HOURS, outlets, unreachable, total };

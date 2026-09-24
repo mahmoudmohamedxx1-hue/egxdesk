@@ -72,10 +72,5 @@ esthmr-explore/cookies.txt
 esthmr-explore/temp_token.txt
 # T61: all local secrets stay out of the public repo (was: vapid.json only)
 /server-secrets/
-# T61: the two daily-refresh workflows cannot be pushed with a repo-scoped
-# token (GitHub blocks .github/workflows writes without the workflow scope) —
-# they live on disk for the eventual web-UI landing (docs/WORKFLOWS.md §native)
-# and the sandbox refresh-daemon (scripts/refresh-daemon.mjs) covers the job.
-.github/workflows/
 # T61: refresh-daemon runtime state (the log is covered by *.log)
 /scripts/refresh-state.json

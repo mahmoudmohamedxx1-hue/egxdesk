@@ -1,0 +1,64 @@
+# T60 — المستجدات daily auto-refresh (news snapshot + disclosures archive).
+#
+# Three times a trading day (07:10 / 11:10 / 16:10 UTC ≈ after the EGX
+# session's key moments, mirroring the source terminal's own cadence):
+#   1. re-fetch the five Egyptian financial outlets DIRECTLY (GitHub runner
+#      IPs pass where datacenter/serverless IPs are Cloudflare-walled) and
+#      rebuild src/data/news-snapshot.json — the baseline the deployed
+#      /api/news-feed merges for any outlet the runtime network loses;
+#   2. re-pull the parsed EGX disclosure feed (the user's own esthmr
+#      session) and MERGE it into src/data/disclosures.json by filing id —
+#      the agenda's month strip fills itself day by day.
+# When either document changes, commit + push → Vercel auto-deploys.
+#
+# The esthmr session cookie lives in the ESTHMR_COOKIE repo secret. When it
+# expires (~30 days after the last login) the disclosures step fails SAFELY
+# (the shipped archive stays as-is) — log in to esthmr.com, copy the fresh
+# esthmr_session cookie, and update the secret.
+
+name: updates-daily-refresh
+
+on:
+  schedule:
+    - cron: "10 7 * * 0-4"
+    - cron: "10 11 * * 0-4"
+    - cron: "10 16 * * 0-4"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: updates-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: rebuild the news snapshot (direct fetches, no SDK)
+        run: node scripts/refresh-news.mjs
+
+      - name: merge the disclosures archive
+        continue-on-error: true # the cookie may expire — shipped data stays
+        run: node scripts/refresh-disclosures.mjs
+        env:
+          ESTHMR_COOKIE: ${{ secrets.ESTHMR_COOKIE }}
+
+      - name: commit whatever changed
+        run: |
+          git config user.name  "egx-desk-bot"
+          git config user.email "4189820+actions[bot]@users.noreply.github.com"
+          git add src/data/news-snapshot.json src/data/disclosures.json
+          if git diff --cached --quiet; then
+            echo "no updates-section changes this run — nothing to commit"
+          else
+            git commit -m "data: updates section refresh ($(date -u +%F' '%H:%M))"
+            git push
+          fi
