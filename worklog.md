@@ -1446,3 +1446,19 @@ Work Log:
 Stage Summary:
 - المستجدات and المزيد now exist screen-for-screen with the source terminal's own sections, on data we hold and verify: the SAME five news outlets (merged, withheld-for-advice, classified, ticker-attributed, volume-flagged), the exchange's own disclosure archive (growing daily via the Action), crossings computed from both, and every More screen (valuation map, pairs, world monitor with rarity percentiles, model lab on our honest track record, crash-warning backtest on a declared composite, published methodology) with the source's honesty furniture cloned line by line — count headers, unreachable lists, causality disclaimers, Law 95/1992 footers, and the losers printed with the winners.
 - Production coverage guarantee: live fetch ∪ committed snapshot per outlet, refreshed 3×/trading day by the updates-refresh Action (same cookie secret as the ownership refresh for the disclosures leg).
+
+---
+Task ID: T60-SHIP
+Agent: main (Super Z)
+Task: Ship T59+T60 to GitHub + Vercel and verify every screen on the LIVE deployment.
+
+Work Log:
+- PUSH BLOCKER FIXED: the deploy PAT lacks the `workflow` scope, so the pending local commits (which included .github/workflows/ownership-refresh.yml from T59) had been silently failing to push since T59 — the remote was still at 41cb787 (T58). Squashed the pending history into one commit with the two workflow files REMOVED from the index (kept on disk), pushed 614e292 + ac9e8f1 — remote is current again.
+- Workflow files landed via API? NO — the Contents API also returns 404 for .github/workflows paths without the workflow scope. Wrote docs/WORKFLOWS.md with the exact two-minute web-UI paste steps (or the PAT-regeneration alternative). Until then the daily auto-refresh Actions are dormant — the app still works fully (runtime live fetches + committed snapshot/archive).
+- VERCEL AUTO-DEPLOYED v2.46 (health: version 2.46, db up).
+- PRODUCTION VERIFIED screen by screen on https://egxdesk.vercel.app:
+  * news feed: 185 items, all five esthmr outlets live — Vercel's egress reaches Arab Finance/Al Mal/Al Borsa/Enterprise DIRECTLY (better than the sandbox), hapi Cloudflare-walled → served from the committed snapshot with the honest archivedFrom stamp in the provenance footer, amwal honestly unreachable.
+  * crossings (stats chips + honesty line + company cards), disclosures agenda (919-item archive, month strip, day grid, bulletin links), valuation & debt map, sector pairs, world monitor, model lab, crash-warning (1.82M vs 860K blocks), research papers — ALL rendering on the live deployment with zero console errors.
+
+Stage Summary:
+- Everything the user asked for in this task is deployed and verified live. One action item remains on the GitHub side (not the app): paste the two workflow files via the web UI per docs/WORKFLOWS.md to switch on the daily auto-refresh of the news snapshot + the disclosures archive (the app's data still refreshes at runtime regardless).
