@@ -1,0 +1,1732 @@
+/* Components and their layouts. NO PALETTE.
+ *
+ * This file used to redeclare `--bg` and its neighbours three times over,
+ * each block overriding the last, so the colour a reader saw came from the
+ * third one and `design.css` — the file named for the palette — described a
+ * site that did not exist. Tokens live there now, including the mosaic and
+ * island tints and the radii this file still asks for by name.
+ */
+/* Esthmr's shared layer. Shared tokens and controls replace canvas chrome
+   incrementally; legacy financial tables keep their existing data bindings. */
+:root {
+  --space-xs: 4px; --space-sm: 8px; --space-md: 16px;
+  --space-lg: 24px; --space-xl: 32px; --space-section: 48px;
+  --font-reading: 'IBM Plex Sans Arabic','IBM Plex Sans',sans-serif;
+  /* The comp loads three faces and no display grotesque: IBM Plex Sans,
+     IBM Plex Sans Arabic and IBM Plex Mono. Bricolage was the site's own
+     heading face and is the loudest thing separating the two — in Arabic
+     it never applied at all, so English headings were set in a different
+     family from the Arabic ones on the same page. */
+  --font-heading: 'IBM Plex Sans','IBM Plex Sans Arabic',sans-serif;
+}
+.feed-status, .watch-save-status { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:12px 18px; margin-block:12px; border-radius:var(--radius-control); background:var(--surface); color:var(--t2); font-size:14px; border:1px solid var(--rule); }
+.feed-status button, .watch-save-status button { margin-inline-start:auto; border:1px solid var(--rule); border-radius:var(--radius-control); background:var(--sunk); padding:8px 16px; min-height:44px; cursor:pointer; }
+.watch-save-status { width:fit-content; max-width:100%; }
+.watch-save-status[data-status="saved"]::before { content:'✓'; display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--upTint); color:var(--up); font-weight:700; }
+.watch-save-status[data-status="error"] { border-style:dashed; }
+.loading-island-grid { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:18px; padding-block:8px 24px; }
+.loading-island-grid > div { border:1px solid var(--rule); background:var(--surface); border-radius:var(--radius-island); padding:20px; min-height:220px; overflow:hidden; }
+.loading-island-grid :is(i,b,span) { display:block; border-radius:12px; background:var(--sunk); animation:island-breathe 1.6s ease-in-out infinite alternate; }
+.loading-island-grid i { width:35%; height:12px; }
+.loading-island-grid b { width:70%; height:34px; margin-block:24px; }
+.loading-island-grid span { height:70px; width:100%; border-radius:var(--radius-island); }
+.loading-island-grid > div:nth-child(2) * { animation-delay:.15s; }
+.loading-island-grid > div:nth-child(3) * { animation-delay:.3s; }
+@keyframes island-breathe { from { opacity:.45; } to { opacity:1; } }
+@media (max-width:860px) {
+  .loading-island-grid { grid-template-columns:1fr 1fr; gap:10px; }
+  .loading-island-grid > div { padding:20px; min-height:170px; }
+  .loading-island-grid > div:first-child { grid-column:1 / -1; }
+}
+[dir="rtl"] { --font-heading: 'IBM Plex Sans Arabic','IBM Plex Sans',sans-serif; }
+
+
+#app button, #app input { font: inherit; }
+#app button { color: inherit; }
+#app button:focus-visible, #app [role="button"]:focus-visible,
+#app input:focus-visible, #app a:focus-visible {
+  outline: 2px solid var(--accent) !important; outline-offset: 4px;
+}
+#app .om-rail {
+  width: 278px !important; inset-block: 0 !important; inset-inline-start: 0 !important;
+  border-radius: 0 !important; border: 0 !important;
+  border-inline-end: 1px solid var(--rule) !important;
+  padding: var(--space-xl) var(--space-md) !important;
+  background: var(--bg) !important; backdrop-filter: none !important;
+}
+#app .om-main { margin-inline-start: 278px !important; max-width: 1440px !important; padding-top: 64px !important; }
+#app .om-tools { display: none !important; }
+.journal-nav { display: flex; flex-direction: column; gap: var(--space-sm); }
+.journal-nav button {
+  display: flex; align-items: center; gap: 12px; min-height: 48px;
+  padding: 12px 16px; border: 0; border-radius: 8px;
+  background: transparent; text-align: start; cursor: pointer;
+}
+.journal-nav svg { width: 20px; height: 20px; flex: none; }
+/* §11.10: the current destination carries WEIGHT, a MARK and a GROUND —
+   not colour alone. Colour alone fails twice over: on a greyscale print, and
+   for the readers who cannot separate this teal from this ink. The mark is a
+   filled square that only the current item has, so what distinguishes it is
+   presence rather than hue. */
+.journal-nav button[aria-current="page"] { background: var(--sunk); color: var(--accent) !important; font-weight: 600 !important; }
+#app .journal-nav button[aria-current="page"]::after {
+  content: ''; width: 6px; height: 6px; border-radius: 2px;
+  background: currentColor; margin-inline-start: auto; flex: none;
+}
+.journal-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-block: 0 24px; border-bottom: 1px solid var(--rule); }
+.journal-wordmark { font: 700 17px var(--font-heading); margin-inline-end: auto; }
+.journal-wordmark > span { display: block; font: 400 12px var(--font-reading); color: var(--faint); margin-top: 4px; }
+.journal-toolbar button, .journal-preferences-panel button, .journal-filter-toggle button,
+.journal-subnav button {
+  min-height: 44px; padding: 8px 16px; background: transparent;
+  border: 1px solid var(--rule); border-radius: 8px; cursor: pointer;
+}
+.journal-toolbar .journal-search { background: var(--surface); min-width: 220px; display: flex; justify-content: space-between; gap: 24px; }
+.journal-toolbar kbd { color: var(--faint); }
+.journal-preferences-panel {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  border: 1px solid var(--edgeIn);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin-block: 6px 14px;
+}
+.journal-preferences-panel button {
+  min-height: 40px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--edgeIn); background: var(--sunk);
+  color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: all .15s ease;
+}
+.journal-preferences-panel button:hover {
+  background: var(--surface); border-color: var(--accent); color: var(--accent);
+}
+.journal-subnav { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px 24px; }
+.journal-subnav:empty { display: none; }
+.journal-subnav button { border-color: transparent; color: var(--t2) !important; }
+.journal-subnav button[aria-current="page"] { color: var(--accent) !important; border-bottom-color: var(--accent); border-radius: 0; }
+.journal-intro { padding-block: var(--space-md); max-width: 780px; }
+.journal-intro h1 { font: 600 clamp(28px,3vw,42px)/1.35 var(--font-heading) !important; letter-spacing: -.025em; margin: 12px 0; }
+.journal-intro p { font-size: 17px; color: var(--t2); margin: 0; line-height: 1.8; }
+.journal-intro .journal-eyebrow { font-size: 12px; color: var(--accent); }
+#app .om-scr h1, #app .om-scr h2 { font-family: var(--font-heading) !important; }
+#app .om-scr h2 { line-height: 1.5 !important; }
+#app .om-idx { gap: 0 !important; border-block: 1px solid var(--rule); padding-block: 12px !important; }
+#app .om-idx > div { padding: 12px 20px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; transform: none !important; }
+#app .om-idx > div + div { border-inline-start: 1px solid var(--rule) !important; }
+#app .om-idx > div > div:nth-child(2) { font-size: clamp(20px,2.3vw,30px) !important; margin-top: 8px !important; }
+#app .om-idx > div > div:nth-child(3) { font-size: 14px !important; }
+#app .om-idx > div > div:last-child { display: none; }
+#app .om-idx > div > div:first-child > div:last-child { display: none !important; }
+#app .om-scr > section, #app .om-search, #app .om-table { border-radius: 12px !important; backdrop-filter: none !important; }
+#app .journal-pulse { border: 0 !important; border-inline-start: 3px solid var(--accent) !important; border-radius: 0 !important; }
+.journal-filter-toggle { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.journal-filter-toggle span { font-size: 12px; color: var(--faint); margin-inline-end: auto; }
+.journal-input { width: 100%; padding: 12px; margin-block: 16px; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+/* THE LEGIBILITY FLOOR IS GONE, and it is gone because it won.
+ *
+ * It read `[style*="font-size:9px"], [style*="font-size:9.5px"], …` and bumped
+ * each of them to 12px !important — a selector matching the TEXT of an inline
+ * style, which worked and which nothing could see from the element it was
+ * fixing. The 24 September audit found the underlying disease: 26 distinct
+ * font sizes site-wide, 8px to 44px, in half-pixel nudges with no scale
+ * behind them, and 69% of all text at 12px or smaller. Every size now snaps
+ * to one of eight steps with 11px as the floor, so there is nothing left for
+ * this rule to catch, and a rule that quietly overrode an author's 11px with
+ * 12px would now be fighting the scale instead of rescuing it.
+ *
+ * What it leaves behind: `.fp-tile` is still a MINIMUM 44px rather than a
+ * fixed one, because at 12px IBM Plex Mono a five-letter ticker is 36px wide
+ * and a fixed tile clipped a glyph. That was measured at 12px and 12px is
+ * still on the scale, so the tile does not change. */
+#app [dir="rtl"] .om-scr :is([style*="IBM Plex Mono"]) { letter-spacing: normal; }
+#app [dir="rtl"] .om-scr :is([style*="IBM Plex Mono"]):not(svg *):not(.om-heat *) { letter-spacing: normal !important; }
+/* Under the ticker tape, not on it. `top: 16px` was written when nothing was
+   up there; with the tape the email chip, the sign-out button and the story
+   button sat over it. The tape's height is measured in main.js
+   (`measureTopChrome`) and is 0 when it is not on screen. */
+.account, body[data-signed="yes"] .account {
+  position: absolute; top: calc(var(--tape-h, 0px) + 16px);
+}
+@media (max-width: 860px) {
+  #app .om-main {
+    margin-inline-start: 0 !important;
+    /* 64px of targets + 12px of the bar's own padding + the safe area + 24px
+       of breathing room. Derived from the bar rather than guessed at, so the
+       two cannot drift apart. */
+    padding: 64px 16px calc(110px + env(safe-area-inset-bottom)) !important;
+  }
+  /* The bottom bar. Edge to edge, sitting ON the bottom edge.
+   *
+   * A second rule further down used to float it 10px clear of all four sides
+   * with a 22px radius and a hard-coded blue shadow — on a warm palette, and
+   * after the shadows became `none`. Floating it also put the phone's own
+   * home indicator underneath a rounded corner. It is one rule now.
+   *
+   * 64px targets: the five destinations are the most-tapped controls on the
+   * site and were 60px with an 11px label. `env(safe-area-inset-bottom)` keeps
+   * the last row clear of the home indicator, and `--rail-clearance` below
+   * gives the page the SAME number to pad with, so the bar never covers the
+   * end of a screen. */
+  #app .om-rail {
+    /* An island, clear of all four edges — identical to desktop floating dock */
+    inset: auto max(10px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right)) !important;
+    width: auto !important;
+    max-width: 520px;
+    margin-inline: auto;
+    padding: 6px !important;
+    background: color-mix(in srgb, var(--surface) 86%, transparent) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+    backdrop-filter: blur(18px) saturate(1.25);
+    border: 1px solid var(--edgeIn) !important;
+    border-radius: 26px !important;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .16), 0 1px 0 rgba(255, 255, 255, .06) inset !important;
+    overflow: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: none !important;
+    z-index: 60;
+  }
+  #app .journal-nav {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    width: 100%;
+    margin: 0 !important;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+  }
+  #app .journal-nav button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: row !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    min-height: 64px;
+    padding: 0 12px !important;
+    border-radius: 22px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--t2) !important;
+    font: inherit;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    position: relative;
+    flex: 0 1 auto;
+    min-width: 44px;
+    transition: background .2s cubic-bezier(.2,.7,.3,1), color .2s ease, padding .2s cubic-bezier(.2,.7,.3,1), flex .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app .journal-nav button > svg {
+    width: 24px !important;
+    height: 24px !important;
+    flex: none;
+    transition: stroke-width .18s ease;
+  }
+  #app .journal-nav button > span {
+    display: block !important;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-inline-start: 0;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    transition: max-width .24s cubic-bezier(.2,.7,.3,1), opacity .18s ease, margin .24s cubic-bezier(.2,.7,.3,1);
+  }
+  #app .journal-nav button:hover,
+  #app .journal-nav button:focus-visible {
+    background: var(--sunk) !important;
+    color: var(--ink) !important;
+  }
+  #app .journal-nav button[aria-current="page"],
+  #app .journal-nav button[aria-current="true"] {
+    background: var(--accTint) !important;
+    color: var(--accent) !important;
+    padding: 0 16px !important;
+    flex: 0 0 auto;
+  }
+  #app .journal-nav button[aria-current="page"] > span,
+  #app .journal-nav button[aria-current="true"] > span {
+    max-width: 140px;
+    opacity: 1;
+    margin-inline-start: 8px;
+  }
+  #app .journal-nav button[aria-current="page"] svg,
+  #app .journal-nav button[aria-current="true"] svg {
+    stroke: var(--accent) !important;
+    stroke-width: 2.2 !important;
+  }
+  #app .journal-nav button::before { display: none !important; }
+  #app .journal-toolbar {
+    margin-inline: 0; margin-block: 6px 14px; padding: 8px 14px;
+    background: color-mix(in srgb, var(--surface) 90%, transparent) !important;
+    backdrop-filter: blur(18px) saturate(1.25);
+    border: 1px solid var(--edgeIn) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+    gap: 8px; display: flex; align-items: center; flex-wrap: wrap;
+  }
+  #app .journal-wordmark {
+    flex: 1; display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 17px; color: var(--ink);
+  }
+  #app .journal-wordmark .om-logo-badge {
+    width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: var(--surface);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  }
+  #app .journal-toolbar .journal-search {
+    order: 3; min-width: 0; width: 100%; min-height: 40px;
+    background: var(--sunk); border: 1px solid var(--edgeIn);
+    border-radius: 999px; color: var(--faint); font-size: 14px; padding: 0 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #app .journal-toolbar .journal-account {
+    width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50% !important;
+    background: var(--sunk) !important; border: 1px solid var(--edgeIn) !important;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--t2); cursor: pointer; padding: 0;
+  }
+  #app .journal-toolbar .journal-account svg { width: 19px; height: 19px; }
+  #app .om-idx { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+  #app .om-idx > div { padding: 8px !important; }
+  #app .om-idx > div > div:nth-child(2) { font-size: 17px !important; }
+  #app .om-idx > div > div:nth-child(3) { font-size: 11px !important; flex-wrap: wrap; gap: 4px !important; }
+  #app .om-idx > div > div:first-child > div:first-child { font-size: 11px !important; }
+  .journal-subnav { gap: 4px; }
+  .journal-subnav button { padding-inline: 10px; font-size: 14px !important; }
+  .account, body[data-signed="yes"] .account {
+    position: absolute !important;
+    top: calc(var(--tape-h, 0px) + 12px) !important;
+    bottom: auto !important; inset-block-end: auto !important;
+  }
+  #app .om-scr > section { padding: 20px 16px !important; }
+  #app .journal-pulse > div:first-child > div:first-child { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app *, #app *::before, #app *::after { animation: none !important; transition: none !important; }
+}
+
+/* Shared screen structure: charts and metrics lead; controls stay reachable. */
+.skip-content { position:fixed; inset-block-start:8px; inset-inline-start:20px; z-index:100; padding:12px 20px; background:var(--surface); color:var(--ink); transform:translateY(-150%); }
+.skip-content:focus { transform:none; }
+#app .om-scr { min-width:0; }
+#app .om-scr > section, #app .om-scr > div[style*="background:var(--surface)"] { border-radius:var(--radius-island) !important; box-shadow:var(--sh) !important; }
+/* A screen title is a title, not a poster. The comp opens every screen the
+   same way — a dateline, then the name of the screen at 21px, then what the
+   screen is for — and the 44px setting fought it: the name of the section
+   outweighed every figure under it, on eleven screens. */
+#app .om-scr h1 { font-size:21px !important; line-height:1.3 !important; letter-spacing:-.01em !important; }
+#app .om-scr h2 { font-size:clamp(20px,2.2vw,28px); line-height:1.4 !important; }
+#app [dir="rtl"] .om-scr [style*="Bricolage Grotesque"] { font-family:var(--font-heading) !important; line-height:1.6 !important; letter-spacing:0 !important; }
+#app .om-scr > div:first-child { flex-wrap:wrap; }
+#app .om-scr input, #app .om-scr select { min-height:44px; font-size:17px !important; box-sizing:border-box; }
+#app .om-scr [role="button"], #app .om-scr button { touch-action:manipulation; }
+#app .om-strip [role="button"], #app .om-search [role="button"] { min-height:40px; align-content:center; box-sizing:border-box; }
+.company-sections { display:flex; gap:8px; flex-wrap:wrap; padding:6px; background:var(--surface); border-radius:var(--radius-control); box-shadow:var(--sh); }
+.company-sections button { flex:1; min-width:120px; border:0; border-radius:12px; min-height:48px; padding:10px 16px; background:transparent; cursor:pointer; }
+.company-sections button[aria-current="page"] { color:var(--accent) !important; background:var(--sunk); font-weight:600 !important; }
+.company-picker { background:var(--surface); border-radius:var(--radius-control); padding:14px 18px; }
+.company-picker summary { min-height:32px; cursor:pointer; font-size:14px; align-content:center; color:var(--t2); }
+.company-picker section { margin-top:12px; box-shadow:none !important; border:0 !important; }
+#app .screen-company .om-stats { gap:12px !important; }
+#app .screen-company .om-stats > div { border-radius:var(--radius-control) !important; padding:16px !important; }
+#app .screen-company .om-stats > div > div:nth-child(2) { font-size:21px !important; }
+#app .screen-tools > section { padding:24px !important; }
+#app .screen-tools input { min-height:52px; border-radius:var(--radius-control) !important; }
+#app .screen-tools label { font-family:var(--font-reading) !important; font-size:14px !important; letter-spacing:0 !important; }
+.scenario-note { font-size:14px; color:var(--t2); max-width:75ch; line-height:1.7; }
+.scenario-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.scenario-card { padding:20px; border-radius:var(--radius-control); background:var(--sunk); display:flex; flex-direction:column; gap:8px; min-width:0; }
+.scenario-card h3 { margin:0 0 12px; font-size:17px; font-weight:600; }
+.scenario-card > span { font-size:12px; color:var(--faint); }
+.scenario-card strong { font-size:26px; font-variant-numeric:tabular-nums; }
+.scenario-track { margin-top:12px; height:7px; background:var(--rule); border-radius:8px; overflow:hidden; }
+.scenario-track > div { height:100%; border-radius:8px; background:var(--accent); }
+.financial-mobile-label { display:none; }
+#app [data-theme="dark"] [style*="color:var(--up)"] { color:var(--up) !important; }
+#app [data-theme="dark"] [style*="color:var(--down)"] { color:var(--down) !important; }
+@media (hover:hover) {
+  .company-sections button:hover, .journal-subnav button:hover { background:var(--sunk); }
+  .island-move:hover, .scenario-card:hover { outline:1px solid var(--rule); }
+}
+@media (max-width:860px) {
+  #app .om-main > footer { grid-template-columns:1fr !important; gap:12px !important; }
+  #app .financial-column-headings { display:none !important; }
+  #app .financial-period-card { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:14px !important; margin-top:12px; background:var(--sunk); }
+  #app .financial-period-card > div:first-child { grid-column:1 / -1; }
+  #app .financial-period-card > div:last-child { grid-column:1 / -1; justify-self:stretch !important; flex-direction:row !important; justify-content:flex-end; }
+  .financial-mobile-label { display:block; font:400 12px var(--font-reading); color:var(--faint); margin-bottom:6px; }
+  #app .financial-value { text-align:start !important; font-size:17px !important; }
+  .scenario-grid { grid-template-columns:1fr; }
+  #app .screen-company > div:first-child { padding:20px !important; }
+  #app .screen-company > div:first-child > div:first-child { grid-template-columns:1fr !important; gap:16px !important; }
+  #app .screen-company .om-stats { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .company-sections button { min-width:0; padding-inline:8px; font-size:12px !important; }
+  #app .om-scr > div[style*="grid-template-columns:repeat(3"] { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  #app .screen-research > div[style*="display:grid"] { grid-template-columns:1fr !important; }
+  #app .screen-tools [style*="minmax(240px"], #app .screen-tools [style*="minmax(280px"] { grid-template-columns:1fr !important; }
+  #app .screen-pairs [style*="minmax(320px"] { grid-template-columns:1fr !important; }
+  #app .screen-pairs section, #app .screen-valuation section { padding:18px 16px !important; }
+}
+@media (max-width:480px) {
+  #app .om-scr > div[style*="grid-template-columns:repeat(3"] { grid-template-columns:1fr !important; }
+  #app .screen-tools > section { padding:20px 16px !important; }
+  #app .screen-company .om-stats > div { padding:12px !important; }
+}
+
+/* Sector Valuation Zoom Slider styling */
+.valuation-zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius:var(--radius-island);
+  background: var(--rule);
+  outline: none;
+  cursor: pointer;
+  transition: background .15s;
+}
+.valuation-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  border: 2px solid var(--surface);
+  transition: transform .1s;
+}
+.valuation-zoom-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.valuation-zoom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  border: 2px solid var(--surface);
+  transition: transform .1s;
+}
+.valuation-zoom-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Visual islands: retain index histories as the home page's focal point. */
+
+
+/* Desktop only. This carried no media query, so a phone got a rail inset
+   16px from the side and 20px from the top and bottom — which is what put
+   the bottom bar 20px clear of the screen edge and rounded its corners
+   over the home indicator, whatever the mobile block above said. */
+/* The sidebar is flush, and stays flush.
+   It is written that way at the top of this file and was floated again here —
+   a 20px inset, an island radius and a glass ground — 250 lines later, which
+   is the rule a reader actually saw. The redesign's shell is a column of
+   surface against the page with one edge between them, so the override is
+   gone rather than argued with. */
+@media (min-width:861px) { #app .om-rail { background:var(--surface) !important; } }
+.journal-toolbar { border:0; }
+.journal-wordmark > span { display:none; }
+.journal-intro { display:flex; align-items:baseline; justify-content:space-between; gap:8px 20px; flex-wrap:wrap; max-width:none; padding:0; }
+.journal-intro h1 { order:-1; margin:0; font-size:32px !important; }
+#app .om-idx { border:0; gap:16px !important; padding:0 !important; }
+#app .om-idx > div { background:var(--surface) !important; padding:20px !important; border-radius:var(--radius-island) !important; box-shadow:var(--sh); }
+#app .om-idx > div + div { border:0 !important; }
+#app .om-idx > div > div:nth-child(2) { font-size:clamp(25px,2.6vw,38px) !important; }
+#app .om-idx > div > div:last-child { display:block; margin-top:22px !important; }
+#app .om-idx > div > div:first-child > div:last-child { display:flex !important; }
+#app .om-idx svg { height:82px !important; }
+.island-board { display:grid; grid-template-columns:1fr 1.5fr; gap:18px; }
+.island { min-width:0; border-radius:var(--radius-island); background:var(--surface); box-shadow:var(--sh); padding:20px; border:1px solid var(--edgeIn); }
+.island-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.island-heading h2 { font-size:17px; margin:0; font-weight:600; line-height:1.45; }
+.island-heading > span { font-size:11px; color:var(--faint); }
+.island-heading button { background:transparent; border:0; color:var(--accent) !important; font-size:12px !important; min-height:44px; flex:none; }
+.island-ring { box-sizing:border-box; width:160px; height:160px; margin:20px auto; padding:17px; border-radius:50%; }
+.island-ring > div { background:var(--surface); border-radius:50%; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.island-ring strong { font: 600 40px/1.2 var(--font-heading); }
+.island-ring span { color:var(--faint); font-size:12px; }
+.island-legend { display:flex; justify-content:space-around; gap:12px; }
+.island-legend > div { display:grid; grid-template-columns:8px auto; gap:4px 6px; align-items:center; font-size:12px; color:var(--t2); }
+.island-legend strong { grid-column:2; font-size:21px; color:var(--ink); }
+.island-dot { width:7px; height:7px; border-radius:50%; }
+.island-move-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:16px; }
+#app .island-move { min-width:0; border:0; border-radius:var(--radius-control); background:color-mix(in srgb,var(--move-color) 10%,var(--surface)); padding:16px 12px; display:flex; flex-direction:column; gap:8px; text-align:start; cursor:pointer; }
+.island-ticker { font-size:12px; font-weight:600; }
+.island-move strong { color:var(--move-color); font:600 clamp(19px,2vw,28px) var(--font-heading); }
+.island-company { font-size:11px; color:var(--t2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.island-track { width:100%; height:4px; background:var(--rule2); border-radius:4px; overflow:hidden; }
+.island-track > span { display:block; height:100%; background:var(--move-color); border-radius:4px; }
+/* The front page: the crossings, on Home. Rows in two calendar tiers; the
+   only things on a row are a name, a date, the kinds as dots and a sentence.
+   No percent and no red/green anywhere in this block. */
+.island-crossings { grid-column:1 / -1; }
+.fp-fresh { margin:6px 0 0; font-family:'IBM Plex Mono','IBM Plex Sans Arabic',monospace; font-size:11px; color:var(--faint); }
+.fp-sentence { margin:10px 0 0; font-size:14px; line-height:1.55; color:var(--t2); text-wrap:pretty; }
+.fp-tier { margin:18px 0 8px; font:500 11px/1.2 'IBM Plex Mono','IBM Plex Sans Arabic',monospace; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); }
+.fp-rows { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; }
+.fp-row { min-width:0; border:1px solid var(--edgeIn); border-radius:var(--radius-control); background:var(--sunk); padding:4px 4px 12px; display:flex; flex-direction:column; gap:8px; }
+#app .fp-id { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; min-height:56px; width:100%; padding:6px 8px; border:0; border-radius:var(--radius-control); background:transparent; text-align:start; cursor:pointer; color:inherit; }
+#app .fp-id[disabled] { cursor:default; }
+/* The tile is at least a 44px square and grows for a five- or six-letter
+   ticker. The inline `monoSize` shrink (10.5px / 9px) never lands: the 12px
+   legibility floor above (`[style*="font-size:11px"]` …) bumps it back to 12px
+   !important, and at 12px IBM Plex Mono a five-letter ticker is 36px wide —
+   wider than a fixed 44px tile's 34px content box, so the first or last glyph
+   was clipped. Measured on VLMRA and the DEMO01 demo row, both languages. */
+.fp-tile { min-width:44px; height:44px; border-radius:13px; background:var(--surface); border:1px solid var(--edgeIn); display:grid; place-items:center; padding:0 6px; font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:.02em; color:var(--accent); white-space:nowrap; overflow:hidden; }
+.fp-name { font-size:14px; font-weight:600; line-height:1.28; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.fp-meta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+.fp-day { font-family:'IBM Plex Mono','IBM Plex Sans Arabic',monospace; font-size:11px; white-space:nowrap; }
+.fp-dots { display:inline-flex; align-items:center; gap:4px; }
+.fp-dot { width:8px; height:8px; border-radius:var(--radius-control); display:inline-block; flex:none; }
+.fp-arrow { font-size:11px; color:var(--faint); margin-inline-start:4px; }
+.fp-why { margin:0; padding:0 12px; font-size:14px; line-height:1.55; color:var(--t2); text-wrap:pretty; }
+.fp-evidence { display:flex; flex-direction:column; justify-content:center; gap:3px; margin:0 8px; padding:8px 8px 4px; min-height:44px; border-top:1px solid var(--rule2); text-decoration:none; color:inherit; }
+.fp-evidence-kind { font-family:'IBM Plex Mono','IBM Plex Sans Arabic',monospace; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); }
+.fp-evidence-title { font-size:14px; line-height:1.45; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fp-none, .fp-counts { margin:14px 0 0; font-size:12px; line-height:1.6; color:var(--faint); text-wrap:pretty; }
+.fp-legend { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px; font-family:'IBM Plex Mono','IBM Plex Sans Arabic',monospace; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); }
+.fp-legend-item { display:inline-flex; align-items:center; gap:6px; color:var(--t2); }
+.fp-yard { margin:12px 0 0; font-size:12px; line-height:1.6; color:var(--t2); text-wrap:pretty; }
+/* Anything with an author display rule stops answering to `hidden`. Nothing
+   in this block toggles `hidden`, and this keeps that true if something does. */
+.island-crossings [hidden] { display:none !important; }
+.island-details-toggle { display:flex; justify-content:space-between; align-items:center; width:100%; padding:18px 24px; border:1px solid var(--edge); border-radius:var(--radius-control); background:var(--surface); cursor:pointer; }
+body[data-signed="no"] .account { position:relative !important; inset:auto !important; justify-content:flex-end; padding:12px 20px 0; }
+.gate { position:relative; font-family:var(--font-reading); padding:12px 20px; }
+@media (max-width:1100px) and (min-width:861px) { .island-board { grid-template-columns:1fr; } }
+@media (min-width:861px) {
+  body[data-signed="no"] #app .om-rail { inset-block-start:128px !important; }
+}
+@media (max-width:860px) {
+  #app .om-main { padding-top:24px !important; }
+  body[data-signed="yes"] #app .om-main { padding-top:64px !important; }
+  .journal-intro h1 { width:100%; font-size:26px !important; }
+  #app .om-idx { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:12px !important; }
+  #app .om-idx > div { padding:18px !important; }
+  #app .om-idx > div:first-child { grid-column:1 / -1; }
+  #app .om-idx > div:first-child > div:nth-child(2) { font-size:40px !important; }
+  #app .om-idx > div > div:nth-child(2) { font-size:21px !important; }
+  #app .om-idx svg { height:62px !important; }
+  #app .om-idx > div:first-child svg { height:90px !important; }
+  .island-board { grid-template-columns:1fr; gap:14px; }
+  .island { padding:20px; }
+  .island-move-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .fp-rows { grid-template-columns:1fr; gap:10px; }
+  /* The earlier tier is identity-only on a phone: the set stays complete and
+     visible, the sentence is one tap away on the company. Class + query, never
+     `hidden` on an element with a display rule. */
+  .fp-earlier .fp-why, .fp-earlier .fp-evidence { display:none; }
+  .fp-earlier { padding-bottom:4px; }
+}
+
+/* A more tactile market dashboard. Colour carries data; motion acknowledges input. */
+
+
+#app .om-main { margin-inline-start:278px !important; padding-inline:28px !important; }
+@media (min-width:861px) { #app .om-rail { width:278px !important; } }
+#app .om-scr > section, #app .om-scr > div[style*="background:var(--surface)"],
+#app .om-idx > div, #app .island, #app .om-table, #app .om-search {
+  border-radius:var(--radius-island) !important; box-shadow:var(--sh) !important;
+}
+#app .om-scr > section[style*="background:var(--surface)"] { border-color:transparent !important; }
+.journal-toolbar { padding-bottom:18px; }
+body[data-signed="no"] #app .om-main { padding-top:28px !important; }
+.journal-toolbar button, .journal-preferences-panel button { border-radius:var(--radius-control); }
+.journal-wordmark { font-size:21px; letter-spacing:-.04em; }
+.journal-intro h1 { font-size:clamp(30px,3.2vw,44px) !important; letter-spacing:-.04em; }
+.journal-intro .journal-eyebrow { color:var(--faint); font-size:12px; }
+.quick-paths { display:flex; gap:12px; }
+.quick-paths > button { flex:1; display:flex; align-items:center; gap:14px; min-width:0; padding:16px 20px; border:1px solid var(--edgeIn); border-radius:var(--radius-control); background:var(--surface); text-align:start; cursor:pointer; }
+.quick-paths svg { width:25px; height:25px; flex:none; color:var(--accent); }
+.quick-paths strong { display:block; font-weight:600; font-size:14px; }
+.quick-paths small { display:block; font-size:12px; color:var(--faint); margin-top:3px; }
+.quick-arrow { margin-inline-start:auto; color:var(--faint); }
+.insight-shelf { box-shadow:none !important; }
+.app-data-pending .om-scr { display:none !important; }
+.data-status { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:18px 20px; margin-bottom:20px; border-radius:var(--radius-control); background:var(--surface); color:var(--ink); }
+.data-status button { min-height:44px; padding:8px 16px; border:1px solid var(--rule); border-radius:var(--radius-control); background:var(--sunk); cursor:pointer; }
+.loading-dot { width:12px; height:12px; border-radius:50%; background:var(--accent); flex:none; }
+.insight-shelf > h2 { margin:0 4px 14px; font-size:26px; }
+/* §T6: one card per row, not two side by side.
+   Paired in a 2-up grid, "who traded it" and "traded unusually" were two
+   half-width cards whose content wants the width — a four-party buy/sell
+   breakdown and a ranked list of companies both get squeezed to about 480px
+   and wrap badly. The comp gives each its own full-width card, which is also
+   what makes them read as separate answers rather than one two-column block. */
+.insight-grid { display:grid; grid-template-columns:1fr; gap:18px; }
+.insight-card { border-radius:var(--radius-island); padding:20px; background:var(--surface); min-width:0; box-shadow:var(--sh); }
+.insight-card h3 { font: 600 17px/1.45 var(--font-heading); margin:0; }
+.insight-investors .investor-party { padding-bottom:10px; }
+.insight-investors .investor-summary-row { padding:8px 0 2px; }
+.insight-investors .investor-summary-row > span:first-child { flex-direction:row; align-items:center; gap:8px; }
+.insight-investors .investor-summary-row strong { font-size:14px; }
+.insight-investors .trade-side { margin-top:6px; }
+.insight-investors .trade-shares { margin-top:5px; gap:4px 10px; }
+.insight-investors .investor-mini-bar { margin-top:10px; height:12px; }
+.insight-volume { display:flex; flex-direction:column; }
+.insight-volume .volume-preview-row { flex:1; min-height:88px; }
+.insight-volume .volume-preview-row > span:first-child small { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.volume-multiple { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.volume-multiple small { font-size:11px; color:var(--faint); white-space:nowrap; }
+.measure-threshold { font-size:14px; font-weight:600; line-height:1.6; margin:10px 0 6px; color:var(--accent); }
+.measure-meaning, .measure-detail { font-size:12px; line-height:1.6; margin:6px 0; color:var(--t2); }
+#app .measure-open { border:1px solid var(--rule); background:var(--surface); color:var(--accent); border-radius:var(--radius-control); min-height:44px; padding:8px 10px; margin-top:12px; width:100%; cursor:pointer; font-size:12px; }
+.insight-card .island-heading { align-items:flex-start; gap:8px; }
+.insight-caption { color:var(--faint); font-size:12px; line-height:1.7; margin:12px 0 0; }
+.insight-line { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; padding:10px 0; border-bottom:1px solid var(--rule2); }
+.insight-line strong { font-size:14px; font-variant-numeric:tabular-nums; }
+.insight-company { background:transparent; border:0; border-bottom:1px solid var(--rule2); width:100%; text-align:start; cursor:pointer; min-height:48px; }
+.insight-company strong { color:var(--accent); margin-inline-start:auto; }
+.investor-mini-bar { display:flex; height:18px; overflow:hidden; border-radius:10px; margin-top:16px; background:var(--sunk); }
+.investor-mini-bar > span { height:100%; }
+.investor-summary-row { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--rule2); font-size:14px; }
+.investor-summary-row > span { display:flex; flex-direction:column; gap:3px; }
+.investor-summary-row > span:last-child { text-align:end; color:var(--faint); font-size:11px; }
+.investor-summary-row strong { font-size:17px; }
+.investor-summary-row b { font-size:14px; }
+.investor-type-legend { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:12px; font-size:12px; color:var(--t2); }
+.investor-type-legend strong { color:var(--ink); margin-inline-start:6px; }
+.volume-preview-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto 14px; gap:14px; align-items:center; width:100%; padding:16px 0; background:transparent; border:0; border-bottom:1px solid var(--rule2); text-align:start; cursor:pointer; }
+.volume-preview-row small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; margin-top:4px; color:var(--faint); font-size:12px; }
+.volume-preview-row > span:first-child { min-width:0; }
+.volume-preview-row strong { padding:6px 10px; background:var(--sunk); color:var(--accent); border-radius:10px; font-size:21px; }
+.volume-preview-row > span:nth-child(3) { font-size:12px; }
+.volume-preview-row:hover, .explorer-table [role="row"]:hover { background:var(--sunk); }
+.ranking-panel { min-width:0; padding:20px; background:var(--surface); border:1px solid var(--edgeIn); border-radius:var(--radius-island); }
+.ranking-launch { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-top:24px; padding-top:20px; border-top:1px solid var(--rule); }
+.ranking-launch > span { font-size:14px; font-weight:600; }
+.ranking-launch small { display:block; font-size:12px; font-weight:400; color:var(--faint); margin-top:6px; }
+#app .results-button { display:flex; align-items:center; justify-content:center; gap:24px; min-height:52px; padding:12px 24px; border:0; border-radius:var(--radius-control); background:var(--accent); color:var(--surface); font-weight:600; cursor:pointer; }
+.ranking-notes { margin-top:16px; color:var(--faint); font-size:12px; }
+.ranking-notes summary { cursor:pointer; padding:8px 0; }
+.investor-party { padding-bottom:16px; border-bottom:1px solid var(--rule); }
+.investor-party .investor-summary-row { border:0; }
+.trade-side { display:grid; grid-template-columns:52px minmax(40px,1fr) 90px; align-items:center; gap:12px; margin-top:8px; font-size:12px; }
+.trade-side > div { height:8px; background:var(--sunk); border-radius:8px; overflow:hidden; }
+.trade-side i { display:block; height:100%; border-radius:8px; }
+.trade-side b { text-align:end; font-variant-numeric:tabular-nums; }
+.trade-shares { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:8px; font-size:11px; color:var(--faint); }
+#app .market-measures { border-radius:var(--radius-island) !important; padding:20px !important; margin-top:0 !important; }
+.market-measures > div:first-child > div:first-child { font: 600 26px var(--font-heading) !important; }
+.context-intro { order:1; padding:16px 24px; border-radius:var(--radius-island); background:var(--accTint); }
+.context-intro p { margin:0; font-size:14px; line-height:1.7; max-width:75ch; }
+.screen-crossings > :not(:first-child), .screen-exchange > :not(:first-child) { order:2; }
+.screen-crossings > div:nth-child(2), .screen-exchange > div:nth-child(2) { order:0; }
+.evidence-path { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+.evidence-path span { padding:8px 16px; background:var(--surface); border-radius:var(--radius-control); font-size:12px; }
+#app .om-dots-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr)) !important; gap:24px !important; }
+#app .om-dots-grid article { border-radius:var(--radius-control) !important; }
+#app .exchange-rates { grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:16px !important; }
+#app .exchange-rates > div { border-radius:var(--radius-island) !important; padding:20px !important; }
+#app .exchange-rates svg { height:76px; width:100%; }
+#app .screen-exchange > section { border-radius:var(--radius-island) !important; }
+@media (max-width:860px) {
+  #app .exchange-rates { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  #app .exchange-rates > div { padding:16px !important; }
+  .ranking-launch > *, #app .results-button { width:100%; }
+  .context-intro { padding:16px; }
+  .evidence-path { gap:8px; }
+  .evidence-path span { padding:8px 12px; }
+  #app .screen-exchange > section > div { grid-template-columns:1fr 1fr !important; gap:12px !important; }
+  #app .screen-exchange > section > div > div:last-child { grid-column:1 / -1; }
+}
+.ranking-panel h2 { font:600 clamp(21px,2.3vw,28px)/1.3 var(--font-heading); margin:0; letter-spacing:-.025em; }
+.ranking-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:20px; }
+.ranking-controls button { min-height:44px; border:1px solid var(--rule); border-radius:12px; padding:8px 14px; background:transparent; cursor:pointer; font-size:14px !important; }
+#app .ranking-controls button[aria-pressed="true"] { background:var(--ink); color:var(--surface); border-color:var(--ink); }
+.ranking-pairs { margin-top:10px; color:var(--t2); font-size:12px; }
+.ranking-pairs button { border-style:dashed; }
+.explorer-scroll { overflow-x:auto; margin-top:18px; }
+.explorer-table { display:table; border-collapse:collapse; width:100%; font-size:14px; }
+.explorer-table [role="row"] { display:table-row; }
+.explorer-table [role="row"] > span { display:table-cell; padding:14px 12px; text-align:end; border-bottom:1px solid var(--rule2); white-space:nowrap; vertical-align:middle; }
+.explorer-table [role="row"] > span:first-child { width:28px; color:var(--faint); text-align:start; }
+.explorer-table [role="row"] > span:nth-child(2) { text-align:start; }
+.explorer-table [role="columnheader"] { font-size:12px; font-weight:500; color:var(--t2); }
+.explorer-table small { display:block; font-size:11px; font-weight:400; margin-top:4px; color:var(--faint); white-space:normal; min-width:90px; }
+.explorer-table button { min-height:44px; text-align:start; padding:0; background:transparent; border:0; cursor:pointer; font-weight:600 !important; }
+.explorer-table button small { max-width:290px; }
+.volume-count { display:inline-block; font-size:17px; padding:4px 10px; border-radius:10px; background:var(--sunk); color:var(--accent); }
+.investor-summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:20px; }
+.investor-summary-grid h3 { font-size:14px; color:var(--t2); font-weight:500; }
+.investor-detail-cell { display:flex; flex-direction:column; gap:7px; font-size:11px; color:var(--faint); }
+.investor-detail-cell span { display:flex; justify-content:space-between; gap:12px; }
+.investor-detail-cell b { color:var(--ink); font-size:14px; font-weight:500; white-space:nowrap; }
+.investor-breakdown > div:nth-child(2) { overflow-x:auto; }
+.investor-breakdown > div:nth-child(2) > div { min-width:660px; }
+.investor-cell-title { display:none; }
+.investor-detail-cell .trade-buy b { color:var(--up); }
+.investor-detail-cell .trade-sell b { color:var(--down); }
+@media (max-width:700px) {
+  .investor-breakdown > div:nth-child(2) > div:first-child { display:none !important; }
+  .investor-breakdown > div:nth-child(2) > div { min-width:0; grid-template-columns:1fr !important; gap:12px !important; }
+  .investor-detail-cell { background:var(--sunk); padding:16px; border-radius:var(--radius-control); }
+  .investor-cell-title { display:block; color:var(--ink); font-size:14px; margin-bottom:4px; }
+}
+@media (max-width:650px) {
+  .ranking-panel { padding:18px 14px; }
+  .investor-summary-grid { grid-template-columns:1fr; gap:14px; }
+  .volume-preview-row { gap:8px; }
+  .ranking-controls button { padding:8px 10px; }
+}
+#app .om-idx { grid-template-columns:1.25fr 1fr 1fr !important; gap:16px !important; }
+#app .om-idx > div { padding:24px !important; position:relative; }
+#app .om-idx > div:first-child { background:var(--island-peach) !important; }
+#app .om-idx > div > div:nth-child(2) { font-size:clamp(28px,3vw,44px) !important; font-family:var(--font-heading) !important; letter-spacing:-.035em !important; }
+#app .om-idx > div > div:nth-child(3) { font-size:14px !important; font-weight:500; }
+#app .om-idx svg { height:96px !important; filter:drop-shadow(0 4px 5px #182d4210); }
+#app .om-idx > div > div:first-child > div:first-child { font-family:var(--font-reading) !important; font-size:14px !important; font-weight:600; letter-spacing:0 !important; }
+#app .om-idx > div > div:first-child > div:last-child { width:34px !important; height:34px !important; border-radius:50% !important; }
+.island-board { grid-template-columns:1.65fr 1fr; gap:18px; }
+.island-mosaic { grid-column:1; }
+.island-breadth { grid-column:2; background:var(--island-mint); }
+.island-breadth .island-ring > div { background:var(--island-mint); }
+.island-moves { grid-column:1 / -1; }
+.island-move-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+.island-heading h2 { font-size:21px; letter-spacing:-.02em; }
+.mosaic-note { font-size:12px; color:var(--faint); margin:0 0 16px; line-height:1.7; }
+.market-mosaic { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.market-mosaic > button { border:0; border-radius:var(--radius-control); min-width:0; min-height:74px; padding:12px 5px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:5px; cursor:pointer; }
+.market-mosaic > button > span { font-size:11px; font-weight:600; letter-spacing:.02em; }
+.market-mosaic strong { font: 600 17px var(--font-heading); font-variant-numeric:tabular-nums; }
+.mosaic-company { font:400 11px/1.5 var(--font-reading); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width:100%; padding-inline:4px; }
+.market-measure-grid > div { min-width:0; padding:16px; border-radius:var(--radius-island); background:var(--sunk); display:flex; flex-direction:column; }
+.market-measure-grid > div > div { flex-shrink:0; }
+.market-measure-grid .measure-open { margin-top:auto !important; }
+.market-measure-grid > div > div:first-child { flex-wrap:wrap; }
+.market-measure-grid > div > div:first-child > span:first-child { font-family:var(--font-reading) !important; font-size:14px !important; font-weight:600; letter-spacing:0 !important; }
+.market-measure-grid > div > div:first-child > span:last-child { color:var(--ink) !important; }
+.om-dots-grid article > div:first-child { background:var(--sunk); }
+.om-dots-grid a { min-height:44px; border-radius:8px; text-underline-offset:3px; }
+@media (hover:hover) { .om-dots-grid a:hover { background:var(--sunk); } }
+.island-ring { width:178px; height:178px; padding:20px; margin:24px auto; box-shadow:0 5px 20px #274a3610; }
+.island-ring strong { font-size:40px; }
+#app .island-move { border-radius:var(--radius-island); padding:18px 14px; }
+.island-details-toggle { border-radius:var(--radius-control); min-height:58px; }
+.scenario-card, .financial-period-card { border-radius:var(--radius-island) !important; }
+.company-sections { border-radius:var(--radius-island); padding:7px; position:sticky; top:12px; z-index:3; border:1px solid var(--rule); }
+.company-sections button { border-radius:var(--radius-control); display:flex; align-items:center; justify-content:center; gap:12px; text-align:start; }
+.company-sections svg { width:22px; height:22px; flex:none; }
+.company-sections strong { display:block; font-weight:600; }
+.company-sections small { display:block; color:var(--faint); font-size:12px; margin-top:3px; font-weight:400; }
+@media (max-width:860px) {
+  .company-sections { gap:3px; top:6px; }
+  .company-sections button { flex-direction:column; gap:6px; padding-block:12px; text-align:center; }
+  .company-sections small { font-size:11px; line-height:1.5; }
+}
+.journal-nav button { border-radius:var(--radius-control); }
+.quick-paths button, .market-mosaic button, .island-move, .journal-nav button,
+.company-sections button { transition:transform .18s cubic-bezier(.22,1,.36,1), background-color .18s, box-shadow .18s; }
+@media (hover:hover) {
+  .quick-paths button:hover, .market-mosaic button:hover { transform:translateY(-3px); box-shadow:0 8px 18px -10px #1c324455; }
+  #app .island-move:hover { transform:translateY(-3px); }
+}
+.quick-paths button:active, .market-mosaic button:active, #app .island-move:active { transform:scale(.97); }
+@media (max-width:1100px) { .island-board { grid-template-columns:1fr 1fr; } .island-move-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media (max-width:860px) {
+  #app .om-main { margin-inline-start:0 !important; padding-inline:16px !important; }
+  .journal-intro h1 { font-size:32px !important; }
+  .quick-paths { gap:8px; }
+  .quick-paths > button { padding:12px; gap:8px; border-radius:var(--radius-control); }
+  .quick-paths small, .quick-arrow { display:none; }
+  .quick-paths strong { font-size:12px; }
+  .quick-paths svg { width:20px; height:20px; }
+  #app .journal-home > .om-idx[style] { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:10px !important; }
+  #app .om-idx > div { padding:18px !important; border-radius:var(--radius-island) !important; }
+  #app .om-idx > div:first-child { grid-column:1 / -1; }
+  #app .om-idx > div > div:nth-child(2) { font-size:26px !important; }
+  #app .om-idx > div:first-child > div:nth-child(2) { font-size:40px !important; }
+  #app .om-idx > div > div:nth-child(3) { font-size:12px !important; }
+  #app .om-idx > div > div:first-child > div:first-child { font-size:12px !important; }
+  #app .om-idx svg { height:58px !important; }
+  #app .om-idx > div:first-child svg { height:78px !important; }
+  .island-board { grid-template-columns:1fr; }
+  .island-mosaic, .island-breadth { grid-column:1; }
+  .market-mosaic { gap:6px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .market-mosaic > button { border-radius:var(--radius-control); min-height:70px; }
+  .island-move-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (prefers-reduced-motion:reduce) {
+  #app *, #app *::before, #app *::after { animation:none !important; transition:none !important; }
+  .quick-paths button:hover, .market-mosaic button:hover, #app .island-move:hover { transform:none; }
+}
+
+/* Phone composition: preserve every insight, reduce travel between them.
+   Scoped to the app; account controls, sign-in sheets and auth state are untouched. */
+@media (max-width:600px) {
+  #app .om-main { padding-inline:12px !important; }
+  #app .journal-home { gap:16px !important; }
+  .journal-toolbar { padding-bottom:4px; }
+  .journal-toolbar .journal-search { min-height:44px; }
+  .journal-intro h1 { font-size:26px !important; }
+  .journal-intro .journal-eyebrow { margin:0; line-height:1.6; }
+  #app .om-idx > div { padding:16px !important; border-radius:var(--radius-island) !important; }
+  #app .om-idx > div:first-child > div:nth-child(2) { font-size:40px !important; margin-top:6px !important; }
+  #app .om-idx > div > div:nth-child(2) { font-size:21px !important; }
+  #app .om-idx > div > div:last-child { margin-top:12px !important; }
+  #app .om-idx > div:first-child svg { height:60px !important; }
+  #app .om-idx svg { height:44px !important; }
+  #app .om-idx > div > div:first-child > div:last-child { width:26px !important; height:26px !important; }
+  .island-heading { align-items:flex-start; gap:8px; }
+  .island-heading h2, .insight-shelf > h2 { font-size:21px; line-height:1.5; }
+  .insight-grid { gap:16px; }
+  .insight-card { padding:18px; border-radius:var(--radius-island); }
+  #app .market-measures { padding:18px !important; }
+  .market-measure-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:10px !important; }
+  .market-measure-grid > div { padding:12px; border-radius:var(--radius-control); }
+  .market-measure-grid > div > div:first-child { gap:4px !important; flex-direction:column; }
+  .market-measure-grid > div > div:first-child > span { white-space:normal !important; }
+  .ranking-panel { padding:18px; border-radius:var(--radius-island); }
+  .ranking-controls:not(.ranking-pairs) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .ranking-controls button { padding:10px 8px; border-radius:var(--radius-control); min-height:48px; line-height:1.5; }
+  .ranking-pairs > span { width:100%; margin-bottom:4px; }
+  .ranking-pairs { gap:8px; }
+  .ranking-launch { margin-top:18px; padding-top:16px; gap:14px; }
+  .ranking-launch > span { font-size:14px; line-height:1.6; }
+  .island-breadth { display:grid; grid-template-columns:140px minmax(0,1fr); align-items:center; gap:8px; }
+  .island-breadth .island-heading { grid-column:1 / -1; flex-wrap:wrap; }
+  .island-breadth .island-ring { width:134px; height:134px; padding:14px; margin:12px 0; }
+  .island-breadth .island-ring strong { font-size:32px; }
+  .island-breadth .island-legend { display:flex; flex-direction:column; gap:12px; margin:0; }
+  .island-breadth .island-legend > div { display:flex; gap:6px; align-items:center; }
+  .island-breadth .island-legend strong { margin-inline-start:auto; }
+  .market-mosaic > button { min-height:100px; padding:12px 5px; }
+  .investor-summary-grid { grid-template-columns:1fr; gap:16px; }
+  .context-intro p { font-size:14px; }
+  .evidence-path { flex-wrap:nowrap; gap:6px; }
+  .evidence-path span { flex:1; padding:8px; font-size:11px; line-height:1.6; }
+  #app .om-dots-grid { gap:16px !important; }
+  #app .om-dots-grid article { border-radius:var(--radius-control) !important; }
+  #app .exchange-rates { gap:10px !important; }
+  #app .exchange-rates > div { padding:14px !important; border-radius:var(--radius-island) !important; }
+  #app .exchange-rates > div > div:first-child > div:first-child { font:600 12px/1.5 var(--font-reading) !important; letter-spacing:0 !important; white-space:normal !important; }
+}
+
+@media (max-width:360px) {
+  #app .journal-nav button { font-size:11px !important; }
+  .island-breadth { grid-template-columns:118px minmax(0,1fr); }
+  .island-breadth .island-ring { width:112px; height:112px; padding:12px; }
+  .island-breadth .island-ring strong { font-size:26px; }
+  #app .om-idx > div > div:nth-child(2) { font-size:21px !important; }
+}
+
+/* ── Insider & Treasury Flow Tracker ── */
+.insider-hero-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--edgeIn);
+  box-shadow: var(--sh);
+}
+.insider-table-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.insider-table-header {
+  display: grid;
+  grid-template-columns: 105px 180px minmax(130px, 1fr) 140px 130px 110px;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule2);
+  align-items: center;
+}
+.insider-row-item {
+  display: grid;
+  grid-template-columns: 105px 180px minmax(130px, 1fr) 140px 130px 110px;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--rule2);
+  align-items: center;
+  transition: background .12s;
+}
+.insider-row-item:last-child {
+  border-bottom: none !important;
+}
+.insider-view-switcher {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.insider-treemap-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  min-height: 480px;
+}
+.insider-map-tile {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.insider-map-tile:hover {
+  z-index: 5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.insider-flow-card {
+  transition: transform .15s, box-shadow .15s;
+}
+.insider-flow-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shHover, 0 4px 14px rgba(0, 0, 0, 0.08));
+}
+
+@media (max-width: 768px) {
+  .insider-hero-card {
+    padding: 20px 16px 18px !important;
+  }
+  .insider-view-switcher {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  .insider-view-switcher > div {
+    flex: 1 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+  .insider-treemap-canvas {
+    aspect-ratio: auto !important;
+    height: 540px !important;
+    min-height: 540px !important;
+  }
+  .insider-flow-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .insider-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .insider-table-header {
+    display: none !important;
+  }
+  .insider-rows-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+  .insider-row-item {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-areas:
+      "company action"
+      "date rel"
+      "shares link" !important;
+    gap: 8px 12px !important;
+    padding: 14px 16px !important;
+    border-radius:var(--radius-control) !important;
+    background: var(--sunk) !important;
+    border: 1px solid var(--rule2) !important;
+    min-width: 0 !important;
+  }
+  .insider-cell-company { grid-area: company; min-width: 0; }
+  .insider-cell-action  { grid-area: action; justify-self: end; }
+  .insider-cell-date    { grid-area: date; }
+  .insider-cell-rel     { grid-area: rel; justify-self: end; }
+  .insider-cell-shares  { grid-area: shares; text-align: start !important; }
+  .insider-cell-link    { grid-area: link; justify-self: end; }
+}
+
+@media (max-width: 480px) {
+  .insider-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
+
+/* The heat map's colour key.
+   Seven swatches at a fixed 34px, each captioned with a percentage that is
+   WIDER than the swatch — so the column sizes to the caption and the strip's
+   min-content came to 305px inside a 270px row. The row already wraps; the
+   strip did not, and a flex child does not shrink below min-content unless it
+   is told to.
+
+   It was not a local defect. `.om-rail` is `position:fixed` with both `left`
+   and `right` set, so it resolves against the scrollable canvas: the 39px the
+   key overflowed widened that canvas, the rail grew 300px → 314px, over-
+   constrained itself, and in RTL dropped to left:-4. The whole page then
+   scrolled sideways on the one screen. Measured at 320px: 334 → 320. */
+.heat-legend-row,
+.heat-legend-row > div { min-width: 0; }
+.heat-legend-scale { flex-wrap: wrap; justify-content: center; row-gap: 6px; }
+
+/* ══ TRADING & APP FEE SIMULATOR (TOOLS SECTION) ══ */
+.tools-tab-switcher {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tools-tab-switcher > div {
+  transition: all .15s ease-out;
+}
+.tools-tab-switcher > div:hover {
+  color: var(--ink) !important;
+}
+
+.sim-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius:var(--radius-control);
+  background: var(--sunk);
+  border: 1px solid var(--edgeIn);
+}
+
+/* `minmax(320px, …)` on its own asks for a 320px track in a container that on a
+   390px phone is only 332px wide, and `1fr` is really `minmax(auto, 1fr)` — an
+   `auto` minimum is the item's min-content, so the track resolved to 368.5px
+   inside 332px and every one of the seven broker cards hung 19px past the panel.
+   `min(320px, 100%)` caps the request at the container, and the explicit `0`
+   minimums below stop a long broker name pushing the track back open. */
+.sim-broker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 16px;
+}
+/* A flex or grid child refuses to shrink below its own min-content unless it is
+   told to. Every rule below is that permission, granted where a long Arabic
+   broker name or a six-figure number would otherwise hold a column open — and
+   granted narrowly: a blanket `min-width:0` on every descendant crushed the
+   name block to 32px at 320px, because the nowrap fee badge beside it then took
+   the whole row. So the name block keeps a real flex basis, and the badge wraps
+   underneath it instead. */
+.sim-broker-card { min-width: 0; }
+.sim-broker-head { min-width: 0; flex-wrap: wrap; }
+.sim-broker-head > div { min-width: 0; flex: 1 1 11rem; }
+.sim-broker-title { min-width: 0; flex-wrap: wrap; row-gap: 4px; }
+.sim-broker-title h4 { min-width: 0; overflow-wrap: anywhere; }
+
+/* Three segments across 190px on a 320px phone. `1fr` again means an `auto`
+   minimum, so "Active Trading (Default)" held the row 32px open in English
+   where the shorter Arabic label had fit. The segments wrap their own text
+   instead. */
+.sim-strategy-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.sim-strategy-switch > div { min-width: 0; overflow-wrap: anywhere; }
+
+.sim-date-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.sim-date-pair input { min-width: 0; }
+
+.sim-metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sim-metric-pill { min-width: 0; flex-wrap: wrap; row-gap: 2px; }
+.sim-metric-pill > * { min-width: 0; overflow-wrap: anywhere; }
+
+.sim-broker-card {
+  position: relative;
+  border-radius:var(--radius-control);
+  background: var(--surface);
+  border: 1px solid var(--edgeIn);
+  box-shadow: var(--sh);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.sim-broker-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shLift);
+  border-color: var(--rule);
+}
+.sim-broker-card.winner {
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 20px rgba(18, 107, 117, 0.12);
+}
+.sim-broker-card.beltone {
+  border: 1.5px solid #2563EB;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.08);
+}
+
+.sim-metric-pill {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--sunk);
+  border: 1px solid var(--rule2);
+}
+
+@media (max-width: 768px) {
+  /* `width:100%` on a box that also carries `margin:2px 8px` asks for the full
+     parent width AND 16px beside it, so the row started 8px past its parent and
+     the last tab ended at 325 in a 320 viewport. `align-self:stretch` gets the
+     same full-width row without the double count. And `flex:1` cannot shrink a
+     tab below its own min-content unless told to: "Crash Fragility Engine" is
+     the English label that first exceeded its quarter. */
+  .tools-tab-switcher {
+    width: auto !important;
+    align-self: stretch !important;
+    display: flex !important;
+  }
+  .tools-tab-switcher > div {
+    flex: 1 !important;
+    min-width: 0 !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 8px 8px !important;
+    font-size: 12px !important;
+  }
+  .tools-tab-switcher > div span { min-width: 0; overflow-wrap: anywhere; }
+  .sim-controls-grid {
+    grid-template-columns: 1fr !important;
+    padding: 16px !important;
+  }
+}
+
+/* A filing row on a phone.
+   Four fixed columns — date, title, id, link — need 300px before the title
+   gets anything, so at 390px the title was squeezed into about fifty pixels
+   and "العربية لحليج الأقطان (ACGC.CA) - بيان بخصوص نموذج إفصاح" wrapped into
+   a ribbon four characters wide and a screenful tall. The date and the link
+   share a line, the title gets the width, and the filing id goes: it is a
+   reference number, and the link beside it opens the document itself. */
+@media (max-width: 600px) {
+  #app .filing-row {
+    grid-template-columns: 1fr auto !important;
+    gap: 6px 10px !important;
+    align-items: baseline !important;
+    padding: 12px 14px !important;
+  }
+  #app .filing-row > :nth-child(2) { grid-column: 1 / -1; }
+  #app .filing-row .filing-id { display: none; }
+  #app .filing-row a { justify-self: end; }
+}
+
+/* ── THE FRAME, AS THE REDESIGN DRAWS IT ─────────────────────────────────
+ * A bar and a tab row, both full-bleed against the main column.
+ *
+ * The toolbar had `border: 0` applied to it further up, which left the page
+ * opening on floating controls over the page ground. In the comp it is a
+ * surface strip with one rule under it, and the sections start below that —
+ * so a reader can tell the furniture from the reading. The negative inline
+ * margin is the main column's own 28px padding, given back.
+ */
+@media (min-width:861px) {
+  #app .journal-toolbar {
+    margin-inline: 0; margin-block: 8px 18px; padding: 8px 18px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+    backdrop-filter: blur(18px) saturate(1.25);
+    border: 1px solid var(--edgeIn) !important;
+    border-radius: 26px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.06) inset !important;
+    gap: 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  #app .journal-toolbar .journal-search {
+    flex: 1; max-width: 440px; min-height: 44px; background: var(--sunk);
+    border: 1px solid var(--edgeIn); border-radius: 999px;
+    color: var(--faint); font-size: 14px; padding: 0 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #app .journal-toolbar .journal-search:hover { border-color: var(--accent); color: var(--ink); background: var(--surface); }
+  #app .journal-toolbar .journal-account {
+    width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50% !important;
+    background: var(--sunk) !important; border: 1px solid var(--edgeIn) !important;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--t2); cursor: pointer; padding: 0;
+    transition: background .18s, color .18s, border-color .18s, transform .18s;
+  }
+  #app .journal-toolbar .journal-account:hover {
+    background: var(--surface) !important; color: var(--ink) !important;
+    border-color: var(--accent) !important; transform: rotate(30deg);
+  }
+  #app .journal-toolbar .journal-account svg { width: 20px; height: 20px; }
+  #app .journal-wordmark {
+    margin-inline-end: 0; display: inline-flex; align-items: center; gap: 9px;
+    font-weight: 700; font-size: 17px; letter-spacing: .04em; color: var(--ink);
+  }
+  #app .journal-wordmark .om-logo-badge {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--surface);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+    box-shadow: 0 2px 6px rgba(18, 107, 117, 0.25);
+  }
+  #app .journal-wordmark > span:not(.om-logo-badge) {
+    font-size: 12px; font-weight: 500; color: var(--faint); letter-spacing: 0; margin-inline-start: 4px;
+  }
+
+  /* The destinations inside a section, as tabs: an underline that belongs to
+     the row rather than a pill that floats above it. */
+  #app .journal-subnav {
+    margin-inline: -28px; margin-block: 0 18px; padding: 0 28px; gap: 4px;
+    background: var(--surface); border-bottom: 1px solid var(--rule);
+  }
+  #app .journal-subnav button {
+    border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+    min-height: 44px; padding: 12px 14px; font-size: 14px !important;
+    color: var(--faint) !important;
+  }
+  #app .journal-subnav button:hover { color: var(--ink) !important; background: transparent; }
+  #app .journal-subnav button[aria-current="page"] {
+    color: var(--ink) !important; font-weight: 600; border-bottom-color: var(--accent);
+  }
+  /* The main column's own gutter, now that the two strips above carry theirs. */
+  #app .om-main { padding-top: 12px !important; }
+  body[data-signed="yes"] #app .om-main { padding-top: 12px !important; }
+}
+
+/* ── A CARD'S OWN HEADER, AS THE COMP SETS IT ────────────────────────────
+ * Three lines in a fixed order: where the figures came from and when, the
+ * name of the block, then what it does and does not say. The comp puts the
+ * dateline FIRST, above the title — that ordering is the point. A reader
+ * meets the date before the number, so a stale card cannot be read as a
+ * live one, and every card on the page answers the same question in the
+ * same place.
+ *
+ * The link beside it is monospace and accent-coloured: it is a destination,
+ * not a control, and a pill-shaped button there read as the card's own
+ * primary action.
+ */
+#app .card-dateline {
+  margin: 0 0 8px; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 12px; line-height: 1.5; color: var(--faint);
+}
+#app .card-dateline > a, #app .card-dateline > button {
+  flex: none; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 12px; color: var(--accent) !important;
+  min-height: 32px; padding: 0;
+}
+#app .card-dateline > a:hover, #app .card-dateline > button:hover { color: var(--ink) !important; }
+#app .card-lead {
+  margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--t2); text-wrap: pretty;
+}
+/* The action that used to be a bordered pill on the title's row. */
+#app .island-heading button, #app .insight-card .island-heading button {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 12px !important; font-weight: 400; border: 0; background: transparent;
+  padding: 0 !important; min-height: 32px;
+}
+#app .island-heading button:hover { color: var(--ink) !important; background: transparent; }
+
+/* ── SECTORS ON ALIGNED BARS ─────────────────────────────────────────────
+ * One grid, four columns, every bar on the same scale down its column. The
+ * screen showed cards, and a card cannot answer "is this sector big or is it
+ * busy?" — the two facts land in different places on every tile.
+ */
+#app .sx-table {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-island); padding: 20px; min-width: 0;
+}
+#app .sx-title { font-size: 21px; font-weight: 600; margin: 0 0 4px; }
+#app .sx-head, #app .sx-row {
+  display: grid; grid-template-columns: 150px 1fr 1fr 210px; gap: 14px; align-items: center;
+}
+#app .sx-head {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 12px; color: var(--faint); line-height: 1.5;
+  padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+}
+#app .sx-rows { display: flex; flex-direction: column; }
+#app .sx-row { padding: 13px 0; border-bottom: 1px solid var(--rule2); }
+#app .sx-name { font-size: 14px; font-weight: 500; min-width: 0; }
+#app .sx-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#app .sx-cell > b {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 400;
+  color: var(--t2); width: 42px; flex: none; text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+#app .sx-track { flex: 1; min-width: 0; height: 8px; border-radius: 4px; background: var(--sunk); overflow: hidden; }
+#app .sx-fill { display: block; height: 100%; border-radius: 4px; }
+/* Size is a fact about the market and stays neutral; activity is what this
+   screen is asking about, so it takes the accent. */
+#app .sx-fill.is-size { background: var(--thread); }
+#app .sx-fill.is-act { background: var(--accent); }
+#app .sx-move > b { width: 62px; font-size: 14px; font-weight: 600; }
+#app .sx-move > b.up { color: var(--up); }
+#app .sx-move > b.down { color: var(--down); }
+#app .sx-move > small {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--faint); width: 44px; flex: none;
+}
+#app .sx-breadth { flex: 1; min-width: 0; display: flex; height: 10px; border-radius: 3px; overflow: hidden; direction: ltr; }
+#app .sx-breadth i { display: block; height: 100%; }
+#app .sx-breadth i.is-up, #app .sx-key i.is-up { background: var(--up); }
+#app .sx-breadth i.is-flat, #app .sx-key i.is-flat { background: var(--rule); }
+#app .sx-breadth i.is-down, #app .sx-key i.is-down { background: var(--down); }
+/* A company that did not trade is not a company that held steady. Hatched,
+   never the unchanged grey, and counted in the denominator. */
+#app .sx-breadth i.is-none, #app .sx-key i.is-none {
+  background: repeating-linear-gradient(135deg,
+    var(--irisMid) 0 4px, var(--irisTint) 4px 8px);
+}
+#app .sx-key {
+  display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 14px 0 0;
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 12px; color: var(--t2);
+}
+#app .sx-key span { display: inline-flex; align-items: center; gap: 6px; }
+#app .sx-key i { width: 12px; height: 10px; border-radius: 2px; display: inline-block; }
+@media (max-width: 860px) {
+  #app .sx-head { display: none; }
+  #app .sx-row { grid-template-columns: 1fr; gap: 8px; }
+  #app .sx-cell > b { width: auto; }
+  #app .sx-table { padding: 16px; }
+}
+
+/* ── THE CRASH-WARNING READING, PLACED ───────────────────────────────────
+ * Three figures and a distribution. Deliberately not a dial: a needle in a
+ * red arc points, and a publisher who is not FRA-licensed may not point.
+ */
+#app .reading-place {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-island); padding: 20px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 16px; min-width: 0;
+}
+#app .rp-figures { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-start; }
+#app .rp-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+#app .rp-label {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 11px; color: var(--faint); line-height: 1.5;
+}
+#app .rp-value {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 17px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+/* The reading itself is the one figure worth the size. */
+#app .rp-cell:first-child .rp-value { font-size: 32px; line-height: 1.05; letter-spacing: -.02em; }
+@media (max-width: 860px) {
+  #app .reading-place { padding: 16px; }
+  #app .rp-figures { gap: 14px 20px; }
+  #app .rp-cell:first-child .rp-value { font-size: 26px; }
+}
+
+/* Every screen opens the same way: when and how many, the name of the
+   screen, then what this screen is for. Three lines, in that order. */
+#app .screen-head { display: flex; flex-direction: column; gap: 0; padding: 6px 0 0; }
+#app .screen-head .card-dateline { margin-bottom: 6px; }
+#app .screen-head .card-lead { margin: 6px 0 0; max-width: 78ch; }
+
+/* ── ONE COMPANY'S DISCLOSED OWNERSHIP ───────────────────────────────────
+ * The share bar's home case: named holders, and one hatched band for the
+ * part nobody was required to name. Never normalised to 100%.
+ */
+#app .co-own {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-island); padding: 20px; min-width: 0;
+}
+#app .co-own-title { font-size: 17px; font-weight: 600; margin: 0 0 12px; line-height: 1.45; }
+#app .co-own-note {
+  margin: 12px 0 0; font-size: 14px; color: var(--t2); line-height: 1.55; text-wrap: pretty;
+}
+
+/* ── THE LAST THREE DOCUMENTED EVENTS ────────────────────────────────────
+ * Three columns divided by a rule rather than three cards: they are one
+ * record read three times, not three objects.
+ */
+#app .co-changes {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-island); padding: 20px; min-width: 0;
+}
+#app .co-changes-title { font-size: 17px; font-weight: 600; margin: 0 0 14px; line-height: 1.4; }
+#app .co-changes-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#app .co-change {
+  min-width: 0; padding: 0 18px; display: flex; flex-direction: column; gap: 8px;
+  border-inline-start: 1px solid var(--rule);
+}
+#app .co-change:first-child { border-inline-start: 0; padding-inline-start: 0; }
+#app .co-change-date {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 12px; color: var(--faint);
+}
+#app .co-change-text { font-size: 17px; font-weight: 600; line-height: 1.45; text-wrap: pretty; }
+#app .co-change-basis { font-size: 14px; color: var(--t2); line-height: 1.5; }
+#app .co-change-chip {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 12px; color: var(--accent); margin-top: auto; min-height: 32px;
+  display: flex; align-items: flex-end;
+}
+@media (max-width: 860px) {
+  #app .co-changes-grid { grid-template-columns: 1fr; gap: 16px; }
+  #app .co-change { border-inline-start: 0; padding-inline: 0; padding-top: 16px; border-top: 1px solid var(--rule); }
+  #app .co-change:first-child { padding-top: 0; border-top: 0; }
+}
+
+/* The key for the market line drawn behind a company's price.
+ * The mark is the line itself at reading size — a dashed rule in the same
+ * colour and dash pattern — rather than a coloured dot, so a reader matches
+ * it to the chart by shape instead of by memory. */
+#app .co-bench-key {
+  display: flex; align-items: center; gap: 9px; margin: 8px 0 0;
+  font-size: 12px; line-height: 1.55; color: var(--t2);
+}
+#app .co-bench-mark {
+  flex: 0 0 26px; height: 0; border-top: 1.4px dashed var(--thread);
+}
+
+/* The insider filings could not be read.
+ * Styled as a statement rather than an alarm: the document failing is an
+ * ordinary event, and the page around it is still correct. The dashed edge is
+ * the same one the quiet-day card uses, so "we have nothing here" looks the
+ * same wherever the site says it. */
+#app .insiders-down {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 22px; border-radius: var(--radius-island);
+  background: var(--sunk); border: 1px dashed var(--rule);
+}
+#app .insiders-down h3 { margin: 0; font: 600 17px/1.45 var(--font-heading); }
+#app .insiders-down p { margin: 0; font-size: 14px; line-height: 1.65; color: var(--t2); max-width: 64ch; }
+#app .insiders-down button {
+  min-height: 44px; padding: 0 16px; border-radius: var(--radius-control);
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+#app .insiders-down button:hover { background: var(--sunk); }
+
+/* §4: the Stocks strip, in three named groups.
+ * The label is a quiet mono caption rather than another button, so a reader
+ * can see at a glance that there are three kinds of thing here and not
+ * fourteen equal ones. The groups are separated by a rule instead of a gap,
+ * because a gap at this size reads as an accident of wrapping. */
+#app .journal-subnav-grouped { flex-wrap: wrap; gap: 0 4px; align-items: center; }
+#app .subnav-group { display: inline-flex; align-items: center; gap: 4px; }
+#app .subnav-group + .subnav-group {
+  margin-inline-start: 10px; padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--rule);
+}
+#app .subnav-group-label {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 11px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--faint); padding-inline-end: 4px; white-space: nowrap;
+}
+@media (max-width: 700px) {
+  /* On a phone the rule between groups becomes a line break instead: three
+     short rows read better than one that wraps mid-group. */
+  #app .journal-subnav-grouped { flex-direction: column; align-items: flex-start; gap: 8px; }
+  #app .subnav-group + .subnav-group {
+    margin-inline-start: 0; padding-inline-start: 0; border-inline-start: 0;
+  }
+  #app .subnav-group { flex-wrap: wrap; }
+}
+
+/* §4: the account icon, and the overflow it opens.
+ *
+ * The header is brand, search, account — and nothing else. Everything that
+ * used to sit in the fixed corner strip (email, sign out, share, admin) opens
+ * under it, together with language and appearance.
+ *
+ * The strip's nodes are NOT moved. They live outside `#app`, which dc.js
+ * rebuilds on every redraw, so a node relocated into it would come back
+ * without the listeners main.js binds by id. CSS repositions them instead,
+ * and `--head-h` (measured in main.js) says where the header ends. */
+#app .journal-account {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; min-width: 44px; height: 44px; padding: 0;
+  border-radius: 999px; background: var(--surface);
+  border: 1px solid var(--edgeIn); color: var(--t2); cursor: pointer;
+}
+#app .journal-account svg { width: 19px; height: 19px; }
+#app .journal-account:hover { color: var(--ink); }
+#app .journal-account[aria-expanded="true"] {
+  background: var(--activeBg); color: var(--ink); border-color: var(--rule);
+}
+
+/* §7 / turn 4: the line under the archive's head.
+ * The exchange publishes one filing twice — an Arabic page and an English one
+ * sharing a NewsID — and counting both doubles the archive. The note says so
+ * where the count is, not in a footnote nobody reaches. */
+#app .archive-onedoc {
+  margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--faint);
+  max-width: 68ch;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE DOCK.  Desktop, 861px and up.
+
+   The owner's brief: move the desktop tab selector to the bottom, exactly
+   like the phone's, as a clean floating island on its own — the Dock on a
+   Mac — icons only, each icon growing to show its name.
+
+   What that replaces: a 278px side rail holding the brand, the session stamp,
+   five destinations, the language and theme switches and the data version.
+   The brand already sits in the toolbar and the session date is printed at
+   the top of every screen, so the rail was carrying three things twice and
+   costing a fifth of the width to do it.
+
+   How it reads: the five destinations sit in a pill centred at the bottom.
+   The current one is open — tinted, its name showing — so a reader always
+   knows where they are without hovering; the other four are icons until the
+   pointer or the keyboard reaches them, when the name slides out. Language,
+   theme and the data version are not on the dock: on desktop the rail's
+   `.om-tools` is already hidden (line 58) and the same switches live in the
+   toolbar's preferences popover. A dock holds places, not settings.
+
+   Everything that assumed the rail — the main column's margin, the tape's
+   offset — is undone here, in the same block, so the page is one column
+   again and centred at its 1440px ceiling. Bottom padding on the column keeps
+   the last card clear of the island.
+
+   Declared last in this file on purpose: the rail rules above it are also
+   `!important`, and at equal specificity the later declaration wins. */
+@media (min-width: 861px) {
+  #app .om-rail {
+    position: fixed !important;
+    inset: auto auto 18px 50% !important;
+    transform: translateX(-50%);
+    width: max-content !important;
+    max-width: calc(100vw - 32px) !important;
+    max-height: none !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 6px !important;
+    border-radius: 26px !important;
+    background: color-mix(in srgb, var(--surface) 86%, transparent) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+    backdrop-filter: blur(18px) saturate(1.25);
+    border: 1px solid var(--edgeIn) !important;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .16), 0 1px 0 rgba(255, 255, 255, .06) inset !important;
+    overflow: visible !important;
+    z-index: 60;
+  }
+  #app .om-rail > .om-brand, #app .om-rail > .om-session { display: none !important; }
+  /* journal.css:392 hangs the rail 128px down for a signed-out visitor, with
+     a selector that beats this block's. The rail is hidden on the gate page,
+     so it never showed — but computed top:128px + bottom:18px is a stretched
+     island waiting for the day it does. */
+  body[data-signed="no"] #app .om-rail { inset-block-start: auto !important; }
+
+  #app .om-nav { flex-direction: row !important; gap: 6px !important; margin: 0 !important; }
+  #app .om-nav > button {
+    display: inline-flex !important; align-items: center !important;
+    height: 52px !important; padding: 0 16px !important;
+    border-radius: 22px !important; border: 0 !important;
+    background: transparent !important; color: var(--t2) !important;
+    font: inherit; cursor: pointer;
+    transition: background .18s ease, color .18s ease;
+  }
+  #app .om-nav > button > svg { width: 25px !important; height: 25px !important; flex: none; }
+  /* The name: closed by default, opened by hover, focus or being the place
+     the reader is already in. max-width rather than display so it slides. */
+  #app .om-nav > button > span {
+    display: block !important; max-width: 0; opacity: 0; overflow: hidden;
+    white-space: nowrap; margin-inline-start: 0; font-size: 14px; font-weight: 600;
+    transition: max-width .24s ease, opacity .18s ease, margin .24s ease;
+  }
+  #app .om-nav > button:hover, #app .om-nav > button:focus-visible {
+    background: var(--sunk) !important; color: var(--ink) !important;
+  }
+  #app .om-nav > button:hover > span, #app .om-nav > button:focus-visible > span,
+  #app .om-nav > button[aria-current="page"] > span, #app .om-nav > button[aria-current="true"] > span {
+    max-width: 180px; opacity: 1; margin-inline-start: 9px;
+  }
+  #app .om-nav > button[aria-current="page"], #app .om-nav > button[aria-current="true"] {
+    background: var(--accTint) !important; color: var(--accent) !important;
+  }
+  #app .om-nav > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* The page is one column again. */
+  #app .om-main {
+    margin-inline: auto !important; padding-inline: 28px !important;
+    padding-bottom: 128px !important;
+  }
+  .ticker-tape { margin-inline-start: 0 !important; width: 100% !important; }
+  @media (prefers-reduced-motion: reduce) {
+    #app .om-nav > button > span, #app .om-nav > button { transition: none; }
+  }
+}
+
+/* The review card's caveats, behind a disclosure. The plain sentence stands
+ * alone above it; a reader who wants the expert reading opens this. */
+#app .rev-nuance { margin-top: 2px; }
+#app .rev-nuance > summary {
+  cursor: pointer; list-style: none; font-size: 12px; color: var(--accent);
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+}
+#app .rev-nuance > summary::-webkit-details-marker { display: none; }
+#app .rev-nuance > summary::before { content: '+ '; }
+#app .rev-nuance[open] > summary::before { content: '\2212 '; }
+#app .rev-nuance > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+#app .rev-nuance > div { font-size: 12px; color: var(--t2); line-height: 1.6; margin-top: 6px; text-wrap: pretty; }
+
+/* A heading that used to name a metric now asks the question the block
+ * answers; the metric's name stays after it as a small term, for the reader
+ * who knows the word and wants it. */
+#app h1 .h-term, #app h2 .h-term, #app h3 .h-term {
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  /* .58em of a 17px h3 is 9.9px, which is under the 11px floor the type
+     scale sets. `max()` keeps the proportion on a large heading and stops
+     at the floor on a small one. */
+  font-size: max(11px, .58em); font-weight: 500; letter-spacing: .02em; color: var(--faint);
+  margin-inline-start: 8px; vertical-align: middle; white-space: nowrap;
+}
+
+/* ONE PLAIN LINE UNDER A HEADING: what the reader is looking at and why it
+ * matters. Measured on the rendered page before this, 13 of 221 blocks had
+ * one. The limit and source lines keep their jobs below the drawing. */
+#app .journal-intro .journal-lead { flex-basis: 100%; margin: 6px 0 0; font-size: 17px; line-height: 1.6; color: var(--t2); max-width: 66ch; }
+#app .island-lede { margin: 6px 0 12px; font-size: 14px; line-height: 1.55; color: var(--t2); max-width: 70ch; }
+#app .ct-lede { margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink); }
+#app .ct-shelf-lede { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--t2); max-width: 70ch; }
+
+/* The session in one sentence. Larger than the lead under it, because it is
+ * the thing a reader who stops after one line should have. Its own row in
+ * the intro's flex, so it never shares a line with the date. */
+#app .journal-intro .home-headline {
+  flex-basis: 100%; margin: 10px 0 0; max-width: 40ch;
+  font: 600 clamp(19px, 2vw, 26px)/1.45 var(--font-heading);
+  letter-spacing: -.015em; color: var(--ink); text-wrap: balance;
+}
+#app .journal-intro .home-headline + .journal-lead { margin-top: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE RUNNING SESSION.
+
+   The owner, 20 September 2026: "why website haven't updated this morning".
+   It had. What it had not done was say which day its numbers were from — the
+   feed replaces the prices and not the stamp over them, so for four and a
+   half hours every session Home was this morning's market under Thursday's
+   date. This band is that stamp, ahead of everything it governs.
+
+   Deliberately quiet: one row of type, one bar, one note. It is a label, not
+   a ticker. Nothing in it moves — a moving band reads as a live price feed
+   and these figures are fifteen minutes behind.
+   ══════════════════════════════════════════════════════════════════════════ */
+#app .session-live {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 12px 16px; border-radius: var(--radius-island);
+  background: var(--surface); border: 1px solid var(--edgeIn); box-shadow: var(--sh);
+}
+#app .session-live .sl-head {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; min-width: 0;
+}
+#app .session-live .sl-state {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 600 12px/1 var(--font-reading); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--faint);
+}
+#app .session-live .sl-state.is-open { color: var(--accent); }
+#app .session-live .sl-dot {
+  inline-size: 8px; block-size: 8px; border-radius: 50%;
+  background: var(--faint); flex: 0 0 8px;
+}
+#app .session-live .sl-state.is-open .sl-dot { background: var(--accent); }
+#app .session-live .sl-date {
+  font: 600 17px/1.3 var(--font-heading); color: var(--ink); letter-spacing: -.01em;
+}
+#app .session-live .sl-span {
+  font: 500 12px/1.3 'IBM Plex Mono', var(--font-reading), monospace; color: var(--t2);
+}
+
+/* The bar is the session's own four and a half hours; the filled part is what
+   the exchange has already traded and the mark is when these figures were
+   read. A length, because "how much of today is gone" is a proportion and a
+   proportion is read off a length, never off a clock face. */
+#app .session-live .sl-bar-wrap {
+  display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 200px;
+}
+#app .session-live .sl-bar-end {
+  font: 400 11px/1 'IBM Plex Mono', monospace; color: var(--faint); flex: 0 0 auto;
+}
+#app .session-live .sl-bar {
+  position: relative; flex: 1 1 auto; block-size: 6px; border-radius: 999px;
+  background: var(--sunk); overflow: visible;
+}
+#app .session-live .sl-bar-done {
+  position: absolute; inset-block: 0; inset-inline-start: 0;
+  border-radius: 999px; background: var(--accTint);
+}
+#app .session-live .sl-bar-mark {
+  position: absolute; inset-block-start: 50%; inline-size: 3px; block-size: 14px;
+  border-radius: 2px; background: var(--accent); transform: translate(-50%, -50%);
+}
+#app[dir="rtl"] .session-live .sl-bar-mark,
+[dir="rtl"] #app .session-live .sl-bar-mark { transform: translate(50%, -50%); }
+
+#app .session-live .sl-note {
+  flex-basis: 100%; margin: 0;
+  font: 400 12px/1.55 'IBM Plex Mono', var(--font-reading), monospace;
+  color: var(--faint); text-wrap: pretty;
+}
+#app .session-live .sl-open {
+  margin-inline-start: auto; min-block-size: 36px; padding: 0 12px;
+  border-radius: var(--radius-control); border: 1px solid var(--edgeIn);
+  background: transparent; color: var(--t2); font-size: 12px; cursor: pointer;
+}
+#app .session-live .sl-open:hover { color: var(--ink); border-color: var(--accent); }
+
+/* Shut: one line and no bar. There is no proportion to draw when no session
+   is running, and an empty bar would be a drawing of nothing. */
+#app .session-live.is-shut { background: var(--sunk); box-shadow: none; }
+
+@media (max-width: 700px) {
+  #app .session-live { gap: 8px 12px; padding: 11px 13px; }
+  #app .session-live .sl-bar-wrap { flex-basis: 100%; }
+  #app .session-live .sl-open { margin-inline-start: 0; }
+}
+
+/* ── The header's search box, which searches ──────────────────────────────
+ *
+ * The owner, 22 September 2026: pressing "Find a company" opened the Market
+ * screen, where a second box had to be pressed before anything could be
+ * typed. The pill is the box now (company-search.js): the wrapper keeps the
+ * pill every width already draws, and the input inside it takes the typing.
+ * The list opens under it, over the page, and every row is a company.
+ * ──────────────────────────────────────────────────────────────────────── */
+/* The header is its own layer (its backdrop blur makes one), so a list that
+   opens out of it is only as high as the header is. Raised over the page, and
+   under the sticky ticker tape (55) and the dock (60). */
+#app .journal-toolbar { position: relative; z-index: 40; }
+#app .journal-toolbar .journal-search {
+  position: relative; cursor: text; min-width: 0;
+  border: 1px solid var(--edgeIn); border-radius: 999px;
+  background: var(--sunk); padding-block: 0; padding-inline: 14px;
+  display: flex; align-items: center;
+}
+#app .journal-toolbar .journal-search:focus-within {
+  border-color: var(--accent); background: var(--surface); color: var(--ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+#app .journal-find { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; }
+#app .journal-find-icon { flex: none; width: 16px; height: 16px; color: var(--faint); }
+#app .journal-toolbar .journal-find-input {
+  flex: 1 1 auto; min-width: 0; min-height: 40px; margin: 0; padding: 0;
+  border: 0; outline: none; background: transparent; box-shadow: none;
+  color: var(--ink); font: inherit; font-size: 14px;
+}
+#app .journal-find-input::placeholder { color: var(--faint); opacity: 1; }
+/* The pill draws the focus ring (:focus-within above); the site-wide input
+   outline drew a second, square one inside the round box. */
+#app .journal-toolbar .journal-find-input:focus-visible { outline: none !important; }
+#app .journal-find-input::-webkit-search-decoration { -webkit-appearance: none; }
+#app .journal-find-panel {
+  position: absolute; z-index: 70; inset-inline: 0; top: calc(100% + 8px);
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  max-height: min(70vh, 470px); overflow-y: auto; cursor: default;
+  background: var(--surface); border: 1px solid var(--edgeIn); border-radius: 16px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .16);
+}
+#app .journal-toolbar .journal-find-row {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 10px; row-gap: 1px;
+  align-items: baseline; width: 100%; min-height: 44px; padding: 7px 10px;
+  border: 0; border-radius: 10px; background: transparent;
+  font: inherit; color: var(--ink); text-align: start; cursor: pointer;
+}
+#app .journal-toolbar .journal-find-row:hover,
+#app .journal-toolbar .journal-find-row.is-active { background: var(--sunk); }
+#app .journal-toolbar .journal-find-row.is-active { box-shadow: inset 3px 0 0 var(--accent); }
+[dir="rtl"] #app .journal-toolbar .journal-find-row.is-active,
+#app[dir="rtl"] .journal-toolbar .journal-find-row.is-active { box-shadow: inset -3px 0 0 var(--accent); }
+#app .journal-find-code {
+  grid-row: 1 / span 2; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--accent); direction: ltr; text-align: start;
+}
+#app .journal-find-name { min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#app .journal-find-sector { min-width: 0; font-size: 12px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#app .journal-find-none { margin: 0; padding: 12px 10px; font-size: 14px; color: var(--t2); }
+#app .journal-toolbar .journal-find-all {
+  margin-top: 4px; min-height: 40px; padding: 8px 10px; width: 100%;
+  border: 0; border-top: 1px solid var(--rule); border-radius: 0 0 10px 10px; background: transparent;
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--accent); text-align: start; cursor: pointer;
+}
+#app .journal-toolbar .journal-find-all:hover { color: var(--ink); background: var(--sunk); }
