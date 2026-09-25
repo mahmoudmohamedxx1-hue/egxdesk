@@ -87,6 +87,10 @@ function parseRss(xml, outlet) {
       block.match(/<enclosure[^>]*url="([^"]+)"/)?.[1] ??
       block.match(/<media:content[^>]*url="([^"]+)"/)?.[1] ??
       block.match(/<media:thumbnail[^>]*url="([^"]+)"/)?.[1] ??
+      // T63 — Enterprise embeds the story photo in the <description> CDATA
+      // (<figure><img src="https://i0.wp.com/ent.news/…">), not an enclosure.
+      block.match(/<description>(?:<!\[CDATA\[)?[\s\S]*?<img[^>]*src="(https?:\/\/[^"\s]+)"/)?.[1] ??
+      block.match(/<content:encoded>(?:<!\[CDATA\[)?[\s\S]*?<img[^>]*src="(https?:\/\/[^"\s]+)"/)?.[1] ??
       null;
     const snippet =
       block.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/)?.[1]?.replace(/<[^>]+>/g, "").trim() ??
@@ -175,14 +179,15 @@ function parseAlmalDate(s) {
 function parseAlmalCategory(html, outlet) {
   const out = [];
   const cards =
-    html.match(/<a[^>]*href="\/(\d{5,})\/([^"]+)"[^>]*title="([^"]{12,180})"[\s\S]{0,900}?<span class="news-time">([\s\S]*?)<\/span>/g) ?? [];
+    html.match(/<a[^>]*href="\/(\d{5,})\/([^"]+)"[^>]*title="([^"]{12,180})"[\s\S]{0,1600}?<span class="news-time">([\s\S]*?)<\/span>/g) ?? [];
   for (const card of cards) {
     const id = card.match(/href="\/(\d{5,})\//)?.[1];
     const slug = card.match(/href="\/\d{5,}\/([^"]+)"/)?.[1];
     const title = card.match(/title="([^"]{12,180})"/)?.[1]?.trim();
     const timeText = card.match(/<span class="news-time">([\s\S]*?)<\/span>/)?.[1]?.trim() ?? "";
     const excerpt = card.match(/<p class="card-excerpt">([\s\S]*?)<\/p>/)?.[1]?.replace(/<[^>]+>/g, "").trim() ?? null;
-    const img = card.match(/<img[^>]*src="(https:\/\/media\.almalnews\.com[^"]+)"/)?.[1];
+    const img = card.match(/<img[^>]*(?:data-src|src)="(https:\/\/(?:media\.)?almalnews\.com[^"]+)"/)?.[1]
+      ?? card.match(/<img[^>]*(?:data-src|src)="(https:\/\/media\.almalnews\.com[^"]+)"/)?.[1];
     if (!id || !slug || !title) continue;
     out.push({ outlet, title, link: `https://almalnews.com/${id}/${slug}`, published: parseAlmalDate(timeText) ?? new Date().toISOString(), image: img ?? null, snippet: excerpt });
     if (out.length >= 30) break;
@@ -190,20 +195,63 @@ function parseAlmalCategory(html, outlet) {
   return out;
 }
 
+/** T63 — Al Borsa's RSS carries no pictures at all; each article page
+ *  publishes its own photo as og:image (the source terminal's feed carries
+ *  one per story). Fetched one page at a time, 350 ms apart, capped at 30 —
+ *  the enrichment the picture frame on every card is built on. An unreachable
+ *  page leaves that story's image null and the designed fallback frame shows.
+ *  First observation wins on re-runs (the merge below) so a rotated CDN URL
+ *  never churns the snapshot. */
+async function withAlborsaImages(items) {
+  const want = items.filter((x) => x.outlet === "alborsa" && !x.image).slice(0, 30);
+  for (const x of want) {
+    await new Promise((res) => setTimeout(res, 350));
+    try {
+      const html = await getText(x.link, "text/html");
+      const og =
+        html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/)?.[1] ??
+        html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/)?.[1];
+      if (og && /^https?:\/\//.test(og)) x.image = og.replace(/&amp;/g, "&");
+    } catch { /* the frame's fallback carries this story */ }
+  }
+  return items;
+}
+
 async function fetchOutlet(id) {
   const note = (why) => ({ outlet: id, items: [], why });
   try {
     switch (id) {
       case "alborsa":
-        return { outlet: id, items: parseRss(await getText("https://www.alborsaanews.com/feed", "application/rss+xml"), id) };
+        return {
+          outlet: id,
+          items: await withAlborsaImages(parseRss(await getText("https://www.alborsaanews.com/feed", "application/rss+xml"), id)),
+        };
       case "hapi": {
+        let hapiItems;
         try {
-          return { outlet: id, items: parseRss(await getText("https://hapijournal.com/feed", "application/rss+xml"), id) };
+          hapiItems = parseRss(await getText("https://hapijournal.com/feed", "application/rss+xml"), id);
         } catch (e) {
           const html = await readerGetHtml("https://hapijournal.com/feed");
           if (!html) return note("direct failed; reader unavailable");
-          return { outlet: id, items: parseReaderRss(html, id) };
+          hapiItems = parseReaderRss(html, id);
         }
+        // T63 — hapi's feed page carries no pictures; each article publishes
+        // its own as og:image. Reachable only through the reader service
+        // (Cloudflare walls both this sandbox and the GitHub runners), so the
+        // enrichment is best-effort: an unreachable article keeps the
+        // designed fallback frame. Capped at 10 = the feed's own size.
+        if (viaReader) {
+          const want = hapiItems.filter((x) => !x.image).slice(0, 10);
+          for (const x of want) {
+            const html = await readerGetHtml(x.link);
+            if (!html) continue;
+            const og =
+              html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/)?.[1] ??
+              html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/)?.[1];
+            if (og && /^https?:\/\//.test(og)) x.image = og.replace(/&amp;/g, "&");
+          }
+        }
+        return { outlet: id, items: hapiItems };
       }
       case "enterprise":
         return { outlet: id, items: parseRss(await getText("https://enterpriseam.com/rss", "application/rss+xml"), id) };

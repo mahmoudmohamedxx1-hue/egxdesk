@@ -17,6 +17,7 @@ import { useApp } from "../market/app-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, ExternalLink, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { UpdatesSubnav } from "./updates-subnav";
 
 type Item = {
   id: string;
@@ -106,7 +107,7 @@ export function DisclosuresView() {
       .then((r) => r.json())
       .then((d: Data) => setData(d))
       .catch(() => {});
-  }, [month, day]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [month, day]);
 
   const gridCells = useMemo(() => {
     if (!data) return [];
@@ -125,20 +126,22 @@ export function DisclosuresView() {
     return cells;
   }, [data]);
 
-  if (error) {
+  if (error || !data) {
     return (
-      <div className="space-y-3 p-4">
-        <h1 className="text-lg font-bold">{lang === "ar" ? "الإفصاحات" : "Disclosures"}</h1>
-        <p className="text-sm text-muted-foreground">{lang === "ar" ? "تعذّر تحميل الأرشيف." : "Archive unavailable."}</p>
-      </div>
-    );
-  }
-  if (!data) {
-    return (
-      <div className="space-y-3 p-4">
-        <Skeleton className="h-9 w-72" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="space-y-4">
+        <UpdatesSubnav current="disclosures" />
+        {error ? (
+          <div className="space-y-3 p-4">
+            <h1 className="text-lg font-bold">{lang === "ar" ? "الإفصاحات" : "Disclosures"}</h1>
+            <p className="text-sm text-muted-foreground">{lang === "ar" ? "تعذّر تحميل الأرشيف." : "Archive unavailable."}</p>
+          </div>
+        ) : (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-9 w-72" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-xl" />
+          </div>
+        )}
       </div>
     );
   }
@@ -148,6 +151,11 @@ export function DisclosuresView() {
 
   return (
     <div className="space-y-4">
+      {/* the Updates group's subnav strip — the source renders it on every
+          screen of the group, so the three destinations are one click apart
+          wherever the reader lands */}
+      <UpdatesSubnav current="disclosures" />
+
       {/* header */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">

@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UpdatesSubnav } from "./updates-subnav";
 import { Link2, ExternalLink, Newspaper, FileText, ChevronDown, ChevronUp } from "lucide-react";
 
 type Evidence = { kind: "news"; date: string; title: string; link: string; who: string };
@@ -69,9 +70,12 @@ export function CrossingsView() {
 
   if (error) {
     return (
-      <div className="space-y-3 p-4">
-        <h1 className="text-lg font-bold">{lang === "ar" ? "ربط النقاط" : "Connecting the dots"}</h1>
-        <p className="text-sm text-muted-foreground">{lang === "ar" ? "تعذّر التحميل الآن." : "Unavailable right now."}</p>
+      <div className="space-y-4">
+        <UpdatesSubnav current="crossings" />
+        <div className="space-y-3 p-4">
+          <h1 className="text-lg font-bold">{lang === "ar" ? "ربط النقاط" : "Connecting the dots"}</h1>
+          <p className="text-sm text-muted-foreground">{lang === "ar" ? "تعذّر التحميل الآن." : "Unavailable right now."}</p>
+        </div>
       </div>
     );
   }
@@ -81,6 +85,9 @@ export function CrossingsView() {
 
   return (
     <div className="space-y-4">
+      {/* the Updates group's subnav strip — same on every screen of the group */}
+      <UpdatesSubnav current="crossings" />
+
       {/* header */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">

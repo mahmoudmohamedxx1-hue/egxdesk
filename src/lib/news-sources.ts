@@ -346,6 +346,12 @@ function parseRss(xml: string, outlet: string): RawItem[] {
       block.match(/<media:content[^>]*url="([^"]+)"/)?.[1] ??
       block.match(/<media:thumbnail[^>]*url="([^"]+)"/)?.[1] ??
       block.match(/<image><url>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/url>/)?.[1] ??
+      // T63 — Enterprise embeds the story photo inside the <description> CDATA
+      // (<figure><img src="https://i0.wp.com/ent.news/…">), not in an enclosure.
+      // The outlets' CDNs refuse browser hotlinks, so every picture rides the
+      // /api/img proxy — but the URL itself must be captured here first.
+      block.match(/<description>(?:<!\[CDATA\[)?[\s\S]*?<img[^>]*src="(https?:\/\/[^"\s]+)"/)?.[1] ??
+      block.match(/<content:encoded>(?:<!\[CDATA\[)?[\s\S]*?<img[^>]*src="(https?:\/\/[^"\s]+)"/)?.[1] ??
       null;
     const snippet =
       block.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/)?.[1]?.replace(/<[^>]+>/g, "").trim() ??
@@ -438,14 +444,15 @@ function parseAlmalCategory(html: string, outlet: string): RawItem[] {
   const out: RawItem[] = [];
   // each card: an anchor with /<id>/<slug>/ + title=, then an excerpt and a
   // news-time span inside the same card block
-  const cards = html.match(/<a[^>]*href="\/(\d{5,})\/([^"]+)"[^>]*title="([^"]{12,180})"[\s\S]{0,900}?<span class="news-time">([\s\S]*?)<\/span>/g) ?? [];
+  const cards = html.match(/<a[^>]*href="\/(\d{5,})\/([^"]+)"[^>]*title="([^"]{12,180})"[\s\S]{0,1600}?<span class="news-time">([\s\S]*?)<\/span>/g) ?? [];
   for (const card of cards) {
     const id = card.match(/href="\/(\d{5,})\//)?.[1];
     const slug = card.match(/href="\/\d{5,}\/([^"]+)"/)?.[1];
     const title = card.match(/title="([^"]{12,180})"/)?.[1]?.trim();
     const timeText = card.match(/<span class="news-time">([\s\S]*?)<\/span>/)?.[1]?.trim() ?? "";
     const excerpt = card.match(/<p class="card-excerpt">([\s\S]*?)<\/p>/)?.[1]?.replace(/<[^>]+>/g, "").trim() ?? null;
-    const img = card.match(/<img[^>]*src="(https:\/\/media\.almalnews\.com[^"]+)"/)?.[1];
+    const img = card.match(/<img[^>]*(?:data-src|src)="(https:\/\/(?:media\.)?almalnews\.com[^"]+)"/)?.[1]
+      ?? card.match(/<img[^>]*(?:data-src|src)="(https:\/\/media\.almalnews\.com[^"]+)"/)?.[1] ?? null;
     if (!id || !slug || !title) continue;
     const published = parseAlmalDate(timeText) ?? new Date().toISOString();
     out.push({
@@ -662,7 +669,12 @@ export function enrichFeed(
       headline: head.title,
       link: head.link,
       published: head.published,
-      image: head.image ?? c.all.find((r) => r.image)?.image ?? null,
+      // T63 — &amp;-escaped URLs (Enterprise's wp.com query strings) must be
+      // unescaped exactly once, the way the source's own loader does it, or
+      // the proxy fetches an address with a literal "&amp;" in it.
+      image: [head.image, c.all.find((r) => r.image)?.image]
+        .find((x): x is string => Boolean(x))
+        ?.replace(/&amp;/g, "&") ?? null,
       snippet: head.snippet ?? null,
       sources,
       event: rule.event,
@@ -730,6 +742,25 @@ export async function fetchEnrichedFeed(
       continue;
     }
     unreachable.push({ id: o.outlet, nameAr: outletName(o.outlet), note: "تعذّر الوصول من هذا الخادم الآن" });
+  }
+  // T63 — the pictures the refresh pipeline paid for (og:image fetches the
+  // runtime never repeats): a live item with no picture of its own inherits
+  // the snapshot's picture for the same story, by link. The source terminal
+  // bakes the image into its published document; the snapshot is this app's
+  // equivalent, and the union of the two networks carries the pixels too.
+  if (snapshot?.outlets) {
+    const picByLink = new Map<string, string>();
+    for (const list of Object.values(snapshot.outlets)) {
+      for (const x of list) if (x?.link && x.image) picByLink.set(x.link, x.image.replace(/&amp;/g, "&"));
+    }
+    if (picByLink.size) {
+      for (const x of raw) {
+        if (!x.image) {
+          const pic = picByLink.get(x.link);
+          if (pic) x.image = pic;
+        }
+      }
+    }
   }
   const feed = enrichFeed(raw, universe, vols);
   feed.provenance.unreachable = unreachable;
