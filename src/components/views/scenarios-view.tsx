@@ -1,25 +1,26 @@
 "use client";
 
-/** T60 — المزيد → مختبر النماذج (the model lab), cloned in STRUCTURE from
- *  the source model's scenarios screen — but running on OUR OWN published
- *  track record: the strategy ensemble this app actually serves, replayed
- *  honestly against the benchmark it claims to beat.
+/** T60 → T64 — المزيد → مختبر النماذج (the model lab). Two tabs now:
  *
- *  The cloned furniture:
- *   - a disclaimer gate you must acknowledge once per session;
- *   - "each model against the market": every strategy's cumulative return
- *     beside the benchmark's, with hit-rate and drawdown — winners AND
- *     losers printed, never a podium of only the good ones;
- *   - the replay windows: what the ensemble picked each window and what the
- *     market did over the same sessions;
- *   - the honesty notes: past performance validates the RULES, not the
- *     model's future judgment — and the whole lab is "not advice". */
+ *   1. مختبر التقييم — the VALUATION WORKBENCH: pick any listed stock and
+ *      the five fair-value models run on it live (prefilled from its own
+ *      fundamentals), with editable assumptions, per-model formulas, a
+ *      g×r sensitivity grid and the two-stage DCF beside them. This is the
+ *      lab a reader can actually USE: apply the models to the stock YOU
+ *      choose and watch the value move with the assumptions.
+ *
+ *   2. سجل الاستراتيجيات — the strategy record this app actually serves,
+ *      replayed honestly against its benchmark (the original T60 screen,
+ *      kept whole: the disclaimer gate, every strategy's cumulative return
+ *      beside the market's, the replay windows, and the honesty notes). */
 
 import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { FlaskConical, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { FlaskConical, AlertTriangle, ChevronDown, ChevronUp, Calculator, History } from "lucide-react";
+import { ModelLabTab } from "./model-lab-tab";
+import type { ValData } from "./valuation-shared";
 
 type Strategy = {
   id: string;
@@ -38,9 +39,9 @@ type Strategy = {
   };
 };
 
-type Window = { date: string; picks: string[]; netPct: number; benchPct: number };
+type ReplayWindow = { date: string; picks: string[]; netPct: number; benchPct: number };
 
-type Data = {
+type StrategyData = {
   asOf: string;
   strategyRev: string;
   ensemble: { size: number; gate: string; description: string };
@@ -59,32 +60,111 @@ type Data = {
     avgExcessPct: number;
   };
   perStrategy: Strategy[];
-  windows: Window[];
+  windows: ReplayWindow[];
   notes: string[];
   curve: { date: string; strategy: number; benchmark: number }[];
 };
 
-export function ScenariosView() {
+export function ScenariosView({ ticker }: { ticker?: string }) {
+  const { lang } = useApp();
+  const [valData, setValData] = useState<ValData | null>(null);
+  const [valError, setValError] = useState(false);
+  const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
+  const [strategyError, setStrategyError] = useState(false);
+  const [tab, setTab] = useState<"workbench" | "record">("workbench");
+  // the URL ticker wins; else the last stock this browser ran the models on
+  const [picked, setPicked] = useState<string | null>(() => {
+    if (ticker) return ticker;
+    if (typeof window !== "undefined") {
+      try {
+        const s = window.localStorage.getItem("ml-ticker");
+        if (s) return s;
+      } catch {
+        /* private mode — skip */
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    fetch("/api/valuation-map")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("x"))))
+      .then((d: ValData) => setValData(d))
+      .catch(() => setValError(true));
+  }, []);
+
+  // the strategy record loads only when its tab opens (and only once)
+  useEffect(() => {
+    if (tab !== "record" || strategyData || strategyError) return;
+    fetch("/api/strategy-lab")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("x"))))
+      .then((d: StrategyData) => setStrategyData(d))
+      .catch(() => setStrategyError(true));
+  }, [tab, strategyData, strategyError]);
+
+  // derived (never state): first visit without a remembered stock falls back
+  // to the first stock the engine actually has a fair value for
+  const effTicker = picked ?? valData?.rows.find((r) => r.fv != null)?.ticker ?? "";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <FlaskConical className="h-5 w-5 text-primary" aria-hidden />
+        <h1 className="text-lg font-bold">{lang === "ar" ? "مختبر النماذج" : "Model lab"}</h1>
+      </div>
+
+      {/* tabs */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b pb-2">
+        <button
+          onClick={() => setTab("workbench")}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+            tab === "workbench" ? "border-foreground/20 bg-secondary font-semibold" : "border-transparent text-muted-foreground hover:bg-accent"
+          }`}
+          aria-current={tab === "workbench" ? "page" : undefined}
+        >
+          <Calculator className="h-3.5 w-3.5" aria-hidden />
+          {lang === "ar" ? "مختبر التقييم" : "Valuation workbench"}
+        </button>
+        <button
+          onClick={() => setTab("record")}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+            tab === "record" ? "border-foreground/20 bg-secondary font-semibold" : "border-transparent text-muted-foreground hover:bg-accent"
+          }`}
+          aria-current={tab === "record" ? "page" : undefined}
+        >
+          <History className="h-3.5 w-3.5" aria-hidden />
+          {lang === "ar" ? "سجل الاستراتيجيات" : "Strategy record"}
+        </button>
+      </div>
+
+      {tab === "workbench" ? (
+        valError ? (
+          <p className="p-4 text-sm text-muted-foreground">{lang === "ar" ? "تعذّر تحميل بيانات التقييم." : "Valuation data unavailable."}</p>
+        ) : !valData ? (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-9 w-72" />
+            <Skeleton className="h-40 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-xl" />
+          </div>
+        ) : (
+          <ModelLabTab key={effTicker} data={valData} ticker={effTicker} onPick={setPicked} />
+        )
+      ) : (
+        <StrategyRecordTab data={strategyData} error={strategyError} />
+      )}
+    </div>
+  );
+}
+
+// ── the strategy record (the original T60 screen, kept whole) ─────────────
+
+function StrategyRecordTab({ data, error }: { data: StrategyData | null; error: boolean }) {
   const { lang, navigate } = useApp();
-  const [data, setData] = useState<Data | null>(null);
-  const [error, setError] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/strategy-lab")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("x"))))
-      .then((d: Data) => setData(d))
-      .catch(() => setError(true));
-  }, []);
-
   if (error) {
-    return (
-      <div className="space-y-3 p-4">
-        <h1 className="text-lg font-bold">{lang === "ar" ? "مختبر النماذج" : "Model lab"}</h1>
-        <p className="text-sm text-muted-foreground">{lang === "ar" ? "تعذّر التحميل." : "Unavailable."}</p>
-      </div>
-    );
+    return <p className="p-4 text-sm text-muted-foreground">{lang === "ar" ? "تعذّر التحميل." : "Unavailable."}</p>;
   }
 
   const worse = (data?.perStrategy ?? []).filter((s) => s.stats && s.stats.strategyCumPct != null && s.stats.strategyCumPct < s.stats.benchCumPct).length;
@@ -93,15 +173,6 @@ export function ScenariosView() {
   if (!accepted) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 p-4">
-        <div className="flex items-center gap-2">
-          <FlaskConical className="h-5 w-5 text-primary" aria-hidden />
-          <h1 className="text-lg font-bold">
-            {lang === "ar" ? "مختبر النماذج" : "Model lab"}
-            <span className="ms-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-              {lang === "ar" ? "تجريبي · اقرأ هذا" : "experimental · read this"}
-            </span>
-          </h1>
-        </div>
         <div className="rounded-xl border bg-card p-4 text-sm leading-relaxed">
           <div className="mb-2 flex items-center gap-2 font-semibold">
             <AlertTriangle className="h-4 w-4 text-amber-500" aria-hidden />
@@ -120,9 +191,7 @@ export function ScenariosView() {
             </p>
           )}
           <p className="mt-2 text-xs text-muted-foreground">
-            {lang === "ar"
-              ? "أي قرار تتخذه بناءً على هذا قرارك وعلى مسؤوليتك."
-              : "Any decision you make on this is yours and your responsibility."}
+            {lang === "ar" ? "أي قرار تتخذه بناءً على هذا قرارك وعلى مسؤوليتك." : "Any decision you make on this is yours and your responsibility."}
           </p>
         </div>
         <div className="flex justify-center gap-2">
@@ -150,10 +219,6 @@ export function ScenariosView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <FlaskConical className="h-5 w-5 text-primary" aria-hidden />
-        <h1 className="text-lg font-bold">{lang === "ar" ? "مختبر النماذج" : "Model lab"}</h1>
-      </div>
       <p className="text-sm text-muted-foreground">
         {lang === "ar"
           ? `سجل محفوظ · ${s.windows} نافذة إعادة تشغيل · ${s.trades} صفقة مقيَّمة · مراجعة ${data.strategyRev}`
@@ -191,51 +256,55 @@ export function ScenariosView() {
           {data.perStrategy
             .filter((st) => st.stats && st.stats.strategyCumPct != null)
             .map((st) => {
-            const open = expanded === st.id;
-            const beat = st.stats.strategyCumPct >= st.stats.benchCumPct;
-            return (
-              <div key={st.id}>
-                <button
-                  onClick={() => setExpanded(open ? null : st.id)}
-                  className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1.5 text-xs hover:bg-accent/40"
-                >
-                  <span className="w-36 shrink-0 truncate text-start font-semibold">{lang === "ar" ? st.nameAr : st.nameEn}</span>
-                  <span className={`w-20 shrink-0 rounded px-1.5 py-0.5 text-center font-bold tabular-nums ${beat ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300" : "bg-rose-500/12 text-rose-700 dark:text-rose-300"}`}>
-                    {st.stats.strategyCumPct >= 0 ? "+" : ""}
-                    {st.stats.strategyCumPct.toFixed(0)}%
-                  </span>
-                  <span className="w-20 shrink-0 text-center tabular-nums text-muted-foreground">
-                    {lang === "ar" ? "السوق" : "market"} {st.stats.benchCumPct >= 0 ? "+" : ""}
-                    {st.stats.benchCumPct.toFixed(0)}%
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {st.stats.trades} {lang === "ar" ? "صفقة" : "trades"} ·{" "}
-                    {(st.stats.hitRate * 100).toFixed(0)}% {lang === "ar" ? "إصابة" : "hit"}
-                  </span>
-                  <span className="ms-auto shrink-0 text-muted-foreground">
-                    {open ? <ChevronUp className="h-3.5 w-3.5" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
-                  </span>
-                </button>
-                {open && (
-                  <div className="mx-2 mb-1.5 grid grid-cols-2 gap-2 rounded-lg bg-secondary/50 p-2.5 text-[11px] sm:grid-cols-4">
-                    {(
-                      [
-                        [lang === "ar" ? "عامل الربح" : "Profit factor", st.stats.profitFactor.toFixed(2)],
-                        [lang === "ar" ? "صافٍ/صفقة" : "Avg net", `${st.stats.avgNetPct >= 0 ? "+" : ""}${st.stats.avgNetPct.toFixed(2)}%`],
-                        [lang === "ar" ? "أسوأ تراجع" : "Worst DD", `${st.stats.maxDrawdownPct.toFixed(1)}%`],
-                        [lang === "ar" ? "العائلة" : "Family", st.family],
-                      ] as [string, string][]
-                    ).map(([k, v]) => (
-                      <div key={k}>
-                        <span className="block text-muted-foreground">{k}</span>
-                        <b className="tabular-nums">{v}</b>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              const open = expanded === st.id;
+              const beat = st.stats.strategyCumPct >= st.stats.benchCumPct;
+              return (
+                <div key={st.id}>
+                  <button
+                    onClick={() => setExpanded(open ? null : st.id)}
+                    className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1.5 text-xs hover:bg-accent/40"
+                  >
+                    <span className="w-36 shrink-0 truncate text-start font-semibold">{lang === "ar" ? st.nameAr : st.nameEn}</span>
+                    <span
+                      className={`w-20 shrink-0 rounded px-1.5 py-0.5 text-center font-bold tabular-nums ${
+                        beat ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300" : "bg-rose-500/12 text-rose-700 dark:text-rose-300"
+                      }`}
+                    >
+                      {st.stats.strategyCumPct >= 0 ? "+" : ""}
+                      {st.stats.strategyCumPct.toFixed(0)}%
+                    </span>
+                    <span className="w-20 shrink-0 text-center tabular-nums text-muted-foreground">
+                      {lang === "ar" ? "السوق" : "market"} {st.stats.benchCumPct >= 0 ? "+" : ""}
+                      {st.stats.benchCumPct.toFixed(0)}%
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {st.stats.trades} {lang === "ar" ? "صفقة" : "trades"} · {(st.stats.hitRate * 100).toFixed(0)}%{" "}
+                      {lang === "ar" ? "إصابة" : "hit"}
+                    </span>
+                    <span className="ms-auto shrink-0 text-muted-foreground">
+                      {open ? <ChevronUp className="h-3.5 w-3.5" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
+                    </span>
+                  </button>
+                  {open && (
+                    <div className="mx-2 mb-1.5 grid grid-cols-2 gap-2 rounded-lg bg-secondary/50 p-2.5 text-[11px] sm:grid-cols-4">
+                      {(
+                        [
+                          [lang === "ar" ? "عامل الربح" : "Profit factor", st.stats.profitFactor.toFixed(2)],
+                          [lang === "ar" ? "صافٍ/صفقة" : "Avg net", `${st.stats.avgNetPct >= 0 ? "+" : ""}${st.stats.avgNetPct.toFixed(2)}%`],
+                          [lang === "ar" ? "أسوأ تراجع" : "Worst DD", `${st.stats.maxDrawdownPct.toFixed(1)}%`],
+                          [lang === "ar" ? "العائلة" : "Family", st.family],
+                        ] as [string, string][]
+                      ).map(([k, v]) => (
+                        <div key={k}>
+                          <span className="block text-muted-foreground">{k}</span>
+                          <b className="tabular-nums">{v}</b>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
         </div>
       </div>
 
@@ -266,7 +335,11 @@ export function ScenariosView() {
                   ))
                 )}
               </span>
-              <span className={`w-16 shrink-0 text-end tabular-nums font-semibold ${w.netPct >= w.benchPct ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+              <span
+                className={`w-16 shrink-0 text-end tabular-nums font-semibold ${
+                  w.netPct >= w.benchPct ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                }`}
+              >
                 {w.netPct >= 0 ? "+" : ""}
                 {w.netPct.toFixed(2)}%
               </span>

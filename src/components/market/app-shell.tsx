@@ -527,7 +527,7 @@ export function AppShell() {
           {view.name === "valuation" && <ValuationView />}
           {view.name === "pairs" && <PairsView />}
           {view.name === "world" && <WorldView />}
-          {view.name === "scenarios" && <ScenariosView />}
+          {view.name === "scenarios" && <ScenariosView ticker={view.ticker} />}
           {view.name === "fragility" && <FragilityView />}
           {view.name === "research" && <ResearchView />}
         </div>
