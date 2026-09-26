@@ -149,21 +149,22 @@ function getZai(): Promise<Zai> {
   return zaiPromise;
 }
 
-// ── T56 — the DIRECT GLM backbone (plain HTTPS, user's ZAI_API_KEY) ──────────
+// ── T56 → T65 — the DIRECT GLM-4-Plus backbone (plain HTTPS, user's ZAI_API_KEY)
 // Outside the sandbox (Vercel, containers…) the z-ai SDK cannot authenticate,
 // but the agent must NOT sink to the weak keyless tier when a perfectly good
-// strong model is one fetch away. When the key is configured, glm-4.7-flash
-// via the direct API becomes the backbone: the tool loop, the verification
+// strong model is one fetch away. T65 — the user asked for GLM-4-PLUS as the
+// MAIN model: when the key is configured, glm-4-plus via the direct API is
+// now the backbone (was glm-4.7-flash) — the tool loop, the verification
 // failovers and the final synthesis all run on it, exactly like the GLM-4-Plus
 // backbone runs inside the sandbox.
 const DIRECT_GLM: AiModel = {
-  id: "zai-direct:glm-4.7-flash",
+  id: "zai-direct:glm-4-plus",
   provider: "zai",
-  providerModel: "glm-4.7-flash",
-  label: "GLM-4.7-Flash",
-  labelAr: "GLM-4.7-Flash",
-  note: "Direct Z.AI cloud via the server key — the strong backbone on any host",
-  noteAr: "سحابة Z.AI المباشرة عبر مفتاح الخادم — العمود الفقري القوي على أي مستضيف",
+  providerModel: "glm-4-plus",
+  label: "GLM-4-Plus",
+  labelAr: "GLM-4-Plus",
+  note: "Direct Z.AI cloud via the server key — the GLM-4-Plus backbone on any host",
+  noteAr: "سحابة Z.AI المباشرة عبر مفتاح الخادم — العمود الفقري GLM-4-Plus على أي مستضيف",
 };
 
 // T56 — weak-model output hygiene: keyless models (Mistral Nemo…) sometimes
@@ -214,7 +215,14 @@ async function llm7Round(
   onStatus?: (note: string) => void,
   onServedModel?: ServedModelFn
 ): Promise<string> {
+  // T65 — HARD TIMEOUT per attempt: a hung keyless stream used to hang the
+  // whole SSE response forever (no abort anywhere). 95s covers GLM-5.3-Flash's
+  // slowest thinking rounds on the shared pool; beyond that the round fails
+  // over to the next tier instead of stalling the user's question.
+  const ROUND_TIMEOUT_MS = 95_000;
   for (let attempt = 0; ; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ROUND_TIMEOUT_MS);
     try {
       const res = await fetch(LLM7_URL, {
         method: "POST",
@@ -224,16 +232,18 @@ async function llm7Round(
           messages: opts.messages,
           stream: true,
         }),
+        signal: ctrl.signal,
       });
-      if (res.status === 429 || res.status >= 500) {
-        // T37 — a DAILY-QUOTA 429 is not transient: the shared anonymous
-        // pool is spent and no backoff will revive it inside this request.
-        // Throw immediately so the auto-failover re-routes to GLM in <1s
-        // instead of burning the 12s/25s backoff budget first.
-        if (res.status === 429) {
-          const bodyText = await res.text().catch(() => "");
-          if (/quota/i.test(bodyText)) throw new Error(`llm7 http 429 quota: ${bodyText.slice(0, 120)}`);
-        }
+      if (res.status === 429) {
+        // T65 — ANY 429 from the shared anonymous pool fails over INSTANTLY:
+        // the pool is saturated and burning the 12s/25s backoffs first (the
+        // old behavior) made the whole keyless chain feel dead for minutes
+        // under load. The auto-failover re-routes to a DIFFERENT provider
+        // (separate capacity) in <1s, with an honest status note.
+        const bodyText = await res.text().catch(() => "");
+        throw new Error(`llm7 http 429: ${bodyText.slice(0, 120)}`);
+      }
+      if (res.status >= 500) {
         const err = new Error(`llm7 http ${res.status}`);
         const wait = RETRY_BACKOFF_MS[attempt];
         if (wait !== undefined && retry.budgetLeft >= wait) {
@@ -263,6 +273,8 @@ async function llm7Round(
         continue;
       }
       throw err;
+    } finally {
+      clearTimeout(timer);
     }
   }
 }
@@ -474,26 +486,36 @@ export async function POST(req: Request) {
             type: "status",
             note:
               lang === "ar"
-                ? "النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر GPT-OSS المجاني (بلا تسجيل)"
-                : "backbone model unavailable on this host — answering via the keyless GPT-OSS free cloud",
+                ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM-5.3-Flash المجانية (بلا تسجيل ولا مفاتيح)"
+                : "gateway unavailable on this host — answering via the keyless GLM-5.3-Flash cloud (no key, no sign-in)",
           });
-          // T59 — the keyless backbone is now Pollinations GPT-OSS-20B
-          // (excellent Arabic, follows the JSON protocol). The old llm7
-          // mistral sink answered Arabic questions in Portuguese soup —
-          // the "crash text" the user reported.
+          // T65 — the keyless backbone is now LLM7's anonymous GLM-5.3-Flash
+          // tier: a REAL GLM brain (clean MSA Arabic + strict-JSON protocol
+          // compliance, probe-verified live), so the public deployment keeps
+          // a GLM main even before ZAI_API_KEY is set. Pollinations GPT-OSS
+          // is the fallback; llm7 mistral stays the LAST resort.
           model = findAiModel(KEYLESS_MODEL_ID)!;
           msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
         }
       }
-      // T56/T59 — the backbone the failovers re-route to: SDK GLM-4-Plus in
-      // the sandbox, direct GLM-4.7-Flash on keyed hosts, Pollinations
-      // GPT-OSS-20B (keyless, strong Arabic) otherwise; llm7 mistral is the
-      // LAST keyless resort when Pollinations is busy.
+      // T65 — the keyless provider chain (strictly DOWN, no loops): the GLM
+      // keyless brain first, then GPT-OSS, then Mistral as the last resort.
+      const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, "llm7:mistral-Nemo-Instruct-2407"];
+      // T56/T59/T65 — the backbone the failovers re-route to: SDK GLM-4-Plus
+      // in the sandbox, DIRECT GLM-4-Plus on keyed hosts (the user's pick),
+      // keyless GLM-5.3-Flash otherwise; Pollinations GPT-OSS is the keyless
+      // fallback and llm7 mistral the last resort.
       const backboneModel = (): AiModel =>
         zai ? findAiModel(DEFAULT_AI_MODEL_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel(KEYLESS_MODEL_ID)!;
       const keylessFallbackModel = (): AiModel => findAiModel(KEYLESS_FALLBACK_MODEL_ID)!;
       const hasBackbone = () => zai !== null || ZAI_API_KEY.length > 0;
-      // T59 — keyless tiers never stream raw deltas (crash-text guard)
+      // T59/T65 — WEAK keyless tiers never stream raw deltas (crash-text
+      // guard). The GLM-5.3-Flash keyless tier is a STRONG tier (verified
+      // MSA Arabic + protocol compliance) — it streams like a backbone so
+      // the answer visibly types in; if it ever fails verification, the
+      // final-answer gate still replaces the text before it ships.
+      const isWeakKeyless = () =>
+        model.provider === "pollinations" || (model.provider === "llm7" && model.providerModel !== "GLM-5.3-Flash");
       const isKeyless = () => model.provider === "llm7" || model.provider === "pollinations";
       // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
       // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
@@ -559,12 +581,12 @@ export async function POST(req: Request) {
             // reasoning, not a shallow template. With the composer's
             // extended-thinking toggle ON, round 0 thinks too.
             const deepRound = round > 0 || deep;
-            // T58 — never stream raw keyless deltas to the user: the weak tier's
-            // garbage (Portuguese/Telugu soup) used to flash on screen BEFORE
-            // the final answer replaced it. Keyless rounds stream status only;
-            // the clean answer arrives with the done event.
+            // T58/T65 — never stream raw deltas from WEAK keyless tiers: the
+            // weak pool's garbage (Portuguese/Telugu soup) used to flash on
+            // screen BEFORE the final answer replaced it. Weak tiers stream
+            // status only; the GLM keyless tier streams like the backbone.
             const preview =
-              isKeyless() ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
+              isWeakKeyless() ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
             raw = await runRound(deepRound ? "enabled" : "disabled", preview);
             usage.llmCalls++;
           } catch (err) {
@@ -576,24 +598,47 @@ export async function POST(req: Request) {
             // direct key), otherwise Pollinations ⇄ llm7 mistral keep the
             // answer coming. An honest status note is streamed and the done
             // event reports the model that ACTUALLY served the answer.
-            if (isKeyless() && !failedOver) {
-              failedOver = true;
-              const next = hasBackbone() ? backboneModel() : keylessFallbackModel();
-              if (next.id !== model.id) {
+            // T65 — the KEYLESS CHAIN, three hops: GLM-5.3-Flash →
+            // GPT-OSS-20B → Mistral Nemo (each a SEPARATE provider with its
+            // own capacity). One busy pool no longer kills the answer — we
+            // hop DOWN the chain with an honest note, and only fail after
+            // every keyless pool is exhausted (then: the deterministic
+            // briefing whenever tool data was already collected).
+            if (isKeyless()) {
+              const chainIdx = KEYLESS_CHAIN.indexOf(model.id);
+              if (chainIdx >= 0 && chainIdx < KEYLESS_CHAIN.length - 1) {
+                const next = hasBackbone() ? backboneModel() : findAiModel(KEYLESS_CHAIN[chainIdx + 1])!;
+                if (next.id !== model.id) {
+                  failedOver = true;
+                  send({
+                    type: "status",
+                    note:
+                      lang === "ar"
+                        ? "السحابة المجانية مشغولة حاليًا — سيتم الرد تلقائيًا عبر نموذج بديل"
+                        : "The free cloud tier is busy right now — answering automatically via a backup model",
+                  });
+                  model = next;
+                  msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+                  continue; // retry the SAME round on the next tier
+                }
+              }
+            }
+            // every pool exhausted — NEVER waste the data already collected:
+            // ship the deterministic briefing when tools ran, else answer
+            // honestly instead of a bare error
+            if (steps.length > 0) {
+              const briefing = composeBriefing(lang, toolResults);
+              if (briefing) {
                 send({
                   type: "status",
                   note:
                     lang === "ar"
-                      ? "السحابة المجانية مشغولة حاليًا — سيتم الرد تلقائيًا عبر نموذج بديل"
-                      : "The free cloud tier is busy right now — answering automatically via a backup model",
+                      ? "جميع المستويات السحابية مشغولة — تم توليد ملخص البيانات مباشرة"
+                      : "All cloud tiers are busy — composed the briefing directly from the tool data",
                 });
-                model = next;
-                msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
-                continue; // retry the SAME round on the backup tier
+                return void done(briefing);
               }
             }
-            // gateway 429s retry with backoff inside createChatStream; if
-            // throttling persists, answer honestly instead of a bare error
             const throttled = isThrottleError(err);
             return void fail(
               throttled
@@ -747,9 +792,9 @@ export async function POST(req: Request) {
               'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
           });
           try {
-            // T58 — keyless rounds never stream raw deltas (crash-text guard)
+            // T58/T65 — weak keyless rounds never stream raw deltas (crash-text guard)
             const preview =
-              isKeyless() ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
+              isWeakKeyless() ? undefined : makeFinalPreviewer((text) => send({ type: "delta", text }));
             const raw = await runRound("enabled", preview);
             usage.llmCalls++;
             if (debug) debugRaw.push(raw.slice(0, 800));

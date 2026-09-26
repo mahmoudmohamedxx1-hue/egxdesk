@@ -1117,20 +1117,43 @@ export function LensView() {
                           {sliceData?.over && (
                             <circle cx={ring.x} cy={ring.y} r={ring.r + 2} fill="none" stroke="#fbbf24" strokeWidth="1" strokeDasharray="2 2" />
                           )}
-                          {/* week change arc + halo */}
+                          {/* week change — T65: RECOGNIZABLE. A pulsing halo in
+                           * the NET direction color catches the eye on the
+                           * whole board; the outer arcs are bigger, brighter
+                           * and sized by the stake points actually moved */}
                           {moved && (
                             <>
-                              <circle cx={ring.x} cy={ring.y} r={ring.r + 3} fill="none" style={{ stroke: "var(--lens-ring)" }} strokeWidth="1" strokeDasharray="3 3" />
+                              <circle
+                                className="lens-move-pulse"
+                                cx={ring.x}
+                                cy={ring.y}
+                                r={ring.r + 6}
+                                fill="none"
+                                stroke={(weekMoves?.byT.get(ring.ticker) ?? []).reduce((s, mv) => s + (mv.c ?? 0), 0) >= 0 ? "#10b981" : "#ef4444"}
+                                strokeWidth={2.2}
+                              />
                               {(weekMoves?.byT.get(ring.ticker) ?? []).map((mv, i) => {
-                                const span = Math.min(Math.PI / 4, Math.max(0.12, Math.abs(mv.c ?? 0) * 0.09));
-                                const a0 = -Math.PI / 2 + i * 0.35;
+                                const span = Math.min(Math.PI / 3, Math.max(0.24, Math.abs(mv.c ?? 0) * 0.16));
+                                const a0 = -Math.PI / 2 + i * (span + 0.22);
+                                const col = (mv.c ?? 0) >= 0 ? "#34d399" : "#f87171";
                                 return (
-                                  <path
-                                    key={`wa-${i}`}
-                                    d={arcPath(ring.x, ring.y, ring.r + 3.5, ring.r + 7, a0, a0 + span)}
-                                    fill={(mv.c ?? 0) >= 0 ? "#34d399" : "#f87171"}
-                                    opacity={0.95}
-                                  />
+                                  <g key={`wa-${i}`} className="pointer-events-none">
+                                    <path d={arcPath(ring.x, ring.y, ring.r + 4, ring.r + 13, a0, a0 + span)} fill={col} opacity={0.9} stroke={col} strokeWidth={0.8} />
+                                    {/* the move's size in stake points, printed at the arc's
+                                     * mid-angle — only when the ring is big enough to host it */}
+                                    {ring.r > 17 && Math.abs(mv.c ?? 0) >= 0.25 && (
+                                      <text
+                                        x={ring.x + Math.cos(a0 + span / 2) * (ring.r + 17)}
+                                        y={ring.y + Math.sin(a0 + span / 2) * (ring.r + 17) + 2.5}
+                                        textAnchor="middle"
+                                        fontSize="8"
+                                        fontWeight={700}
+                                        style={{ fill: col }}
+                                      >
+                                        {`${(mv.c ?? 0) > 0 ? "+" : ""}${(mv.c ?? 0).toFixed(2)}p`}
+                                      </text>
+                                    )}
+                                  </g>
                                 );
                               })}
                             </>
@@ -1341,7 +1364,7 @@ export function LensView() {
                 الحلقة شركة، حجمها بالقيمة السوقية، والشرائح الملوّنة مالكون وردت أسماؤهم في إفصاح.
                 الحد المنقّط = شركة لم يرد لها إفصاح ملكية بعد (كل شركة عامة لها مالكون — الإفصاح لم يذكرهم).
                 الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليست أسهماً حرة.
-                القوس الخارجي ما اكتسبته الحصة أو تخلّت عنه في الأسبوع المختار.
+                الهالة النابضة تميّز الشركات التي تحرّكت حصصها في الأسبوع المختار، والقوس الخارجي بحجم ما اكتسبته الحصة أو تخلّت عنه (الرقم بنقاط الحصة).
               </>
             ) : (
               <>
@@ -1349,7 +1372,7 @@ export function LensView() {
                 A ring is a company, sized by market cap; the colored slices are holders named in disclosures.
                 A dotted outline = no disclosure filed for that company yet (every public company has owners — the filings just have not named them).
                 The grey part is ownership nobody had to disclose — NOT free float.
-                The outer arc is what a stake gained or shed in the chosen week.
+                The pulsing halo marks companies whose stakes moved in the chosen week; the outer arc sizes what a stake gained or shed (the number is in stake points).
               </>
             )}
           </div>
@@ -1357,6 +1380,82 @@ export function LensView() {
 
         {/* ── right panel: company profile / investor portfolio / register ── */}
         <aside className="space-y-3">
+          {/* T65 — the WEEK'S MOVES, ranked: the most recognizable form of
+           * the week replay — not tiny arcs on the board but a plain list of
+           * who moved, in which company, from → to, biggest first. Clicking a
+           * row focuses the company; clicking the holder name focuses HIM. */}
+          {weekMoves && (
+            <div className="rounded-xl border bg-card p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold leading-snug">
+                    {lang === "ar" ? "تحركات الأسبوع المختار" : "The chosen week's moves"}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {weekMoves.period.l} ·{" "}
+                    {weekMoves.period.m.length.toLocaleString(lang === "ar" ? "ar-EG" : "en-GB")}{" "}
+                    {lang === "ar" ? "حصة تحرّكت" : "stakes moved"} ·{" "}
+                    {new Set(weekMoves.period.m.map((m) => m.t)).size} {lang === "ar" ? "شركة" : "companies"}
+                  </p>
+                </div>
+                <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setWeekIdx(null)}>
+                  {lang === "ar" ? "إخفاء" : "clear"}
+                </button>
+              </div>
+              <div className="max-h-[34vh] overflow-auto space-y-1 pr-1 thin-scroll">
+                {[...weekMoves.period.m]
+                  .sort((a, b) => Math.abs(b.c ?? 0) - Math.abs(a.c ?? 0))
+                  .slice(0, 24)
+                  .map((m, i) => {
+                    const up = (m.c ?? 0) >= 0;
+                    const holder = data ? data.people[m.h]?.n ?? String(m.h) : String(m.h);
+                    return (
+                      <button
+                        key={`${m.t}-${m.h}-${i}`}
+                        onClick={() => setFocus({ type: "company", ticker: m.t })}
+                        className="w-full rounded-lg border bg-background/60 px-2 py-1.5 text-start text-xs hover:bg-accent/50 transition-colors"
+                        title={lang === "ar" ? "افتح ملف ملكية الشركة" : "open the company's ownership profile"}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <b className="shrink-0">{m.t}</b>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFocus({ type: "holder", h: m.h });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.stopPropagation();
+                                  setFocus({ type: "holder", h: m.h });
+                                }
+                              }}
+                              className="min-w-0 truncate text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
+                            >
+                              {holder}
+                            </span>
+                          </span>
+                          <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            {up ? "+" : ""}
+                            {(m.c ?? 0).toFixed(2)}p
+                          </b>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                          {m.f != null && m.o != null ? `${fmtPct(m.f)}% → ${fmtPct(m.o)}%` : m.o != null ? `${lang === "ar" ? "إفصاح جديد" : "new filing"} ${fmtPct(m.o)}%` : "—"}
+                        </p>
+                      </button>
+                    );
+                  })}
+              </div>
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                {lang === "ar"
+                  ? "الأكبر أولًا · p = نقطة حصة (وحدة مئوية). على اللوحة: الهالة النابضة تميّز الشركات المتحركة والأقواس الخارجية بحجم كل حركة — اضغط أي صف لتفتح الشركة."
+                  : "Biggest first · p = stake point (one percentage unit). On the board: the pulsing halo marks moved companies and the outer arcs size each move — click any row to open the company."}
+              </p>
+            </div>
+          )}
           {focusState?.kind === "company" ? (
             <div className="rounded-xl border bg-card p-3 space-y-2.5">
               <div className="flex items-start justify-between gap-2">

@@ -129,6 +129,10 @@ export type SignalRow = {
     agreement: number; // longVotes / applicable
     fired: string[]; // ids of strategies that fired (long or avoid)
   };
+  /** T65 — the FULL per-strategy verdicts (every one of the 18, fired or
+   *  not) so the Strategy Lab can show each strategy's live read on a
+   *  stock the reader picks. Populated by computeSignalRow. */
+  ensembleVerdicts?: StrategyVerdict[];
   ensembleEvidence: string[]; // union of fired evidence codes (≤12)
   // T44 — the per-ticker ML read rides on the row (null when the model
   // could not train an honest forecast on this tape)
@@ -334,6 +338,7 @@ export function computeSignalRow(
       agreement: ens.agreement,
       fired: ens.verdicts.filter((v) => v.fired).map((v) => v.id),
     },
+    ensembleVerdicts: verdicts,
     ensembleEvidence: ens.evidence,
     ml: ml ? { probUp: ml.probUp, hitRate: ml.hitRate, trainedRows: ml.trainedRows, valRows: ml.valRows } : null,
     insider,

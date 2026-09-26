@@ -513,7 +513,7 @@ export function AppShell() {
           {view.name === "calendar" && <CalendarView />}
           {view.name === "compare" && <CompareView />}
           {view.name === "signals" && <SignalsView />}
-          {view.name === "lab" && <StrategyLabView />}
+          {view.name === "lab" && <StrategyLabView ticker={view.ticker} />}
           {view.name === "funds" && <FundsView />}
           {view.name === "gcc" && <GccView />}
           {view.name === "paper" && <PaperView />}

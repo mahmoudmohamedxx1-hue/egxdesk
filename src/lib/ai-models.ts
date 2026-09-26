@@ -55,12 +55,22 @@ export const AI_MODELS: AiModel[] = [
     noteAr: "نموذج خادم التطبيق — متاح دائمًا بلا تسجيل",
   },
   {
+    id: "llm7:GLM-5.3-Flash",
+    provider: "llm7",
+    providerModel: "GLM-5.3-Flash",
+    label: "GLM-5.3 Flash (keyless)",
+    labelAr: "GLM-5.3 Flash (بلا تسجيل)",
+    newest: true,
+    ctx: 400_000,
+    note: "Keyless GLM cloud — real GLM brain, strong Arabic, no key, no sign-in. Auto-falls back to GPT-OSS-20B when the shared pool is busy",
+    noteAr: "سحابة GLM بلا تسجيل ولا مفاتيح — عربية قوية. وعند انشغالها يتحول تلقائيًا إلى GPT-OSS-20B",
+  },
+  {
     id: "pollinations:gpt-oss-20b",
     provider: "pollinations",
     providerModel: "openai-fast",
     label: "GPT-OSS 20B (keyless)",
     labelAr: "GPT-OSS 20B (بلا تسجيل)",
-    newest: true,
     ctx: 131_072,
     note: "Keyless cloud, strong Arabic — no sign-in, no key. Free shared tier; auto-falls back to Mistral Nemo when busy",
     noteAr: "سحابة بلا تسجيل ولا مفاتيح — عربية قوية. حصة مجانية مشتركة، وعند انشغالها يتحول تلقائيًا إلى Mistral Nemo",
@@ -295,14 +305,21 @@ export const AI_MODELS: AiModel[] = [
 
 export const DEFAULT_AI_MODEL_ID = "glm-4-plus";
 
-/** T59 — the default KEYLESS backbone on hosts without the SDK gateway and
- *  without ZAI_API_KEY (the public Vercel deployment): Pollinations'
- *  GPT-OSS-20B, whose Modern Standard Arabic is excellent — the old llm7
- *  mistral sink answered Arabic questions in Portuguese soup (crash text). */
-export const KEYLESS_MODEL_ID = "pollinations:gpt-oss-20b";
+/** T59 → T65 — the default KEYLESS backbone on hosts without the SDK gateway
+ *  and without ZAI_API_KEY (the public Vercel deployment): LLM7's anonymous
+ *  GLM-5.3-Flash tier — a REAL GLM brain, probe-verified live (clean MSA
+ *  Arabic, strict-JSON tool protocol compliance, streamed SSE, 100%
+ *  availability at probe time). This replaces the old order (Pollinations
+ *  GPT-OSS first) because the user asked for GLM as the main family: with
+ *  no key on the host, GLM-5.3-Flash keyless IS the main; with ZAI_API_KEY
+ *  set, the direct cloud serves glm-4-plus (the user's explicit pick); in
+ *  the sandbox the SDK gateway serves GLM-4-Plus as always. */
+export const KEYLESS_MODEL_ID = "llm7:GLM-5.3-Flash";
 
-/** The last-resort keyless tier after Pollinations is busy/exhausted. */
-export const KEYLESS_FALLBACK_MODEL_ID = "llm7:mistral-Nemo-Instruct-2407";
+/** The last-resort keyless tier after the GLM pool is busy/exhausted:
+ *  Pollinations GPT-OSS-20B (strong Arabic); llm7 mistral remains the
+ *  final manual-pick resort beyond it. */
+export const KEYLESS_FALLBACK_MODEL_ID = "pollinations:gpt-oss-20b";
 
 export function findAiModel(id: unknown): AiModel | null {
   if (typeof id !== "string" || id.length === 0) return null;

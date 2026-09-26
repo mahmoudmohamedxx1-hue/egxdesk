@@ -493,13 +493,29 @@ html {
   animation: lensFade 0.4s ease-out both;
 }
 
+/* T65 — a company whose stake MOVED in the chosen week: its ring pulses in
+ * the net direction color (green = stakes gained, red = shed) so the eye
+ * finds every moved company on the whole board instantly — the moves were
+ * too subtle before (tiny arcs only); now the pulse catches the eye and the
+ * arcs carry the detail. */
+.lens-move-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lensMovePulse 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes lensMovePulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.14); opacity: 0.4; }
+}
+
 /* status pills on map (auto-update badge) */
 .lens-badge {
   font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lens-seat, .lens-draw, .lens-fade, .lens-pulse, .lens-halo {
+  .lens-seat, .lens-draw, .lens-fade, .lens-pulse, .lens-halo, .lens-move-pulse {
     animation: none !important;
   }
   .lens-ring { transition: none; }

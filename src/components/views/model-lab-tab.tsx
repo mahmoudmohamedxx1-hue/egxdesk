@@ -20,7 +20,7 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
-import { Search, RotateCcw, FlaskConical, Calculator, Grid3x3, ExternalLink, TrendingUp } from "lucide-react";
+import { Search, RotateCcw, FlaskConical, Calculator, Grid3x3, ExternalLink } from "lucide-react";
 import {
   computeFv,
   fvSensitivity,
@@ -30,7 +30,7 @@ import {
   upsideColor,
   type FvInputs,
 } from "@/lib/fair-value";
-import { dcfPerShare } from "../market/valuation-panel";
+import { DcfLab } from "./dcf-lab";
 import { fmt1, fmt2, fmtCap, fmtPct, type ValData, type ValRow } from "./valuation-shared";
 
 const MODEL_LABELS: Record<string, { ar: string; en: string }> = {
@@ -54,9 +54,6 @@ export function ModelLabTab({ data, ticker, onPick }: { data: ValData; ticker: s
   const [gMode, setGMode] = useState<"auto" | "manual">("auto");
   const [gManual, setGManual] = useState<number>(8);
   const [mos, setMos] = useState<number>(() => data.assumptions.mos);
-  const [dcfG, setDcfG] = useState<number>(10);
-  const [dcfR, setDcfR] = useState<number>(22);
-  const [dcfT, setDcfT] = useState<number>(5);
 
   const eps = useMemo(() => {
     if (row == null) return null;
@@ -103,15 +100,6 @@ export function ModelLabTab({ data, ticker, onPick }: { data: ValData; ticker: s
   const sens = useMemo(() => fvSensitivity(inputs, assumptions), [inputs, assumptions]);
   const autoG = useMemo(() => fvAutoG(inputs, assumptions), [inputs, assumptions]);
   const rUsed = useMemo(() => fvDiscountRate(assumptions, beta), [assumptions, beta]);
-
-  // DCF card (same math as the company page)
-  const dcf = useMemo(() => {
-    if (!row) return null;
-    const shares = row.marketCap != null && row.close ? row.marketCap / row.close : null;
-    const fcf0 = row.netIncomeTTM != null ? row.netIncomeTTM : eps != null && shares ? eps * shares : null;
-    if (fcf0 == null || shares == null || shares <= 0) return null;
-    return dcfPerShare(fcf0, dcfG, dcfR, dcfT, row.netDebt ?? 0, shares);
-  }, [row, eps, dcfG, dcfR, dcfT]);
 
   const matches = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -233,7 +221,7 @@ export function ModelLabTab({ data, ticker, onPick }: { data: ValData; ticker: s
 
           <div className="grid gap-4 lg:grid-cols-[20rem_1fr] items-start">
             {/* assumptions panel */}
-            <div className="space-y-3 rounded-xl border bg-card p-3">
+            <div className="min-w-0 space-y-3 rounded-xl border bg-card p-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="flex items-center gap-1.5 text-sm font-bold">
                   <FlaskConical className="h-4 w-4 text-primary" aria-hidden />
@@ -345,7 +333,7 @@ export function ModelLabTab({ data, ticker, onPick }: { data: ValData; ticker: s
             </div>
 
             {/* results */}
-            <div className="space-y-3">
+            <div className="min-w-0 space-y-3">
               {/* verdict header */}
               <div className="rounded-xl border bg-card p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -485,60 +473,8 @@ export function ModelLabTab({ data, ticker, onPick }: { data: ValData; ticker: s
                 </div>
               </div>
 
-              {/* DCF card — the earnings-power view */}
-              <div className="rounded-xl border bg-card p-3">
-                <h2 className="flex items-center gap-1.5 text-sm font-bold">
-                  <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
-                  {lang === "ar" ? "DCF مرحلي (١٠ سنوات)" : "Two-stage DCF (10 years)"}
-                </h2>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                  {lang === "ar"
-                    ? "صافي الربح TTM ينمو بمعدلك عشر سنوات ثم قيمة نهائية، والكل يُخصم — مطابق لحاسبة صفحة الشركة. الافتراضي ٢٢٪ خصم لأن فائدة الجنيه في مصر مرتفعة."
-                    : "TTM net income grows at your rate for ten years then a terminal value, all discounted — the same math as the company page's calculator. The 22% default reflects Egypt's cost of money."}
-                </p>
-                <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                  {(
-                    [
-                      [lang === "ar" ? "نمو سنوي" : "annual growth", dcfG, setDcfG, 0, 40],
-                      [lang === "ar" ? "خصم" : "discount", dcfR, setDcfR, 5, 45],
-                      [lang === "ar" ? "نمو نهائي" : "terminal", dcfT, setDcfT, 0, 20],
-                    ] as [string, number, (v: number) => void, number, number][]
-                  ).map(([label, value, setter, min, max]) => (
-                    <label key={label} className="block">
-                      <span className="flex items-center justify-between text-muted-foreground">
-                        {label}
-                        <b className="tabular-nums text-foreground">{value}%</b>
-                      </span>
-                      <input type="range" dir="ltr" min={min} max={max} step={0.5} value={value} onChange={(e) => setter(Number(e.target.value))} className="mt-1 w-full accent-primary" />
-                    </label>
-                  ))}
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 text-[11px]">
-                  <div className="rounded-lg bg-secondary/50 p-2">
-                    <span className="block text-muted-foreground">{lang === "ar" ? "قيمة/سهم" : "value/share"}</span>
-                    <b className="tabular-nums text-base">{dcf ? fmt2(dcf.perShare) : "—"}</b>
-                  </div>
-                  <div className="rounded-lg bg-secondary/50 p-2">
-                    <span className="block text-muted-foreground">{lang === "ar" ? "من السعر" : "vs price"}</span>
-                    <b className={`tabular-nums text-base ${dcf && row.close && dcf.perShare >= row.close ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                      {dcf && row.close ? fmtPct(((dcf.perShare / row.close) - 1) * 100, 0) : "—"}
-                    </b>
-                  </div>
-                  <div className="rounded-lg bg-secondary/50 p-2">
-                    <span className="block text-muted-foreground">{lang === "ar" ? "قيمة المنشأة" : "enterprise"}</span>
-                    <b className="tabular-nums text-sm">EGP {fmtCap(dcf?.ev)}</b>
-                  </div>
-                  <div className="rounded-lg bg-secondary/50 p-2">
-                    <span className="block text-muted-foreground">{lang === "ar" ? "القيمة النهائية" : "PV terminal"}</span>
-                    <b className="tabular-nums text-sm">EGP {fmtCap(dcf?.pvTerminal)}</b>
-                  </div>
-                </div>
-                {!dcf && (
-                  <p className="mt-1.5 text-[10px] text-muted-foreground">
-                    {lang === "ar" ? "لا أرباح TTM منشورة لهذه الشركة — النموذج معطّل بأمانة." : "No published TTM earnings for this company — the model stays off, honestly."}
-                  </p>
-                )}
-              </div>
+              {/* DCF lab — the full discounted-cash-flow workbench */}
+              <DcfLab row={row} eps={eps} blendFv={fv.blend} />
             </div>
           </div>
 

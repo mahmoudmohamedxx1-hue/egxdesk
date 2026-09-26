@@ -65,15 +65,21 @@ async function main() {
 
   console.log("steps:", steps.join(" "));
   console.log("statuses:", statuses.join(" | ").slice(0, 300));
-  console.log("delta events (must be 0 on keyless):", deltas);
+  // T65 — the STRONG keyless GLM tier streams its deltas live (by design);
+  // weak tiers still stream none. Deltas are now EXPECTED when GLM served.
+  console.log("delta events (expected > 0 on the GLM keyless tier):", deltas);
   console.log("served model:", model);
   console.log("answer length:", answer.length);
   const ok = languageOk(answer, "ar");
-  console.log("languageOk(ar):", ok);
+  // T65 success = a REAL model answer in clean Arabic — NOT the deterministic
+  // briefing fallback (that is the "agent isn't working" degrade the user
+  // reported on Vercel).
+  const isBriefing = /_ملخّص مولَّد آليًا|تعذّر تشكيل الرد|auto-generated/.test(answer);
+  console.log("languageOk(ar):", ok, "| deterministic briefing (must be false):", isBriefing);
   console.log("========== FINAL ANSWER ==========");
   console.log(answer.slice(0, 1600));
   console.log("==================================");
-  process.exit(ok && deltas === 0 ? 0 : 1);
+  process.exit(ok && !isBriefing ? 0 : 1);
 }
 
 main().catch((e) => {

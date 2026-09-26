@@ -1,16 +1,23 @@
 "use client";
 
-/** T64 — the valuation MAP tab: every company with a published P/E and D/E
- *  on one 2D map — x = what you pay for earnings, y = how leveraged the
+/** T64 → T65 — the valuation MAP tab: every company with a published P/E and
+ *  D/E on one 2D map — x = what you pay for earnings, y = how leveraged the
  *  balance sheet is, bubble = market cap. Two color modes: the four reading
  *  quadrants (median lines printed) or the FAIR VALUE lens — each bubble
  *  painted by its upside vs the five-model blended fair value (deep green
  *  = far below fair value, deep red = far above).
  *
- *  Improvements over the first cut: drag to pan, ctrl/⌘+wheel to zoom
- *  (plain wheel keeps scrolling the page — never hijacked), a richer hover
- *  card (fair value, upside, P/B, ROE, dividend yield, debt zone, a jump to
- *  the model lab), and honest median guides unchanged. */
+ *  T65 — THE ZOOM IS NOW SYNCHRONIZED WITH THE GRAPH: the user reported that
+ *  zooming moved the bubbles while the axes/tints/median guides stayed
+ *  frozen. The whole DATA layer (quadrant tints, median guides, bubbles)
+ *  now lives inside ONE camera transform, and the AXES are drawn in screen
+ *  space with their tick values RE-COMPUTED from the visible domain at
+ *  every camera change — exactly how a professional chart zooms: the grid
+ *  moves with the data, the labels re-value themselves, and nothing ever
+ *  desyncs. Zoom is cursor-anchored (ctrl/⌘ + wheel, buttons, pinch via
+ *  ctrl+wheel), drag pans, labels scale sub-linearly (√k) so they stay
+ *  readable at every zoom, and bubble strokes use non-scaling-stroke so
+ *  they stay hairline-thin at 3×. */
 
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
@@ -21,6 +28,12 @@ import { fmt1, fmt2, fmtCap, fmtPct, type ValData, type ValRow } from "./valuati
 const W = 960;
 const H = 560;
 
+/** the plot rectangle in SVG units (chart chrome lives outside it) */
+const PX0 = 70;
+const PX1 = W - 40;
+const PY0 = 30;
+const PY1 = H - 60;
+
 const QUADRANT_COLORS: Record<string, string> = {
   value: "#10b981",
   leveraged: "#f59e0b",
@@ -29,12 +42,26 @@ const QUADRANT_COLORS: Record<string, string> = {
 };
 
 type ColorMode = "quadrant" | "fair";
+type Cam = { k: number; x: number; y: number };
+
+/** "nice" tick values for a visible domain — 1/2/2.5/5×10^n steps. */
+function niceTicks(min: number, max: number, target = 5): number[] {
+  if (!(max > min) || !Number.isFinite(min) || !Number.isFinite(max)) return [];
+  const raw = (max - min) / target;
+  if (!(raw > 0)) return [];
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+  const start = Math.ceil(min / step) * step;
+  const out: number[] = [];
+  for (let v = start; v <= max + step * 1e-6; v += step) out.push(+v.toFixed(6));
+  return out;
+}
 
 export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] }) {
   const { lang, navigate } = useApp();
   const [mode, setMode] = useState<ColorMode>("quadrant");
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [cam, setCam] = useState<Cam>({ k: 1, x: 0, y: 0 });
   const [hover, setHover] = useState<ValRow | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<{ sx: number; sy: number; px: number; py: number; scale: number } | null>(null);
@@ -51,38 +78,65 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
     medianDe: data.medianDe ?? 1,
   };
 
-  const x = (pe: number) => 70 + (Math.min(pe, axes.xMax) / axes.xMax) * (W - 110);
-  const y = (de: number) => H - 60 - (Math.min(de, axes.yMax) / axes.yMax) * (H - 100);
+  // data-space → SVG-plot mapping (clamped at the axis caps, as before)
+  const x = (pe: number) => PX0 + (Math.min(pe, axes.xMax) / axes.xMax) * (PX1 - PX0);
+  const y = (de: number) => PY1 - (Math.min(de, axes.yMax) / axes.yMax) * (PY1 - PY0);
   const maxCap = Math.max(...rows.map((r) => r.marketCap ?? 0), 1);
   const r = (cap: number | null) => 5 + Math.sqrt((cap ?? 1e8) / maxCap) * 26;
 
   const bubbleColor = (row: ValRow): string =>
     mode === "fair" ? upsideColor(row.upside) : QUADRANT_COLORS[row.quadrant ?? "expensive"];
 
-  // ctrl/⌘ + wheel = zoom (non-passive so the pinch gesture can be stopped);
-  // a plain wheel keeps scrolling the page — it is never hijacked.
+  // ── the camera ──
+  const clampCam = (c: Cam): Cam => {
+    const k = Math.min(3, Math.max(0.8, c.k));
+    const padX = 48;
+    const padY = 36;
+    // k ≥ 1: the scaled content must cover the viewport (soft edges only)
+    // k < 1: the content is smaller than the viewport — center it, no pan
+    const cx = k >= 1 ? Math.min(padX, Math.max(W - W * k - padX, c.x)) : (W - W * k) / 2;
+    const cy = k >= 1 ? Math.min(padY, Math.max(H - H * k - padY, c.y)) : (H - H * k) / 2;
+    return { k, x: cx, y: cy };
+  };
+
+  /** zoom by `factor` anchored at a point in SVG coordinates */
+  const zoomAt = (px: number, py: number, factor: number) => {
+    setCam((c) => {
+      const k = Math.min(3, Math.max(0.8, c.k * factor));
+      const s = k / c.k;
+      return clampCam({ k, x: px - (px - c.x) * s, y: py - (py - c.y) * s });
+    });
+  };
+
+  /** a client-space event → SVG viewBox coordinates */
+  const svgPoint = (e: { clientX: number; clientY: number }): { x: number; y: number } | null => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return null;
+    return { x: ((e.clientX - rect.left) / rect.width) * W, y: ((e.clientY - rect.top) / rect.height) * H };
+  };
+
+  // ctrl/⌘ + wheel = CURSOR-ANCHORED zoom (non-passive so the pinch gesture
+  // can be stopped); a plain wheel keeps scrolling the page — never hijacked.
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();
-      setZoom((z) => Math.min(3, Math.max(0.8, z * Math.exp(-e.deltaY * 0.0022))));
+      const p = svgPoint(e);
+      if (!p) return;
+      const factor = Math.exp(-e.deltaY * 0.0024);
+      zoomAt(p.x, p.y, Math.min(1.6, Math.max(0.6, factor)));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  const clampPan = (px: number, py: number, z: number) => ({
-    x: Math.min(60, Math.max(W * (1 - z) - 60, px)),
-    y: Math.min(60, Math.max(H * (1 - z) - 60, py)),
-  });
-
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
     movedRef.current = 0;
-    dragRef.current = { sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y, scale: W / rect.width };
+    dragRef.current = { sx: e.clientX, sy: e.clientY, px: cam.x, py: cam.y, scale: W / rect.width };
     svgRef.current?.setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -91,16 +145,35 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
     const dx = e.clientX - d.sx;
     const dy = e.clientY - d.sy;
     movedRef.current = Math.abs(dx) + Math.abs(dy);
-    setPan(clampPan(d.px + dx * d.scale, d.py + dy * d.scale, zoom));
+    setCam((c) => clampCam({ k: c.k, x: d.px + dx * d.scale, y: d.py + dy * d.scale }));
   };
   const onPointerUp = () => {
     dragRef.current = null;
   };
 
-  const reset = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
+  const reset = () => setCam({ k: 1, x: 0, y: 0 });
+
+  // ── screen-space values derived from the camera (the synchronized axes) ──
+  // data-space pe → screen x, and back
+  const sxOfPe = (pe: number) => cam.x + x(pe) * cam.k;
+  const syOfDe = (de: number) => cam.y + y(de) * cam.k;
+  // the VISIBLE domain at the current camera
+  const peVisible: [number, number] = [
+    Math.max(0, ((PX0 - cam.x) / cam.k - PX0) / (PX1 - PX0) * axes.xMax),
+    Math.max(0, ((PX1 - cam.x) / cam.k - PX0) / (PX1 - PX0) * axes.xMax),
+  ];
+  const deVisible: [number, number] = [
+    Math.max(0, ((PY1 - (PY1 - cam.y) / cam.k) - PY0) / (PY1 - PY0) * axes.yMax),
+    Math.max(0, ((PY1 - (PY0 - cam.y) / cam.k) - PY0) / (PY1 - PY0) * axes.yMax),
+  ];
+  const xTicks = niceTicks(peVisible[0], peVisible[1]);
+  const yTicks = niceTicks(deVisible[0], deVisible[1]);
+
+  // median label positions in SCREEN space (constant font, tracks the line)
+  const medX = sxOfPe(axes.medianPe);
+  const medY = syOfDe(axes.medianDe);
+  const medXVisible = medX > PX0 + 8 && medX < PX1 - 8;
+  const medYVisible = medY > PY0 + 8 && medY < PY1 - 8;
 
   const fairLegend: [string, string, string][] = [
     ["#047857", "+40%", lang === "ar" ? "خصم عميق" : "deep discount"],
@@ -135,7 +208,9 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
         </div>
         <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <MousePointer2 className="h-3 w-3" aria-hidden />
-          {lang === "ar" ? "اسحب للتجوّل · Ctrl/⌘ + عجلة للتقريب · نقرة مزدوجة لفتح الشركة" : "drag to pan · ctrl/⌘ + wheel to zoom · double-click opens the company"}
+          {lang === "ar"
+            ? "اسحب للتجوّل · Ctrl/⌘ + عجلة للتقريب حيث يشير المؤشر · نقرة مزدوجة لفتح الشركة"
+            : "drag to pan · ctrl/⌘ + wheel to zoom at the cursor · double-click opens the company"}
         </span>
       </div>
 
@@ -153,44 +228,20 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
         >
-          {/* quadrant tints (reading aid in both modes — faint by design) */}
-          <rect x={x(axes.medianPe)} y={30} width={W - 40 - x(axes.medianPe)} height={y(axes.medianDe) - 30} fill={QUADRANT_COLORS.expensive} opacity={mode === "quadrant" ? 0.05 : 0.02} />
-          <rect x={70} y={30} width={x(axes.medianPe) - 70} height={y(axes.medianDe) - 30} fill={QUADRANT_COLORS.leveraged} opacity={mode === "quadrant" ? 0.05 : 0.02} />
-          <rect x={x(axes.medianPe)} y={y(axes.medianDe)} width={W - 40 - x(axes.medianPe)} height={H - 60 - y(axes.medianDe)} fill={QUADRANT_COLORS.quality} opacity={mode === "quadrant" ? 0.05 : 0.02} />
-          <rect x={70} y={y(axes.medianDe)} width={x(axes.medianPe) - 70} height={H - 60 - y(axes.medianDe)} fill={QUADRANT_COLORS.value} opacity={mode === "quadrant" ? 0.05 : 0.02} />
+          {/* ── DATA layer: tints + median guides + bubbles, ONE camera ── */}
+          <g transform={`translate(${cam.x},${cam.y}) scale(${cam.k})`}>
+            {/* quadrant tints (reading aid in both modes — faint by design) */}
+            <rect x={x(axes.medianPe)} y={PY0} width={PX1 - x(axes.medianPe)} height={y(axes.medianDe) - PY0} fill={QUADRANT_COLORS.expensive} opacity={mode === "quadrant" ? 0.05 : 0.02} />
+            <rect x={PX0} y={PY0} width={x(axes.medianPe) - PX0} height={y(axes.medianDe) - PY0} fill={QUADRANT_COLORS.leveraged} opacity={mode === "quadrant" ? 0.05 : 0.02} />
+            <rect x={x(axes.medianPe)} y={y(axes.medianDe)} width={PX1 - x(axes.medianPe)} height={PY1 - y(axes.medianDe)} fill={QUADRANT_COLORS.quality} opacity={mode === "quadrant" ? 0.05 : 0.02} />
+            <rect x={PX0} y={y(axes.medianDe)} width={x(axes.medianPe) - PX0} height={PY1 - y(axes.medianDe)} fill={QUADRANT_COLORS.value} opacity={mode === "quadrant" ? 0.05 : 0.02} />
 
-          {/* median guides */}
-          <line x1={x(axes.medianPe)} y1={30} x2={x(axes.medianPe)} y2={H - 60} stroke="currentColor" strokeDasharray="4 4" opacity={0.35} />
-          <line x1={70} y1={y(axes.medianDe)} x2={W - 40} y2={y(axes.medianDe)} stroke="currentColor" strokeDasharray="4 4" opacity={0.35} />
-          <text x={x(axes.medianPe) + 6} y={44} fontSize="10" fill="currentColor" opacity={0.6}>
-            {lang === "ar" ? `وسيط P/E: ${axes.medianPe.toFixed(1)}x` : `median P/E: ${axes.medianPe.toFixed(1)}x`}
-          </text>
-          <text x={W - 44} y={y(axes.medianDe) - 6} fontSize="10" textAnchor="end" fill="currentColor" opacity={0.6}>
-            {lang === "ar" ? `حد الدين ${axes.medianDe.toFixed(2)}x` : `debt line ${axes.medianDe.toFixed(2)}x`}
-          </text>
+            {/* median guides */}
+            <line x1={x(axes.medianPe)} y1={PY0} x2={x(axes.medianPe)} y2={PY1} stroke="currentColor" strokeDasharray="4 4" opacity={0.35} vectorEffect="non-scaling-stroke" />
+            <line x1={PX0} y1={y(axes.medianDe)} x2={PX1} y2={y(axes.medianDe)} stroke="currentColor" strokeDasharray="4 4" opacity={0.35} vectorEffect="non-scaling-stroke" />
 
-          {/* axes */}
-          <line x1={70} y1={H - 60} x2={W - 40} y2={H - 60} stroke="currentColor" opacity={0.3} />
-          <line x1={70} y1={30} x2={70} y2={H - 60} stroke="currentColor" opacity={0.3} />
-          <text x={W - 40} y={H - 40} textAnchor="end" fontSize="11" fill="currentColor" opacity={0.7}>
-            {lang === "ar" ? "مكرر الربحية (P/E) ← الأغلى يميناً" : "P/E → more expensive rightward"}
-          </text>
-          <text x={76} y={40} fontSize="11" fill="currentColor" opacity={0.7}>
-            {lang === "ar" ? "D/E ↑ رافعة أعلى" : "D/E ↑ more leverage"}
-          </text>
-          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <text key={`x${f}`} x={70 + f * (W - 110)} y={H - 46} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45}>
-              {(axes.xMax * f).toFixed(0)}x
-            </text>
-          ))}
-          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <text key={`y${f}`} x={64} y={H - 60 - f * (H - 100) + 3} fontSize="9" textAnchor="end" fill="currentColor" opacity={0.45}>
-              {(axes.yMax * f).toFixed(1)}x
-            </text>
-          ))}
-
-          {/* the bubbles */}
-          <g transform={`translate(${(W / 2) * (1 - zoom) + pan.x}, ${(H / 2) * (1 - zoom) + pan.y}) scale(${zoom})`}>
+            {/* the bubbles — labels scale sub-linearly (√k) so they stay
+                readable at every zoom while everything moves together */}
             {rows.map((row) => {
               const cx = x(row.pe ?? 0);
               const cy = y(row.de ?? 0);
@@ -206,6 +257,7 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
                     opacity={hover?.ticker === row.ticker ? 0.85 : 0.55}
                     stroke={color}
                     strokeWidth={hover?.ticker === row.ticker ? 2.5 : 1}
+                    vectorEffect="non-scaling-stroke"
                     className="cursor-pointer"
                     onClick={(e) => {
                       if (movedRef.current >= 5) return;
@@ -218,7 +270,7 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
                     <text
                       x={cx}
                       y={cy + 3}
-                      fontSize={Math.min(10, rr / 2.6)}
+                      fontSize={Math.min(10, rr / 2.6) * Math.sqrt(cam.k)}
                       textAnchor="middle"
                       fill="currentColor"
                       opacity={0.85}
@@ -231,6 +283,59 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
               );
             })}
           </g>
+
+          {/* ── CHROME layer (screen space): axes that RE-VALUE themselves ── */}
+          {/* axis lines */}
+          <line x1={PX0} y1={PY1} x2={PX1} y2={PY1} stroke="currentColor" opacity={0.3} />
+          <line x1={PX0} y1={PY0} x2={PX0} y2={PY1} stroke="currentColor" opacity={0.3} />
+
+          {/* x ticks — values from the VISIBLE domain, positioned on the
+              transformed data grid: the axis moves with the companies */}
+          {xTicks.map((pe) => {
+            const sx = sxOfPe(pe);
+            if (sx < PX0 + 2 || sx > PX1 - 2) return null;
+            return (
+              <g key={`xt-${pe}`}>
+                <line x1={sx} y1={PY1} x2={sx} y2={PY1 + 4} stroke="currentColor" opacity={0.35} />
+                <text x={sx} y={PY1 + 15} fontSize="9" textAnchor="middle" fill="currentColor" opacity={0.45}>
+                  {pe >= 10 ? pe.toFixed(0) : pe.toFixed(1)}x
+                </text>
+              </g>
+            );
+          })}
+          {/* y ticks */}
+          {yTicks.map((de) => {
+            const sy = syOfDe(de);
+            if (sy < PY0 + 2 || sy > PY1 - 2) return null;
+            return (
+              <g key={`yt-${de}`}>
+                <line x1={PX0 - 4} y1={sy} x2={PX0} y2={sy} stroke="currentColor" opacity={0.35} />
+                <text x={PX0 - 7} y={sy + 3} fontSize="9" textAnchor="end" fill="currentColor" opacity={0.45}>
+                  {de.toFixed(1)}x
+                </text>
+              </g>
+            );
+          })}
+
+          {/* median labels — screen space, constant font, tracking the lines */}
+          {medXVisible && (
+            <text x={Math.min(medX + 6, PX1 - 90)} y={PY0 + 14} fontSize="10" fill="currentColor" opacity={0.6}>
+              {lang === "ar" ? `وسيط P/E: ${axes.medianPe.toFixed(1)}x` : `median P/E: ${axes.medianPe.toFixed(1)}x`}
+            </text>
+          )}
+          {medYVisible && (
+            <text x={PX1 - 6} y={Math.max(medY - 6, PY0 + 10)} fontSize="10" textAnchor="end" fill="currentColor" opacity={0.6}>
+              {lang === "ar" ? `حد الدين ${axes.medianDe.toFixed(2)}x` : `debt line ${axes.medianDe.toFixed(2)}x`}
+            </text>
+          )}
+
+          {/* axis titles */}
+          <text x={PX1} y={PY1 + 30} textAnchor="end" fontSize="11" fill="currentColor" opacity={0.7}>
+            {lang === "ar" ? "مكرر الربحية (P/E) ← الأغلى يميناً" : "P/E → more expensive rightward"}
+          </text>
+          <text x={PX0 + 6} y={PY0 + 10} fontSize="11" fill="currentColor" opacity={0.7}>
+            {lang === "ar" ? "D/E ↑ رافعة أعلى" : "D/E ↑ more leverage"}
+          </text>
         </svg>
 
         {/* hover card — now with the fair-value reading */}
@@ -299,14 +404,14 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
 
         {/* zoom controls */}
         <div className="absolute bottom-2 start-2 flex items-center gap-1 text-xs">
-          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => setZoom((z) => Math.min(3, z * 1.3))} aria-label="zoom in">
+          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => zoomAt((PX0 + PX1) / 2, (PY0 + PY1) / 2, 1.3)} aria-label="zoom in">
             <ZoomIn className="h-3.5 w-3.5" aria-hidden />
           </button>
-          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => setZoom((z) => Math.max(0.8, z / 1.3))} aria-label="zoom out">
+          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => zoomAt((PX0 + PX1) / 2, (PY0 + PY1) / 2, 1 / 1.3)} aria-label="zoom out">
             <ZoomOut className="h-3.5 w-3.5" aria-hidden />
           </button>
           <button className="rounded-md border bg-card/90 px-2 py-1 tabular-nums hover:bg-accent" onClick={reset}>
-            {zoom.toFixed(1)}× · {lang === "ar" ? "إعادة" : "reset"}
+            {cam.k.toFixed(1)}× · {lang === "ar" ? "إعادة" : "reset"}
           </button>
         </div>
       </div>
@@ -334,8 +439,8 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
 
       <p className="text-[11px] text-muted-foreground">
         {lang === "ar"
-          ? "مساحة كل فقاعة تمثل القيمة السوقية. اضغط على أي شركة لعرض مضاعفاتها وقيمتها العادلة، ونقرة مزدوجة لفتح صفحتها. الخطان المنقطان وسيطا السوق كله."
-          : "Bubble area = market cap. Click a company for its multiples and fair value, double-click to open its page. The dashed lines are the whole market's medians."}
+          ? "مساحة كل فقاعة تمثل القيمة السوقية. اضغط على أي شركة لعرض مضاعفاتها وقيمتها العادلة، ونقرة مزدوجة لفتح صفحتها. الخطان المنقطان وسيطا السوق كله — والمحاور والشبكة يتحركون مع التكبير معًا."
+          : "Bubble area = market cap. Click a company for its multiples and fair value, double-click to open its page. The dashed lines are the whole market's medians — and the axes and grid move together with the zoom."}
       </p>
     </div>
   );

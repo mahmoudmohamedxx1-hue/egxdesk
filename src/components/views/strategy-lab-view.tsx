@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -15,13 +15,57 @@ import { useApp } from "../market/app-context";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtPct, directionClass } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BadgeCheck, FlaskConical, ArrowLeft } from "lucide-react";
+import { BadgeCheck, FlaskConical, ArrowLeft, Search, Radar, ExternalLink } from "lucide-react";
 
-/** T26 — the PUBLIC Strategy Lab: exposes the walk-forward backtest and
- *  charter as a first-class view — methodology, params, full-run stats, the
- *  compounded equity curve vs the equal-weight benchmark, and the complete
- *  per-window log (every pick + net result + excess). This is the cheapest
- *  trust differentiator we own: we publish what others only claim. */
+/** T26 → T65 — the Strategy Lab. T26 published the walk-forward backtest
+ *  and charter (kept whole below — stats, equity curve, window log, notes).
+ *
+ *  T65 adds the WORKBENCH the reader could actually use (the same rework
+ *  the Model Lab got): pick any listed stock and the whole 18-strategy
+ *  ensemble runs on IT, live — every strategy's verdict NOW (long / avoid
+ *  / silent this session), each beside its own published track record, so
+ *  "what does this strategy say about MY stock today" reads next to "what
+ *  this strategy actually did over the replay". The consensus gauge, the
+ *  stock's context (composite rating, RSI, 52w position, ML forecast,
+ *  insider filings) and every evidence code ship with it — the same
+ *  deterministic engine the backtest replays, no lookahead, no advice. */
+
+/* ── the live workbench types (mirrors /api/strategy-lab/live) ── */
+
+type LiveStrategy = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  family: string;
+  familyAr: string;
+  weight: number;
+  oneLineAr: string;
+  oneLineEn: string;
+  live: { fired: boolean; direction: "long" | "avoid" | null; score: number; evidence: string[] } | null;
+  record: { backtested: boolean; cumPct: number | null; benchCumPct: number | null; trades: number | null; hitRate: number | null } | null;
+};
+
+type LiveData = {
+  asOf: string;
+  ticker: string;
+  name: string;
+  nameAr: string;
+  close: number;
+  changePct: number;
+  composite: number;
+  compositeRating: string;
+  rsi: number | null;
+  pos52: number | null;
+  ml: { probUp: number; hitRate: number | null; trainedRows: number; valRows: number } | null;
+  insider: { buys: number; sells: number; treasuryBuys: number; treasurySells: number; lastDate: string | null } | null;
+  ensemble: { consensus: number; longVotes: number; avoidVotes: number; applicable: number; agreement: number; fired: string[] };
+  strategies: LiveStrategy[];
+  error?: string;
+};
+
+type PickRow = { ticker: string; nameAr: string; nameEn: string };
+
+/* the record types (unchanged) */
 
 type LabWindow = { date: string; picks: string[]; netPct: number; benchPct: number };
 type LabStats = {
@@ -100,8 +144,106 @@ export function noteAr(en: string): string {
   return en; // honest fallback: unknown generator line stays in English
 }
 
-export function StrategyLabView() {
+const consensusColor = (c: number) => (c >= 0.25 ? "#059669" : c <= -0.25 ? "#e11d48" : "#94a3b8");
+
+export function StrategyLabView({ ticker: urlTicker }: { ticker?: string }) {
   const { lang, navigate } = useApp();
+  const ar = lang === "ar";
+
+  /* ── the workbench state ── */
+  const [picked, setPicked] = useState<string | null>(() => {
+    if (urlTicker) return urlTicker;
+    if (typeof window !== "undefined") {
+      try {
+        return window.localStorage.getItem("sl-ticker");
+      } catch {
+        /* private mode */
+      }
+    }
+    return null;
+  });
+  const [q, setQ] = useState("");
+  const [live, setLive] = useState<LiveData | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
+  // the picker's type-ahead — the app's own live search route (bilingual,
+  // ticker or name, with fresh closes); empty query = no dropdown
+  useEffect(() => {
+    const needle = q.trim();
+    if (needle.length < 1) return;
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(needle)}`, { signal: ctrl.signal, cache: "no-store" });
+        const json = (await res.json()) as { results?: PickRow[] };
+        setMatches((json.results ?? []).slice(0, 8));
+      } catch {
+        /* aborted or offline — dropdown just stays empty */
+      }
+    }, 220);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [q]);
+  const [matches, setMatches] = useState<PickRow[]>([]);
+
+  // the live run — every time the picked ticker changes
+  useEffect(() => {
+    if (!picked) {
+      setLive(null);
+      setLiveError(null);
+      return;
+    }
+    let cancelled = false;
+    setLiveLoading(true);
+    setLiveError(null);
+    (async () => {
+      try {
+        const res = await fetch(`/api/strategy-lab/live?ticker=${encodeURIComponent(picked)}`, { cache: "no-store" });
+        const json = (await res.json()) as LiveData;
+        if (!res.ok || json.error) throw new Error(json.error ?? `live ${res.status}`);
+        if (!cancelled) setLive(json);
+      } catch (e) {
+        if (!cancelled) {
+          setLive(null);
+          setLiveError(e instanceof Error ? e.message : "live read unavailable");
+        }
+      } finally {
+        if (!cancelled) setLiveLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [picked]);
+
+  const pickTicker = (t: string) => {
+    setPicked(t);
+    setQ("");
+    setMatches([]);
+    try {
+      window.localStorage.setItem("sl-ticker", t);
+    } catch {
+      /* private mode */
+    }
+  };
+
+  // fired strategies first, then the quiet ones — by strength inside each
+  const ordered = useMemo(() => {
+    if (!live) return [];
+    return [...live.strategies].sort((a, b) => {
+      const fa = a.live?.fired ? 1 : 0;
+      const fb = b.live?.fired ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      const sa = a.live?.score ?? 0;
+      const sb = b.live?.score ?? 0;
+      return sb - sa;
+    });
+  }, [live]);
+
+  /* ── the record state (unchanged T26 record) ── */
   const [data, setData] = useState<LabData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,9 +292,9 @@ export function StrategyLabView() {
 
   return (
     <div className="space-y-5">
-      {/* header + charter */}
+      {/* ══ THE WORKBENCH — apply the ensemble to a stock you pick ══ */}
       <section className="rounded-lg border bg-card p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <FlaskConical className="h-5 w-5 text-primary" />
             {tt(T.labTitle, lang)}
@@ -163,16 +305,230 @@ export function StrategyLabView() {
         </div>
         <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">{tt(T.labIntro, lang)}</p>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {/* the picker */}
+        <div className="relative mt-4 max-w-md">
+          <div className="relative">
+            <Search className="pointer-events-none absolute start-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={ar ? "اختر سهمًا لتشغيل الاستراتيجيات الثماني عشرة عليه…" : "pick a stock to run the 18 strategies on…"}
+              className="h-9 w-full rounded-lg border bg-background ps-8 pe-3 text-sm outline-none focus:ring-1 focus:ring-ring"
+              aria-label={ar ? "اختر سهمًا" : "pick a stock"}
+            />
+          </div>
+          {q && (
+            <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-popover shadow-lg">
+              {matches.map((m) => (
+                <button
+                  key={m.ticker}
+                  onClick={() => pickTicker(m.ticker)}
+                  className="flex w-full items-center gap-2 px-2.5 py-1.5 text-start text-xs hover:bg-accent"
+                >
+                  <b className="w-12 shrink-0">{m.ticker}</b>
+                  <span className="min-w-0 flex-1 truncate">{ar ? m.nameAr : m.nameEn}</span>
+                </button>
+              ))}
+              {!matches.length && <p className="px-2.5 py-2 text-xs text-muted-foreground">{ar ? "لا نتائج" : "no matches"}</p>}
+            </div>
+          )}
+        </div>
+
+        {/* the live readout */}
+        {liveLoading && (
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-40 w-full" />
+            <p className="text-[11px] text-muted-foreground">{ar ? "تشغيل الاستراتيجيات على شموع السهم الحية…" : "running the strategies on the stock's live tape…"}</p>
+          </div>
+        )}
+        {liveError && !liveLoading && (
+          <p className="mt-4 rounded-lg border border-dashed bg-background/60 px-3 py-3 text-sm text-muted-foreground">
+            {ar ? `تعذّر تشغيل الاستراتيجيات على ${picked ?? ""} — ` : `could not run the strategies on ${picked ?? ""} — `}
+            {liveError}
+          </p>
+        )}
+        {!picked && !liveLoading && (
+          <p className="mt-4 rounded-lg border border-dashed bg-background/60 px-3 py-4 text-center text-sm text-muted-foreground">
+            {ar
+              ? "هذا هو الجزء العملي: اختر أي سهم أعلاه وستقرأ الاستراتيجيات الثماني عشرة شريطه الحالي فورًا — كل واحدة بحكمها الآن وبجانبه سجلها المنشور."
+              : "This is the usable part: pick any stock above and the eighteen strategies read its live tape instantly — each with its verdict NOW beside its published record."}
+          </p>
+        )}
+
+        {live && !liveLoading && (
+          <div className="mt-4 space-y-3">
+            {/* consensus header */}
+            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary/40 p-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <b className="text-lg font-bold">{live.ticker}</b>
+                  <button onClick={() => navigate("company", { ticker: live.ticker })} className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline">
+                    {ar ? "صفحة الشركة" : "company page"} <ExternalLink className="h-3 w-3" aria-hidden />
+                  </button>
+                </div>
+                <p className="truncate text-xs text-muted-foreground">
+                  {ar ? live.nameAr : live.name} · {live.close.toFixed(2)} EGP ({fmtPct(live.changePct)})
+                </p>
+              </div>
+              <div className="ms-auto flex items-center gap-4">
+                <div className="text-end">
+                  <p className="text-[10px] text-muted-foreground">{ar ? "إجماع الاستراتيجيات" : "strategy consensus"}</p>
+                  <p className="text-2xl font-bold tabular-nums" style={{ color: consensusColor(live.ensemble.consensus) }}>
+                    {live.ensemble.consensus >= 0 ? "+" : ""}
+                    {live.ensemble.consensus.toFixed(2)}
+                  </p>
+                </div>
+                <div className="w-40">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary" dir="ltr" aria-hidden>
+                    {/* −1..+1 mapped onto the bar; mid marker at 50% */}
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(4, ((live.ensemble.consensus + 1) / 2) * 100))}%`,
+                        backgroundColor: consensusColor(live.ensemble.consensus),
+                        opacity: 0.8,
+                      }}
+                    />
+                  </div>
+                  <p className="num mt-0.5 text-[10px] text-muted-foreground text-center">
+                    {live.ensemble.longVotes} {ar ? "شراء" : "long"} · {live.ensemble.avoidVotes} {ar ? "تجنّب" : "avoid"} ·{" "}
+                    {live.ensemble.applicable}/{live.strategies.length} {ar ? "قابلة للتطبيق" : "applicable"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* context chips */}
+            <div className="flex flex-wrap gap-1.5 text-[11px]">
+              <span className="num rounded-md border bg-card px-2 py-0.5">
+                {ar ? "التقييم المركّب" : "composite"} <b>{(live.composite * 100).toFixed(0)}</b> ({live.compositeRating})
+              </span>
+              {live.rsi != null && (
+                <span className="num rounded-md border bg-card px-2 py-0.5">
+                  RSI <b>{live.rsi.toFixed(0)}</b>
+                </span>
+              )}
+              {live.pos52 != null && (
+                <span className="num rounded-md border bg-card px-2 py-0.5">
+                  52w <b>{live.pos52.toFixed(0)}%</b>
+                </span>
+              )}
+              {live.ml && (
+                <span className="num rounded-md border bg-card px-2 py-0.5" title={ar ? "نموذج لوجستي مدرّب على شموع السهم نفسه" : "logistic model trained on this stock's own candles"}>
+                  {ar ? "توقع ML" : "ML"} <b>{(live.ml.probUp * 100).toFixed(0)}%</b>
+                  {live.ml.hitRate != null ? ` (${(live.ml.hitRate * 100).toFixed(0)}%)` : ""}
+                </span>
+              )}
+              {live.insider && (live.insider.buys > 0 || live.insider.sells > 0) && (
+                <span className="num rounded-md border bg-card px-2 py-0.5" title={ar ? "إفصاحات رسمية خلال ٩٠ يومًا" : "official EGX filings, last 90 days"}>
+                  {ar ? "إفصاحات المطلعين" : "insider filings"}{" "}
+                  <b className={live.insider.buys > live.insider.sells ? "text-up" : "text-down"}>
+                    {live.insider.buys}↑ / {live.insider.sells}↓
+                  </b>
+                </span>
+              )}
+              <span className="num rounded-md border bg-card px-2 py-0.5 text-muted-foreground">
+                {ar ? "آخر شمعة" : "last candle"} {live.asOf}
+              </span>
+            </div>
+
+            {/* the 18 strategies — live verdict beside the record */}
+            <div className="overflow-x-auto thin-scroll">
+              <table className="w-full text-sm min-w-[680px]">
+                <thead className="border-b">
+                  <tr className="text-[11px] text-muted-foreground">
+                    <th className="text-start font-medium px-2 py-2">{ar ? "الاستراتيجية" : "Strategy"}</th>
+                    <th className="text-start font-medium px-2 py-2">{ar ? "قاعدتها" : "Its rule"}</th>
+                    <th className="text-center font-medium px-2 py-2">{ar ? "حكمها الآن" : "Verdict now"}</th>
+                    <th className="text-end font-medium px-2 py-2">{ar ? "سجلها المنشور" : "Published record"}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {ordered.map((st) => {
+                    const fired = st.live?.fired === true;
+                    const dir = st.live?.direction ?? null;
+                    return (
+                      <tr key={st.id} className={`transition-colors ${fired ? "bg-accent/25" : ""}`}>
+                        <td className="px-2 py-2 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <b className="text-xs">{ar ? st.nameAr : st.nameEn}</b>
+                            <span className="rounded-sm bg-secondary/60 px-1 py-0.5 text-[9px] text-muted-foreground">{ar ? st.familyAr : st.family}</span>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 max-w-[260px]">
+                          <p className="text-[11px] leading-snug text-muted-foreground">{ar ? st.oneLineAr : st.oneLineEn}</p>
+                          {fired && st.live && st.live.evidence.length > 0 && (
+                            <p className="num mt-0.5 text-[9px] text-muted-foreground/70" dir="ltr">
+                              {st.live.evidence.slice(0, 4).join(" · ")}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-center whitespace-nowrap">
+                          {!st.live ? (
+                            <span className="text-[10px] text-muted-foreground">{ar ? "لا بيانات" : "no data"}</span>
+                          ) : fired && dir === "long" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-up/15 px-2 py-0.5 text-[11px] font-bold text-up">
+                              ▲ {ar ? "شراء الآن" : "long now"}
+                              <span className="num font-normal opacity-70">{(st.live.score * 100).toFixed(0)}%</span>
+                            </span>
+                          ) : fired && dir === "avoid" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-down/15 px-2 py-0.5 text-[11px] font-bold text-down">
+                              ▼ {ar ? "تجنّب الآن" : "avoid now"}
+                              <span className="num font-normal opacity-70">{(st.live.score * 100).toFixed(0)}%</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">{ar ? "صامتة هذا الأسبوع" : "silent this session"}</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-end whitespace-nowrap">
+                          {!st.record?.backtested ? (
+                            <span className="text-[10px] text-muted-foreground">{ar ? "حية فقط — بلا سجل" : "live-only — no replay"}</span>
+                          ) : (
+                            <span className="num text-[11px]">
+                              <b className={directionClass(st.record.cumPct ?? 0)}>{fmtNum(st.record.cumPct ?? 0, 1)}%</b>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · {st.record.trades ?? 0} {ar ? "صفقة" : "trades"}
+                                {st.record.hitRate != null ? ` · ${(st.record.hitRate * 100).toFixed(0)}%` : ""}
+                              </span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              {ar
+                ? "كل حكم محسوب آليًا من شموع آخر جلسة وبيانات الماسح الحية بنفس المحرك الحتمي الذي يعيد اختبار المشي-للأمام — بلا اطلاع مسبق، وبلا توصية. الأسطر المضاءة هي التي اشتعلت شرطها الآن؛ الصامتة لم يتحقق شرطها هذا الأسبوع (وهذا جزء من قواعدها لا نقص في البيانات)."
+                : "Every verdict is machine-computed from the last session's candles and live scanner fields by the same deterministic engine the walk-forward backtest replays — no lookahead, no advice. Highlighted rows fired their rule NOW; silent rows simply did not meet their trigger this session (that is their rule working, not missing data)."}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ══ THE RECORD — the published backtest evidence (T26, kept whole) ══ */}
+      <section className="rounded-lg border bg-card p-4 sm:p-5">
+        <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Radar className="h-4 w-4 text-primary" />
+            {ar ? "السجل المنشور — الدليل القابل للتدقيق" : "The published record — auditable evidence"}
+          </h2>
+        </div>
+
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <div className="rounded-md bg-secondary/40 p-3">
             <p className="text-[11px] font-semibold text-foreground/80 mb-1">{tt(T.labCharter, lang)}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {lang === "ar" ? (METHOD_AR[data.strategyRev] ?? data.method) : data.method}
+              {ar ? (METHOD_AR[data.strategyRev] ?? data.method) : data.method}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {Object.entries(data.params).map(([k, v]) => (
                 <span key={k} className="num rounded-sm bg-card border px-1.5 py-0.5 text-[10px]">
-                  {lang === "ar" && PARAM_AR[k] ? PARAM_AR[k] : k}: {v}
+                  {ar && PARAM_AR[k] ? PARAM_AR[k] : k}: {v}
                 </span>
               ))}
             </div>
@@ -180,10 +536,10 @@ export function StrategyLabView() {
           <div className="rounded-md bg-secondary/40 p-3">
             <p className="text-[11px] font-semibold text-foreground/80 mb-1">{tt(T.labUniverse, lang)}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {lang === "ar" ? UNIVERSE_AR : data.universe.selection}
+              {ar ? UNIVERSE_AR : data.universe.selection}
             </p>
             <p className="num text-[10px] text-muted-foreground mt-1">
-              {data.universe.size} {lang === "ar" ? "اسماً" : "names"}
+              {data.universe.size} {ar ? "اسماً" : "names"}
             </p>
           </div>
         </div>
@@ -339,8 +695,9 @@ export function StrategyLabView() {
                           w.picks.map((p) => (
                             <button
                               key={p}
-                              onClick={() => navigate("company", { ticker: p })}
+                              onClick={() => pickTicker(p)}
                               className="num rounded-sm border bg-secondary/50 px-1.5 py-0.5 text-[10px] font-semibold hover:bg-accent transition-colors"
+                              title={ar ? "شغّل الاستراتيجيات على هذا السهم" : "run the strategies on this stock"}
                             >
                               {p}
                             </button>
@@ -376,7 +733,7 @@ export function StrategyLabView() {
           {data.notes.map((n, i) => (
             <li key={i} className="text-xs text-muted-foreground leading-relaxed flex gap-2">
               <span className="num text-primary font-semibold">{i + 1}.</span>
-              <span>{lang === "ar" ? noteAr(n) : n}</span>
+              <span>{ar ? noteAr(n) : n}</span>
             </li>
           ))}
         </ul>

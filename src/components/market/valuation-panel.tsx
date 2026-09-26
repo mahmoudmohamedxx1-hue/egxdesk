@@ -169,6 +169,61 @@ export function dcfPerShare(
   return { perShare: equity / shares, ev, pvSum, pvTerminal };
 }
 
+/** T65 — the FULL DCF projection, year by year: the same math as
+ *  dcfPerShare but every intermediate row is published so the Model Lab can
+ *  show WHERE the value comes from (each year's cash flow, its discount
+ *  factor, its present value) and how much of the enterprise value is the
+ *  terminal assumption. No new math — the totals are identical. */
+export function dcfProjection(
+  fcf0: number,
+  growth: number, // percent per year, years 1-10
+  discount: number, // percent
+  terminal: number, // percent
+  netDebt: number,
+  shares: number
+): {
+  years: { t: number; fcf: number; df: number; pv: number }[];
+  terminalFcf: number;
+  tv: number;
+  pvTerminal: number;
+  pvSum: number;
+  ev: number;
+  equity: number;
+  perShare: number;
+  terminalShare: number; // 0..1 of EV
+} | null {
+  if (!(fcf0 > 0) || !(shares > 0)) return null;
+  const g = growth / 100;
+  const r = discount / 100;
+  const gt = terminal / 100;
+  if (r <= gt) return null;
+  const years: { t: number; fcf: number; df: number; pv: number }[] = [];
+  let pvSum = 0;
+  let fcf = fcf0;
+  for (let t = 1; t <= 10; t++) {
+    fcf = fcf * (1 + g);
+    const df = 1 / Math.pow(1 + r, t);
+    const pv = fcf * df;
+    pvSum += pv;
+    years.push({ t, fcf, df, pv });
+  }
+  const tv = (fcf * (1 + gt)) / (r - gt);
+  const pvTerminal = tv / Math.pow(1 + r, 10);
+  const ev = pvSum + pvTerminal;
+  const equity = ev - netDebt;
+  return {
+    years,
+    terminalFcf: fcf,
+    tv,
+    pvTerminal,
+    pvSum,
+    ev,
+    equity,
+    perShare: equity / shares,
+    terminalShare: ev > 0 ? pvTerminal / ev : 0,
+  };
+}
+
 export function ValuationPanel({ company, sectorAgg }: { company: CompanyFund; sectorAgg: SectorAgg }) {
   const { lang } = useApp();
 

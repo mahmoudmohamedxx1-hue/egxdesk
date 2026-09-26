@@ -48,26 +48,31 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-// ── the brain: FOUR layered providers, whichever answers first wins ──
+// ── the brain: FIVE layered providers, whichever answers first wins ──
 //  T50: the popup must stay snappy on EVERY host, including during the free
 //  tier's 1305 overload windows (which can run minutes):
-//   1. direct Z.AI chat (glm-4.7-flash via the app's own key) — works on
-//      ANY host (sandbox, Vercel, anywhere); ONE throttle backoff max so an
-//      overload window fails over fast instead of hanging the popup.
+//   1. direct Z.AI chat (glm-4-PLUS via the app's own key — T65: the user
+//      asked for GLM-4-Plus as the MAIN model) — works on ANY host (sandbox,
+//      Vercel, anywhere); ONE throttle backoff max so an overload window
+//      fails over fast instead of hanging the popup.
 //   2. the sandbox SDK's GLM-4-Plus — instant when available, throws
 //      immediately outside the sandbox.
-//   3. Pollinations keyless cloud (GPT-OSS-20B) — no key, no sign-in; T59:
+//   3. T65 — LLM7's anonymous GLM-5.3-Flash: a REAL GLM brain, keyless (no
+//      key, no sign-in), probe-verified clean MSA Arabic + JSON compliance,
+//      so keyless hosts keep a GLM main before sinking to the weaker tiers.
+//   4. Pollinations keyless cloud (GPT-OSS-20B) — no key, no sign-in; T59:
 //      excellent Modern Standard Arabic (the llm7 mistral tier answered
 //      Arabic questions in Portuguese soup — the "crash text").
-//   4. LLM7.io keyless cloud (Mistral Nemo) — no key, no sign-in; last
-//      resort when Pollinations' shared tier is busy.
-//  All four fail honestly → the client shows its generic error card.
+//   5. LLM7.io keyless cloud (Mistral Nemo) — no key, no sign-in; last
+//      resort when the stronger pools are busy.
+//  All fail honestly → the client shows its generic error card.
 
 const WHY = (err: unknown): string => (err instanceof Error ? err.message : String(err)).slice(0, 140);
 
-// 1 — direct Z.AI key
+// 1 — direct Z.AI key (T65: glm-4-plus — the user's pick for the MAIN model)
 async function zaiDirectRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
   const r = await zaiChat({
+    model: "glm-4-plus",
     messages,
     // planning/answering is mechanical JSON work — thinking off keeps
     // the popup snappy (the autonomous agent keeps thinking ON)
@@ -104,10 +109,18 @@ async function sdkRound(messages: { role: "system" | "user" | "assistant"; conte
   }
 }
 
-// 3 — keyless LLM7.io (shared anonymous tier; the same cloud the agent view
-// offers as "no sign-in" models). Non-streaming is fine for JSON rounds.
+// 3/5 — keyless LLM7.io (shared anonymous tier; the same cloud the agent view
+// offers as "no sign-in" models). T65: the GLM-5.3-Flash tier is tried FIRST
+// (a real GLM brain) and mistral stays the last resort. Non-streaming is
+// fine for JSON rounds.
 const LLM7_URL = "https://api.llm7.io/v1/chat/completions";
+async function llm7GlmRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  return llm7Chat(messages, "GLM-5.3-Flash", 1);
+}
 async function llm7Round(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  return llm7Chat(messages, "mistral-Nemo-Instruct-2407", 1);
+}
+async function llm7Chat(messages: { role: "system" | "user" | "assistant"; content: string }[], model: string, retries: number): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 45_000);
@@ -115,11 +128,11 @@ async function llm7Round(messages: { role: "system" | "user" | "assistant"; cont
       const res = await fetch(LLM7_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "mistral-Nemo-Instruct-2407", messages, stream: false }),
+        body: JSON.stringify({ model, messages, stream: false }),
         signal: ctrl.signal,
       });
       if (res.status === 429 || res.status >= 500) {
-        if (attempt < 1) {
+        if (attempt < retries) {
           await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
@@ -152,6 +165,11 @@ async function createChat(messages: { role: "system" | "user" | "assistant"; con
     return await sdkRound(messages);
   } catch (err) {
     console.warn("[assistant] sdk tier unavailable:", WHY(err));
+  }
+  try {
+    return await llm7GlmRound(messages);
+  } catch (err) {
+    console.warn("[assistant] keyless GLM-5.3-Flash tier unavailable:", WHY(err));
   }
   try {
     return await pollinationsTier(messages);
