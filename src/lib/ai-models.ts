@@ -26,7 +26,7 @@
  *  route and the client composer can import it. Puter runtime helpers
  *  live in src/lib/assistant-models.ts (client-only). */
 
-export type AiModelProvider = "zai" | "puter" | "llm7" | "pollinations";
+export type AiModelProvider = "zai" | "puter" | "llm7" | "pollinations" | "kilo";
 
 export type AiModel = {
   /** the id the client persists/selects: "glm-4-plus" or "puter:<putterId>" */
@@ -62,8 +62,38 @@ export const AI_MODELS: AiModel[] = [
     labelAr: "GLM-5.3 Flash (بلا تسجيل)",
     newest: true,
     ctx: 400_000,
-    note: "Keyless GLM cloud — real GLM brain, strong Arabic, no key, no sign-in. Auto-falls back to GPT-OSS-20B when the shared pool is busy",
-    noteAr: "سحابة GLM بلا تسجيل ولا مفاتيح — عربية قوية. وعند انشغالها يتحول تلقائيًا إلى GPT-OSS-20B",
+    note: "Keyless GLM cloud — real GLM brain, strong Arabic, no key, no sign-in. Auto-falls back through the keyless pool (Nemotron → Step → Laguna → GPT-OSS) when the shared pool is busy",
+    noteAr: "سحابة GLM بلا تسجيل ولا مفاتيح — عربية قوية. وعند انشغالها يتحول تلقائيًا عبر سلسلة النماذج المجانية (Nemotron ← Step ← Laguna ← GPT-OSS)",
+  },
+  {
+    id: "kilo:nvidia/nemotron-3-super-120b-a12b:free",
+    provider: "kilo",
+    providerModel: "nvidia/nemotron-3-super-120b-a12b:free",
+    label: "Nemotron 3 Super 120B (keyless)",
+    labelAr: "Nemotron 3 Super 120B (بلا تسجيل)",
+    ctx: 131_072,
+    note: "Keyless Kilo Gateway pool — 200 req/hr per IP, strong Arabic, strict-JSON verified. Auto-falls through the keyless pool when busy",
+    noteAr: "بوابة Kilo المجانية — 200 طلب/ساعة لكل IP، عربية قوية. وعند انشغالها يتحول تلقائيًا عبر سلسلة النماذج المجانية",
+  },
+  {
+    id: "kilo:stepfun/step-3.7-flash:free",
+    provider: "kilo",
+    providerModel: "stepfun/step-3.7-flash:free",
+    label: "Step 3.7 Flash (keyless)",
+    labelAr: "Step 3.7 Flash (بلا تسجيل)",
+    ctx: 131_072,
+    note: "Keyless Kilo Gateway pool — fast, strong Arabic. Auto-falls through the keyless pool when busy",
+    noteAr: "بوابة Kilo المجانية — سريعة وعربية قوية. وعند انشغالها يتحول تلقائيًا عبر سلسلة النماذج المجانية",
+  },
+  {
+    id: "kilo:openrouter/free",
+    provider: "kilo",
+    providerModel: "openrouter/free",
+    label: "Free Model Router (keyless)",
+    labelAr: "موجّه النماذج المجانية (بلا تسجيل)",
+    ctx: 131_072,
+    note: "Keyless Kilo Gateway auto-router — picks a live free model per request. Auto-falls through the keyless pool when busy",
+    noteAr: "موجّه Kilo المجاني — يختار نموذجًا مجانيًا متاحًا لكل طلب. وعند انشغاله يتحول تلقائيًا عبر سلسلة النماذج المجانية",
   },
   {
     id: "pollinations:gpt-oss-20b",
@@ -316,6 +346,19 @@ export const DEFAULT_AI_MODEL_ID = "glm-4-plus";
  *  the sandbox the SDK gateway serves GLM-4-Plus as always. */
 export const KEYLESS_MODEL_ID = "llm7:GLM-5.3-Flash";
 
+/** The keyless pool after the GLM tier, ordered strictly DOWN (no loops):
+ *  the three Kilo Gateway routes (vetted live — strict-JSON + clean MSA
+ *  Arabic + streamed SSE, ~2-3s each, 200 req/hr per IP, independent
+ *  capacity from LLM7's shared pool), then Pollinations GPT-OSS-20B;
+ *  llm7 mistral remains the final manual-pick resort. Adopted from the
+ *  freellmpool catalog (github.com/0xzr/freellmpool) whose audited
+ *  keyless routes these are. */
+export const KEYLESS_POOL_MODEL_IDS = [
+  "kilo:nvidia/nemotron-3-super-120b-a12b:free",
+  "kilo:stepfun/step-3.7-flash:free",
+  "kilo:openrouter/free",
+] as const;
+
 /** The last-resort keyless tier after the GLM pool is busy/exhausted:
  *  Pollinations GPT-OSS-20B (strong Arabic); llm7 mistral remains the
  *  final manual-pick resort beyond it. */
@@ -348,7 +391,9 @@ export function aiModelIdentity(m: AiModel): string {
       ? `a REAL large language model (${m.label} — served keyless via the free LLM7.io cloud)`
       : m.provider === "pollinations"
         ? `a REAL large language model (GPT-OSS-20B, OpenAI open weights — served keyless via the free Pollinations cloud)`
-        : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
+        : m.provider === "kilo"
+          ? `a REAL large language model (${m.label} — served keyless via the free Kilo Gateway cloud)`
+          : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
 }
 
 /** Client-side localStorage persistence helper (never throws). */

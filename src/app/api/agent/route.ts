@@ -3,7 +3,7 @@ import ZAI from "z-ai-web-dev-sdk";
 
 import { ZAI_API_KEY, zaiChatStream } from "@/lib/zai-client";
 import { pollinationsRound } from "@/lib/pollinations";
-import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID } from "@/lib/ai-models";
+import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, KEYLESS_POOL_MODEL_IDS } from "@/lib/ai-models";
 
 type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 import { db } from "@/lib/db";
@@ -207,6 +207,79 @@ function sanitizeAgentAnswer(text: string): string {
 
 const LLM7_URL = "https://api.llm7.io/v1/chat/completions";
 
+// T66 — the Kilo Gateway keyless pool (adopted from the freellmpool catalog,
+// github.com/0xzr/freellmpool): an OpenAI-compatible aggregator of vetted
+// FREE models, keyless, 200 requests/hour per IP — capacity INDEPENDENT of
+// LLM7's shared anonymous pool. Three routes live-verified from this box:
+// strict-JSON tool protocol compliance, clean MSA Arabic, streamed SSE,
+// 2-3s per round.
+const KILO_URL = "https://api.kilo.ai/api/gateway/v1/chat/completions";
+
+async function kiloRound(
+  providerModel: string,
+  opts: { messages: { role: "user" | "assistant" | "system"; content: string }[] },
+  retry: { budgetLeft: number },
+  onDelta?: DeltaFn,
+  onStatus?: (note: string) => void,
+  onServedModel?: ServedModelFn
+): Promise<string> {
+  // Kilo's free routes are fast (~2-3s live); 75s covers slowest thinking
+  // rounds, then the chain hops to the next pool instead of stalling.
+  const ROUND_TIMEOUT_MS = 75_000;
+  for (let attempt = 0; ; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ROUND_TIMEOUT_MS);
+    try {
+      const res = await fetch(KILO_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: providerModel,
+          messages: opts.messages,
+          stream: true,
+        }),
+        signal: ctrl.signal,
+      });
+      if (res.status === 429 || res.status === 402) {
+        // the free pool's per-IP quota — fail over INSTANTLY to the next tier
+        const bodyText = await res.text().catch(() => "");
+        throw new Error(`kilo http ${res.status}: ${bodyText.slice(0, 120)}`);
+      }
+      if (res.status >= 500) {
+        const err = new Error(`kilo http ${res.status}`);
+        const wait = RETRY_BACKOFF_MS[attempt];
+        if (wait !== undefined && retry.budgetLeft >= wait) {
+          retry.budgetLeft -= wait;
+          onStatus?.(attempt === 0 ? "keyless pool busy — retrying" : "keyless pool busy — retrying again");
+          await sleep(wait);
+          continue;
+        }
+        throw err;
+      }
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(`kilo http ${res.status}: ${detail.slice(0, 140)}`);
+      }
+      if (res.body) {
+        return await consumeSse(res.body, onDelta, onServedModel);
+      }
+      throw new Error("kilo returned no body");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const wait = RETRY_BACKOFF_MS[attempt];
+      if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait && !msg.startsWith("kilo http ")) {
+        retry.budgetLeft -= wait;
+        onStatus?.("keyless pool busy — retrying");
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function llm7Round(
   providerModel: string,
   opts: { messages: { role: "user" | "assistant" | "system"; content: string }[] },
@@ -357,7 +430,7 @@ export async function POST(req: Request) {
   // transparently re-routes to the backbone / the next keyless tier
   // (auto-failover)
   let model: AiModel =
-    picked && (picked.provider === "zai" || picked.provider === "llm7" || picked.provider === "pollinations")
+    picked && (picked.provider === "zai" || picked.provider === "llm7" || picked.provider === "pollinations" || picked.provider === "kilo")
       ? picked
       : findAiModel(DEFAULT_AI_MODEL_ID)!;
 
@@ -498,9 +571,11 @@ export async function POST(req: Request) {
           msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
         }
       }
-      // T65 — the keyless provider chain (strictly DOWN, no loops): the GLM
-      // keyless brain first, then GPT-OSS, then Mistral as the last resort.
-      const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, "llm7:mistral-Nemo-Instruct-2407"];
+      // T66 — the keyless provider chain (strictly DOWN, no loops): the GLM
+      // keyless brain first, then the freellmpool-style KILO POOL (three
+      // independent routes with their own 200 req/hr per-IP quota), then
+      // GPT-OSS, then Mistral as the last resort.
+      const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, ...KEYLESS_POOL_MODEL_IDS, KEYLESS_FALLBACK_MODEL_ID, "llm7:mistral-Nemo-Instruct-2407"];
       // T56/T59/T65 — the backbone the failovers re-route to: SDK GLM-4-Plus
       // in the sandbox, DIRECT GLM-4-Plus on keyed hosts (the user's pick),
       // keyless GLM-5.3-Flash otherwise; Pollinations GPT-OSS is the keyless
@@ -516,7 +591,7 @@ export async function POST(req: Request) {
       // final-answer gate still replaces the text before it ships.
       const isWeakKeyless = () =>
         model.provider === "pollinations" || (model.provider === "llm7" && model.providerModel !== "GLM-5.3-Flash");
-      const isKeyless = () => model.provider === "llm7" || model.provider === "pollinations";
+      const isKeyless = () => model.provider === "llm7" || model.provider === "pollinations" || model.provider === "kilo";
       // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
       // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
       // gets the system prompt as a proper "system" role (no thinking
@@ -529,6 +604,19 @@ export async function POST(req: Request) {
               onStatus: (note) => send({ type: "status", note }),
               onServedModel: noteServedModel,
             })
+          : model.provider === "kilo"
+          ? kiloRound(
+              model.providerModel,
+              {
+                messages: msgs.map((m, i) =>
+                  i === 0 ? { role: "system" as const, content: m.content } : m
+                ),
+              },
+              retry,
+              onDelta,
+              (note) => send({ type: "status", note }),
+              noteServedModel
+            )
           : model.provider === "llm7" || (!zai && !ZAI_API_KEY)
           ? llm7Round(
               model.providerModel,

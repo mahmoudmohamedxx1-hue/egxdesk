@@ -155,6 +155,40 @@ async function pollinationsTier(messages: { role: "system" | "user" | "assistant
   return await pollinationsRound({ messages, timeoutMs: 45_000 });
 }
 
+// T66 — the freellmpool-style KILO keyless pool (Kilo Gateway, 200 req/hr
+// per IP, capacity independent of LLM7): three routes live-vetted for
+// strict-JSON + clean MSA Arabic. Tried between the GLM keyless tier and
+// Pollinations so a saturated LLM7 pool no longer degrades the answer.
+const KILO_URL = "https://api.kilo.ai/api/gateway/v1/chat/completions";
+async function kiloTier(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
+  const routes = ["nvidia/nemotron-3-super-120b-a12b:free", "stepfun/step-3.7-flash:free", "openrouter/free"];
+  let lastErr: unknown = null;
+  for (const model of routes) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 45_000);
+      try {
+        const res = await fetch(KILO_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model, messages, max_tokens: 4096 }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) throw new Error(`kilo http ${res.status}`);
+        const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+        const text = j.choices?.[0]?.message?.content ?? "";
+        if (!text.trim()) throw new Error("kilo: empty content");
+        return text;
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("kilo pool exhausted");
+}
+
 async function createChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
   try {
     return await zaiDirectRound(messages);
@@ -170,6 +204,11 @@ async function createChat(messages: { role: "system" | "user" | "assistant"; con
     return await llm7GlmRound(messages);
   } catch (err) {
     console.warn("[assistant] keyless GLM-5.3-Flash tier unavailable:", WHY(err));
+  }
+  try {
+    return await kiloTier(messages);
+  } catch (err) {
+    console.warn("[assistant] kilo keyless pool unavailable:", WHY(err));
   }
   try {
     return await pollinationsTier(messages);

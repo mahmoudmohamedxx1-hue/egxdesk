@@ -130,14 +130,15 @@ export function ModelSwitcher({
             />
           ))}
 
-          {/* ── T36 keyless cloud family — no sign-in, no keys, nothing to
-              configure: LLM7.io's anonymous tier, served server-side ── */}
-          {AI_MODELS.filter((m) => m.provider === "llm7").length > 0 && (
+          {/* ── T36/T66 keyless cloud family — no sign-in, no keys, nothing to
+              configure: LLM7.io's anonymous tier + the freellmpool-vetted
+              Kilo Gateway routes, all served server-side ── */}
+          {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo").length > 0 && (
             <>
               <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {tt(T.aiModelKeylessCat, lang)}
               </div>
-              {AI_MODELS.filter((m) => m.provider === "llm7").map((m) => (
+              {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo").map((m) => (
                 <ModelRow
                   key={m.id}
                   active={modelId === m.id}

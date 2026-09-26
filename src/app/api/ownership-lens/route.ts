@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchUniverse, companyRow } from "@/lib/market";
 import rawNetwork from "@/data/ownership-network.json";
+import { mergeOwnershipNetwork, type MergedPerson } from "@/lib/ownership-merge";
 
 /** GET /api/ownership-lens — the عدسة الملكية (Ownership Lens) payload.
  *
@@ -26,21 +27,33 @@ import rawNetwork from "@/data/ownership-network.json";
 export const dynamic = "force-dynamic";
 
 type NetPosition = { h: number; t: string; p: number; a: string | null; b: "r" | "t"; f: string | null; s?: string };
-type NetPerson = { n: string; e?: string; k: "p" | "f" };
+type NetPerson = MergedPerson;
 type NetPeriod = { start: string; end: string; l: string; n: number; m: { h: number; t: string; f: number | null; o: number | null; c: number | null }[] };
 type NetCross = { o: string; d: string; p: number | null; v: number | null; f?: string; s?: string };
 
-const network = rawNetwork as unknown as {
-  asOf: string;
-  source: string;
-  sourceAr: string;
-  bulletinBase: string;
-  people: NetPerson[];
-  positions: NetPosition[];
-  periods: NetPeriod[];
-  cross: NetCross[];
-  refused: { holder: string; t: string; why: string }[];
-  counts: Record<string, number>;
+// T66 — the duplicate-holder merge runs ONCE per process on the static
+// registry: filing-typos of the same person/company (leading "+",
+// "ليمتد/ليميتد", "لالتصالات/للاتصالات", hamza/ة-ه variants…) become ONE
+// holder, so the same name never shows twice with "4.5% and 15.6%". Guards
+// keep genuinely different entities apart: first word must match (محمد ≠
+// محمود), digits must match (pension-fund account ٦ ≠ account ٧),
+// parenthetical suffixes must match ((CEFM) ≠ (SCFM)). Merged entries carry
+// `alts` — the spellings they absorbed — and same-(holder, company)
+// positions collapse to the latest filing. Deterministic; recomputed on
+// every deploy so the daily data refresh inherits it automatically.
+const merged = mergeOwnershipNetwork(rawNetwork as unknown as Parameters<typeof mergeOwnershipNetwork>[0]);
+
+const network = {
+  asOf: (rawNetwork as { asOf: string }).asOf,
+  source: (rawNetwork as { source: string }).source,
+  sourceAr: (rawNetwork as { sourceAr: string }).sourceAr,
+  bulletinBase: (rawNetwork as { bulletinBase: string }).bulletinBase,
+  people: merged.people,
+  positions: merged.positions,
+  periods: merged.periods,
+  cross: (rawNetwork as unknown as { cross: NetCross[] }).cross,
+  refused: (rawNetwork as unknown as { refused: { holder: string; t: string; why: string }[] }).refused,
+  counts: (rawNetwork as { counts: Record<string, number> }).counts,
 };
 
 const bulletinUrl = (s?: string): string | null => (s ? `${network.bulletinBase}${s}.pdf` : null);
@@ -66,6 +79,7 @@ export async function GET(req: Request) {
           return {
             holder: person.n,
             holderEn: person.e ?? null,
+            holderAlts: person.alts ?? null,
             kind: person.k,
             pct: p.p,
             asOf: p.a,
@@ -158,6 +172,8 @@ export async function GET(req: Request) {
           listedPositions: positions.length,
           listedTickers: new Set(positions.map((p) => p.t)).size,
           partiesOnBoard: holdCount.size,
+          // T66 — merge transparency: how many typo-variants were unified
+          mergedVariants: merged.mergedVariants,
         },
       },
       { headers: { "Cache-Control": "no-store" } }

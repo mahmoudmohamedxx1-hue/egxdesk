@@ -55,7 +55,7 @@ type LensCompany = {
   marketCap: number | null;
 };
 
-type NetPerson = { n: string; e?: string; k: "p" | "f" };
+type NetPerson = { n: string; e?: string; k: "p" | "f"; alts?: string[] };
 type NetPosition = { h: number; t: string; p: number; a: string | null; b: "r" | "t"; f: string | null; s?: string };
 type NetPeriod = {
   start: string;
@@ -1136,12 +1136,28 @@ export function LensView() {
                                 const span = Math.min(Math.PI / 3, Math.max(0.24, Math.abs(mv.c ?? 0) * 0.16));
                                 const a0 = -Math.PI / 2 + i * (span + 0.22);
                                 const col = (mv.c ?? 0) >= 0 ? "#34d399" : "#f87171";
+                                // T66 — WHO made the move, on the board itself:
+                                // the holder's name rides with the arc (shortened
+                                // to the first two words) and the full identity
+                                // + from→to live in the native tooltip.
+                                const mvHolder = data ? data.people[mv.h]?.n ?? String(mv.h) : String(mv.h);
+                                const mvHolderShort = mvHolder.split(/\s+/).slice(0, 2).join(" ");
+                                const tip = `${mvHolder} · ${ring.ticker} ${mv.c != null ? `${mv.c > 0 ? "+" : ""}${mv.c.toFixed(2)}p` : ""}${mv.from != null && mv.to != null ? ` (${fmtPct(mv.from)}% → ${fmtPct(mv.to)}%)` : ""}`;
                                 return (
-                                  <g key={`wa-${i}`} className="pointer-events-none">
-                                    <path d={arcPath(ring.x, ring.y, ring.r + 4, ring.r + 13, a0, a0 + span)} fill={col} opacity={0.9} stroke={col} strokeWidth={0.8} />
-                                    {/* the move's size in stake points, printed at the arc's
-                                     * mid-angle — only when the ring is big enough to host it */}
-                                    {ring.r > 17 && Math.abs(mv.c ?? 0) >= 0.25 && (
+                                  <g key={`wa-${i}`}>
+                                    <path
+                                      d={arcPath(ring.x, ring.y, ring.r + 4, ring.r + 13, a0, a0 + span)}
+                                      fill={col}
+                                      opacity={0.9}
+                                      stroke={col}
+                                      strokeWidth={0.8}
+                                      className="pointer-events-auto cursor-help"
+                                    >
+                                      <title>{tip}</title>
+                                    </path>
+                                    {/* the move's size + WHO, printed at the arc's
+                                     * mid-angle — sized to fit small rings too */}
+                                    {ring.r > 12 && Math.abs(mv.c ?? 0) >= 0.25 && (
                                       <text
                                         x={ring.x + Math.cos(a0 + span / 2) * (ring.r + 17)}
                                         y={ring.y + Math.sin(a0 + span / 2) * (ring.r + 17) + 2.5}
@@ -1149,8 +1165,21 @@ export function LensView() {
                                         fontSize="8"
                                         fontWeight={700}
                                         style={{ fill: col }}
+                                        className="pointer-events-none"
                                       >
                                         {`${(mv.c ?? 0) > 0 ? "+" : ""}${(mv.c ?? 0).toFixed(2)}p`}
+                                      </text>
+                                    )}
+                                    {ring.r > 13 && Math.abs(mv.c ?? 0) >= 0.5 && (
+                                      <text
+                                        x={ring.x + Math.cos(a0 + span / 2) * (ring.r + 17)}
+                                        y={ring.y + Math.sin(a0 + span / 2) * (ring.r + 17) + 11}
+                                        textAnchor="middle"
+                                        fontSize="7.5"
+                                        style={{ fill: "var(--lens-ink-soft)" }}
+                                        className="pointer-events-none"
+                                      >
+                                        {mvHolderShort}
                                       </text>
                                     )}
                                   </g>
@@ -1409,6 +1438,7 @@ export function LensView() {
                   .map((m, i) => {
                     const up = (m.c ?? 0) >= 0;
                     const holder = data ? data.people[m.h]?.n ?? String(m.h) : String(m.h);
+                    const holderAlts = data ? data.people[m.h]?.alts : undefined;
                     return (
                       <button
                         key={`${m.t}-${m.h}-${i}`}
@@ -1416,43 +1446,47 @@ export function LensView() {
                         className="w-full rounded-lg border bg-background/60 px-2 py-1.5 text-start text-xs hover:bg-accent/50 transition-colors"
                         title={lang === "ar" ? "افتح ملف ملكية الشركة" : "open the company's ownership profile"}
                       >
+                        {/* T66 — WHO made the move, first and prominent: the
+                         * holder's own name leads every row (the user's ask),
+                         * the company + stake change follow */}
                         <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 min-w-0">
-                            <b className="shrink-0">{m.t}</b>
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFocus({ type: "holder", h: m.h });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
                                 e.stopPropagation();
                                 setFocus({ type: "holder", h: m.h });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.stopPropagation();
-                                  setFocus({ type: "holder", h: m.h });
-                                }
-                              }}
-                              className="min-w-0 truncate text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
-                            >
-                              {holder}
-                            </span>
+                              }
+                            }}
+                            className="min-w-0 truncate font-semibold underline decoration-dotted underline-offset-2 hover:text-primary"
+                            title={`${holder}${holderAlts?.length ? `\n${lang === "ar" ? "ورد أيضًا باسم:" : "also filed as:"} ${holderAlts.join(" · ")}` : ""}${lang === "ar" ? "\nاضغط لفتح ملف المالك" : "\nclick to open the holder's profile"}`}
+                          >
+                            {holder}
                           </span>
                           <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                             {up ? "+" : ""}
                             {(m.c ?? 0).toFixed(2)}p
                           </b>
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-                          {m.f != null && m.o != null ? `${fmtPct(m.f)}% → ${fmtPct(m.o)}%` : m.o != null ? `${lang === "ar" ? "إفصاح جديد" : "new filing"} ${fmtPct(m.o)}%` : "—"}
-                        </p>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
+                          <b className="rounded bg-secondary px-1 py-px font-bold text-foreground/80" dir="ltr">{m.t}</b>
+                          <span>
+                            {m.f != null && m.o != null ? `${fmtPct(m.f)}% → ${fmtPct(m.o)}%` : m.o != null ? `${lang === "ar" ? "إفصاح جديد" : "new filing"} ${fmtPct(m.o)}%` : "—"}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
               </div>
               <p className="text-[10px] leading-relaxed text-muted-foreground">
                 {lang === "ar"
-                  ? "الأكبر أولًا · p = نقطة حصة (وحدة مئوية). على اللوحة: الهالة النابضة تميّز الشركات المتحركة والأقواس الخارجية بحجم كل حركة — اضغط أي صف لتفتح الشركة."
-                  : "Biggest first · p = stake point (one percentage unit). On the board: the pulsing halo marks moved companies and the outer arcs size each move — click any row to open the company."}
+                  ? "الأكبر أولًا · p = نقطة حصة (وحدة مئوية). اسم المالك أعلى كل صف — اضغطه لفتح ملفه، أو اضغط الصف لفتح الشركة. على اللوحة: الهالة النابضة تميّز الشركات المتحركة، وقوس كل حركة يحمل حجمها واسم صاحبها."
+                  : "Biggest first · p = stake point (one percentage unit). The holder's name leads every row — click it to open their profile, or click the row for the company. On the board: the pulsing halo marks moved companies, and each arc carries its size AND its holder's name."}
               </p>
             </div>
           )}
@@ -1594,6 +1628,14 @@ export function LensView() {
                         : "person"}{" "}
                     · {focusState.rings.length} {lang === "ar" ? "شركة مدرجة" : "listed companies"}
                   </p>
+                  {/* T66 — the filing variants this identity absorbed (the
+                   * dedupe is transparent, never silent) */}
+                  {!!data.people[focusState.h]?.alts?.length && (
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                      {lang === "ar" ? "ورد في النشرات أيضًا باسم:" : "also filed as:"}{" "}
+                      <span className="italic">{data.people[focusState.h]!.alts!.join(" · ")}</span>
+                    </p>
+                  )}
                 </div>
                 <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setFocus(null)}>
                   {lang === "ar" ? "رجوع" : "back"}
