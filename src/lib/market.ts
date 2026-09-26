@@ -496,6 +496,16 @@ export function companyRow(s: Stock) {
     low52: s.low52,
     avgVolume: s.avgVolume,
     volumeRatio: s.avgVolume && s.avgVolume > 0 ? s.volume / s.avgVolume : null,
+    // T68 — extended passthrough (was fetched by the scanner then dropped
+    // here): industry, 1-month range, free float, revenue, net margin, beta —
+    // the screener's new filter tiers run on these.
+    industry: s.industry ?? null,
+    high1M: s.high1M,
+    low1M: s.low1M,
+    floatShares: s.floatShares,
+    revenueTTM: s.revenueTTM,
+    netMarginTTM: s.netMarginTTM,
+    beta: s.beta,
     pb: s.pb,
     debtToEquity: s.debtToEquity,
     roe: s.roe,

@@ -3,7 +3,7 @@ import ZAI from "z-ai-web-dev-sdk";
 
 import { ZAI_API_KEY, zaiChatStream } from "@/lib/zai-client";
 import { pollinationsRound } from "@/lib/pollinations";
-import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, KEYLESS_POOL_MODEL_IDS } from "@/lib/ai-models";
+import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, KEYLESS_POOL_MODEL_IDS, SDK_BACKBONE_ID } from "@/lib/ai-models";
 type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 import { db } from "@/lib/db";
 import { findAiModel, DEFAULT_AI_MODEL_ID, aiModelIdentity, type AiModel } from "@/lib/ai-models";
@@ -174,11 +174,13 @@ function getZai(): Promise<Zai> {
 }
 
 /** GET /api/agent — the HOST BACKBONE report the model switcher shows before
- *  the user ever asks a question: which engine actually serves answers on
- *  THIS host (sdk GLM-4-Plus / direct GLM-4-Plus via ZAI_API_KEY / keyless
- *  GLM-5.3-Flash), so "why did GLM-5.3-Flash answer when I picked
- *  GLM-4-Plus?" is answered in the open, up front, with the fix (set
- *  ZAI_API_KEY) spelled out. Cheap: one SDK create race + env check. */
+ *  the user ever asks a question: which engines are available on THIS host
+ *  and which one is the MAIN. T68: the main model is now GLM-5.3-Flash on
+ *  EVERY host (the user's call — it answers keyless everywhere and streams
+ *  its live thinking); GLM-4-Plus stays as the explicit strong pick / the
+ *  auto-failover backbone wherever it can run (sandbox SDK gateway, or the
+ *  direct Z.AI cloud via ZAI_API_KEY on public hosts). Cheap: one SDK
+ *  create race + env check. */
 export async function GET() {
   let sdk = false;
   try {
@@ -194,10 +196,10 @@ export async function GET() {
   return NextResponse.json(
     {
       backbone,
-      engine:
-        backbone === "keyless"
-          ? "GLM-5.3-Flash"
-          : "GLM-4-Plus",
+      // T68 — the MAIN engine that serves answers by default on every host
+      engine: "GLM-5.3-Flash",
+      // a key (ZAI_API_KEY) would additionally unlock the GLM-4-Plus strong
+      // tier on a keyless host; on sdk/direct hosts it is already available
       needsKey: backbone === "keyless",
     },
     { headers: { "Cache-Control": "no-store" } }
@@ -361,6 +363,15 @@ async function llm7Round(
           model: providerModel,
           messages: opts.messages,
           stream: true,
+          // T68 — THINKING ALWAYS ON for the GLM-5.3-Flash main (probe-
+          // verified live): with the flag the model streams a ~1.2k-char
+          // reasoning_content trail the user watches token by token AND its
+          // final output comes out clean and protocol-compliant; without it
+          // the shared tier emits a thin 70-char trace and repetitive
+          // garbage in the content. The user's ask: "think live as you
+          // exactly" — this flag is what makes that real on every round,
+          // not just the synthesis round.
+          thinking: { type: "enabled" },
         }),
         signal: ctrl.signal,
       });
@@ -556,11 +567,14 @@ export async function POST(req: Request) {
           closed = true; // client disconnected — keep the loop honest
         }
       };
-      // T30 — the model the provider actually served (read from the stream
-      // metadata), so the done event stays honest even if a gateway reroutes
+      // T30/T68 — the model the provider actually served (read from the
+      // stream metadata). LAST-WINS: when a mid-loop failover re-routes a
+      // later round to another model, the final answer was written by THAT
+      // model, so the done event must report it — the old first-wins capture
+      // labeled a glm-4-plus failover answer as GLM-5.3-Flash (T68 fix).
       let servedModel = "";
       const noteServedModel: ServedModelFn = (m) => {
-        if (!servedModel) servedModel = m;
+        if (m) servedModel = m;
       };
       // T67 — LIVE THINKING streamer: every reasoning token the serving
       // model emits (GLM-5.3-Flash keyless / direct-cloud GLMs) reaches the
@@ -610,42 +624,46 @@ export async function POST(req: Request) {
         zai = await getZai();
       } catch {
         zai = null;
-        if (ZAI_API_KEY) {
-          send({
-            type: "status",
-            note:
-              lang === "ar"
-                ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM المباشرة (نموذج قوي)"
-                : "gateway unavailable on this host — answering via the direct GLM cloud (strong model)",
-          });
-          model = DIRECT_GLM;
-          msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
-        } else {
-          send({
-            type: "status",
-            note:
-              lang === "ar"
-                ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM-5.3-Flash المجانية (بلا تسجيل ولا مفاتيح)"
-                : "gateway unavailable on this host — answering via the keyless GLM-5.3-Flash cloud (no key, no sign-in)",
-          });
-          // T65/T67 — the keyless backbone is now LLM7's anonymous GLM-5.3-Flash
-          // tier: a REAL GLM brain (clean MSA Arabic + strict-JSON protocol
-          // compliance, probe-verified live), so the public deployment keeps
-          // a GLM main even before ZAI_API_KEY is set. The Kilo pool and
-          // Pollinations GPT-OSS are the fallback hops.
-          model = findAiModel(KEYLESS_MODEL_ID)!;
-          msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+        // T68 — the override now fires ONLY when the picked model actually
+        // NEEDS this host's gateway: a "zai" pick (GLM-4-Plus) that cannot
+        // run here. A keyless pick (llm7/kilo/pollinations — incl. the new
+        // GLM-5.3-Flash default) runs fine and is HONORED as picked (the old
+        // code stomped even explicit Kilo picks to the keyless GLM on
+        // keyless hosts — one of the "wrong model answered" bugs).
+        if (model.provider === "zai") {
+          if (ZAI_API_KEY) {
+            send({
+              type: "status",
+              note:
+                lang === "ar"
+                  ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM المباشرة (نموذج قوي)"
+                  : "gateway unavailable on this host — answering via the direct GLM cloud (strong model)",
+            });
+            model = DIRECT_GLM;
+            msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+          } else {
+            send({
+              type: "status",
+              note:
+                lang === "ar"
+                  ? "GLM-4-Plus لا يعمل على هذا المستضيف بلا مفتاح — سيتم الرد عبر النموذج الرئيسي GLM-5.3-Flash (بلا تسجيل ولا مفاتيح)"
+                  : "GLM-4-Plus cannot run on this host without a key — answering via the main GLM-5.3-Flash (no key, no sign-in)",
+            });
+            model = findAiModel(KEYLESS_MODEL_ID)!;
+            msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
+          }
         }
       }
-      // T67 — HOST BACKBONE meta, FIRST event on the wire: tells the client
-      // which engine actually serves answers on this host (sdk GLM-4-Plus /
-      // direct GLM-4-Plus via key / keyless GLM-5.3-Flash) BEFORE any answer
-      // streams, so the "why did GLM-5.3-Flash answer when I picked
-      // GLM-4-Plus?" question is answered up front, every time.
+      // T68 — HOST BACKBONE meta, FIRST event on the wire: tells the client
+      // which engine serves THIS request (the picked/default model — now
+      // GLM-5.3-Flash by default on every host, GLM-4-Plus when picked where
+      // it can run) plus the host's backbone tier, BEFORE any answer
+      // streams. The old "why did GLM-5.3-Flash answer when I picked
+      // GLM-4-Plus?" confusion is gone at the root: 5.3-Flash IS the main.
       send({
         type: "meta",
         backbone: zai ? "sdk" : ZAI_API_KEY ? "direct" : "keyless",
-        engine: zai || ZAI_API_KEY ? "GLM-4-Plus" : "GLM-5.3-Flash",
+        engine: model.label,
         needsKey: !zai && !ZAI_API_KEY,
       });
 
@@ -655,12 +673,14 @@ export async function POST(req: Request) {
       // GPT-OSS as the final hop. (T67: the old llm7-mistral last hop was
       // pruned — probes showed crash-text Arabic from that tier.)
       const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, ...KEYLESS_POOL_MODEL_IDS, KEYLESS_FALLBACK_MODEL_ID];
-      // T56/T59/T65/T67 — the backbone the failovers re-route to: SDK
-      // GLM-4-Plus in the sandbox, DIRECT GLM-4-Plus on keyed hosts (the
-      // user's pick), keyless GLM-5.3-Flash otherwise; the Kilo pool and
-      // Pollinations GPT-OSS are the keyless hops.
+      // T56/T59/T65/T68 — the backbone the failovers re-route to: SDK
+      // GLM-4-Plus in the sandbox (the STRONG brain — the default pick is
+      // the keyless GLM-5.3-Flash, so a failing keyless round must upgrade,
+      // not hop to itself), DIRECT GLM-4-Plus on keyed hosts, keyless
+      // GLM-5.3-Flash otherwise; the Kilo pool and Pollinations GPT-OSS are
+      // the keyless hops.
       const backboneModel = (): AiModel =>
-        zai ? findAiModel(DEFAULT_AI_MODEL_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel(KEYLESS_MODEL_ID)!;
+        zai ? findAiModel(SDK_BACKBONE_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel(KEYLESS_MODEL_ID)!;
       const keylessFallbackModel = (): AiModel => findAiModel(KEYLESS_FALLBACK_MODEL_ID)!;
       const hasBackbone = () => zai !== null || ZAI_API_KEY.length > 0;
       // T59/T65/T67 — WEAK keyless tiers never stream raw deltas (crash-text

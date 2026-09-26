@@ -1,20 +1,18 @@
 "use client";
 
-/** T28/T29 — the AI ASSISTANT POPUP: a floating command center that can
+/** T28/T29/T68 — the AI ASSISTANT POPUP: a floating command center that can
  *  EXECUTE anything on the website. Design inspired by the 21st.dev
  *  "ai-input" component family (animated gradient composer ring, round
  *  accessory buttons, model selector chip, circular gradient send orb,
  *  keyboard hint) — re-implemented original code in the app's warm
  *  terracotta palette.
  *
- *  Three brains, all free (T29: cloud models replace the local ones):
- *  - Instant  — the built-in bilingual regex router, zero network
- *  - Cloud    — /api/assistant (GLM-4-Plus) — works in any browser
- *  - Puter    — 1,000+ FREE ONLINE CLOUD models via Puter.js (no API
- *    keys, no cards): GLM-5.3 — the NEWEST GLM — is the default, plus
- *    GPT-5.6, Claude Sonnet 5, Gemini 3.1, Grok 4.6, DeepSeek V4, Kimi
- *    K3… behind ONE free Puter sign-in that uses the visitor's own free
- *    monthly allowance.
+ *  Two brains (T68 — Puter removed at the user's request: no third-party
+ *  script, no sign-in popup, no 1,000-model catalog):
+ *  - Instant — the built-in bilingual regex router, zero network
+ *  - Cloud   — /api/assistant: the server-side layered GLM brain (direct
+ *    Z.AI key → sandbox SDK → keyless GLM-5.3-Flash → Pollinations), works
+ *    in any browser with zero sign-in and zero keys.
  *
  *  The agent loop: plan (strict JSON {tool,args}|{reply}) → execute the
  *  tool against the live app (navigate / watchlist / alerts / paper
@@ -30,20 +28,16 @@ import { useApp } from "./app-context";
 import { T, tt, type Lang } from "@/lib/i18n";
 import { AgentMarkdown } from "./agent-markdown";
 import {
-  TOOL_DEFS, instantRoute, runTool, parseToolJson, toolsPromptSpec,
+  TOOL_DEFS, instantRoute, runTool,
 } from "@/lib/assistant-tools";
 import {
-  MODEL_CLOUD, MODEL_INSTANT, FEATURED_CLOUD, modelChipLabel, isPuterModel,
-  puterModelId, puterChat, puterSignedIn, puterSignIn, puterSignOut,
-  puterUsername, puterCatalog, PuterAuthRequiredError,
-  type CatalogModel,
+  MODEL_CLOUD, MODEL_INSTANT, modelChipLabel, isValidAssistantModel,
 } from "@/lib/assistant-models";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowUp, Bot, Check, ChevronDown, Cloud, Eraser, Languages, LogIn, LogOut,
-  Plus, Search, Sparkles, Square, Wrench, X, Zap,
+  ArrowUp, Bot, Check, ChevronDown, Eraser, Languages, Plus, Sparkles, Square, Wrench, X, Zap,
 } from "lucide-react";
 
 type Msg = {
@@ -51,16 +45,14 @@ type Msg = {
   text: string;
   steps?: { tool: string; ok: boolean }[];
   error?: boolean;
-  /** the Puter sign-in prompt card */
-  signin?: boolean;
   ts: number;
 };
 
 const CHAT_KEY = "egx-assistant-chat";
 const MODEL_KEY = "egx-assistant-model";
 const MAX_STORED = 30;
-/** the default brain: the NEWEST GLM, free on the Puter cloud */
-const DEFAULT_MODEL = puterModelId("z-ai:z-ai/glm-5.3");
+/** T68 — the default brain: the always-on server cloud (layered GLM chain) */
+const DEFAULT_MODEL = MODEL_CLOUD;
 const SUGGESTIONS = [T.aiSuggest1, T.aiSuggest2, T.aiSuggest3, T.aiSuggest4, T.aiSuggest5, T.aiSuggest6];
 
 /** The terracotta 12-ray sunburst — the assistant's avatar mark. */
@@ -80,33 +72,6 @@ function SunburstMark({ className, style }: { className?: string; style?: React.
   );
 }
 
-function planSystemPrompt(lang: Lang, view: string, ticker?: string): string {
-  return [
-    "You are the EGX Desk web assistant (Egyptian Exchange market app). You control the website: the user asks, you pick ONE next action.",
-    `App state: view=${view}${ticker ? `, ticker=${ticker}` : ""}, language=${lang}.`,
-    "",
-    "Respond ONLY with compact JSON on a single line - NO markdown, NO code fences, NO explanation:",
-    '{"tool":"<name>","args":{...}}  -> to run a tool (args may be {})',
-    '{"reply":"<text>"}             -> only for general questions no tool can answer',
-    "",
-    "TOOLS:",
-    toolsPromptSpec(),
-    "",
-    "Rules: navigation/control requests (open, show, buy, alert, watch, theme, language) -> the matching tool, assume imperative intent; ticker/name fields accept full company names (e.g. {\"ticker\":\"Eastern Tobacco\"}) so never search first for an imperative action; market data questions -> the data tool (the final answer is composed after execution); output MUST be valid JSON only.",
-  ].join("\n");
-}
-
-function answerSystemPrompt(lang: Lang, tool: string, args: Record<string, unknown>, result: unknown, question: string): string {
-  return [
-    "You are the EGX Desk assistant (Egyptian Exchange market app). A tool just executed in the user's browser.",
-    `Tool: ${tool}`,
-    `Args: ${JSON.stringify(args).slice(0, 600)}`,
-    `Result (real delayed market data - the ONLY numbers you may use): ${JSON.stringify(result).slice(0, 3000)}`,
-    `User question: ${question}`,
-    `Write the final answer in ${lang === "ar" ? "Arabic" : "English"}: concise plain markdown (2-6 lines), only real numbers from the result, never invented data. For navigation actions confirm briefly what you did. No JSON.`,
-  ].join("\n");
-}
-
 export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   const { lang, setLang, view, navigate, toggleWatch, watch, alerts, addAlert, removeAlert, toast } = useApp();
   const { setTheme } = useTheme();
@@ -120,15 +85,10 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
 
   // model layer state
   const [modelId, setModelId] = useState<string>(DEFAULT_MODEL);
-  const [puterUser, setPuterUser] = useState<string | null>(null);
-  const [catalog, setCatalog] = useState<CatalogModel[] | null>(null);
-  const [showAll, setShowAll] = useState(false);
-  const [modelQuery, setModelQuery] = useState("");
 
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const stopFlagRef = useRef(false);
 
   // ── boot: mounted, chat restore, model restore (legacy ids reset) ──
   useEffect(() => {
@@ -139,8 +99,9 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
         if (Array.isArray(arr)) setMsgs(arr.filter((m) => m && typeof m.text === "string").slice(0, MAX_STORED));
       }
       const m = localStorage.getItem(MODEL_KEY);
-      // T29 migration: old WebLLM ids are no longer valid brains
-      if (m === MODEL_INSTANT || m === MODEL_CLOUD || (m != null && isPuterModel(m))) setModelId(m);
+      // T68 migration: stale Puter ids (and old WebLLM ids) are no longer
+      // brains — reset to the always-on cloud tier
+      if (isValidAssistantModel(m)) setModelId(m as string);
     } catch {}
   }, []);
 
@@ -194,16 +155,6 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     });
   }, [persist]);
 
-  const patchLast = useCallback((patch: Partial<Msg>) => {
-    setMsgs((prev) => {
-      if (!prev.length) return prev;
-      const next = [...prev];
-      next[next.length - 1] = { ...next[next.length - 1], ...patch };
-      persist(next);
-      return next;
-    });
-  }, [persist]);
-
   // ── the tool executor bound to the live app ──
   const toolCtx = useCallback(() => ({
     lang,
@@ -225,48 +176,9 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     return res;
   }, [toolCtx]);
 
-  // ── Puter sign-in flow (free account, Puter's own first-party popup) ──
-  const doPuterSignIn = useCallback(async () => {
-    try {
-      const ok = await puterSignIn();
-      if (ok) {
-        const u = await puterUsername();
-        setPuterUser(u);
-        pushMsg({ role: "assistant", text: `**${tt(T.aiPuterSigninOk, lang)}**`, ts: Date.now() });
-        toast(tt(T.aiPuterSignedIn, lang));
-      } else {
-        pushMsg({ role: "assistant", text: tt(T.aiPuterSigninCancelled, lang), ts: Date.now(), error: true });
-      }
-    } catch {
-      pushMsg({ role: "assistant", text: tt(T.aiErrorGeneric, lang), ts: Date.now(), error: true });
-    }
-  }, [lang, pushMsg, toast]);
-
-  const doPuterSignOut = useCallback(async () => {
-    await puterSignOut();
-    setPuterUser(null);
-    toast(tt(T.aiPuterSignedOut, lang));
-  }, [toast, lang]);
-
-  // T49 — the one-per-session note shown when a Puter cloud model is
-  // selected but the visitor isn't signed in: we STILL answer (server model),
-  // the note just surfaces the free upgrade path + the one-tap sign-in button.
-  const fallbackNotedRef = useRef(false);
-  const fallbackNote = useCallback(() => {
-    if (fallbackNotedRef.current) return;
-    fallbackNotedRef.current = true;
-    pushMsg({
-      role: "assistant",
-      text: `**${tt(T.aiServerFallbackTitle, lang)}**\n\n${tt(T.aiServerFallbackBody, lang)}`,
-      signin: true,
-      ts: Date.now(),
-    });
-  }, [lang, pushMsg]);
-
-  // ── the server-cloud answer loop (GLM-4-Plus via /api/assistant — always
-  // available, zero sign-in). T49: ALSO the auto-fallback brain when a Puter
-  // cloud model is selected but the visitor hasn't signed in (or puter.js is
-  // blocked): the assistant must ALWAYS answer, never dead-wall. ──
+  // ── the server-cloud answer loop (the layered GLM brain via
+  // /api/assistant — always available, zero sign-in). T68: after the Puter
+  // removal this is THE cloud brain; the assistant must ALWAYS answer. ──
   const askCloud = useCallback(async (history: Msg[], text: string) => {
     const ac = new AbortController();
     abortRef.current = ac;
@@ -344,7 +256,6 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     const history = [...msgs, userMsg];
     setMsgs(history);
     persist(history);
-    stopFlagRef.current = false;
 
     // ── INSTANT mode: zero-model fast path ──
     if (modelId === MODEL_INSTANT) {
@@ -368,78 +279,12 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
       return;
     }
 
-    // ── CLOUD mode (GLM-4-Plus via /api/assistant) ──
-    if (modelId === MODEL_CLOUD) {
-      await askCloud(history, text);
-      return;
-    }
-
-    // ── PUTER CLOUD mode (GLM-5.3 / 1,000+ free online models) ──
-    setBusy("think");
-    try {
-      if (!(await puterSignedIn())) {
-        // T49 — never a dead wall: answer NOW on the always-on server model;
-        // the one-per-session note keeps the free Puter upgrade path visible.
-        fallbackNote();
-        await askCloud(history, text);
-        return;
-      }
-      const planMsgs = [
-        { role: "system" as const, content: planSystemPrompt(lang, view.name, view.ticker) },
-        ...history.slice(-4).map((m) => ({ role: m.role as "user" | "assistant", content: m.text.slice(0, 1200) })),
-      ];
-      const out = await puterChat(modelId, planMsgs, { stopped: () => stopFlagRef.current });
-      const parsed = parseToolJson(out);
-      if (parsed?.tool) {
-        const toolRes = await executeTool(parsed.tool, parsed.args ?? {});
-        setBusy("answer");
-        pushMsg({ role: "assistant", text: "", steps: [{ tool: parsed.tool, ok: toolRes.ok }], ts: Date.now() });
-        const ansMsgs = [
-          { role: "system" as const, content: answerSystemPrompt(lang, parsed.tool, parsed.args ?? {}, toolRes.data ?? { ok: toolRes.ok, text: toolRes.text }, text) },
-          { role: "user" as const, content: text || "Compose the final answer." },
-        ];
-        const final = await puterChat(modelId, ansMsgs, {
-          onDelta: (full) => patchLast({ text: full }),
-          stopped: () => stopFlagRef.current,
-        });
-        patchLast({ text: final.trim() || toolRes.text });
-      } else if (parsed?.reply) {
-        pushMsg({ role: "assistant", text: parsed.reply.trim(), ts: Date.now() });
-      } else {
-        // the model failed JSON — fall back to the instant router
-        const hit = instantRoute(text);
-        if (hit) {
-          const res = await executeTool(hit.tool, hit.args);
-          pushMsg({ role: "assistant", text: res.text, steps: [{ tool: hit.tool, ok: res.ok }], ts: Date.now() });
-        } else {
-          pushMsg({ role: "assistant", text: out.trim() || tt(T.aiErrorGeneric, lang), ts: Date.now() });
-        }
-      }
-    } catch (err) {
-      if (err instanceof PuterAuthRequiredError) {
-        // T49 — auth vanished mid-flight: fall through to the server brain
-        // instead of stopping the conversation cold.
-        fallbackNote();
-        await askCloud(history, text);
-      } else {
-        const msg = err instanceof Error ? err.message : "error";
-        const stopped = stopFlagRef.current;
-        pushMsg({
-          role: "assistant",
-          text: stopped
-            ? `⏹ ${tt(T.aiInputStop, lang)}`
-            : `${tt(T.aiErrorGeneric, lang)}${msg ? ` — ${msg.slice(0, 90)}` : ""}`,
-          ts: Date.now(),
-          ...(stopped ? {} : { error: true }),
-        });
-      }
-    } finally {
-      setBusy(null);
-    }
-  }, [busy, modelId, lang, view, msgs, executeTool, pushMsg, patchLast, fallbackNote, askCloud]);
+    // ── CLOUD mode (the layered GLM brain via /api/assistant) — also the
+    // path for every other/legacy model id (T68: only two brains remain) ──
+    await askCloud(history, text);
+  }, [busy, modelId, lang, view, msgs, executeTool, pushMsg, askCloud]);
 
   const stop = useCallback(() => {
-    stopFlagRef.current = true;
     abortRef.current?.abort();
   }, []);
 
@@ -451,25 +296,9 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
     } catch {}
   }, []);
 
-  // lazily pull the 1,000+ model catalog + sign-in state when the menu opens
-  const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => {
-    if (menuOpen) {
-      if (catalog === null) void puterCatalog().then(setCatalog);
-      void puterSignedIn().then(async (ok) => {
-        setPuterUser(ok ? await puterUsername() : null);
-      });
-    }
-  }, [menuOpen, catalog]);
-
   const canSend = !busy && input.trim().length > 0;
   const ringOn = focused || busy != null;
   const chipLabel = modelChipLabel(modelId);
-  const catalogFiltered = (catalog ?? []).filter((m) => {
-    if (!modelQuery) return true;
-    const q = modelQuery.toLowerCase();
-    return m.name.toLowerCase().includes(q) || m.puterId.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q);
-  });
 
   return (
     <>
@@ -581,17 +410,6 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
                           <motion.span animate={{ opacity: [0.25, 1, 0.25] }} transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}>·</motion.span>
                         </span>
                       )}
-                      {m.signin && (
-                        <button
-                          type="button"
-                          onClick={() => void doPuterSignIn()}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-secondary"
-                          style={{ color: "var(--chat-accent)" }}
-                        >
-                          <LogIn className="h-3.5 w-3.5" aria-hidden />
-                          {tt(T.aiPuterSignIn, lang)}
-                        </button>
-                      )}
                     </div>
                   </div>
                 ),
@@ -673,11 +491,11 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
                     </Popover>
 
                     {/* the model selector chip */}
-                    <Popover onOpenChange={setMenuOpen}>
+                    <Popover>
                       <PopoverTrigger asChild>
                         <button type="button" aria-label={tt(T.aiModelLabel, lang)} title={tt(T.aiModelLabel, lang)}
                           className="inline-flex h-7.5 items-center gap-1.5 rounded-full border bg-secondary/50 px-2.5 text-[11.5px] font-medium transition-colors hover:bg-secondary">
-                          {modelId === MODEL_INSTANT ? <Zap className="h-3 w-3" aria-hidden /> : modelId === MODEL_CLOUD ? <Languages className="h-3 w-3" aria-hidden /> : <Cloud className="h-3 w-3" aria-hidden />}
+                          {modelId === MODEL_INSTANT ? <Zap className="h-3 w-3" aria-hidden /> : <Languages className="h-3 w-3" aria-hidden />}
                           <span className="num max-w-32 truncate">{chipLabel}</span>
                           <ChevronDown className="h-3 w-3 opacity-60" aria-hidden />
                         </button>
@@ -686,16 +504,7 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
                         <ModelMenu
                           lang={lang}
                           modelId={modelId}
-                          puterUser={puterUser}
-                          catalog={catalogFiltered}
-                          catalogTotal={catalog?.length ?? null}
-                          showAll={showAll}
-                          onToggleAll={() => setShowAll((s) => !s)}
-                          modelQuery={modelQuery}
-                          onQuery={setModelQuery}
                           onSelect={selectModel}
-                          onSignIn={() => void doPuterSignIn()}
-                          onSignOut={() => void doPuterSignOut()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -726,28 +535,26 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
   );
 }
 
-// ── the model selector menu (Instant / Cloud GLM-4-Plus / featured cloud
-//    catalog + searchable all-models list + Puter sign-in state) ──
+// ── the model selector menu (T68 — Puter-free: Instant / Cloud GLM) ──
 
 function ModelMenu({
-  lang, modelId, puterUser, catalog, catalogTotal, showAll,
-  onToggleAll, modelQuery, onQuery, onSelect, onSignIn, onSignOut,
+  lang, modelId, onSelect,
 }: {
   lang: Lang;
   modelId: string;
-  puterUser: string | null;
-  catalog: CatalogModel[];
-  catalogTotal: number | null;
-  showAll: boolean;
-  onToggleAll: () => void;
-  modelQuery: string;
-  onQuery: (q: string) => void;
   onSelect: (id: string) => void;
-  onSignIn: () => void;
-  onSignOut: () => void;
 }) {
   return (
     <div className="max-h-[420px] overflow-y-auto thin-scroll p-1">
+      {/* cloud GLM (the app's own layered server brain — no sign-in) */}
+      <ModelRow
+        active={modelId === MODEL_CLOUD}
+        onClick={() => onSelect(MODEL_CLOUD)}
+        icon={<Languages className="h-3.5 w-3.5" aria-hidden />}
+        title={tt(T.aiModelCloud, lang)}
+        sub={tt(T.aiModelCloudDesc, lang)}
+        badge={null}
+      />
       {/* instant */}
       <ModelRow
         active={modelId === MODEL_INSTANT}
@@ -757,108 +564,6 @@ function ModelMenu({
         sub={tt(T.aiModelInstantDesc, lang)}
         badge={null}
       />
-      {/* cloud GLM-4-Plus (app's own server — no sign-in) */}
-      <ModelRow
-        active={modelId === MODEL_CLOUD}
-        onClick={() => onSelect(MODEL_CLOUD)}
-        icon={<Languages className="h-3.5 w-3.5" aria-hidden />}
-        title={tt(T.aiModelCloud, lang)}
-        sub={tt(T.aiModelCloudDesc, lang)}
-        badge={null}
-      />
-
-      <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {tt(T.aiModelCloudCat, lang)}
-      </div>
-
-      {/* Puter account row */}
-      <div className="mx-1.5 mb-2 rounded-md border bg-secondary/30 px-2.5 py-2">
-        {puterUser ? (
-          <div className="flex items-center justify-between gap-2">
-            <span className="num min-w-0 truncate text-[11.5px]">
-              <Check className="me-1 inline h-3 w-3 text-up" aria-hidden />
-              {tt(T.aiPuterSignedIn, lang)} · {puterUser}
-            </span>
-            <button type="button" onClick={onSignOut}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-              <LogOut className="h-2.5 w-2.5" aria-hidden />
-              {tt(T.aiPuterSignOut, lang)}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            <div className="text-[11px] leading-relaxed text-muted-foreground">{tt(T.aiPuterNote, lang)}</div>
-            <button type="button" onClick={onSignIn}
-              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:bg-secondary"
-              style={{ color: "var(--chat-accent)" }}>
-              <LogIn className="h-3 w-3" aria-hidden />
-              {tt(T.aiPuterSignIn, lang)}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* featured cloud flagships — GLM first */}
-      {FEATURED_CLOUD.map((m) => (
-        <ModelRow
-          key={m.puterId}
-          active={modelId === puterModelId(m.puterId)}
-          onClick={() => onSelect(puterModelId(m.puterId))}
-          icon={<Cloud className="h-3.5 w-3.5" aria-hidden />}
-          title={m.name}
-          sub={`${tt(m.desc, lang)} · ${Math.round(m.ctx / 1000)}k`}
-          badge={m.newest ? tt(T.aiNewestBadge, lang) : null}
-        />
-      ))}
-
-      {/* the full searchable catalog */}
-      <div className="px-1.5 pt-2 pb-1">
-        <button type="button" onClick={onToggleAll}
-          className="flex w-full items-center justify-center gap-1.5 rounded-md border bg-secondary/40 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-secondary">
-          <Search className="h-3 w-3" aria-hidden />
-          {tt(T.aiModelAll, lang)}
-          {catalogTotal != null && <span className="num text-muted-foreground">({catalogTotal})</span>}
-        </button>
-      </div>
-
-      {showAll && (
-        <div className="space-y-1 pt-1">
-          <div className="px-1.5">
-            <input
-              value={modelQuery}
-              onChange={(e) => onQuery(e.target.value)}
-              placeholder={tt(T.aiModelSearchPh, lang)}
-              aria-label={tt(T.aiModelSearchPh, lang)}
-              className="w-full rounded-md border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:ring-1 focus:ring-primary/40"
-            />
-          </div>
-          {catalogTotal === null && (
-            <div className="px-2.5 py-2 text-[11px] text-muted-foreground">{tt(T.aiThinking, lang)}…</div>
-          )}
-          {catalog.map((m) => (
-            <ModelRow
-              key={m.puterId}
-              active={modelId === puterModelId(m.puterId)}
-              onClick={() => onSelect(puterModelId(m.puterId))}
-              icon={<Cloud className="h-3.5 w-3.5" aria-hidden />}
-              title={m.name}
-              sub={`${m.provider}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
-              badge={null}
-              small
-            />
-          ))}
-          {catalog.length === 0 && catalogTotal != null && (
-            <div className="px-2.5 py-2 text-[11px] text-muted-foreground">—</div>
-          )}
-        </div>
-      )}
-
-      <div className="px-2.5 py-2 text-center">
-        <a href="https://developer.puter.com" target="_blank" rel="noopener noreferrer"
-          className="num text-[10px] text-muted-foreground underline-offset-2 hover:underline">
-          Powered by Puter
-        </a>
-      </div>
     </div>
   );
 }

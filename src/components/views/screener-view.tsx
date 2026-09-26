@@ -64,6 +64,22 @@ type Filters = {
   valueMin: string; // EGP mn
   volRatioMin: string;
   range52: "" | "high" | "low";
+  // ── T68 — the 15 NEW filters (29 total, the user's ask: "more than 25") ──
+  changeAbs: Bound; // EGP
+  range52Pos: Bound; // % of the 52w range
+  range1MPos: Bound; // % of the 1M range
+  netMargin: Bound; // %
+  grossMargin: Bound; // %
+  revenue: Bound; // EGP mn
+  netIncome: Bound; // EGP mn
+  payout: Bound; // % (source is 0..1 → ×100)
+  netDebtF: Bound; // EGP mn
+  employees: Bound;
+  floatShares: Bound; // mn shares
+  beta: Bound;
+  industry: string;
+  currency: "" | "egp" | "usd";
+  earningsWithin: string; // max days to next earnings
 };
 
 const DEFAULT_FILTERS: Filters = {
@@ -84,6 +100,21 @@ const DEFAULT_FILTERS: Filters = {
   valueMin: "",
   volRatioMin: "",
   range52: "",
+  changeAbs: EMPTY_BOUND,
+  range52Pos: EMPTY_BOUND,
+  range1MPos: EMPTY_BOUND,
+  netMargin: EMPTY_BOUND,
+  grossMargin: EMPTY_BOUND,
+  revenue: EMPTY_BOUND,
+  netIncome: EMPTY_BOUND,
+  payout: EMPTY_BOUND,
+  netDebtF: EMPTY_BOUND,
+  employees: EMPTY_BOUND,
+  floatShares: EMPTY_BOUND,
+  beta: EMPTY_BOUND,
+  industry: "",
+  currency: "",
+  earningsWithin: "",
 };
 
 const PERF_OPTIONS = [
@@ -104,16 +135,23 @@ const PRESETS: { key: string; t: { ar: string; en: string }; patch: Partial<Filt
   { key: "lowPe", t: T.presetLowPe, patch: { pe: { min: "", max: "10" } } },
   { key: "unusual", t: T.presetUnusual, patch: { volRatioMin: "2" } },
   { key: "largeCaps", t: T.presetLargeCaps, patch: { cap: { min: "10000", max: "" } } },
+  // T68 — two presets on the new filter tiers
+  { key: "netCash", t: T.presetNetCash, patch: { netDebtF: { min: "", max: "0" } } },
+  { key: "highMargin", t: T.presetHighMargin, patch: { netMargin: { min: "15", max: "" } } },
 ];
 
-// ── Investing.com Pro-style filter registry ──
+// ── Investing.com Pro-style filter registry (T68: 29 filters, 6 groups) ──
 
-type FilterKind = "bound" | "perf" | "min" | "range52";
+type FilterKind = "bound" | "perf" | "min" | "range52" | "select";
 type FilterKey =
   | "price" | "change" | "perf" | "cap" | "pe" | "pb" | "yield" | "roe" | "de" | "eps"
-  | "volumeMin" | "valueMin" | "volRatioMin" | "range52";
-type BoundKey = "price" | "change" | "cap" | "pe" | "pb" | "yield" | "roe" | "de" | "eps";
-type MinKey = "volumeMin" | "valueMin" | "volRatioMin";
+  | "volumeMin" | "valueMin" | "volRatioMin" | "range52"
+  | "changeAbs" | "range52Pos" | "range1MPos" | "netMargin" | "grossMargin"
+  | "revenue" | "netIncome" | "payout" | "netDebtF" | "employees"
+  | "floatShares" | "beta" | "industry" | "currency" | "earningsWithin";
+type BoundKey = Exclude<FilterKey, "perf" | "volumeMin" | "valueMin" | "volRatioMin" | "range52" | "industry" | "currency" | "earningsWithin">;
+type MinKey = "volumeMin" | "valueMin" | "volRatioMin" | "earningsWithin";
+type SelectKey = "industry" | "currency";
 
 /** Presets also activate the pill(s) they write to. */
 const PRESET_PILLS: Record<string, FilterKey[]> = {
@@ -123,18 +161,21 @@ const PRESET_PILLS: Record<string, FilterKey[]> = {
   lowPe: ["pe"],
   unusual: ["volRatioMin"],
   largeCaps: ["cap"],
+  netCash: ["netDebtF"],
+  highMargin: ["netMargin"],
 };
 
 type FilterDef = {
   key: FilterKey;
   t: { ar: string; en: string };
-  group: "price" | "valuation" | "activity" | "range";
+  group: "price" | "valuation" | "fundamentals" | "activity" | "range" | "profile";
   kind: FilterKind;
 };
 
 const FILTER_DEFS: FilterDef[] = [
   { key: "price", t: T.filterPrice, group: "price", kind: "bound" },
   { key: "change", t: T.filterChange, group: "price", kind: "bound" },
+  { key: "changeAbs", t: T.filterChangeAbs, group: "price", kind: "bound" },
   { key: "perf", t: T.filterPerf, group: "price", kind: "perf" },
   { key: "cap", t: T.filterCap, group: "valuation", kind: "bound" },
   { key: "pe", t: T.filterPe, group: "valuation", kind: "bound" },
@@ -143,17 +184,35 @@ const FILTER_DEFS: FilterDef[] = [
   { key: "roe", t: T.filterRoe, group: "valuation", kind: "bound" },
   { key: "de", t: T.filterDe, group: "valuation", kind: "bound" },
   { key: "eps", t: T.filterEps, group: "valuation", kind: "bound" },
+  // T68 — the financials tier (income statement + balance sheet)
+  { key: "revenue", t: T.filterRevenue, group: "fundamentals", kind: "bound" },
+  { key: "netIncome", t: T.filterNetIncome, group: "fundamentals", kind: "bound" },
+  { key: "netMargin", t: T.filterNetMargin, group: "fundamentals", kind: "bound" },
+  { key: "grossMargin", t: T.filterGrossMargin, group: "fundamentals", kind: "bound" },
+  { key: "payout", t: T.filterPayout, group: "fundamentals", kind: "bound" },
+  { key: "netDebtF", t: T.filterNetDebt, group: "fundamentals", kind: "bound" },
+  { key: "employees", t: T.filterEmployees, group: "fundamentals", kind: "bound" },
   { key: "volumeMin", t: T.filterVolume, group: "activity", kind: "min" },
   { key: "valueMin", t: T.filterValue, group: "activity", kind: "min" },
   { key: "volRatioMin", t: T.filterVolRatio, group: "activity", kind: "min" },
+  { key: "floatShares", t: T.filterFloat, group: "activity", kind: "bound" },
   { key: "range52", t: T.filter52, group: "range", kind: "range52" },
+  { key: "range52Pos", t: T.filterRange52Pos, group: "range", kind: "bound" },
+  { key: "range1MPos", t: T.filterRange1MPos, group: "range", kind: "bound" },
+  // T68 — the profile tier (industry / currency / risk / earnings calendar)
+  { key: "industry", t: T.filterIndustry, group: "profile", kind: "select" },
+  { key: "currency", t: T.filterCurrency, group: "profile", kind: "select" },
+  { key: "beta", t: T.filterBeta, group: "profile", kind: "bound" },
+  { key: "earningsWithin", t: T.filterEarnings, group: "profile", kind: "min" },
 ];
 
 const GROUP_LABELS: Record<FilterDef["group"], { ar: string; en: string }> = {
   price: T.grpPrice,
   valuation: T.grpValuation,
+  fundamentals: T.grpFundamentals,
   activity: T.grpActivity,
-  range: { ar: "مدى ٥٢ أسبوعاً", en: "52-week range" },
+  range: { ar: "مدى ٥٢ أسبوعاً وشهري", en: "52-week & monthly range" },
+  profile: T.grpProfile,
 };
 
 /** Pills shown by default when the screener opens — the quick pro workflow. */
@@ -164,7 +223,11 @@ const SCREENER_KEY = "egx-screener";
 
 // ── 21-c: shareable screener state (?view=screener&sector=…&pe=~10&sort=pe&dir=asc…) ──
 
-const BOUND_URL_KEYS = ["price", "change", "cap", "pe", "pb", "yield", "roe", "de", "eps"] as const;
+const BOUND_URL_KEYS = [
+  "price", "change", "changeAbs", "cap", "pe", "pb", "yield", "roe", "de", "eps",
+  "netMargin", "grossMargin", "revenue", "netIncome", "payout", "netDebtF",
+  "employees", "floatShares", "beta", "range52Pos", "range1MPos",
+] as const;
 type BoundUrlKey = (typeof BOUND_URL_KEYS)[number];
 
 function boundOf(f: Filters, k: BoundUrlKey): Bound {
@@ -183,9 +246,11 @@ function screenerUrlPatch(f: Filters, active: FilterKey[], sortKey: ColKey, desc
   }
   if (f.perfPeriod !== DEFAULT_FILTERS.perfPeriod) patch.perfPeriod = f.perfPeriod;
   if (f.perf.min || f.perf.max) patch.perf = `${f.perf.min}~${f.perf.max}`;
-  if (f.volumeMin) patch.volumeMin = f.volumeMin;
-  if (f.valueMin) patch.valueMin = f.valueMin;
-  if (f.volRatioMin) patch.volRatioMin = f.volRatioMin;
+  for (const k of ["volumeMin", "valueMin", "volRatioMin", "earningsWithin"] as const) {
+    if (f[k]) patch[k] = f[k];
+  }
+  if (f.industry) patch.industry = f.industry;
+  if (f.currency) patch.currency = f.currency;
   if (f.range52) patch.range52 = f.range52;
   if (active.join(",") !== DEFAULT_ACTIVE.join(",")) patch.active = active.join(",") || "-";
   if (sortKey !== "marketCap") patch.sort = sortKey;
@@ -203,6 +268,7 @@ function screenerFromUrl(): { f: Filters; active: FilterKey[]; sortKey: ColKey; 
     q || sector || anyBound ||
     bootParam("perf") || bootParam("perfPeriod") || bootParam("volumeMin") ||
     bootParam("valueMin") || bootParam("volRatioMin") || bootParam("range52") ||
+    bootParam("industry") || bootParam("currency") || bootParam("earningsWithin") ||
     bootParam("active") || bootParam("sort") || bootParam("dir");
   if (!has) return null;
   const f: Filters = { ...DEFAULT_FILTERS, q: q ?? "", sector: sector ?? "" };
@@ -219,10 +285,14 @@ function screenerFromUrl(): { f: Filters; active: FilterKey[]; sortKey: ColKey; 
   }
   const pp = bootParam("perfPeriod");
   if (pp && PERF_OPTIONS.some(([k]) => k === pp)) f.perfPeriod = pp as PerfPeriod;
-  for (const k of ["volumeMin", "valueMin", "volRatioMin"] as const) {
+  for (const k of ["volumeMin", "valueMin", "volRatioMin", "earningsWithin"] as const) {
     const v = bootParam(k);
     if (v) f[k] = v;
   }
+  const ind = bootParam("industry");
+  if (ind) f.industry = ind;
+  const cur = bootParam("currency");
+  if (cur === "egp" || cur === "usd") f.currency = cur;
   const r52 = bootParam("range52");
   if (r52 === "high" || r52 === "low") f.range52 = r52;
   const act = bootParam("active");
@@ -522,7 +592,7 @@ export function ScreenerView() {
         };
         if (s && typeof s === "object") {
           // SSR-safe localStorage restore — mount effect by necessity
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+           
           if (s.f && typeof s.f === "object") setF({ ...DEFAULT_FILTERS, ...s.f });
           if (Array.isArray(s.active)) {
             const valid = s.active.filter(
@@ -577,6 +647,16 @@ export function ScreenerView() {
       .sort((a, b) => a.name.localeCompare(b.name, lang === "ar" ? "ar" : "en"));
   }, [rows, lang]);
 
+  // T68 — the live industry list (TradingView's per-company industry label)
+  const industries = useMemo(() => {
+    if (!rows) return [];
+    const seen = new Set<string>();
+    rows.forEach((r) => {
+      if (r.industry && r.industry.trim()) seen.add(r.industry.trim());
+    });
+    return [...seen].sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const applyPatch = (patch: Partial<Filters>) => setF((prev) => ({ ...prev, ...patch }));
 
   /** Add a filter pill (and open its value editor). */
@@ -590,9 +670,12 @@ export function ScreenerView() {
     setActive((a) => a.filter((k) => k !== key));
     if (openPill === key) setOpenPill(null);
     const patch: Partial<Filters> = {};
-    if (key === "volumeMin" || key === "valueMin" || key === "volRatioMin") patch[key] = "";
-    else if (key === "range52") patch.range52 = "";
+    if (key === "range52") patch.range52 = "";
+    else if (key === "industry") patch.industry = "";
+    else if (key === "currency") patch.currency = "";
     else if (key === "perf") patch.perf = EMPTY_BOUND;
+    else if (key === "volumeMin" || key === "valueMin" || key === "volRatioMin" || key === "earningsWithin")
+      patch[key] = "";
     else patch[key] = EMPTY_BOUND;
     applyPatch(patch);
   };
@@ -600,14 +683,16 @@ export function ScreenerView() {
   const filtered = useMemo(() => {
     if (!rows) return null;
     const needle = f.q.trim().toLowerCase();
+    const nowMs = Date.now();
     const out = rows.filter((r) => {
       if (needle) {
-        const hay = `${r.ticker} ${r.name} ${r.nameAr ?? ""} ${r.sectorEn} ${r.sectorAr}`.toLowerCase();
+        const hay = `${r.ticker} ${r.name} ${r.nameAr ?? ""} ${r.sectorEn} ${r.sectorAr} ${r.industry ?? ""}`.toLowerCase();
         if (!hay.includes(needle) && !rowMatchesArabic(r.ticker, f.q.trim())) return false;
       }
       if (f.sector && r.sectorCode !== f.sector) return false;
       if (!passesBound(r.close, f.price)) return false;
       if (!passesBound(r.changePct, f.change)) return false;
+      if (!passesBound(r.changeAbs, f.changeAbs)) return false;
       if (!passesBound(r[f.perfPeriod], f.perf)) return false;
       if (!passesBound(r.marketCap != null ? r.marketCap / 1e6 : null, f.cap)) return false;
       if (!passesBound(r.pe, f.pe)) return false;
@@ -616,14 +701,49 @@ export function ScreenerView() {
       if (!passesBound(r.roe ?? null, f.roe)) return false;
       if (!passesBound(r.debtToEquity ?? null, f.de)) return false;
       if (!passesBound(r.eps, f.eps)) return false;
+      // T68 — the financials tier
+      if (!passesBound(r.netMarginTTM ?? null, f.netMargin)) return false;
+      if (!passesBound(r.grossMarginTTM ?? null, f.grossMargin)) return false;
+      if (!passesBound(r.revenueTTM != null ? r.revenueTTM / 1e6 : null, f.revenue)) return false;
+      if (!passesBound(r.netIncomeTTM != null ? r.netIncomeTTM / 1e6 : null, f.netIncome)) return false;
+      if (!passesBound(r.payoutRatio != null ? r.payoutRatio * 100 : null, f.payout)) return false;
+      if (!passesBound(r.netDebt != null ? r.netDebt / 1e6 : null, f.netDebtF)) return false;
+      if (!passesBound(r.employees ?? null, f.employees)) return false;
+      // the activity tier
       if (!passesMin(r.volume, f.volumeMin)) return false;
       if (!passesMin(r.valueTraded != null ? r.valueTraded / 1e6 : null, f.valueMin)) return false;
       if (!passesMin(r.volumeRatio, f.volRatioMin)) return false;
+      if (!passesBound(r.floatShares != null ? r.floatShares / 1e6 : null, f.floatShares)) return false;
+      // the range tier (position as a % of the span)
+      if (f.range52Pos.min || f.range52Pos.max) {
+        const pos = rangePos(r);
+        if (!passesBound(pos == null ? null : pos * 100, f.range52Pos)) return false;
+      }
+      if (f.range1MPos.min || f.range1MPos.max) {
+        const pos =
+          r.high1M != null && r.low1M != null && r.close != null && r.high1M - r.low1M > 0
+            ? (r.close - r.low1M) / (r.high1M - r.low1M)
+            : null;
+        if (!passesBound(pos == null ? null : pos * 100, f.range1MPos)) return false;
+      }
       if (f.range52) {
         const pos = rangePos(r);
         if (pos === null) return false;
         if (f.range52 === "high" && pos < 0.95) return false;
         if (f.range52 === "low" && pos > 0.1) return false;
+      }
+      // the profile tier
+      if (f.industry && r.industry !== f.industry) return false;
+      if (f.currency === "egp" && r.usdQuoted) return false;
+      if (f.currency === "usd" && !r.usdQuoted) return false;
+      if (!passesBound(r.beta ?? null, f.beta)) return false;
+      if (f.earningsWithin) {
+        const maxDays = parseNum(f.earningsWithin);
+        if (maxDays != null) {
+          if (r.nextEarnings == null || !Number.isFinite(r.nextEarnings)) return false;
+          const days = (r.nextEarnings * 1000 - nowMs) / 86_400_000;
+          if (days < 0 || days > maxDays) return false;
+        }
       }
       return true;
     });
@@ -664,6 +784,18 @@ export function ScreenerView() {
       const has = !!f.range52;
       return { label: has ? tt(f.range52 === "high" ? T.nearHigh : T.nearLow, lang) : name, hasValue: has };
     }
+    if (def.kind === "select") {
+      // T68 — the profile-tier selects (industry / currency)
+      if (key === "industry") {
+        const has = !!f.industry;
+        return { label: has ? `${name}: ${f.industry}` : name, hasValue: has };
+      }
+      const has = !!f.currency;
+      return {
+        label: has ? `${name}: ${tt(f.currency === "usd" ? T.curUsd : T.curEgp, lang)}` : name,
+        hasValue: has,
+      };
+    }
     const b = f[key as BoundKey] as Bound;
     const has = !!(b.min || b.max);
     return { label: has ? boundChipLabel(name, b) : name, hasValue: has };
@@ -677,6 +809,7 @@ export function ScreenerView() {
       if (d.kind === "perf") return !!(f.perf.min || f.perf.max);
       if (d.kind === "min") return !!f[d.key as MinKey];
       if (d.kind === "range52") return !!f.range52;
+      if (d.kind === "select") return !!(d.key === "industry" ? f.industry : f.currency);
       const b = f[d.key as BoundKey] as Bound;
       return !!(b.min || b.max);
     }).length;
@@ -722,7 +855,7 @@ export function ScreenerView() {
           className="h-9 rounded-md border bg-card px-2 text-xs text-foreground max-w-[13rem]"
           aria-label={tt(T.allSectors, lang)}
         >
-          <option value="">{tt(T.allSectors, lang)}</option>
+          <option value="">{tt(T.anyIndustry, lang)}</option>
           {sectors.map((s) => (
             <option key={s.code} value={s.code}>
               {s.name}
@@ -746,7 +879,9 @@ export function ScreenerView() {
                 ("yield" in p.patch && p.patch.yield?.min === f.yield.min) ||
                 ("pe" in p.patch && p.patch.pe?.max === f.pe.max) ||
                 ("volRatioMin" in p.patch && p.patch.volRatioMin === f.volRatioMin) ||
-                ("cap" in p.patch && p.patch.cap?.min === f.cap.min);
+                ("cap" in p.patch && p.patch.cap?.min === f.cap.min) ||
+                ("netDebtF" in p.patch && p.patch.netDebtF?.max === f.netDebtF.max && !!f.netDebtF.max) ||
+                ("netMargin" in p.patch && p.patch.netMargin?.min === f.netMargin.min && !!f.netMargin.min);
               return (
                 <DropdownMenuItem
                   key={p.key}
@@ -858,7 +993,7 @@ export function ScreenerView() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-y-auto thin-scroll">
-            {(["price", "valuation", "activity", "range"] as const).map((group) => (
+            {(["price", "valuation", "fundamentals", "activity", "range", "profile"] as const).map((group) => (
               <DropdownMenuGroup key={group}>
                 <DropdownMenuLabel className="text-[10px] text-muted-foreground">
                   {tt(GROUP_LABELS[group], lang)}
@@ -922,6 +1057,53 @@ export function ScreenerView() {
                   onChange={(v) => applyPatch({ [key]: v } as Partial<Filters>)}
                   lang={lang}
                 />
+              )}
+              {/* T68 — the industry select: live options from the data */}
+              {def.kind === "select" && key === "industry" && (
+                <>
+                  <select
+                    value={f.industry}
+                    onChange={(e) => applyPatch({ industry: e.target.value })}
+                    className="h-8 w-full rounded-md border bg-card px-2 text-xs"
+                    aria-label={tt(T.filterIndustry, lang)}
+                  >
+                    <option value="">{tt(T.anyIndustry, lang)}</option>
+                    {industries.map((ind) => (
+                      <option key={ind} value={ind}>
+                        {ind}
+                      </option>
+                    ))}
+                  </select>
+                  {industries.length === 0 && (
+                    <p className="text-[10px] leading-relaxed text-muted-foreground">
+                      {tt(T.screenerExcludeNote, lang)}
+                    </p>
+                  )}
+                </>
+              )}
+              {/* T68 — the currency select: EGP / USD */}
+              {def.kind === "select" && key === "currency" && (
+                <div className="flex items-center gap-1">
+                  {(
+                    [
+                      ["", T.curAny],
+                      ["egp", T.curEgp],
+                      ["usd", T.curUsd],
+                    ] as const
+                  ).map(([v, t]) => (
+                    <button
+                      key={v || "any"}
+                      onClick={() => applyPatch({ currency: v as Filters["currency"] })}
+                      className={`h-8 flex-1 rounded-md border px-1.5 text-[11px] leading-tight transition-colors ${
+                        f.currency === v
+                          ? "bg-secondary font-semibold border-ring"
+                          : "text-muted-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      {tt(t, lang)}
+                    </button>
+                  ))}
+                </div>
               )}
               {def.kind === "range52" && (
                 <div className="flex items-center gap-1">

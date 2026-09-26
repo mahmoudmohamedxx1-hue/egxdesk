@@ -1,18 +1,20 @@
 "use client";
 
-/** The agent's model switcher (T30 → T67 rewrite) — every option is served
+/** The agent's model switcher (T30 → T68 rewrite) — every option is served
  *  SERVER-side through /api/agent; no client-side loops, no sign-in walls:
  *
- *  - SERVER (no sign-in): GLM-4-Plus — the app's own server model. In the
- *    dev sandbox it runs through the SDK gateway; on public hosting it needs
- *    ZAI_API_KEY (the host banner below says exactly which engine is live).
- *  - KEYLESS cloud (no sign-in, no keys): llm7's GLM-5.3-Flash, the three
- *    Kilo Gateway routes, Pollinations GPT-OSS-20B.
+ *  - MAIN (no sign-in, no keys): llm7's GLM-5.3-Flash — the user's explicit
+ *    call ("if glm 4 plus isnt working and glm 5.3 flash is working so
+ *    replace them"): it answers keyless on EVERY host and streams its live
+ *    chain-of-thought. First row of the menu, the default pick.
+ *  - STRONG tier: GLM-4-Plus — runs via the dev-sandbox SDK gateway, or on
+ *    public hosting with ZAI_API_KEY (the host banner says what's live).
+ *  - BACKUP keyless pool: the three Kilo Gateway routes + Pollinations
+ *    GPT-OSS-20B (auto-failover hops when the shared GLM pool is busy).
  *
- *  T67: the Puter family (featured ladder + 1,000-model catalog + sign-in
- *  row) was REMOVED from the agent at the user's request. The menu opens
- *  with the honest HOST BACKBONE banner (GET /api/agent) so nobody ever
- *  wonders again why GLM-5.3-Flash answered while GLM-4-Plus was picked. */
+ *  T67: the Puter family was REMOVED from the agent view. T68: the Puter
+ *  ladder was ALSO removed from the Ctrl+K assistant popup — the app no
+ *  longer loads any third-party model script anywhere. */
 
 import { useEffect, useState } from "react";
 import { AI_MODELS, DEFAULT_AI_MODEL_ID, aiModelLabel, loadAiModelId, saveAiModelId } from "@/lib/ai-models";
@@ -98,7 +100,22 @@ export function ModelSwitcher({
             </div>
           )}
 
-          {/* ── server family — no sign-in, always on ── */}
+          {/* ── T68 — THE MAIN MODEL first: the keyless GLM-5.3-Flash — the
+              default pick on every host, streams its live thinking. ── */}
+          {AI_MODELS.filter((m) => m.id === "llm7:GLM-5.3-Flash").map((m) => (
+            <ModelRow
+              key={m.id}
+              active={modelId === m.id}
+              onClick={() => onModelChange(m.id)}
+              icon={<Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />}
+              title={m.label}
+              sub={`${tt({ ar: m.noteAr, en: m.note }, lang)}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
+              badge={tt(T.aiModelMainBadge, lang)}
+            />
+          ))}
+
+          {/* ── the strong tier: GLM-4-Plus — the sandbox SDK gateway or the
+              ZAI_API_KEY direct cloud (the host banner says which is live) ── */}
           {AI_MODELS.filter((m) => m.provider === "zai").map((m) => (
             <ModelRow
               key={m.id}
@@ -111,16 +128,15 @@ export function ModelSwitcher({
             />
           ))}
 
-          {/* ── T36/T66/T67 keyless cloud family — no sign-in, no keys,
-              nothing to configure: llm7's anonymous GLM-5.3-Flash + the
-              freellmpool-vetted Kilo Gateway routes + Pollinations, all
-              served server-side ── */}
-          {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo" || m.provider === "pollinations").length > 0 && (
+          {/* ── T36/T66/T67 backup keyless pool — the auto-failover hops when
+              the shared GLM pool is busy: the freellmpool-vetted Kilo
+              Gateway routes + Pollinations, all served server-side ── */}
+          {AI_MODELS.filter((m) => (m.provider === "kilo" || m.provider === "pollinations") && m.id !== "llm7:GLM-5.3-Flash").length > 0 && (
             <>
               <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {tt(T.aiModelKeylessCat, lang)}
               </div>
-              {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo" || m.provider === "pollinations").map((m) => (
+              {AI_MODELS.filter((m) => m.provider === "kilo" || m.provider === "pollinations").map((m) => (
                 <ModelRow
                   key={m.id}
                   active={modelId === m.id}

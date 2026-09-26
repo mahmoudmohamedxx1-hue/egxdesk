@@ -1,7 +1,7 @@
 "use client";
 
 /** T28 — the AI assistant's EXECUTION layer: these tools let the assistant
- *  (any model — instant router, cloud GLM-4-Plus, or a free Puter cloud
+ *  (either brain: the instant router or the server-side cloud GLM chain
  *  model such as GLM-5.3)
  *  actually OPERATE the EGX Desk website: navigate every view, open company
  *  pages, manage the watchlist, create multi-condition alerts, place paper

@@ -302,7 +302,7 @@ export function AppShell() {
       {/* G14 — service-worker registration (app shell cache; API never cached) */}
       <PwaRegister />
       {/* T28 — the floating AI assistant popup (Ctrl+K): executes any site
-          action + free model switcher (Instant / Cloud GLM / Puter cloud).
+          action + free model switcher (Instant / Cloud GLM).
           T34: mounted lazily on first open — framer-motion + the markdown
           renderer no longer ship with every first page load. */}
       <AiAssistantLazy />

@@ -43,6 +43,9 @@ export type CompanyRow = {
   high1M?: number | null;
   low1M?: number | null;
   updateMode?: string | null;
+  // T68 — 1-year beta (live from the TradingView scanner; the screener's
+  // volatility filter runs on it)
+  beta?: number | null;
   // extended fundamentals (TradingView scanner)
   pb?: number | null;
   debtToEquity?: number | null;
