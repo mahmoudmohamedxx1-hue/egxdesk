@@ -1,55 +1,30 @@
 "use client";
 
-/** Free-cloud model switcher (T30 → T33 rewrite) — the agent composer's
- *  model dropdown. Two provider families, honestly labeled:
+/** The agent's model switcher (T30 → T67 rewrite) — every option is served
+ *  SERVER-side through /api/agent; no client-side loops, no sign-in walls:
  *
- *  - SERVER (no sign-in): GLM-4-Plus — the app's own server model, streamed
- *    through /api/agent SSE.
- *  - PUTER CLOUD (free sign-in): the featured free ladder (GPT-OSS 20B,
- *    GLM-5.3, GPT-5.6, Claude, Gemini, Grok, DeepSeek…) plus the FULL
- *    searchable 1,000+ model catalog — these run the agent loop client-side
- *    with tools executed by /api/agent/tools.
+ *  - SERVER (no sign-in): GLM-4-Plus — the app's own server model. In the
+ *    dev sandbox it runs through the SDK gateway; on public hosting it needs
+ *    ZAI_API_KEY (the host banner below says exactly which engine is live).
+ *  - KEYLESS cloud (no sign-in, no keys): llm7's GLM-5.3-Flash, the three
+ *    Kilo Gateway routes, Pollinations GPT-OSS-20B.
  *
- *  Featured ids are resolved against the LIVE catalog when it loads, so a
- *  provider rename (e.g. the gpt-oss entry point) self-heals into whatever
- *  real id Puter currently serves. The chosen id persists in localStorage
- *  and rides every /api/agent POST as `body.model` (or drives the client
- *  loop when it is a puter: id). */
+ *  T67: the Puter family (featured ladder + 1,000-model catalog + sign-in
+ *  row) was REMOVED from the agent at the user's request. The menu opens
+ *  with the honest HOST BACKBONE banner (GET /api/agent) so nobody ever
+ *  wonders again why GLM-5.3-Flash answered while GLM-4-Plus was picked. */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AI_MODELS, DEFAULT_AI_MODEL_ID, aiModelLabel, loadAiModelId, saveAiModelId } from "@/lib/ai-models";
-import { puterCatalog, puterSignIn, puterSignOut, puterSignedIn, puterUsername, type CatalogModel } from "@/lib/assistant-models";
 import { T, tt } from "@/lib/i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown, Cloud, LogIn, LogOut, Search, Server, Sparkles, Zap } from "lucide-react";
+import { Check, ChevronsUpDown, Info, Server, Sparkles, Zap } from "lucide-react";
 
-/** Featured puter ids resolved against the live catalog: if the hardcoded
- *  id is absent, fall back to the best name match (e.g. "gpt-oss-20b") so
- *  provider-side renames never break the featured ladder. */
-function resolveFeatured(catalog: CatalogModel[] | null): Map<string, string> {
-  const out = new Map<string, string>();
-  for (const m of AI_MODELS) {
-    if (m.provider !== "puter") continue;
-    out.set(m.id, m.providerModel);
-  }
-  if (!catalog || catalog.length === 0) return out;
-  const have = new Set(catalog.map((c) => c.puterId));
-  for (const m of AI_MODELS) {
-    if (m.provider !== "puter") continue;
-    if (have.has(m.providerModel)) continue; // exact id live — keep it
-    // fuzzy fallback: the model family token, e.g. "gpt-oss-20b" from the label
-    const needle = m.label.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const hit =
-      catalog.find((c) => c.puterId.toLowerCase().replace(/[^a-z0-9:/-]/g, "").includes(needle)) ??
-      catalog.find((c) => c.name.toLowerCase().replace(/[^a-z0-9]/g, "").includes(needle));
-    if (hit) out.set(m.id, hit.puterId);
-  }
-  return out;
-}
+type HostBackbone = { backbone: "sdk" | "direct" | "keyless"; engine: string; needsKey: boolean };
 
 export function ModelSwitcher({
   lang,
@@ -61,45 +36,30 @@ export function ModelSwitcher({
   onModelChange: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [catalog, setCatalog] = useState<CatalogModel[] | null>(null);
-  const [puterUser, setPuterUser] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
-  const [query, setQuery] = useState("");
+  const [backbone, setBackbone] = useState<HostBackbone | null>(null);
 
-  // lazily pull the 1,000+ model catalog + sign-in state when the menu opens
+  // T67 — the host backbone report, fetched when the menu opens (cheap GET)
   useEffect(() => {
-    if (!open) return;
-    if (catalog === null) void puterCatalog().then(setCatalog);
-    void puterSignedIn()
-      .then(async (ok) => (ok ? await puterUsername() : null))
-      .then(setPuterUser)
-      .catch(() => setPuterUser(null));
-     
-  }, [open]);
-
-  const resolved = useMemo(() => resolveFeatured(catalog), [catalog]);
-
-  const catalogFiltered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return (catalog ?? []).slice(0, 80);
-    return (catalog ?? [])
-      .filter((m) => m.puterId.toLowerCase().includes(q) || m.name.toLowerCase().includes(q))
-      .slice(0, 80);
-  }, [catalog, query]);
+    if (!open || backbone) return;
+    let alive = true;
+    void fetch("/api/agent")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (
+          alive &&
+          j &&
+          (j.backbone === "sdk" || j.backbone === "direct" || j.backbone === "keyless")
+        ) {
+          setBackbone({ backbone: j.backbone, engine: String(j.engine ?? ""), needsKey: j.needsKey === true });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [open, backbone]);
 
   const chipLabel = aiModelLabel(modelId);
-
-  const signIn = async () => {
-    const ok = await puterSignIn().catch(() => false);
-    if (ok) {
-      setPuterUser(await puterUsername().catch(() => null));
-    }
-  };
-
-  const signOut = async () => {
-    await puterSignOut().catch(() => {});
-    setPuterUser(null);
-  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -117,6 +77,27 @@ export function ModelSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80 p-0">
         <div className="max-h-[420px] overflow-y-auto thin-scroll p-1">
+          {/* ── T67 — HOST BACKBONE banner: which engine actually serves
+              answers on THIS host, and (when keyless) exactly why plus the
+              fix (ZAI_API_KEY). Honesty up front, before any pick. ── */}
+          {backbone && (
+            <div
+              className="mx-1.5 mb-2 rounded-md border px-2.5 py-2"
+              style={{ borderColor: "var(--chat-border)", backgroundColor: "var(--chat-accent-soft)" }}
+              dir="auto"
+            >
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                <Info className="h-3 w-3 shrink-0" style={{ color: "var(--chat-accent)" }} aria-hidden />
+                {tt(T.agentHostEngine, lang)}: <span className="num">{backbone.engine}</span>
+              </div>
+              {backbone.needsKey && (
+                <p className="mt-1 text-[10px] leading-relaxed" style={{ color: "var(--chat-muted)" }}>
+                  {tt(T.agentHostKeylessWhy, lang)}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* ── server family — no sign-in, always on ── */}
           {AI_MODELS.filter((m) => m.provider === "zai").map((m) => (
             <ModelRow
@@ -130,15 +111,16 @@ export function ModelSwitcher({
             />
           ))}
 
-          {/* ── T36/T66 keyless cloud family — no sign-in, no keys, nothing to
-              configure: LLM7.io's anonymous tier + the freellmpool-vetted
-              Kilo Gateway routes, all served server-side ── */}
-          {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo").length > 0 && (
+          {/* ── T36/T66/T67 keyless cloud family — no sign-in, no keys,
+              nothing to configure: llm7's anonymous GLM-5.3-Flash + the
+              freellmpool-vetted Kilo Gateway routes + Pollinations, all
+              served server-side ── */}
+          {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo" || m.provider === "pollinations").length > 0 && (
             <>
               <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {tt(T.aiModelKeylessCat, lang)}
               </div>
-              {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo").map((m) => (
+              {AI_MODELS.filter((m) => m.provider === "llm7" || m.provider === "kilo" || m.provider === "pollinations").map((m) => (
                 <ModelRow
                   key={m.id}
                   active={modelId === m.id}
@@ -151,119 +133,6 @@ export function ModelSwitcher({
               ))}
             </>
           )}
-
-          <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {tt(T.aiModelCloudCat, lang)}
-          </div>
-
-          {/* Puter account row */}
-          <div className="mx-1.5 mb-2 rounded-md border bg-secondary/30 px-2.5 py-2">
-            {puterUser ? (
-              <div className="flex items-center justify-between gap-2">
-                <span className="num min-w-0 truncate text-[11.5px]">
-                  <Check className="me-1 inline h-3 w-3 text-up" aria-hidden />
-                  {tt(T.aiPuterSignedIn, lang)} · {puterUser}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void signOut()}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                >
-                  <LogOut className="h-2.5 w-2.5" aria-hidden />
-                  {tt(T.aiPuterSignOut, lang)}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <div className="text-[11px] leading-relaxed text-muted-foreground">{tt(T.aiPuterNote, lang)}</div>
-                <button
-                  type="button"
-                  onClick={() => void signIn()}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:bg-secondary"
-                  style={{ color: "var(--chat-accent)" }}
-                >
-                  <LogIn className="h-3 w-3" aria-hidden />
-                  {tt(T.aiPuterSignIn, lang)}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* featured cloud ladder — GPT-OSS first, then the flagships */}
-          {AI_MODELS.filter((m) => m.provider === "puter").map((m) => {
-            const realId = resolved.get(m.id) ?? m.providerModel;
-            const active = modelId === m.id || modelId === `puter:${realId}`;
-            return (
-              <ModelRow
-                key={m.id}
-                active={active}
-                onClick={() => {
-                  // store the RESOLVED id so the runtime uses the real one
-                  onModelChange(realId === m.providerModel ? m.id : `puter:${realId}`);
-                }}
-                icon={<Cloud className="h-3.5 w-3.5" aria-hidden />}
-                title={m.label}
-                sub={`${tt({ ar: m.noteAr, en: m.note }, lang)}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
-                badge={m.newest ? tt(T.aiNewestBadge, lang) : null}
-              />
-            );
-          })}
-
-          {/* the full searchable catalog */}
-          <div className="px-1.5 pt-2 pb-1">
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-md border bg-secondary/40 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-secondary"
-            >
-              <Search className="h-3 w-3" aria-hidden />
-              {tt(T.aiModelAll, lang)}
-              {catalog !== null && <span className="num text-muted-foreground">({catalog.length})</span>}
-            </button>
-          </div>
-
-          {showAll && (
-            <div className="space-y-1 pt-1">
-              <div className="px-1.5">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={tt(T.aiModelSearchPh, lang)}
-                  aria-label={tt(T.aiModelSearchPh, lang)}
-                  className="w-full rounded-md border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:ring-1 focus:ring-primary/40"
-                />
-              </div>
-              {catalog === null && (
-                <div className="px-2.5 py-2 text-[11px] text-muted-foreground">{tt(T.aiThinking, lang)}…</div>
-              )}
-              {catalogFiltered.map((m) => (
-                <ModelRow
-                  key={m.puterId}
-                  active={modelId === `puter:${m.puterId}`}
-                  onClick={() => onModelChange(`puter:${m.puterId}`)}
-                  icon={<Cloud className="h-3.5 w-3.5" aria-hidden />}
-                  title={m.name}
-                  sub={`${m.provider}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
-                  badge={null}
-                  small
-                />
-              ))}
-              {catalog !== null && catalogFiltered.length === 0 && (
-                <div className="px-2.5 py-2 text-[11px] text-muted-foreground">—</div>
-              )}
-            </div>
-          )}
-
-          <div className="px-2.5 py-2 text-center">
-            <a
-              href="https://developer.puter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="num text-[10px] text-muted-foreground underline-offset-2 hover:underline"
-            >
-              Powered by Puter
-            </a>
-          </div>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -39,13 +39,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  ArrowLeft, Check, Copy, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench, X,
+  ArrowLeft, Brain, Check, ChevronDown, Copy, Eraser, History, Languages, Moon, Sparkles, Sun, Trash2, Wrench, X,
 } from "lucide-react";
 import { getDeviceId } from "@/lib/push-client";
 import { useTheme } from "next-themes";
-import { puterChat, puterSignedIn, puterSignIn, PuterAuthRequiredError } from "@/lib/assistant-models";
-import { findAiModel, aiModelLabel, aiModelIdentity } from "@/lib/ai-models";
-import { buildAgentSystemPrompt, extractJson, makeFinalPreviewer, verifyFinalAnswer, verificationRepairMessage, verificationFootnote } from "@/lib/agent-protocol";
+import { aiModelLabel } from "@/lib/ai-models";
 
 type AgentStep = {
   tool: string;
@@ -62,7 +60,16 @@ type AgentMsg = {
   /** T37 — the model that ACTUALLY served this answer (done event); when a
    *  keyless model auto-fell back to GLM-4-Plus, this records it honestly. */
   servedModel?: string;
+  /** T67 — the model's reasoning trail (reasoning_content), streamed live
+   *  during the answer and kept attached to it for review. Present only
+   *  when the serving model actually emits its thinking. */
+  thinking?: string;
 };
+
+/** T67 — the HOST BACKBONE (GET /api/agent): which engine serves answers on
+ *  this host, so "why did GLM-5.3-Flash answer when I picked GLM-4-Plus?"
+ *  is answered in the open, with the fix spelled out. */
+type HostBackbone = { backbone: "sdk" | "direct" | "keyless"; engine: string; needsKey: boolean };
 
 const CHAT_KEY = "egx-agent-chat";
 const CHAT_ID_KEY = "egx-agent-chat-id";
@@ -167,8 +174,79 @@ function CopyAnswer({ text, lang }: { text: string; lang: "ar" | "en" }) {
   );
 }
 
+/** T67 — the LIVE THINKING panel: renders the model's reasoning trail as
+ *  it streams (or after the fact, attached to an answer). While streaming it
+ *  auto-scrolls to the newest token; the header carries the live badge and
+ *  the char count; the whole block is collapsible so the ANSWER stays the
+ *  hero once it starts arriving. */
+function ThinkPanel({
+  text,
+  live,
+  lang,
+  defaultOpen = true,
+}: {
+  text: string;
+  live: boolean;
+  lang: "ar" | "en";
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  // auto-scroll the reasoning to the newest token while it streams
+  useEffect(() => {
+    if (live && open && boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
+  }, [text, live, open]);
+  return (
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--chat-border)", backgroundColor: "var(--chat-accent-soft)" }}
+      dir="auto"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1.5 px-3 py-2 text-start"
+        aria-expanded={open}
+      >
+        <Brain className="h-3.5 w-3.5 shrink-0 animate-pulse" style={{ color: "var(--chat-accent)" }} aria-hidden />
+        <span className="text-[11px] font-semibold" style={{ color: "var(--chat-accent)" }}>
+          {tt(T.agentThinkLive, lang)}
+        </span>
+        {live && (
+          <span className="flex gap-1" aria-hidden>
+            <span className="h-1 w-1 rounded-full animate-bounce [animation-delay:0ms]" style={{ backgroundColor: "var(--chat-accent)" }} />
+            <span className="h-1 w-1 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: "var(--chat-accent)" }} />
+            <span className="h-1 w-1 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: "var(--chat-accent)" }} />
+          </span>
+        )}
+        <span className="num ms-auto shrink-0 text-[10px]" style={{ color: "var(--chat-muted)" }}>
+          {text.length} {tt(T.agentThinkUnit, lang)}
+        </span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? "" : "-rotate-90"}`}
+          style={{ color: "var(--chat-muted)" }}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div
+          ref={boxRef}
+          className="thin-scroll max-h-56 overflow-y-auto border-t px-3 py-2.5"
+          style={{ borderColor: "var(--chat-border)" }}
+        >
+          <p className="whitespace-pre-wrap text-[12px] leading-relaxed" style={{ color: "var(--chat-muted)" }}>
+            {text}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** One exchange: user bubble (end side) / assistant serif answer under the
- *  sunburst mark (no bubble — the reference chat grammar). */
+ *  sunburst mark (no bubble — the reference chat grammar). T67: when the
+ *  serving model streamed its reasoning, the trail renders (collapsed) above
+ *  the answer it produced. */
 function Exchange({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
   if (m.role === "user") {
     return (
@@ -199,6 +277,9 @@ function Exchange({ m, lang }: { m: AgentMsg; lang: "ar" | "en" }) {
           </span>
         )}
       </div>
+      {m.thinking && m.thinking.trim().length > 0 && (
+        <ThinkPanel text={m.thinking} live={false} lang={lang} defaultOpen={false} />
+      )}
       {m.steps && !m.error && <StepChips steps={m.steps} lang={lang} />}
       {m.error ? (
         <p className="text-sm leading-relaxed text-down">{m.content}</p>
@@ -229,6 +310,8 @@ export function AgentView() {
   const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
   const [liveNote, setLiveNote] = useState<string | null>(null);
   const [streamText, setStreamText] = useState("");
+  const [thinkText, setThinkText] = useState(""); // T67 — the live reasoning stream
+  const [backbone, setBackbone] = useState<HostBackbone | null>(null); // T67 — this host's engine
   const [historyOpen, setHistoryOpen] = useState(false); // chat-history sidebar (Task 24)
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyList, setHistoryList] = useState<HistoryRow[]>([]);
@@ -237,7 +320,6 @@ export function AgentView() {
   const lastQueryRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const puterStopRef = useRef(false); // T33 — stop flag for the client-side Puter loop
 
   // restore the chat from the device (SSR-safe mount read); a shared
   // ?q=… link prefills the composer (never auto-sends — it would burn the
@@ -272,6 +354,24 @@ export function AgentView() {
     const q = bootParam("q");
     if (q) setInput(q.slice(0, 2000));
     setReady(true);
+  }, []);
+
+  // T67 — which engine serves answers on THIS host (sdk GLM-4-Plus /
+  // direct GLM-4-Plus / keyless GLM-5.3-Flash): shown in the top bar and the
+  // model menu so the "why GLM-5.3-Flash?" question never surprises anyone.
+  useEffect(() => {
+    let alive = true;
+    void fetch("/api/agent")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (alive && j && (j.backbone === "sdk" || j.backbone === "direct" || j.backbone === "keyless")) {
+          setBackbone({ backbone: j.backbone, engine: String(j.engine ?? ""), needsKey: j.needsKey === true });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const persist = (next: AgentMsg[]) => {
@@ -320,7 +420,7 @@ export function AgentView() {
   // keep the newest message in view (also while the answer streams in)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy, liveSteps, streamText]);
+  }, [messages, busy, liveSteps, streamText, thinkText]);
 
   // Escape closes the history sidebar (it behaves like a drawer)
   useEffect(() => {
@@ -331,230 +431,6 @@ export function AgentView() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [historyOpen]);
-
-  // ── T33: the CLIENT-side agent loop for free Puter cloud models ──
-  // Same protocol as the server loop: plan (strict JSON) → execute tool
-  // server-side via POST /api/agent/tools → answer. The LLM rounds run in
-  // the browser through puter.js; the tools still return only real data.
-  const askViaPuter = async (history: AgentMsg[], q: string, modelIdStr: string) => {
-    const m = findAiModel(modelIdStr);
-    const label = aiModelLabel(modelIdStr);
-    const identity = m ? aiModelIdentity(m) : `a REAL large language model (${label} — served via the free Puter cloud)`;
-
-    // sign-in gate — one free Puter account unlocks the whole cloud ladder
-    if (!(await puterSignedIn().catch(() => false))) {
-      persist([
-        ...history,
-        {
-          role: "assistant",
-          content: `**${tt(T.aiPuterSigninCardTitle, lang)}**\n\n${tt(T.aiPuterSigninCardBody, lang)}`,
-          error: true,
-          ts: Date.now(),
-        },
-      ]);
-      // surface the Puter sign-in popup right away — the user asked a question
-      void puterSignIn().catch(() => {});
-      return;
-    }
-
-    puterStopRef.current = false;
-    const stepsAcc: AgentStep[] = [];
-    const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
-    let verifyRetried = false; // T38 — one repair round max
-    let streamSoFar = "";
-    setLiveNote(`${label} — thinking`);
-
-    const msgs: { role: "user" | "assistant"; content: string }[] = [
-      { role: "assistant", content: buildAgentSystemPrompt(lang, identity) },
-      ...history
-        .filter((x) => !x.error)
-        .slice(-24)
-        .map((x) => ({ role: x.role, content: x.content.slice(0, 8000) })),
-    ];
-
-    try {
-      let corrections = 0;
-      let answered = false;
-      const seenCalls = new Set<string>(); // T36 — duplicate-tool-call guard
-      for (let round = 0; round < 11 && stepsAcc.length < 10; round++) {
-        if (puterStopRef.current) break;
-        // live preview: decode the {"final": "… body as it streams
-        let prevLen = 0;
-        const preview = makeFinalPreviewer((text) => {
-          streamSoFar += text;
-          setStreamText(streamSoFar);
-        });
-        const out = await puterChat(modelIdStr, msgs, {
-          onDelta: (full) => {
-            preview(full.slice(prevLen));
-            prevLen = full.length;
-          },
-          stopped: () => puterStopRef.current,
-          timeoutMs: 240_000,
-        });
-        if (puterStopRef.current) break;
-
-        const parsed = extractJson(out);
-        if (!parsed || (!("tool" in parsed) && !("final" in parsed))) {
-          corrections++;
-          if (corrections > 2) break;
-          msgs.push({
-            role: "user",
-            content:
-              'Format error. Reply with exactly ONE JSON object, no fences: {"tool": "<name>", "args": {...}} to call a tool, or {"final": "<markdown answer>"} to answer.',
-          });
-          continue;
-        }
-
-        if (typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-          // T38 — ANTI-FABRICATION GATE (same semantics as the server loop):
-          // verify significant numbers against the tool data, reject CJK
-          // leakage. One repair round, then ship with an honest footnote.
-          const finalText = parsed.final.trim();
-          const verdict = verifyFinalAnswer(finalText, toolJsons, q);
-          if (!verdict.ok && !verifyRetried) {
-            verifyRetried = true;
-            streamSoFar = "";
-            setStreamText("");
-            msgs.push({ role: "user", content: verificationRepairMessage(verdict, lang) });
-            continue;
-          }
-          const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
-          const finalSteps = [...stepsAcc];
-          const answerMsg: AgentMsg = { role: "assistant", content: shipped, steps: finalSteps, ts: Date.now() };
-          persist([...history, answerMsg]);
-          saveChat([...history, answerMsg]); // server-side history (fire-and-forget)
-          answered = true;
-          break;
-        }
-
-        const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
-        const args = (parsed.args && typeof parsed.args === "object" ? parsed.args : {}) as Record<string, unknown>;
-        if (!toolName) {
-          corrections++;
-          if (corrections > 2) break;
-          continue;
-        }
-
-        // T36 — duplicate-call guard: identical tool+args is a loop, not
-        // progress — nudge the model to synthesize from what it already has
-        const callKey = `${toolName}:${JSON.stringify(args)}`;
-        if (seenCalls.has(callKey)) {
-          msgs.push({
-            role: "user",
-            content:
-              'You already called this tool with these EXACT arguments and its result is above in the conversation. Do NOT call it again. Reply NOW with your final answer in the format {"final": "<markdown answer>"} using the data you already have.',
-          });
-          continue;
-        }
-        seenCalls.add(callKey);
-
-        // tool execution stays SERVER-side — real data, real rate limits
-        setLiveNote(`${label} · ${tt(TOOL_LABELS[toolName] ?? { ar: toolName, en: toolName }, lang)}`);
-        let result: unknown;
-        let ok = false;
-        try {
-          const res = await fetch("/api/agent/tools", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tool: toolName, args, lang, deviceId: getDeviceId() }),
-          });
-          const json = (await res.json().catch(() => ({}))) as { ok?: boolean; result?: unknown };
-          result = json.result ?? { error: "tool call failed" };
-          ok = res.ok && json.ok !== false;
-        } catch {
-          result = { error: "tool call failed" };
-        }
-        stepsAcc.push({ tool: toolName, args, ok });
-        setLiveSteps([...stepsAcc]);
-        const resultJson = JSON.stringify(result).slice(0, 9000);
-        msgs.push({ role: "user", content: resultJson });
-        toolJsons.push(resultJson);
-      }
-
-      if (!answered && !puterStopRef.current && stepsAcc.length > 0) {
-        // loop exhausted — force one synthesis round from the collected data
-        msgs.push({
-          role: "user",
-          content:
-            'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools. Format: {"final": "<markdown answer>"}',
-        });
-        let prevLen = 0;
-        const preview = makeFinalPreviewer((text) => {
-          streamSoFar += text;
-          setStreamText(streamSoFar);
-        });
-        try {
-          const out = await puterChat(modelIdStr, msgs, {
-            onDelta: (full) => {
-              preview(full.slice(prevLen));
-              prevLen = full.length;
-            },
-            stopped: () => puterStopRef.current,
-            timeoutMs: 240_000,
-          });
-          const parsed = extractJson(out);
-          if (parsed && typeof parsed.final === "string" && parsed.final.trim().length > 0) {
-            // T38 — forced-synthesis answers pass the same verification gate
-            const finalText = parsed.final.trim();
-            const verdict = verifyFinalAnswer(finalText, toolJsons, q);
-            const shipped = verdict.ok ? finalText : finalText + verificationFootnote(verdict, lang);
-            persist([...history, { role: "assistant", content: shipped, steps: [...stepsAcc], ts: Date.now() }]);
-            answered = true;
-          }
-        } catch {
-          /* fall through to the honest fallback */
-        }
-      }
-
-      if (!answered) {
-        if (puterStopRef.current) {
-          persist([
-            ...history,
-            streamSoFar.trim()
-              ? { role: "assistant", content: streamSoFar, ts: Date.now() }
-              : { role: "assistant", content: tt(T.agentStopped, lang), error: true, ts: Date.now() },
-          ]);
-        } else {
-          persist([
-            ...history,
-            {
-              role: "assistant",
-              content:
-                lang === "ar"
-                  ? "وصلتُ لحد الأدوات المتاحة دون إجابة كاملة. جرّب إعادة السؤال بصيغة أبسط (مثال: «ما حالة السوق الآن؟» أو «quote لسهم COMI»)."
-                  : "I ran out of tool budget without a complete answer. Try rephrasing (e.g. \"market overview\" or \"quote for COMI\").",
-              ts: Date.now(),
-            },
-          ]);
-        }
-      }
-    } catch (err) {
-      if (err instanceof PuterAuthRequiredError) {
-        persist([
-          ...history,
-          {
-            role: "assistant",
-            content: `**${tt(T.aiPuterSigninCardTitle, lang)}**\n\n${tt(T.aiPuterSigninCardBody, lang)}`,
-            error: true,
-            ts: Date.now(),
-          },
-        ]);
-        return;
-      }
-      persist([
-        ...history,
-        {
-          role: "assistant",
-          content: `${tt(T.agentError, lang)}${err instanceof Error ? ` (${err.message})` : ""}`,
-          error: true,
-          ts: Date.now(),
-        },
-      ]);
-    } finally {
-      puterStopRef.current = false;
-    }
-  };
 
   const ask = async (text: string) => {
     const q = text.trim();
@@ -568,25 +444,15 @@ export function AgentView() {
     setLiveSteps([]);
     setLiveNote(null);
     setStreamText("");
+    setThinkText("");
     const ac = new AbortController();
     abortRef.current = ac;
     let streamSoFar = "";
+    let thinkSoFar = "";
 
-    // T33 — free Puter cloud models run the loop CLIENT-side; the app's own
-    // server model keeps the SSE path
-    if (modelId.startsWith("puter:")) {
-      try {
-        await askViaPuter(history, q, modelId);
-      } finally {
-        abortRef.current = null;
-        setBusy(false);
-        setLiveSteps([]);
-        setLiveNote(null);
-        setStreamText("");
-      }
-      return;
-    }
-
+    // T67 — every model now runs SERVER-side through /api/agent (the old
+    // client-side Puter loop was removed); the SSE stream carries meta /
+    // think / step / status / delta / done events.
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
@@ -628,6 +494,15 @@ export function AgentView() {
           setLiveSteps([...stepsAcc]);
         } else if (evt.type === "status") {
           setLiveNote(typeof evt.note === "string" ? evt.note : null);
+        } else if (evt.type === "think" && typeof evt.text === "string") {
+          // T67 — LIVE THINKING: the model's reasoning tokens as they arrive
+          thinkSoFar += evt.text;
+          setThinkText(thinkSoFar);
+        } else if (evt.type === "meta") {
+          // T67 — host backbone honesty (also refreshes the top-bar chip)
+          if (evt.backbone === "sdk" || evt.backbone === "direct" || evt.backbone === "keyless") {
+            setBackbone({ backbone: evt.backbone, engine: String(evt.engine ?? ""), needsKey: evt.needsKey === true });
+          }
         } else if (evt.type === "delta" && typeof evt.text === "string") {
           streamSoFar += evt.text;
           setStreamText(streamSoFar);
@@ -642,6 +517,7 @@ export function AgentView() {
               steps: finalSteps,
               ts: Date.now(),
               ...(typeof evt.model === "string" && evt.model ? { servedModel: evt.model } : {}),
+              ...(typeof evt.thinking === "string" && evt.thinking.trim() ? { thinking: evt.thinking } : {}),
             },
           ];
           persist(next);
@@ -695,11 +571,11 @@ export function AgentView() {
       setLiveSteps([]);
       setLiveNote(null);
       setStreamText("");
+      setThinkText("");
     }
   };
 
   const stop = () => {
-    puterStopRef.current = true; // T33 — stops the client-side Puter loop
     abortRef.current?.abort();
   };
 
@@ -1051,8 +927,21 @@ export function AgentView() {
             <h1 className="truncate text-sm font-bold" style={{ color: "var(--chat-ink)" }}>
               {tt(T.agentTitle, lang)}
             </h1>
-            <p className="num truncate text-[10px]" style={{ color: "var(--chat-muted)" }}>
-              GLM-4-Plus · {tt(T.delayed, lang)}
+            {/* T67 — the HOST ENGINE chip: which model ACTUALLY serves answers
+                here, with the honest explanation when GLM-4-Plus can't run */}
+            <p
+              className="num truncate text-[10px]"
+              style={{ color: "var(--chat-muted)" }}
+              title={
+                backbone?.needsKey
+                  ? `${tt(T.agentHostEngine, lang)}: ${backbone.engine} — ${tt(T.agentHostKeylessWhy, lang)}`
+                  : backbone
+                    ? `${tt(T.agentHostEngine, lang)}: ${backbone.engine}`
+                    : undefined
+              }
+            >
+              {backbone ? `${backbone.engine} · ` : ""}
+              {tt(T.delayed, lang)}
             </p>
           </div>
         </div>
@@ -1153,6 +1042,21 @@ export function AgentView() {
                   {elapsed > 2 && <span className="num"> · {elapsed}s</span>}
                 </span>
               </div>
+              {/* T67 — LIVE THINKING: the reasoning trail streams token by
+                  token; when the engine never emits one (GLM-4-Plus is a
+                  pre-thinking generation), the honest note replaces it after
+                  a beat so the user knows WHY there is no stream, while the
+                  tool steps + statuses tell the live work-trace story. */}
+              {thinkText ? (
+                <ThinkPanel text={thinkText} live lang={lang} />
+              ) : (
+                elapsed > 6 &&
+                liveSteps.length === 0 && (
+                  <p className="text-[10px] leading-relaxed" style={{ color: "var(--chat-muted)" }}>
+                    {tt(T.agentThinkNoStream, lang)}
+                  </p>
+                )
+              )}
               {liveSteps.length > 0 && <StepChips steps={liveSteps} lang={lang} />}
               {liveNote && (
                 <p className="text-[10px]" style={{ color: "var(--chat-muted)" }}>

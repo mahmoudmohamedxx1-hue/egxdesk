@@ -175,9 +175,9 @@ export async function zaiChat(opts: {
  *  choices[0].delta.content) which is forwarded live through onDelta — built
  *  so the in-app AGENT chat route can run the strong GLM backbone on ANY
  *  host that has ZAI_API_KEY set (Vercel, containers…), where the
- *  sandbox-only z-ai-web-dev-sdk cannot authenticate. Reasoning deltas
- *  (reasoning_content / reasoning) are consumed but NOT forwarded — the
- *  agent's strict-JSON protocol wants the content stream only. */
+ *  sandbox-only z-ai-web-dev-sdk cannot authenticate. T67: reasoning
+ *  deltas (reasoning_content / reasoning) stream live to opts.onThink so
+ *  the agent can show the model's thinking as it happens. */
 export async function zaiChatStream(opts: {
   messages: { role: "system" | "user" | "assistant"; content: string }[];
   model?: string;
@@ -186,6 +186,9 @@ export async function zaiChatStream(opts: {
   temperature?: number;
   onDelta?: (text: string) => void;
   onServedModel?: (model: string) => void;
+  /** T67 — LIVE THINKING: reasoning_content deltas stream here as they
+   *  arrive (GLM direct-cloud models emit them when thinking is on). */
+  onThink?: (text: string) => void;
   maxRetries?: number;
 }): Promise<string> {
   if (!ZAI_API_KEY) {
@@ -251,7 +254,12 @@ export async function zaiChatStream(opts: {
               modelSeen = true;
               opts.onServedModel?.(j.model);
             }
-            const piece = j.choices?.[0]?.delta?.content;
+            const d = j.choices?.[0]?.delta;
+            const thinkPiece = d?.reasoning_content ?? d?.reasoning;
+            if (typeof thinkPiece === "string" && thinkPiece.length > 0) {
+              opts.onThink?.(thinkPiece);
+            }
+            const piece = d?.content;
             if (typeof piece === "string" && piece.length > 0) {
               out += piece;
               opts.onDelta?.(piece);

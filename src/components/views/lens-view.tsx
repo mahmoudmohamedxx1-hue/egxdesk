@@ -1142,7 +1142,11 @@ export function LensView() {
                                 // + from→to live in the native tooltip.
                                 const mvHolder = data ? data.people[mv.h]?.n ?? String(mv.h) : String(mv.h);
                                 const mvHolderShort = mvHolder.split(/\s+/).slice(0, 2).join(" ");
-                                const tip = `${mvHolder} · ${ring.ticker} ${mv.c != null ? `${mv.c > 0 ? "+" : ""}${mv.c.toFixed(2)}p` : ""}${mv.from != null && mv.to != null ? ` (${fmtPct(mv.from)}% → ${fmtPct(mv.to)}%)` : ""}`;
+                                // T67 — the stake-point unit spelled out: "3.5p" was
+                                // cryptic; the label now says what it IS (نقطة
+                                // ملكية / stake pts) and the tooltip defines it
+                                const ptsLabel = lang === "ar" ? "نقطة ملكية" : "stake pts";
+                                const tip = `${mvHolder} · ${ring.ticker} ${mv.c != null ? `${mv.c > 0 ? "+" : ""}${mv.c.toFixed(2)} ${ptsLabel}` : ""}${mv.from != null && mv.to != null ? ` (${fmtPct(mv.from)}% → ${fmtPct(mv.to)}%)` : ""}${lang === "ar" ? " — النقطة = 1% من أسهم الشركة" : " — 1 point = 1% of the company's shares"}`;
                                 return (
                                   <g key={`wa-${i}`}>
                                     <path
@@ -1167,7 +1171,7 @@ export function LensView() {
                                         style={{ fill: col }}
                                         className="pointer-events-none"
                                       >
-                                        {`${(mv.c ?? 0) > 0 ? "+" : ""}${(mv.c ?? 0).toFixed(2)}p`}
+                                        {`${(mv.c ?? 0) > 0 ? "+" : ""}${(mv.c ?? 0).toFixed(1)}${lang === "ar" ? " نقطة" : " pts"}`}
                                       </text>
                                     )}
                                     {ring.r > 13 && Math.abs(mv.c ?? 0) >= 0.5 && (
@@ -1468,9 +1472,17 @@ export function LensView() {
                           >
                             {holder}
                           </span>
-                          <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                          <b
+                            className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                            title={
+                              lang === "ar"
+                                ? "نقطة ملكية = 1% من أسهم الشركة — أي فرق حصة المالك في هذه الشركة بين نشرتين"
+                                : "1 stake point = 1% of the company's share capital — the holder's delta between two filings"
+                            }
+                          >
                             {up ? "+" : ""}
-                            {(m.c ?? 0).toFixed(2)}p
+                            {(m.c ?? 0).toFixed(2)}
+                            {lang === "ar" ? " نقطة ملكية" : " stake pts"}
                           </b>
                         </div>
                         <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
@@ -1485,8 +1497,8 @@ export function LensView() {
               </div>
               <p className="text-[10px] leading-relaxed text-muted-foreground">
                 {lang === "ar"
-                  ? "الأكبر أولًا · p = نقطة حصة (وحدة مئوية). اسم المالك أعلى كل صف — اضغطه لفتح ملفه، أو اضغط الصف لفتح الشركة. على اللوحة: الهالة النابضة تميّز الشركات المتحركة، وقوس كل حركة يحمل حجمها واسم صاحبها."
-                  : "Biggest first · p = stake point (one percentage unit). The holder's name leads every row — click it to open their profile, or click the row for the company. On the board: the pulsing halo marks moved companies, and each arc carries its size AND its holder's name."}
+                  ? "الأكبر أولًا · «نقطة الملكية» = 1% من أسهم الشركة: فمثلًا +3.5 نقطة تعني أن حصة المالك زادت بمقدار 3.5% من رأس مال الشركة (من 4.8% إلى 8.3% مثلًا). اسم المالك أعلى كل صف — اضغطه لفتح ملفه، أو اضغط الصف لفتح الشركة. على اللوحة: الهالة النابضة تميّز الشركات المتحركة، وقوس كل حركة يحمل حجمها واسم صاحبها."
+                  : "Biggest first · a stake point = 1% of the company's share capital: +3.5 pts means the holder's stake grew by 3.5% of the company's capital (e.g. from 4.8% to 8.3%). The holder's name leads every row — click it to open their profile, or click the row for the company. On the board: the pulsing halo marks moved companies, and each arc carries its size AND its holder's name."}
               </p>
             </div>
           )}

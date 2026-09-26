@@ -4,7 +4,6 @@ import ZAI from "z-ai-web-dev-sdk";
 import { ZAI_API_KEY, zaiChatStream } from "@/lib/zai-client";
 import { pollinationsRound } from "@/lib/pollinations";
 import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, KEYLESS_POOL_MODEL_IDS } from "@/lib/ai-models";
-
 type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 import { db } from "@/lib/db";
 import { findAiModel, DEFAULT_AI_MODEL_ID, aiModelIdentity, type AiModel } from "@/lib/ai-models";
@@ -25,11 +24,11 @@ import { composeBriefing, languageOk, languageRepairMessage, type ToolResultRef 
  *  answer. Gateway 429s are retried with backoff; every request is metered
  *  in UsageEvent.
  *
- *  T33: the model registry now has TWO providers — the server-side z-ai
- *  gateway (GLM-4-Plus, this route) and free Puter cloud models whose loop
- *  runs CLIENT-side in the agent view (tools come back to
- *  POST /api/agent/tools). A puter id sent here (old client / hand-crafted
- *  request) falls back to the server default instead of erroring.
+ *  T33 → T67: the model registry is now SERVER-ONLY — every model (the
+ *  z-ai gateway GLM-4-Plus, llm7's keyless GLM-5.3-Flash, the Kilo pool,
+ *  Pollinations) runs through this route's SSE loop. The old client-side
+ *  Puter loop was REMOVED at the user's request (T67) — puter ids sent by
+ *  an old client simply fall back to the server default instead of erroring.
  *
  *  Honesty by design: tools return only real (delayed ~15-min) data; the
  *  system prompt forbids invented numbers; the response carries a fixed
@@ -95,14 +94,25 @@ type DeltaFn = (text: string) => void;
 
 type ServedModelFn = (m: string) => void;
 
+/** T67 — LIVE THINKING: whenever the serving model streams its chain of
+ *  thought (GLM `reasoning_content` deltas — emitted by GLM-5.3-Flash on
+ *  the keyless cloud and by the direct Z.AI cloud when thinking is on),
+ *  every token is forwarded to the client as a `think` SSE event so the
+ *  user literally watches the model reason. GLM-4-Plus (pre-thinking
+ *  generation) emits none — the client then shows the honest work-trace
+ *  (tool steps + statuses) instead. */
+type ThinkFn = (text: string) => void;
+
 /** Consume the gateway's SSE chat stream (data: lines with
  *  choices[0].delta.content chunks), accumulating the full text. The served
  *  model id arrives in the chunk metadata — captured once so the done event
- *  can report the model the provider ACTUALLY used (honest labeling). */
+ *  can report the model the provider ACTUALLY used (honest labeling).
+ *  `delta.reasoning_content` (and the `reasoning` alias) stream to onThink. */
 async function consumeSse(
   body: ReadableStream<Uint8Array>,
   onDelta?: DeltaFn,
-  onServedModel?: ServedModelFn
+  onServedModel?: ServedModelFn,
+  onThink?: ThinkFn
 ): Promise<string> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -122,14 +132,19 @@ async function consumeSse(
       if (!payload || payload === "[DONE]") continue;
       try {
         const j = JSON.parse(payload) as {
-          choices?: { delta?: { content?: unknown }; message?: { content?: unknown } }[];
+          choices?: { delta?: { content?: unknown; reasoning_content?: unknown; reasoning?: unknown } }[];
           model?: unknown;
         };
         if (!modelSeen && typeof j.model === "string" && j.model.length > 0) {
           modelSeen = true;
           onServedModel?.(j.model);
         }
-        const piece = j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.message?.content;
+        const d = j.choices?.[0]?.delta;
+        const thinkPiece = d?.reasoning_content ?? d?.reasoning;
+        if (typeof thinkPiece === "string" && thinkPiece.length > 0) {
+          onThink?.(thinkPiece);
+        }
+        const piece = d?.content;
         if (typeof piece === "string" && piece.length > 0) {
           out += piece;
           onDelta?.(piece);
@@ -145,8 +160,48 @@ async function consumeSse(
 let zaiPromise: Promise<Zai> | null = null;
 
 function getZai(): Promise<Zai> {
-  if (!zaiPromise) zaiPromise = ZAI.create();
+  if (!zaiPromise) {
+    zaiPromise = ZAI.create();
+    // T67 — a FAILED create must not poison the cache forever (a cold-start
+    // hiccup used to sink every later request to the keyless tier even
+    // after the gateway recovered): clear the cache so the next request
+    // retries the SDK path.
+    zaiPromise.catch(() => {
+      zaiPromise = null;
+    });
+  }
   return zaiPromise;
+}
+
+/** GET /api/agent — the HOST BACKBONE report the model switcher shows before
+ *  the user ever asks a question: which engine actually serves answers on
+ *  THIS host (sdk GLM-4-Plus / direct GLM-4-Plus via ZAI_API_KEY / keyless
+ *  GLM-5.3-Flash), so "why did GLM-5.3-Flash answer when I picked
+ *  GLM-4-Plus?" is answered in the open, up front, with the fix (set
+ *  ZAI_API_KEY) spelled out. Cheap: one SDK create race + env check. */
+export async function GET() {
+  let sdk = false;
+  try {
+    await Promise.race([
+      getZai(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("sdk probe timeout")), 3_000)),
+    ]);
+    sdk = true;
+  } catch {
+    sdk = false;
+  }
+  const backbone: "sdk" | "direct" | "keyless" = sdk ? "sdk" : ZAI_API_KEY ? "direct" : "keyless";
+  return NextResponse.json(
+    {
+      backbone,
+      engine:
+        backbone === "keyless"
+          ? "GLM-5.3-Flash"
+          : "GLM-4-Plus",
+      needsKey: backbone === "keyless",
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 // ── T56 → T65 — the DIRECT GLM-4-Plus backbone (plain HTTPS, user's ZAI_API_KEY)
@@ -221,7 +276,8 @@ async function kiloRound(
   retry: { budgetLeft: number },
   onDelta?: DeltaFn,
   onStatus?: (note: string) => void,
-  onServedModel?: ServedModelFn
+  onServedModel?: ServedModelFn,
+  onThink?: ThinkFn
 ): Promise<string> {
   // Kilo's free routes are fast (~2-3s live); 75s covers slowest thinking
   // rounds, then the chain hops to the next pool instead of stalling.
@@ -261,7 +317,7 @@ async function kiloRound(
         throw new Error(`kilo http ${res.status}: ${detail.slice(0, 140)}`);
       }
       if (res.body) {
-        return await consumeSse(res.body, onDelta, onServedModel);
+        return await consumeSse(res.body, onDelta, onServedModel, onThink);
       }
       throw new Error("kilo returned no body");
     } catch (err) {
@@ -286,7 +342,8 @@ async function llm7Round(
   retry: { budgetLeft: number },
   onDelta?: DeltaFn,
   onStatus?: (note: string) => void,
-  onServedModel?: ServedModelFn
+  onServedModel?: ServedModelFn,
+  onThink?: ThinkFn
 ): Promise<string> {
   // T65 — HARD TIMEOUT per attempt: a hung keyless stream used to hang the
   // whole SSE response forever (no abort anywhere). 95s covers GLM-5.3-Flash's
@@ -333,7 +390,7 @@ async function llm7Round(
         throw new Error(`llm7 http ${res.status}: ${detail.slice(0, 140)}`);
       }
       if (res.body) {
-        return await consumeSse(res.body, onDelta, onServedModel);
+        return await consumeSse(res.body, onDelta, onServedModel, onThink);
       }
       throw new Error("llm7 returned no body");
     } catch (err) {
@@ -360,7 +417,8 @@ async function createChatStream(
   retry: { budgetLeft: number },
   onDelta?: DeltaFn,
   onStatus?: (note: string) => void,
-  onServedModel?: ServedModelFn
+  onServedModel?: ServedModelFn,
+  onThink?: ThinkFn
 ): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -372,7 +430,7 @@ async function createChatStream(
       });
       // the SDK hands back the raw SSE body when the gateway streams
       if (res && typeof (res as { getReader?: unknown }).getReader === "function") {
-        return await consumeSse(res as ReadableStream<Uint8Array>, onDelta, onServedModel);
+        return await consumeSse(res as ReadableStream<Uint8Array>, onDelta, onServedModel, onThink);
       }
       // non-streaming shape — still surface the text for the live preview
       const c = res as { choices?: { message?: { content?: string } }[]; model?: unknown };
@@ -420,19 +478,15 @@ export async function POST(req: Request) {
   // chain-of-thought enabled; the default behavior is unchanged.
   const deep = body.deep === true;
 
-  // T33/T36 — free cloud model selection, validated against the registry; the
-  // SERVER loop runs the z-ai provider AND the keyless LLM7.io provider — a
-  // puter id (client-side loop) or an unknown id falls back to the server
-  // default instead of erroring, so old clients and hand-crafted requests
-  // never break
+  // T33/T36/T67 — model selection, validated against the registry; an
+  // unknown id (incl. stale "puter:" ids from old clients) falls back to
+  // the server default instead of erroring, so old clients and
+  // hand-crafted requests never break
   const picked: AiModel | null = findAiModel(body.model);
   // T37 — `let`: when a keyless pool is quota-exhausted the loop
   // transparently re-routes to the backbone / the next keyless tier
   // (auto-failover)
-  let model: AiModel =
-    picked && (picked.provider === "zai" || picked.provider === "llm7" || picked.provider === "pollinations" || picked.provider === "kilo")
-      ? picked
-      : findAiModel(DEFAULT_AI_MODEL_ID)!;
+  let model: AiModel = picked ?? findAiModel(DEFAULT_AI_MODEL_ID)!;
 
   // persisted hourly limit (per IP or device) — UsageEvent survives restarts
   if (await overLimit(ip, deviceId)) {
@@ -508,6 +562,17 @@ export async function POST(req: Request) {
       const noteServedModel: ServedModelFn = (m) => {
         if (!servedModel) servedModel = m;
       };
+      // T67 — LIVE THINKING streamer: every reasoning token the serving
+      // model emits (GLM-5.3-Flash keyless / direct-cloud GLMs) reaches the
+      // client the instant it arrives, and accumulates into the done event
+      // so the reasoning trail stays attached to the answer. GLM-4-Plus
+      // emits none (pre-thinking generation) — the client then shows the
+      // honest work-trace (tool steps + statuses) instead.
+      let thinkingAccum = "";
+      const emitThink: ThinkFn = (text) => {
+        if (thinkingAccum.length < 24_000) thinkingAccum += text;
+        send({ type: "think", text });
+      };
       const done = (answer: string) => {
         send({
           type: "done",
@@ -516,6 +581,7 @@ export async function POST(req: Request) {
           model: servedModel || model.label,
           modelId: model.id,
           disclaimer: true,
+          ...(thinkingAccum ? { thinking: thinkingAccum.slice(0, 24_000) } : {}),
           ...(debug ? { debugRaw } : {}),
         });
         meter(true);
@@ -562,35 +628,49 @@ export async function POST(req: Request) {
                 ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM-5.3-Flash المجانية (بلا تسجيل ولا مفاتيح)"
                 : "gateway unavailable on this host — answering via the keyless GLM-5.3-Flash cloud (no key, no sign-in)",
           });
-          // T65 — the keyless backbone is now LLM7's anonymous GLM-5.3-Flash
+          // T65/T67 — the keyless backbone is now LLM7's anonymous GLM-5.3-Flash
           // tier: a REAL GLM brain (clean MSA Arabic + strict-JSON protocol
           // compliance, probe-verified live), so the public deployment keeps
-          // a GLM main even before ZAI_API_KEY is set. Pollinations GPT-OSS
-          // is the fallback; llm7 mistral stays the LAST resort.
+          // a GLM main even before ZAI_API_KEY is set. The Kilo pool and
+          // Pollinations GPT-OSS are the fallback hops.
           model = findAiModel(KEYLESS_MODEL_ID)!;
           msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
         }
       }
-      // T66 — the keyless provider chain (strictly DOWN, no loops): the GLM
-      // keyless brain first, then the freellmpool-style KILO POOL (three
+      // T67 — HOST BACKBONE meta, FIRST event on the wire: tells the client
+      // which engine actually serves answers on this host (sdk GLM-4-Plus /
+      // direct GLM-4-Plus via key / keyless GLM-5.3-Flash) BEFORE any answer
+      // streams, so the "why did GLM-5.3-Flash answer when I picked
+      // GLM-4-Plus?" question is answered up front, every time.
+      send({
+        type: "meta",
+        backbone: zai ? "sdk" : ZAI_API_KEY ? "direct" : "keyless",
+        engine: zai || ZAI_API_KEY ? "GLM-4-Plus" : "GLM-5.3-Flash",
+        needsKey: !zai && !ZAI_API_KEY,
+      });
+
+      // T66/T67 — the keyless provider chain (strictly DOWN, no loops): the
+      // GLM keyless brain first, then the freellmpool-style KILO POOL (three
       // independent routes with their own 200 req/hr per-IP quota), then
-      // GPT-OSS, then Mistral as the last resort.
-      const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, ...KEYLESS_POOL_MODEL_IDS, KEYLESS_FALLBACK_MODEL_ID, "llm7:mistral-Nemo-Instruct-2407"];
-      // T56/T59/T65 — the backbone the failovers re-route to: SDK GLM-4-Plus
-      // in the sandbox, DIRECT GLM-4-Plus on keyed hosts (the user's pick),
-      // keyless GLM-5.3-Flash otherwise; Pollinations GPT-OSS is the keyless
-      // fallback and llm7 mistral the last resort.
+      // GPT-OSS as the final hop. (T67: the old llm7-mistral last hop was
+      // pruned — probes showed crash-text Arabic from that tier.)
+      const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, ...KEYLESS_POOL_MODEL_IDS, KEYLESS_FALLBACK_MODEL_ID];
+      // T56/T59/T65/T67 — the backbone the failovers re-route to: SDK
+      // GLM-4-Plus in the sandbox, DIRECT GLM-4-Plus on keyed hosts (the
+      // user's pick), keyless GLM-5.3-Flash otherwise; the Kilo pool and
+      // Pollinations GPT-OSS are the keyless hops.
       const backboneModel = (): AiModel =>
         zai ? findAiModel(DEFAULT_AI_MODEL_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel(KEYLESS_MODEL_ID)!;
       const keylessFallbackModel = (): AiModel => findAiModel(KEYLESS_FALLBACK_MODEL_ID)!;
       const hasBackbone = () => zai !== null || ZAI_API_KEY.length > 0;
-      // T59/T65 — WEAK keyless tiers never stream raw deltas (crash-text
+      // T59/T65/T67 — WEAK keyless tiers never stream raw deltas (crash-text
       // guard). The GLM-5.3-Flash keyless tier is a STRONG tier (verified
       // MSA Arabic + protocol compliance) — it streams like a backbone so
       // the answer visibly types in; if it ever fails verification, the
-      // final-answer gate still replaces the text before it ships.
-      const isWeakKeyless = () =>
-        model.provider === "pollinations" || (model.provider === "llm7" && model.providerModel !== "GLM-5.3-Flash");
+      // final-answer gate still replaces the text before it ships. (T67:
+      // only Pollinations remains a weak tier — the broken llm7 models were
+      // pruned from the registry.)
+      const isWeakKeyless = () => model.provider === "pollinations";
       const isKeyless = () => model.provider === "llm7" || model.provider === "pollinations" || model.provider === "kilo";
       // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
       // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
@@ -615,7 +695,8 @@ export async function POST(req: Request) {
               retry,
               onDelta,
               (note) => send({ type: "status", note }),
-              noteServedModel
+              noteServedModel,
+              emitThink
             )
           : model.provider === "llm7" || (!zai && !ZAI_API_KEY)
           ? llm7Round(
@@ -628,7 +709,8 @@ export async function POST(req: Request) {
               retry,
               onDelta,
               (note) => send({ type: "status", note }),
-              noteServedModel
+              noteServedModel,
+              emitThink
             )
           : zai
             ? createChatStream(
@@ -637,7 +719,8 @@ export async function POST(req: Request) {
                 retry,
                 onDelta,
                 (note) => send({ type: "status", note }),
-                noteServedModel
+                noteServedModel,
+                emitThink
               )
             : // T56 — direct GLM cloud (keyed hosts without the SDK gateway):
               // bounded retry chain so a dead direct tier hands the request
@@ -649,6 +732,7 @@ export async function POST(req: Request) {
                 maxRetries: 2,
                 onDelta,
                 onServedModel: noteServedModel,
+                onThink: emitThink,
               });
 
       const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
@@ -683,12 +767,11 @@ export async function POST(req: Request) {
             // by total strangers at any moment. Instead of failing the
             // request, the conversation transparently re-routes: to the
             // always-on GLM backbone when one exists (sandbox SDK or the
-            // direct key), otherwise Pollinations ⇄ llm7 mistral keep the
-            // answer coming. An honest status note is streamed and the done
+            // direct key), otherwise down the keyless chain. An honest status note is streamed and the done
             // event reports the model that ACTUALLY served the answer.
-            // T65 — the KEYLESS CHAIN, three hops: GLM-5.3-Flash →
-            // GPT-OSS-20B → Mistral Nemo (each a SEPARATE provider with its
-            // own capacity). One busy pool no longer kills the answer — we
+            // T65/T67 — the KEYLESS CHAIN: GLM-5.3-Flash → Kilo nemotron →
+            // Kilo step → Kilo router → GPT-OSS-20B (each a SEPARATE provider
+            // with its own capacity). One busy pool no longer kills the answer — we
             // hop DOWN the chain with an honest note, and only fail after
             // every keyless pool is exhausted (then: the deterministic
             // briefing whenever tool data was already collected).

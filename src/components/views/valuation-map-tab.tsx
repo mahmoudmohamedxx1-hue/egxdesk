@@ -1,6 +1,6 @@
 "use client";
 
-/** T64 → T66 — the valuation MAP tab: every company with a published P/E and
+/** T64 → T67 — the valuation MAP tab: every company with a published P/E and
  *  D/E on one 2D map — x = what you pay for earnings, y = how leveraged the
  *  balance sheet is, bubble = market cap. Two color modes: the four reading
  *  quadrants (median lines printed) or the FAIR VALUE lens — each bubble
@@ -21,12 +21,19 @@
  *  label inside the bubble when it fits, above it when there's room, and
  *  MORE names appear as you zoom in (space grows with k), so no more
  *  nameless crowded bubbles at 1×; (5) touch PINCH zoom (two pointers)
- *  beside ctrl/⌘+wheel, buttons and drag-pan. */
+ *  beside ctrl/⌘+wheel, buttons and drag-pan.
+ *
+ *  T67 — PER-COMPANY IMPACT (the user's ask): below the map, every plotted
+ *  company's reading is ILLUSTRATED on the same page — the fair-value
+ *  verdict (expensive / cheap) WITH its gap to the model estimate, the
+ *  P/E-vs-median premium, and the leverage zone (debt-heavy flagged) — as
+ *  one impact sentence + colored chips, sortable, hover-linked to the map
+ *  bubble (hovering a row highlights its bubble and opens its card). */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
 import { ZoomIn, ZoomOut, MousePointer2, FlaskConical } from "lucide-react";
-import { upsideColor } from "@/lib/fair-value";
+import { DEBT_ZONE_META, FV_VERDICT_META, upsideColor, type DebtZone, type FvVerdict } from "@/lib/fair-value";
 import { fmt1, fmt2, fmtCap, fmtPct, type ValData, type ValRow } from "./valuation-shared";
 
 const W = 960;
@@ -651,6 +658,244 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
         {lang === "ar"
           ? "مساحة كل فقاعة تمثل القيمة السوقية، وأسماء أكبر الشركات تظهر دائمًا — وكلما قرّبت ظهرت أسماء أكثر. اضغط على أي شركة لعرض مضاعفاتها وقيمتها العادلة، ونقرة مزدوجة لفتح صفحتها. الخطان المنقطان وسيطا السوق كله — والشبكة والمحاور يعيدون حساب أنفسهم مع كل تقريب."
           : "Bubble area = market cap; the biggest companies are always named — zoom in and more names appear. Click a company for its multiples and fair value, double-click to open its page. The dashed lines are the whole market's medians — the grid and axes re-value themselves on every zoom."}
+      </p>
+
+      {/* T67 — PER-COMPANY IMPACT: every plotted company's expensive /
+          debt-heavy reading illustrated on the SAME page (the user's ask) */}
+      <CompanyImpactPanel
+        rows={rows}
+        data={data}
+        lang={lang}
+        medianPe={medianPe}
+        onHover={setHover}
+        onOpen={(ticker) => navigate("company", { ticker })}
+      />
+    </div>
+  );
+}
+
+/** T67 — the per-company impact table: for every company on the map, the
+ *  one-line reading of what its position MEANS — expensive vs fair value
+ *  (with the gap), P/E premium vs the market median, and the leverage zone
+ *  (debt-heavy flagged in red) — rendered as an impact sentence + colored
+ *  chips, sortable four ways, hover-linked to the map's bubble. */
+function CompanyImpactPanel({
+  rows,
+  data,
+  lang,
+  medianPe,
+  onHover,
+  onOpen,
+}: {
+  rows: ValRow[];
+  data: ValData;
+  lang: "ar" | "en";
+  medianPe: number;
+  onHover: (row: ValRow | null) => void;
+  onOpen: (ticker: string) => void;
+}) {
+  const [sort, setSort] = useState<"cap" | "pe" | "de" | "upside">("cap");
+
+  const sorted = useMemo(() => {
+    const out = [...rows];
+    if (sort === "cap") out.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+    if (sort === "pe") out.sort((a, b) => (b.pe ?? -Infinity) - (a.pe ?? -Infinity));
+    if (sort === "de") out.sort((a, b) => (b.de ?? -Infinity) - (a.de ?? -Infinity));
+    if (sort === "upside") out.sort((a, b) => (b.upside ?? -Infinity) - (a.upside ?? -Infinity));
+    return out;
+  }, [rows, sort]);
+
+  // the summary strip: how many companies carry each impact
+  const nRich = rows.filter((r) => r.verdict === "rich").length;
+  const nCheap = rows.filter((r) => r.verdict === "cheap").length;
+  const nDebtHeavy = rows.filter((r) => r.debtZone === "elevated" || r.debtZone === "high").length;
+  const nNetCash = rows.filter((r) => r.debtZone === "netCash").length;
+
+  const sortChips: { key: typeof sort; ar: string; en: string }[] = [
+    { key: "cap", ar: "الأكبر سوقيًا", en: "Biggest" },
+    { key: "pe", ar: "الأغلى تقييمًا", en: "Most expensive" },
+    { key: "de", ar: "الأكثر ديونًا", en: "Most debt" },
+    { key: "upside", ar: "خصم القيمة العادلة", en: "FV discount" },
+  ];
+
+  /** the impact sentence: what this company's position actually means. The
+   *  gap is stated the ONLY mathematically honest way — what move the price
+   *  needs to reach the model estimate (upside IS that move, by definition) —
+   *  so “needs a 31% drop” can never be misread as a 31% premium. */
+  const impactOf = (row: ValRow): string => {
+    const parts: string[] = [];
+    if (row.verdict === "rich" && row.upside != null) {
+      parts.push(
+        lang === "ar"
+          ? `مرتفعة على قيمتها العادلة المقدَّرة — يحتاج السهم انخفاضًا بنسبة ${fmtPct(Math.abs(row.upside), 0)} ليبلغ تقدير النماذج${row.fv != null && row.close != null ? ` (${fmt2(row.close)} مقابل تقدير ${fmt2(row.fv)})` : ""}`
+          : `trades ABOVE its estimated fair value — the price needs to fall ${fmtPct(Math.abs(row.upside), 0)} to reach the model estimate${row.fv != null && row.close != null ? ` (${fmt2(row.close)} vs ${fmt2(row.fv)} estimate)` : ""}`
+      );
+    } else if (row.verdict === "cheap" && row.upside != null) {
+      parts.push(
+        lang === "ar"
+          ? `رخيصة على قيمتها العادلة المقدَّرة — يحتاج السهم ارتفاعًا بنسبة ${fmtPct(row.upside, 0)} ليبلغ تقدير النماذج${row.fv != null && row.close != null ? ` (${fmt2(row.close)} مقابل تقدير ${fmt2(row.fv)})` : ""}`
+          : `trades BELOW its estimated fair value — the price needs to rise ${fmtPct(row.upside, 0)} to reach the model estimate${row.fv != null && row.close != null ? ` (${fmt2(row.close)} vs ${fmt2(row.fv)} estimate)` : ""}`
+      );
+    } else if (row.verdict === "fair") {
+      parts.push(lang === "ar" ? "حول قيمتها العادلة المقدَّرة (±10%)" : "around its estimated fair value (±10%)");
+    }
+    if (row.pe != null) {
+      const vs = row.pe > medianPe * 1.15 ? "above" : row.pe < medianPe * 0.85 ? "below" : null;
+      if (vs === "above") {
+        parts.push(
+          lang === "ar"
+            ? `مكرر ربحية مرتفع ${row.pe.toFixed(1)}× مقابل وسيط السوق ${medianPe.toFixed(1)}×`
+            : `premium P/E ${row.pe.toFixed(1)}× vs the market median ${medianPe.toFixed(1)}×`
+        );
+      } else if (vs === "below") {
+        parts.push(
+          lang === "ar"
+            ? `مكرر ربحية منخفض ${row.pe.toFixed(1)}× مقابل وسيط السوق ${medianPe.toFixed(1)}×`
+            : `low P/E ${row.pe.toFixed(1)}× vs the market median ${medianPe.toFixed(1)}×`
+        );
+      }
+    }
+    const zone = row.debtZone;
+    if (zone === "high" || zone === "elevated") {
+      parts.push(
+        lang === "ar"
+          ? `مثقلة بالمديونية — D/E ${row.de != null ? `${row.de.toFixed(2)}×` : "—"} (${DEBT_ZONE_META[zone].ar})`
+          : `debt-heavy — D/E ${row.de != null ? `${row.de.toFixed(2)}×` : "—"} (${DEBT_ZONE_META[zone].en})`
+      );
+    } else if (zone === "netCash") {
+      parts.push(lang === "ar" ? "صافي نقد — نقد يفوق الديون" : "net cash — cash exceeds debt");
+    }
+    if (parts.length === 0) parts.push(lang === "ar" ? "قراءة متوازنة — لا علاوة ولا مثقلات" : "balanced reading — no premium, no flags");
+    return parts.join(lang === "ar" ? " · " : " · ");
+  };
+
+  const chip = (label: string, color: string, title?: string) => (
+    <span
+      className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+      style={{ color, backgroundColor: `${color}1a` }}
+      title={title}
+      dir="auto"
+    >
+      {label}
+    </span>
+  );
+
+  return (
+    <div className="rounded-xl border bg-card/60 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-bold leading-snug">
+            {lang === "ar" ? "أثر كل شركة — التقييم والمديونية" : "Each company's impact — valuation & leverage"}
+          </h3>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {lang === "ar"
+              ? `قراءة كل شركة مرسومة على الخريطة أعلاه: غلاء/رخص مقابل القيمة العادلة، علاوة المكرر، وثقل المديونية — مرّر على أي صف لإبراز فقعته على الخريطة.`
+              : `The reading of every company plotted on the map above: rich/cheap vs fair value, the P/E premium, and debt weight — hover a row to highlight its bubble on the map.`}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          {sortChips.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => setSort(s.key)}
+              className={`rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors ${
+                sort === s.key ? "bg-primary/15 text-primary border-primary/40" : "text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {lang === "ar" ? s.ar : s.en}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* the summary strip — the section's headline numbers */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+        <span className="flex items-center gap-1">
+          <span className="size-2 rounded-full" style={{ backgroundColor: FV_VERDICT_META.rich.color }} />
+          <span className="font-medium">{lang === "ar" ? "مرتفعة على قيمتها" : "rich vs fair value"}</span>
+          <b className="tabular-nums">{nRich}</b>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="size-2 rounded-full" style={{ backgroundColor: FV_VERDICT_META.cheap.color }} />
+          <span className="font-medium">{lang === "ar" ? "بخصم عن قيمتها" : "discounted vs fair value"}</span>
+          <b className="tabular-nums">{nCheap}</b>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="size-2 rounded-full" style={{ backgroundColor: DEBT_ZONE_META.high.color }} />
+          <span className="font-medium">{lang === "ar" ? "مثقلة بالمديونية" : "debt-heavy"}</span>
+          <b className="tabular-nums">{nDebtHeavy}</b>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="size-2 rounded-full" style={{ backgroundColor: DEBT_ZONE_META.netCash.color }} />
+          <span className="font-medium">{lang === "ar" ? "صافي نقد" : "net cash"}</span>
+          <b className="tabular-nums">{nNetCash}</b>
+        </span>
+        <span className="text-muted-foreground">
+          {lang === "ar" ? `من أصل ${rows.length} شركة على الخريطة` : `of ${rows.length} mapped companies`}
+        </span>
+      </div>
+
+      {/* the rows */}
+      <div className="thin-scroll mt-2 max-h-[420px] overflow-auto pe-1">
+        <ul className="space-y-1">
+          {sorted.map((row) => {
+            const vMeta = row.verdict ? FV_VERDICT_META[row.verdict as Exclude<FvVerdict, null>] : null;
+            const zMeta = row.debtZone ? DEBT_ZONE_META[row.debtZone as DebtZone] : null;
+            return (
+              <li key={row.ticker}>
+                <button
+                  type="button"
+                  className="w-full rounded-lg border bg-background/60 px-2.5 py-1.5 text-start transition-colors hover:bg-accent/50"
+                  onMouseEnter={() => onHover(row)}
+                  onMouseLeave={() => onHover(null)}
+                  onClick={() => onOpen(row.ticker)}
+                  title={lang === "ar" ? "افتح صفحة الشركة" : "open the company page"}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs font-bold">
+                      <span className="tabular-nums" dir="ltr">{row.ticker}</span>
+                      <span className="ms-1.5 font-medium text-muted-foreground">{lang === "ar" ? row.nameAr : row.nameEn}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      {row.pe != null &&
+                        chip(
+                          `P/E ${row.pe.toFixed(1)}×`,
+                          row.pe > medianPe * 1.15 ? "#ef4444" : row.pe < medianPe * 0.85 ? "#10b981" : "#64748b",
+                          lang === "ar" ? `وسيط السوق ${medianPe.toFixed(1)}×` : `market median ${medianPe.toFixed(1)}×`
+                        )}
+                      {row.de != null &&
+                        chip(
+                          `D/E ${row.de.toFixed(2)}×`,
+                          zMeta?.color ?? "#64748b",
+                          zMeta ? `${lang === "ar" ? zMeta.hintAr : zMeta.hintEn}` : undefined
+                        )}
+                      {row.verdict != null &&
+                        chip(
+                          `${lang === "ar" ? vMeta?.ar : vMeta?.en}${row.upside != null ? ` ${fmtPct(row.upside, 0)}` : ""}`,
+                          vMeta?.color ?? "#64748b",
+                          row.fv != null
+                            ? lang === "ar"
+                              ? `القيمة العادلة المقدَّرة ${fmt2(row.fv)} جنيه — من ${Math.round((row.fvCoverage ?? 0) * 5)} نماذج`
+                              : `estimated fair value ${fmt2(row.fv)} EGP — from ${Math.round((row.fvCoverage ?? 0) * 5)} models`
+                            : undefined
+                        )}
+                    </span>
+                  </div>
+                  {/* the impact sentence — WHAT the position means */}
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground" dir="auto">
+                    {impactOf(row)}
+                  </p>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+        {lang === "ar"
+          ? `«مرتفعة على قيمتها» = السعر أعلى من تقدير النماذج الخمسة بأكثر من 10%؛ «مثقلة بالمديونية» = D/E فوق 1× (منطقة رفع مرتفع أو أعلى)؛ «بخصم» = السعر أدنى من التقدير بهامش الأمان (${data.assumptions.mos * 100}%). تقديرات القيمة العادلة تُعرض مع عدد النماذج التي شاركت فيها — لا رقم بلا مصدر.`
+          : `“Rich” = price above the five-model estimate by more than 10%; “debt-heavy” = D/E above 1× (elevated zone or higher); “discount” = price below estimate by the margin-of-safety gate (${data.assumptions.mos * 100}%). Fair-value estimates print how many models contributed — no number without a source.`}
       </p>
     </div>
   );

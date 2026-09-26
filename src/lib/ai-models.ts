@@ -1,38 +1,41 @@
-/** Free CLOUD model registry for the AI AGENT tab (T30 → T33 rewrite).
+/** The AGENT model registry (T30 → T67 rewrite).
  *
- *  Every option is an online, fully-free model — no local/in-browser
- *  inference, no API keys, no billing:
+ *  Every option is an online model served SERVER-side through /api/agent —
+ *  no client-side loops, no third-party scripts, no sign-in walls:
  *
- *  1. "glm-4-plus" (provider zai) — the app's own server-side model
- *     (z-ai-web-dev-sdk, never reaches the client). Verified probing
- *     showed the gateway serves GLM-4-Plus regardless of a requested
- *     model id, so this is the honest label for the server path (the
- *     done event reports the model the gateway ACTUALLY served, read
- *     from the stream metadata). Runs through the /api/agent SSE loop.
+ *  1. "glm-4-plus" (provider zai) — the app's own server-side GLM-4-Plus.
+ *     In the dev sandbox it runs through the z-ai-web-dev-sdk gateway
+ *     (verified: the gateway reports served=glm-4-plus). On ANY public host
+ *     (Vercel…) that private gateway is unreachable, so GLM-4-Plus requires
+ *     the ZAI_API_KEY env var (direct Z.AI cloud) — the switcher shows an
+ *     honest host banner explaining exactly that. The done event always
+ *     reports the model the provider ACTUALLY served.
  *
- *  2. Puter cloud models (provider puter) — 1,008 real cloud models
- *     (GPT-OSS 20B & 120B, GLM-5.3, GPT-5.6, Claude, Gemini, Grok,
- *     DeepSeek, Kimi, Qwen, Llama, Mistral, Command A, Phi-4, Nemotron…)
- *     through the free Puter.js layer, one free Puter sign-in away
- *     (no card, no API keys). Every featured id below was re-verified
- *     against the LIVE catalog (T35, Sept 2026). The agent loop for
- *     these runs CLIENT-side (plan + answer in the browser) with tools
- *     executed by POST /api/agent/tools. The former Pollinations GPT-OSS
- *     route was REMOVED: probes showed its anonymous tier budget-gates
- *     every real-sized prompt (only ~20-token prompts pass), so it could
- *     never serve an actual agent question.
+ *  2. Keyless GLM cloud (llm7) — GLM-5.3-Flash, the only GLM llm7.io
+ *     serves without a key (probe-verified: glm-5.3 / glm-5.2 answer 401
+ *     "missing_api_key"). Real GLM brain, streams its chain-of-thought
+ *     (reasoning_content) live, clean MSA Arabic.
  *
- *  This registry stays dependency-free (pure data) so BOTH the server
- *  route and the client composer can import it. Puter runtime helpers
- *  live in src/lib/assistant-models.ts (client-only). */
-
-export type AiModelProvider = "zai" | "puter" | "llm7" | "pollinations" | "kilo";
+ *  3. Keyless Kilo Gateway pool (3 routes, 200 req/hr per IP) and
+ *     Pollinations GPT-OSS-20B — vetted via the freellmpool catalog.
+ *
+ *  T67 removals (probe-verified failures, 2026-09-27):
+ *  - PUTER: the whole client-side puter.js ladder was removed from the
+ *    agent at the user's request (sign-in wall + flaky catalog).
+ *  - llm7 codestral-latest: breaks the strict-JSON tool protocol
+ *    ({"action":"call_tool","tool_name":…} instead of {"tool":…}).
+ *  - llm7 mistral-Nemo-Instruct-2407: emits crash-text soup in Arabic.
+ *  - llm7 minimax-m2.7: 15-36s shared-pool latency, refused tool calls.
+ *
+ *  This registry stays dependency-free (pure data) so BOTH the server route
+ *  and the client composer can import it. */
+export type AiModelProvider = "zai" | "llm7" | "pollinations" | "kilo";
 
 export type AiModel = {
-  /** the id the client persists/selects: "glm-4-plus" or "puter:<putterId>" */
+  /** the id the client persists/selects: "glm-4-plus", "llm7:…", "kilo:…", "pollinations:…" */
   id: string;
   provider: AiModelProvider;
-  /** provider-side model id (z-ai SDK `model` param / Puter puterId) */
+  /** provider-side model id (SDK `model` param / llm7 / kilo / pollinations id) */
   providerModel: string;
   label: string;
   labelAr: string;
@@ -51,8 +54,8 @@ export const AI_MODELS: AiModel[] = [
     providerModel: "glm-4-plus",
     label: "GLM-4-Plus",
     labelAr: "GLM-4-Plus",
-    note: "The app's own server model — always on, no sign-in",
-    noteAr: "نموذج خادم التطبيق — متاح دائمًا بلا تسجيل",
+    note: "The app's own server model — the strongest brain, no sign-in. On public hosting it needs the ZAI_API_KEY env var; the host banner tells you which engine is live",
+    noteAr: "نموذج خادم التطبيق — الأقوى، بلا تسجيل. على الاستضافة العامة يحتاج متغير البيئة ZAI_API_KEY، ولافتة المستضيف تخبرك أي محرك يعمل الآن",
   },
   {
     id: "llm7:GLM-5.3-Flash",
@@ -62,8 +65,8 @@ export const AI_MODELS: AiModel[] = [
     labelAr: "GLM-5.3 Flash (بلا تسجيل)",
     newest: true,
     ctx: 400_000,
-    note: "Keyless GLM cloud — real GLM brain, strong Arabic, no key, no sign-in. Auto-falls back through the keyless pool (Nemotron → Step → Laguna → GPT-OSS) when the shared pool is busy",
-    noteAr: "سحابة GLM بلا تسجيل ولا مفاتيح — عربية قوية. وعند انشغالها يتحول تلقائيًا عبر سلسلة النماذج المجانية (Nemotron ← Step ← Laguna ← GPT-OSS)",
+    note: "Keyless GLM cloud — a real GLM brain, streams its live chain-of-thought, strong Arabic, no key, no sign-in. Auto-falls back through the keyless pool (Nemotron → Step → Router → GPT-OSS) when the shared pool is busy",
+    noteAr: "سحابة GLM بلا تسجيل ولا مفاتيح — عربية قوية وتعرض تفكيرها لحظة بلحظة. وعند انشغالها يتحول تلقائيًا عبر سلسلة النماذج المجانية (Nemotron ← Step ← Router ← GPT-OSS)",
   },
   {
     id: "kilo:nvidia/nemotron-3-super-120b-a12b:free",
@@ -102,234 +105,8 @@ export const AI_MODELS: AiModel[] = [
     label: "GPT-OSS 20B (keyless)",
     labelAr: "GPT-OSS 20B (بلا تسجيل)",
     ctx: 131_072,
-    note: "Keyless cloud, strong Arabic — no sign-in, no key. Free shared tier; auto-falls back to Mistral Nemo when busy",
-    noteAr: "سحابة بلا تسجيل ولا مفاتيح — عربية قوية. حصة مجانية مشتركة، وعند انشغالها يتحول تلقائيًا إلى Mistral Nemo",
-  },
-  {
-    id: "llm7:codestral-latest",
-    provider: "llm7",
-    providerModel: "codestral-latest",
-    label: "Codestral",
-    labelAr: "Codestral",
-    ctx: 262_144,
-    note: "Keyless cloud — no sign-in, no key. Shared free quota; auto-falls back to GLM-4-Plus when busy",
-    noteAr: "سحابة بلا تسجيل ولا مفاتيح — حصة مجانية مشتركة، وعند استنفادها يتحول تلقائيًا إلى GLM-4-Plus",
-  },
-  {
-    id: "llm7:mistral-Nemo-Instruct-2407",
-    provider: "llm7",
-    providerModel: "mistral-Nemo-Instruct-2407",
-    label: "Mistral Nemo",
-    labelAr: "Mistral Nemo",
-    ctx: 131_072,
-    note: "Keyless cloud — fastest when free; shared quota, verify numbers on the stock page",
-    noteAr: "سحابة بلا تسجيل — الأسرع عند توفر الحصة المشتركة؛ تحقق من الأرقام في صفحة السهم",
-  },
-  {
-    id: "llm7:minimax-m2.7",
-    provider: "llm7",
-    providerModel: "minimax-m2.7",
-    label: "MiniMax M2.7",
-    labelAr: "MiniMax M2.7",
-    ctx: 180_224,
-    note: "Keyless cloud — strong Arabic, slower shared pool; auto-fallback to GLM-4-Plus",
-    noteAr: "سحابة بلا تسجيل — عربية قوية ومشاركة أبطأ؛ يتحول تلقائيًا إلى GLM-4-Plus",
-  },
-  {
-    id: "puter:openrouter:openai/gpt-oss-20b",
-    provider: "puter",
-    providerModel: "openrouter:openai/gpt-oss-20b",
-    label: "GPT-OSS 20B",
-    labelAr: "GPT-OSS 20B",
-    newest: true,
-    note: "OpenAI's open-weights model, free via Puter cloud (free sign-in)",
-    noteAr: "نموذج OpenAI مفتوح الأوزان مجانًا عبر Puter (تسجيل مجاني)",
-  },
-  {
-    id: "puter:z-ai:z-ai/glm-5.3",
-    provider: "puter",
-    providerModel: "z-ai:z-ai/glm-5.3",
-    label: "GLM-5.3",
-    labelAr: "GLM-5.3",
-    ctx: 1_000_000,
-    newest: true,
-    note: "The newest GLM — 1M context, free via Puter (free sign-in)",
-    noteAr: "أحدث GLM — سياق مليون، مجانًا عبر Puter (تسجيل مجاني)",
-  },
-  {
-    id: "puter:z-ai:z-ai/glm-5.3-flash",
-    provider: "puter",
-    providerModel: "z-ai:z-ai/glm-5.3-flash",
-    label: "GLM-5.3 Flash",
-    labelAr: "GLM-5.3 Flash",
-    ctx: 1_000_000,
-    note: "Newest GLM, fast variant — free via Puter",
-    noteAr: "أحدث GLM بنسخة سريعة — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:infron:openai/gpt-5.6-luna",
-    provider: "puter",
-    providerModel: "infron:openai/gpt-5.6-luna",
-    label: "GPT-5.6 Luna",
-    labelAr: "GPT-5.6 Luna",
-    ctx: 1_050_000,
-    newest: true,
-    note: "The newest GPT from OpenAI — free via Puter",
-    noteAr: "أحدث GPT من OpenAI — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:anthropic/claude-sonnet-5",
-    provider: "puter",
-    providerModel: "openrouter:anthropic/claude-sonnet-5",
-    label: "Claude Sonnet 5",
-    labelAr: "Claude Sonnet 5",
-    ctx: 1_000_000,
-    newest: true,
-    note: "The newest Claude from Anthropic — free via Puter",
-    noteAr: "أحدث Claude من Anthropic — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:google:google/gemini-3.1-pro-preview",
-    provider: "puter",
-    providerModel: "google:google/gemini-3.1-pro-preview",
-    label: "Gemini 3.1 Pro",
-    labelAr: "Gemini 3.1 Pro",
-    ctx: 1_048_576,
-    newest: true,
-    note: "The newest Gemini Pro from Google — free via Puter",
-    noteAr: "أحدث Gemini Pro من جوجل — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:x-ai/grok-4.6",
-    provider: "puter",
-    providerModel: "openrouter:x-ai/grok-4.6",
-    label: "Grok 4.6",
-    labelAr: "Grok 4.6",
-    ctx: 500_000,
-    newest: true,
-    note: "The newest Grok from xAI — free via Puter",
-    noteAr: "أحدث Grok من xAI — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:alibaba:deepseek/deepseek-v4-pro-0813",
-    provider: "puter",
-    providerModel: "alibaba:deepseek/deepseek-v4-pro-0813",
-    label: "DeepSeek V4 Pro",
-    labelAr: "DeepSeek V4 Pro",
-    ctx: 1_000_000,
-    newest: true,
-    note: "The newest DeepSeek — strong reasoning, free via Puter",
-    noteAr: "أحدث DeepSeek — استدلال قوي، مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:moonshotai/kimi-k3",
-    provider: "puter",
-    providerModel: "openrouter:moonshotai/kimi-k3",
-    label: "Kimi K3",
-    labelAr: "Kimi K3",
-    ctx: 1_048_576,
-    note: "The new Kimi from Moonshot — free via Puter",
-    noteAr: "كيمي الجديد من Moonshot — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:qwen/qwen3-235b-a22b",
-    provider: "puter",
-    providerModel: "openrouter:qwen/qwen3-235b-a22b",
-    label: "Qwen3 235B",
-    labelAr: "Qwen3 235B",
-    ctx: 131_072,
-    note: "Big multilingual Qwen — free via Puter",
-    noteAr: "كوين الكبير متعدد اللغات — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:meta-llama/llama-4-maverick",
-    provider: "puter",
-    providerModel: "openrouter:meta-llama/llama-4-maverick",
-    label: "Llama 4 Maverick",
-    labelAr: "Llama 4 Maverick",
-    ctx: 1_048_576,
-    note: "Meta's newest open Llama — free via Puter",
-    noteAr: "أحدث لاما مفتوحة المصدر من ميتا — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:mistralai:mistralai/mistral-large-2512",
-    provider: "puter",
-    providerModel: "mistralai:mistralai/mistral-large-2512",
-    label: "Mistral Large 3",
-    labelAr: "Mistral Large 3",
-    ctx: 262_144,
-    note: "Mistral's large flagship — free via Puter",
-    noteAr: "ميسترال الكبيرة — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:infron:minimax/minimax-m2.5",
-    provider: "puter",
-    providerModel: "infron:minimax/minimax-m2.5",
-    label: "MiniMax M2.5",
-    labelAr: "MiniMax M2.5",
-    ctx: 204_800,
-    note: "The new MiniMax — free via Puter",
-    noteAr: "ميني ماكس الجديدة — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:openai/gpt-oss-120b",
-    provider: "puter",
-    providerModel: "openrouter:openai/gpt-oss-120b",
-    label: "GPT-OSS 120B",
-    labelAr: "GPT-OSS 120B",
-    ctx: 131_072,
-    note: "OpenAI's biggest open-weights model — free via Puter",
-    noteAr: "أكبر نموذج مفتوح الأوزان من OpenAI — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:infron:z-ai/glm-5.2",
-    provider: "puter",
-    providerModel: "infron:z-ai/glm-5.2",
-    label: "GLM-5.2",
-    labelAr: "GLM-5.2",
-    ctx: 1_000_000,
-    note: "Previous-gen GLM flagship — fast, free via Puter",
-    noteAr: "الجيل السابق من GLM — سريع، مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:meta-llama/llama-4-scout",
-    provider: "puter",
-    providerModel: "openrouter:meta-llama/llama-4-scout",
-    label: "Llama 4 Scout",
-    labelAr: "Llama 4 Scout",
-    ctx: 1_312_720,
-    note: "Meta's compact Llama — huge context, free via Puter",
-    noteAr: "لاما المدمجة من ميتا — سياق ضخم، مجانًا عبر Puter",
-  },
-  {
-    id: "puter:infron:cohere/command-a-03-2025",
-    provider: "puter",
-    providerModel: "infron:cohere/command-a-03-2025",
-    label: "Command A",
-    labelAr: "Command A",
-    ctx: 256_000,
-    note: "Cohere's efficient flagship — free via Puter",
-    noteAr: "نموذج Cohere الكفء — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:openrouter:microsoft/phi-4",
-    provider: "puter",
-    providerModel: "openrouter:microsoft/phi-4",
-    label: "Phi-4",
-    labelAr: "Phi-4",
-    ctx: 16_384,
-    note: "Microsoft's small-but-sharp model — free via Puter",
-    noteAr: "نموذج مايكروسوفت الصغير الذكي — مجانًا عبر Puter",
-  },
-  {
-    id: "puter:infron:nvidia/llama-3.3-nemotron-super-49b-v1.5",
-    provider: "puter",
-    providerModel: "infron:nvidia/llama-3.3-nemotron-super-49b-v1.5",
-    label: "Nemotron Super 49B",
-    labelAr: "Nemotron Super 49B",
-    ctx: 131_072,
-    note: "NVIDIA's tuned reasoning model — free via Puter",
-    noteAr: "نموذج NVIDIA المضبوط للاستدلال — مجانًا عبر Puter",
+    note: "Keyless cloud, strong Arabic — no sign-in, no key. Free shared tier; the last hop of the keyless chain",
+    noteAr: "سحابة بلا تسجيل ولا مفاتيح — عربية قوية. الحصة المجانية المشتركة، وهي المحطة الأخيرة في السلسلة المجانية",
   },
 ];
 
@@ -338,21 +115,23 @@ export const DEFAULT_AI_MODEL_ID = "glm-4-plus";
 /** T59 → T65 — the default KEYLESS backbone on hosts without the SDK gateway
  *  and without ZAI_API_KEY (the public Vercel deployment): LLM7's anonymous
  *  GLM-5.3-Flash tier — a REAL GLM brain, probe-verified live (clean MSA
- *  Arabic, strict-JSON tool protocol compliance, streamed SSE, 100%
- *  availability at probe time). This replaces the old order (Pollinations
- *  GPT-OSS first) because the user asked for GLM as the main family: with
- *  no key on the host, GLM-5.3-Flash keyless IS the main; with ZAI_API_KEY
- *  set, the direct cloud serves glm-4-plus (the user's explicit pick); in
- *  the sandbox the SDK gateway serves GLM-4-Plus as always. */
+ *  Arabic, strict-JSON tool protocol compliance, streamed SSE + live
+ *  reasoning_content, 100% availability at probe time). This replaces the
+ *  old order (Pollinations GPT-OSS first) because the user asked for GLM as
+ *  the main family: with no key on the host, GLM-5.3-Flash keyless IS the
+ *  main; with ZAI_API_KEY set, the direct cloud serves glm-4-plus (the
+ *  user's explicit pick); in the sandbox the SDK gateway serves GLM-4-Plus
+ *  as always. NOTE (T67 probe): llm7's glm-5.3 / glm-5.2 are NOT keyless
+ *  (401 missing_api_key) — GLM-5.3-Flash is the only keyless GLM there. */
 export const KEYLESS_MODEL_ID = "llm7:GLM-5.3-Flash";
 
 /** The keyless pool after the GLM tier, ordered strictly DOWN (no loops):
  *  the three Kilo Gateway routes (vetted live — strict-JSON + clean MSA
  *  Arabic + streamed SSE, ~2-3s each, 200 req/hr per IP, independent
- *  capacity from LLM7's shared pool), then Pollinations GPT-OSS-20B;
- *  llm7 mistral remains the final manual-pick resort. Adopted from the
- *  freellmpool catalog (github.com/0xzr/freellmpool) whose audited
- *  keyless routes these are. */
+ *  capacity from LLM7's shared pool), then Pollinations GPT-OSS-20B as the
+ *  final hop. Adopted from the freellmpool catalog (github.com/0xzr/freellmpool)
+ *  whose audited keyless routes these are. T67: the old llm7-mistral final
+ *  hop was removed — probe showed crash-text Arabic from that tier. */
 export const KEYLESS_POOL_MODEL_IDS = [
   "kilo:nvidia/nemotron-3-super-120b-a12b:free",
   "kilo:stepfun/step-3.7-flash:free",
@@ -360,8 +139,9 @@ export const KEYLESS_POOL_MODEL_IDS = [
 ] as const;
 
 /** The last-resort keyless tier after the GLM pool is busy/exhausted:
- *  Pollinations GPT-OSS-20B (strong Arabic); llm7 mistral remains the
- *  final manual-pick resort beyond it. */
+ *  Pollinations GPT-OSS-20B (strong Arabic). When even this hop is
+ *  exhausted the loop ships the deterministic briefing built from the
+ *  tool data it already collected — never a bare error. */
 export const KEYLESS_FALLBACK_MODEL_ID = "pollinations:gpt-oss-20b";
 
 export function findAiModel(id: unknown): AiModel | null {
@@ -369,17 +149,12 @@ export function findAiModel(id: unknown): AiModel | null {
   return AI_MODELS.find((m) => m.id === id) ?? null;
 }
 
-/** Human label for ANY persisted id — featured models from the registry,
- *  ad-hoc "puter:<id>" catalog picks from the puterId tail, and anything
- *  unknown falls back to the honest default. */
+/** Human label for ANY persisted id — registry models, and anything
+ *  unknown (incl. stale "puter:" ids from old versions) falls back to the
+ *  honest default. */
 export function aiModelLabel(id: string): string {
   const m = findAiModel(id);
   if (m) return m.label;
-  if (id.startsWith("puter:")) {
-    const tail = id.slice("puter:".length);
-    const short = tail.includes("/") ? tail.split("/").slice(1).join("/") : tail;
-    return short.length > 30 ? short.slice(0, 30) + "…" : short;
-  }
   return DEFAULT_AI_MODEL_ID;
 }
 
@@ -391,9 +166,7 @@ export function aiModelIdentity(m: AiModel): string {
       ? `a REAL large language model (${m.label} — served keyless via the free LLM7.io cloud)`
       : m.provider === "pollinations"
         ? `a REAL large language model (GPT-OSS-20B, OpenAI open weights — served keyless via the free Pollinations cloud)`
-        : m.provider === "kilo"
-          ? `a REAL large language model (${m.label} — served keyless via the free Kilo Gateway cloud)`
-          : `a REAL large language model (${m.label} — served via the free Puter cloud)`;
+        : `a REAL large language model (${m.label} — served keyless via the free Kilo Gateway cloud)`;
 }
 
 /** Client-side localStorage persistence helper (never throws). */
@@ -403,9 +176,9 @@ export function loadAiModelId(): string {
   try {
     const v = localStorage.getItem(AI_MODEL_KEY);
     if (!v) return DEFAULT_AI_MODEL_ID;
-    // any "puter:" id is valid (catalog picks persist too); anything else
-    // must exist in the registry — stale ids from old versions migrate
-    if (v.startsWith("puter:") || findAiModel(v)) return v;
+    // must exist in the registry — stale ids (old "puter:" picks, pruned
+    // llm7 models…) migrate to the honest default
+    if (findAiModel(v)) return v;
   } catch {}
   return DEFAULT_AI_MODEL_ID;
 }
