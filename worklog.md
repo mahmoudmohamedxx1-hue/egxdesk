@@ -1640,3 +1640,19 @@ Stage Summary:
 - The news crash class is dead: global error boundaries turn any render throw into a recoverable bilingual screen + server-side crash log; the news view itself is shape-hardened.
 - Favoriting a stock now earns real notifications (fresh news naming it + big live-session moves), and the push chain actually WORKS on production for the first time (committed VAPID identity + env override).
 - Version 2.54 / sw v49.
+
+---
+Task ID: T69-SHIP
+Agent: main (Super Z)
+Task: Ship T69 to Vercel (push + deployment verification).
+
+Work Log:
+- T69 committed (f105edb) and pushed to origin/main — clean secret scan (no PAT, no API keys in text files).
+- VERCEL DEPLOYMENT BLOCKED (account/project-level, NOT code): the deployment is created and fails INSTANTLY (<1s, no "building" phase ever starts). Four consecutive instant failures: f105edb (T69), 75d187d (empty retrigger), e32a7c0 (the repo's own GitHub Action data refresh — zero app-code changes), so the blocker predates and is independent of T69.
+- Code proven buildable: clean-room fresh-install builds from the exact commit are GREEN under BOTH npm ci (npm ci → prisma generate → next build, exit 0) and bun install (exit 0) — so the failure is not in the repo.
+- Vercel status page: all systems operational. No Vercel credentials exist in the sandbox (no token in env/.env), so `vercel inspect dpl_CJbr1vxnPCw7iFi4qrx65ZAm --logs` and the dashboard remain the only ways to read the actual error.
+- Likely causes to check in the Vercel dashboard (mahmoud-mohameds-projects): a stuck deployment hogging the single Hobby-plan build-concurrency slot (cancel it), an account/plan verification or spend-limit block, or a project-level build setting override. GitHub integration itself is healthy (deployments are still created + statuses posted + Supabase check runs).
+- Everything else shipped and verified: prod just still runs 2.53/v48 until the Vercel-side blocker clears; the next successful build will pick up T69 (version 2.54 / sw v49).
+
+Stage Summary:
+- T69 is fully on GitHub (origin/main). Vercel refuses to build ANY deployment for this project right now (instant failure incl. the data-refresh Action) — needs a one-minute dashboard check by the user (cancel stuck build / resolve account block), then re-deploy.
