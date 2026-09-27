@@ -1694,3 +1694,21 @@ Stage Summary:
 - Every favorite stock now earns a real notification for EVERY 0.5% it climbs or falls vs the previous close (band engine, per-device persisted state, session-honest with a final-quote grace, AR/EN wording with the arrow/pct split), verified 63/63 through a real encrypted web-push round-trip (RFC 8291 decryption) and 13/13 in the browser through the app's own service worker incl. the push-event handler path.
 - Production now has a 5-minute GitHub Actions heartbeat that runs the full push engine (alerts + favorites news + 0.5% moves) on Vercel, where loops cannot live — the missing piece that would have left notifications dead-on-arrival after the Vercel unblock.
 - Vercel failure is DIAGNOSED to the limit of what is externally knowable: 7 instant no-build failures including a zero-code-change commit since 2026-09-27T08:59Z, after T68 built fine at 23:23Z — an account/project-level gate only the user's dashboard (or a token) can read; exact links + the inspect command with --logs delivered in the report.
+
+---
+Task ID: T70-DEPLOY-FIX
+Agent: Super Z (main agent)
+Task: Fix the Vercel build failure — TS error "Property 'watchlistJson' does not exist on PushDevice" during `npm run build`.
+
+Work Log:
+- Root-caused from the Vercel log: npm 11.19's new install-scripts policy printed `npm warn install-scripts … @prisma/client (postinstall)` — the postinstall that auto-runs `prisma generate` was SKIPPED, so Vercel's cached `node_modules/.prisma/client` was generated from the pre-T69 schema (the error type had signalsNotifiedAt but no watchlistJson/watchlistNotifiedAt/movesJson — exactly the 2.53-era PushDevice).
+- Verified origin/main already contained the full T69/T70 schema and code; the deployed branch was NOT stale — only the generated client was.
+- Fix 1 (deterministic): package.json build is now `prisma generate && next build && node scripts/assemble-standalone.mjs` — the client is regenerated from the pushed schema before every type-check, independent of postinstall behavior.
+- Fix 2 (cache-bust insurance): `npm install-scripts approve @prisma/client @prisma/engines prisma` → committed `allowScripts` block in package.json, so fresh installs (no node_modules cache) still download engines + generate the client.
+- Validated locally: stopped the port-3000 dev server (shared .next), ran the full `npm run build` chain — prisma generate + next build (all routes, type-check clean) + assemble-standalone all green; restarted dev (health: v2.55, db up).
+- Integrated the daemon's concurrent data-refresh commit (7a2a0dd) via rebase (stashed db noise, popped after) and pushed 7c781ce → origin/main; Vercel auto-deploy triggered.
+
+Stage Summary:
+- Build fix shipped as 7c781ce: prisma generate in build script + allowScripts for the prisma trio.
+- Expected Vercel outcome: the install-scripts warnings may still list other packages (harmless — their binaries come via optionalDependencies), but the type error is gone because the client is regenerated at build time.
+- If a future deploy still fails at `prisma generate` (missing engines on a fully cache-busted, cold install), the committed allowScripts block covers exactly that scenario.
