@@ -1,0 +1,160 @@
+{
+  "yahooIdx": {
+    "%5ECASE30": {
+      "status": 200,
+      "ok": true,
+      "name": "^CASE30",
+      "first": "2026-09-06",
+      "last": "2026-09-06",
+      "points": 1,
+      "nonNullCloses": 1,
+      "lastClose": 56676.19921875
+    },
+    "%5EEGX30CAPPED.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "^EGX30CAPPED.CA",
+      "first": "2026-09-06",
+      "last": "2026-09-06",
+      "points": 1,
+      "nonNullCloses": 1,
+      "lastClose": 70026.8984375
+    },
+    "%5EEGX70EWI.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "^EGX70EWI.CA",
+      "first": "2026-09-06",
+      "last": "2026-09-06",
+      "points": 1,
+      "nonNullCloses": 1,
+      "lastClose": 21618.30078125
+    },
+    "%5EEGX100EWI.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "^EGX100EWI.CA",
+      "first": "2026-09-06",
+      "last": "2026-09-06",
+      "points": 1,
+      "nonNullCloses": 1,
+      "lastClose": 28213.900390625
+    },
+    "%5EEGX30EWI.CA": {
+      "status": 404,
+      "ok": false,
+      "why": "No data found, symbol may be delisted"
+    },
+    "%5EEGX50EWI.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "^EGX50EWI.CA",
+      "first": null,
+      "last": null,
+      "points": 0,
+      "nonNullCloses": 0,
+      "lastClose": null
+    },
+    "%5EEGX30.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "^EGX30.CA",
+      "first": null,
+      "last": null,
+      "points": 0,
+      "nonNullCloses": 0,
+      "lastClose": null
+    },
+    "%5ESHARIAH.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "^SHARIAH.CA",
+      "first": "2026-09-06",
+      "last": "2026-09-06",
+      "points": 1,
+      "nonNullCloses": 1,
+      "lastClose": 6723.16015625
+    },
+    "EGS69491M015.CA": {
+      "status": 200,
+      "ok": true,
+      "name": "EGS69491M015.CA",
+      "first": "2026-09-06",
+      "last": "2026-09-06",
+      "points": 1,
+      "nonNullCloses": 1,
+      "lastClose": 65.19999694824219
+    }
+  },
+  "sigma": {
+    "status": 200,
+    "len": 143367,
+    "hasBuyAnchor": true,
+    "hasBlockTrades": true,
+    "hasEquitiesScope": true,
+    "dates": [],
+    "euDates": [
+      "07-08-2026",
+      "06-09-2026",
+      "03/07/2024"
+    ]
+  },
+  "egxbot": {
+    "status": 200,
+    "len": 53115,
+    "hasParticipation": true
+  },
+  "wpDepth": {
+    "borsa": {
+      "page1": {
+        "status": 200,
+        "n": 100,
+        "newest": "2026-09-06T20:06:23",
+        "oldest": "2026-08-27T11:12:00"
+      },
+      "page10": {
+        "status": 200,
+        "n": 100,
+        "oldest": "2026-06-13T16:35:51"
+      }
+    },
+    "amwal": {
+      "page1": {
+        "status": 200,
+        "n": 100,
+        "newest": "2026-09-06T15:01:44",
+        "oldest": "2026-08-20T10:24:36"
+      },
+      "page10": {
+        "status": 200,
+        "n": 100,
+        "oldest": "2026-05-04T11:52:06"
+      }
+    }
+  },
+  "wpFields": {
+    "status": 200,
+    "sample": [
+      {
+        "date": "2026-09-06T20:06:23",
+        "title": "مؤشر EGX30 يقترب من 57 ألف نقطة.. هل تبدأ موجة صعود جديدة؟",
+        "hasExcerpt": true,
+        "excerpt": " اقترب المؤشر الرئيسى للبورصة المصرية EGX30 من مستوى 57 ألف نقطة خلال أولى جلسات الأسبوع، بدعم من ار",
+        "catIds": [
+          10,
+          106439
+        ]
+      },
+      {
+        "date": "2026-09-06T19:46:18",
+        "title": "«آى صاغة» تقود تحالفًا مصريًا سعوديًا لتأسيس منظومة موحدة لت",
+        "hasExcerpt": true,
+        "excerpt": " توفير منتجات ادخارية تبدأ من «8 ملليجرام» ذهب وفضة.. والتوسع يتزامن مع التشغيل الكامل للتطبيق تقود ",
+        "catIds": [
+          13,
+          106439
+        ]
+      }
+    ]
+  }
+}

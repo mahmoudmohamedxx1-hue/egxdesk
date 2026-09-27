@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    @page { size: 794px 1123px; margin: 0; }
+    :root {
+      /* cascade palette seed 7 (cover aliases) */
+      --c-bg: #f1f0ef;
+      --c-accent: #87702a;
+      --c-text: #1c1c1a;
+      --c-muted: #78766f;
+      --c-mid: #504933;
+      --c-surface: #e8e7e4;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      width: 794px; height: 1123px;
+      background: var(--c-bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--c-text);
+    }
+    @media screen {
+      html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+      body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.12); }
+    }
+    .cover { width: 794px; height: 1123px; position: relative; border: none; outline: none; box-shadow: none; }
+
+    /* Layer 1 — background grid (2% opacity, clipped) */
+    .layer1 { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+    .grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(80, 73, 51, 0.05) 0.5px, transparent 0.5px),
+        linear-gradient(to bottom, rgba(80, 73, 51, 0.05) 0.5px, transparent 0.5px);
+      background-size: 66px 66px;
+    }
+
+    /* Layer 2 — structure: ultra-thick left anchor line */
+    .layer2 { position: absolute; inset: 0; z-index: 2; }
+    .anchor-line {
+      position: absolute;
+      left: 95px;              /* 0.12 * W */
+      top: 112px;              /* 0.10 * H */
+      bottom: 112px;           /* to 0.90 * H */
+      width: 8px;              /* 6pt */
+      background: var(--c-accent);
+    }
+
+    /* Layer 3 — content (left edge = 95 + 42px, ≥ 2U from thick line) */
+    .layer3 { position: absolute; inset: 0; z-index: 3; }
+    .kicker {
+      position: absolute;
+      left: 180px; top: 168px;               /* 0.15 * H */
+      font-size: 15pt; font-weight: 400;
+      letter-spacing: 3pt; text-transform: uppercase;
+      color: var(--c-text); opacity: 0.6;
+      max-width: 540px;
+    }
+    .hero1 {
+      position: absolute;
+      left: 180px; top: 337px;               /* 0.30 * H */
+      font-family: 'Playfair Display', 'Inter', serif;
+      font-size: 64pt; font-weight: 900;
+      line-height: 1.1; color: var(--c-text);
+      max-width: 560px;
+    }
+    .hero2 {
+      position: absolute;
+      left: 180px; top: 432px;
+      font-family: 'Playfair Display', 'Inter', serif;
+      font-size: 64pt; font-weight: 900;
+      line-height: 1.1; color: var(--c-accent);
+      max-width: 560px;
+    }
+    .summary {
+      position: absolute;
+      left: 180px; top: 562px;               /* 0.50 * H */
+      font-size: 13.5pt; font-weight: 400;
+      line-height: 1.65; color: var(--c-text); opacity: 0.85;
+      max-width: 476px;                       /* 0.6 * W */
+    }
+    .meta {
+      position: absolute;
+      left: 180px; top: 842px;               /* 0.75 * H */
+      font-size: 13pt; font-weight: 400;
+      color: var(--c-muted); line-height: 1.7;
+    }
+    .meta .strong { color: var(--c-mid); font-weight: 700; }
+    .footer {
+      position: absolute;
+      left: 180px; bottom: 132px;
+      font-size: 11pt; font-weight: 400;
+      letter-spacing: 3pt; text-transform: uppercase;
+      color: var(--c-muted); opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="layer1"><div class="grid"></div></div>
+    <div class="layer2"><div class="anchor-line"></div></div>
+    <div class="layer3">
+      <div class="kicker">Competitive Research &amp; Feature Gap Analysis</div>
+      <div class="hero1">EGX</div>
+      <div class="hero2">DESK</div>
+      <div class="summary">
+        Benchmarked against seventeen platforms across three tiers — the global leaders,
+        the AI-native generation, and the Egypt-focused battlefield. Every EGX Desk
+        capability re-verified against the live v2.16 build; twenty-eight capabilities
+        scored; a three-wave roadmap sequenced for the retail boom it serves.
+      </div>
+      <div class="meta">
+        <span class="strong">EGX Desk Product Research</span> · Second Edition<br>
+        17 platforms · 28 capabilities · 3 waves<br>
+        Prepared by Z.ai Research
+      </div>
+      <div class="footer">September 2026 · Cairo</div>
+    </div>
+  </div>
+</body>
+</html>

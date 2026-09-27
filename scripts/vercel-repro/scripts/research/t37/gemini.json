@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://ai.google.dev",
+    "name": "Rate limits | Gemini API - Google AI for Developers",
+    "snippet": "Rate limit s are applied per project, not per API key. Requests per day (RPD) quotas reset at midnight Pacific time. Limits vary depending on the specific model ... Read more",
+    "host_name": "ai.google.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.aifreeapi.com",
+    "name": "Gemini API Rate Limits by Tier: Read Active  - AI Free API",
+    "snippet": "Jan 6, 2026 — Gemini API rate limits are no longer something you can plan from a copied “Free = 15 RPM, Tier 1 = 300 RPM” table. A usage tier is one input ... Read more",
+    "host_name": "www.aifreeapi.com",
+    "rank": 1,
+    "date": "Jan 6, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.howtogeek.com",
+    "name": "Gemini has slashed free API limits, here's what to use instead",
+    "snippet": "Dec 20, 2025 — Google has unfortunately slashed the number of free requests for many of its models, with Gemini 2.5 Flash cut down to just 20 requests per day . Read more",
+    "host_name": "www.howtogeek.com",
+    "rank": 2,
+    "date": "Dec 20, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://geminicli.com",
+    "name": "Gemini CLI: Quotas and pricing",
+    "snippet": "Jun 18, 2026 — If you are using a Gemini API key, you can also benefit from a free tier . This includes: 250 maximum model requests / user / day Model requests ...",
+    "host_name": "geminicli.com",
+    "rank": 3,
+    "date": "Jun 18, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://discuss.ai.google.dev",
+    "name": "Do they really think we wouldn't notice a 92% free tier quota?",
+    "snippet": "Dec 6, 2025 — Free Tier limit for Gemini Flash has been slashed from 250 RPD ( Requests Per Day ) down to 20 RPD. Regarding Rate Limits . From Gemini API ? no ...",
+    "host_name": "discuss.ai.google.dev",
+    "rank": 4,
+    "date": "Dec 6, 2025",
+    "favicon": ""
+  }
+]

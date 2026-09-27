@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://apps.apple.com",
+    "name": "Stocktwits: Trading Community - App Store - Apple",
+    "snippet": "Discuss the markets in real-time with millions of other traders and investors . Share commentary and ideas with charts, photos and GIFs.",
+    "host_name": "apps.apple.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://play.google.com/store/apps/details?id=org.stocktwits.android.activity&hl=en_US",
+    "name": "Stocktwits: Trading Community - Apps on Google Play",
+    "snippet": "Discuss the markets in real-time. Share commentary and ideas with charts, photos and GIFs. 2026 Finance Data safety",
+    "host_name": "play.google.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://en.wikipedia.org",
+    "name": "StockTwits",
+    "snippet": "Stocktwits is a social media platform designed for sharing ideas between investors, traders, and entrepreneurs. Founded in 2008 by Howard Lindzon and Soren ... Read more",
+    "host_name": "en.wikipedia.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.stocktwits.com",
+    "name": "Stocktwits Edge",
+    "snippet": "4 days ago — Stocktwits Edge provides traders with real-time social sentiment data and advanced tools to track market shifts. Subscribers gain access to ... Read more",
+    "host_name": "help.stocktwits.com",
+    "rank": 3,
+    "date": "Sep 9, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.businesswire.com",
+    "name": "Stocktwits Launches Options Trading Expanding its",
+    "snippet": "Sep 19, 2023 — With expanded execution, high quality real-time data , and enhanced insights into thoughts on both stocks and cryptocurrencies, Stocktwits is ... Read more",
+    "host_name": "www.businesswire.com",
+    "rank": 4,
+    "date": "Sep 19, 2023",
+    "favicon": ""
+  }
+]

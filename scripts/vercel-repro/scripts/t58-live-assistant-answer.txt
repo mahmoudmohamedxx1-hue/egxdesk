@@ -1,0 +1,1 @@
+{"reply":"**Markets overview:**\n- **Change:** Down 30 points\n- **Percentage Movement:** -0.12%\n- **Advancers:** 102\n- **Decliners:** 127\n- **Traded Shares:** 296"}

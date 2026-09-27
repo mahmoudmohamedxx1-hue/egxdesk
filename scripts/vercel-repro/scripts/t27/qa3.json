@@ -1,0 +1,4 @@
+[
+  {"file": "t27-panels.png", "ask": "A stock chart page scrolled down (English UI). Check: (1) Are there separate small indicator panel cards visible (like OBV, ADX with their own mini charts)? (2) Do the mini charts render lines inside them? (3) Any broken/empty panels? Format: PANELS: <count visible> | RENDERED: yes/no | ISSUES: <none or list>"},
+  {"file": "t27-gcc-mobile.png", "ask": "A GCC markets page on a 390px mobile screen (Arabic). Check: (1) Do index cards stack properly? (2) Any horizontal cut-off or overflow? (3) Is content readable? Format: MOBILE_OK: yes/no | ISSUES: <none or list>"}
+]

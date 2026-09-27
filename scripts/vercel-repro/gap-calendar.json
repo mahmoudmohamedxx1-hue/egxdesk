@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://www.nasdaq.com",
+    "name": "Dividend Calendar",
+    "snippet": "Discover the latest dividend announcements and historical data for stocks listed on the Nasdaq. Stay informed on dividend yields, payment dates, and more.",
+    "host_name": "www.nasdaq.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.koyfin.com",
+    "name": "Top Platforms for Earnings Calendars in 2026",
+    "snippet": "Jan 22, 2026 — The ability to filter by date and corporate actions , such as dividends and stock splits, is also a great feature.",
+    "host_name": "www.koyfin.com",
+    "rank": 1,
+    "date": "Jan 22, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://eodhd.com",
+    "name": "Earnings Calendar API: IPOs, Splits & Dividend Dates",
+    "snippet": "Earnings calendar API with reported and upcoming EPS against estimates, analyst revisions, IPOs, splits and dividend dates — history from 2013.",
+    "host_name": "eodhd.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://finance.yahoo.com",
+    "name": "Company Earnings Calendar - Yahoo Finance",
+    "snippet": "4 days ago — Find earnings, economic, stock splits and IPO calendars to track upcoming financial events from Yahoo Finance.",
+    "host_name": "finance.yahoo.com",
+    "rank": 3,
+    "date": "Sep 5, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.finra.org",
+    "name": "Corporate Actions by Public Companies—What You",
+    "snippet": "Apr 8, 2022 — Corporate actions can range from making a change to a company's name to issuing a dividend or making a major restructuring of the company ...",
+    "host_name": "www.finra.org",
+    "rank": 4,
+    "date": "Apr 8, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://investor.vanguard.com",
+    "name": "Understand corporate actions and when to respond - Vanguard",
+    "snippet": "Understand corporate actions with Vanguard. Learn how events like stock splits, dividends, and mergers affect your investments and what actions to take.",
+    "host_name": "investor.vanguard.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  }
+]

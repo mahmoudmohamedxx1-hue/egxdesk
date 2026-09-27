@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://console.groq.com",
+    "name": "Spend Limits - GroqDocs",
+    "snippet": "Spending limits are only available on paid plans, not free tier accounts. Contact us via support@ groq .com",
+    "host_name": "console.groq.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.grizzlypeaksoftware.com",
+    "name": "Groq API Free Tier Limits in 2026: What You Actually Get",
+    "snippet": "Mar 27, 2026 — At 14,400 requests per day , it's the most permissive model on the free tier by a wide margin. You're capped at 1,000 requests per day, Both ...",
+    "host_name": "www.grizzlypeaksoftware.com",
+    "rank": 1,
+    "date": "Mar 27, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.getaiperks.com",
+    "name": "Groq Free Tier 2026: Fastest LLM Inference API (No Credit",
+    "snippet": "May 8, 2026 — Groq's free tier in 2026 provides 30,000 tokens per minute and 14,400 requests per day on a curated model lineup including Llama 3.1 8B ... Read more",
+    "host_name": "www.getaiperks.com",
+    "rank": 2,
+    "date": "May 8, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.cloudzero.com",
+    "name": "Groq Pricing In 2026: Every Model, Tier, And Cost Compared",
+    "snippet": "Sep 4, 2026 — Free accounts are rate -limited to 30 requests per minute, 6,000 tokens per minute, and 14,400 requests per day at the organization level. Read more",
+    "host_name": "www.cloudzero.com",
+    "rank": 3,
+    "date": "Sep 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://pricepertoken.com",
+    "name": "Groq Free Tier 2026 — Free Models, Credits & Limits",
+    "snippet": "Rate Limits ~30 req/min, ~ 14,400 req/day ; per-model token limits (e.g. ~12K tokens/min on Llama 3.3 70B) apply at the organization level,",
+    "host_name": "pricepertoken.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.eesel.ai",
+    "name": "Groq pricing in 2026: every model, free tier, and hidden",
+    "snippet": "Jun 8, 2026 — Groq's free tier requires no credit card and includes 30 requests per minute, 6,000–30,000 tokens per minute (depending on model), and 1,000–14 ...",
+    "host_name": "www.eesel.ai",
+    "rank": 5,
+    "date": "Jun 8, 2026",
+    "favicon": ""
+  }
+]

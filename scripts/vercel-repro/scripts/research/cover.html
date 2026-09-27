@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --c-bg: #eff0f1;
+    --c-accent: #267eaa;
+    --c-text: #191b1c;
+    --c-muted: #7d8387;
+    --c-mid: #3c5967;
+    --c-surface: #e6e8e9;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--c-bg); }
+  .cover {
+    position: relative;
+    width: 794px;
+    height: 1123px;
+    background: var(--c-bg);
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    border: none; outline: none; box-shadow: none;
+  }
+  /* Layer 1 — background grid (clipped) */
+  .layer-1 {
+    position: absolute; inset: 0; overflow: hidden; z-index: 1;
+    background-image:
+      linear-gradient(to right, rgba(38, 126, 170, 0.05) 0.5px, transparent 0.5px),
+      linear-gradient(to bottom, rgba(38, 126, 170, 0.05) 0.5px, transparent 0.5px);
+    background-size: 66px 66px;
+  }
+  /* Layer 2 — structure: thick vertical anchor line */
+  .layer-2 { position: absolute; inset: 0; z-index: 2; }
+  .anchor-line {
+    position: absolute;
+    left: 95px; top: 112px; bottom: 112px;
+    width: 8px;
+    background: var(--c-mid);
+  }
+  /* Layer 3 — content */
+  .layer-3 { position: absolute; inset: 0; z-index: 3; }
+  .kicker {
+    position: absolute; left: 150px; top: 168px;
+    font-size: 15px; font-weight: 400;
+    letter-spacing: 4px; text-transform: uppercase;
+    color: var(--c-text); opacity: 0.6;
+    max-width: 560px;
+  }
+  .hero {
+    position: absolute; left: 150px; top: 300px;
+    font-size: 88px; font-weight: 900; line-height: 1.05;
+    color: var(--c-text);
+    max-width: 580px;
+    letter-spacing: -1px;
+  }
+  .hero .accent-dot { color: var(--c-accent); }
+  .summary {
+    position: absolute; left: 150px; top: 562px;
+    font-size: 16.5px; font-weight: 400; line-height: 1.6;
+    color: var(--c-text); opacity: 0.85;
+    max-width: 476px;
+  }
+  .meta {
+    position: absolute; left: 150px; top: 842px;
+    font-size: 17px; font-weight: 400; line-height: 1.65;
+    color: var(--c-text);
+  }
+  .meta .strong { font-weight: 600; }
+  .meta .sub { color: var(--c-muted); font-size: 15px; }
+  .footer {
+    position: absolute; left: 150px; top: 1012px;
+    font-size: 14px; font-weight: 400;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--c-text); opacity: 0.55;
+  }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="layer-1"></div>
+  <div class="layer-2">
+    <div class="anchor-line"></div>
+  </div>
+  <div class="layer-3">
+    <div class="kicker">Competitive Research &amp; Feature Gap Analysis</div>
+    <div class="hero">EGX<br>DESK</div>
+    <div class="summary">
+      Benchmarked against twelve market-data platforms across three tiers — global
+      leaders, Arabic regional portals, and Egypt-specific references — this report
+      scores twenty-five capabilities, catalogues nineteen feature gaps, and sequences
+      a three-wave delivery roadmap.
+    </div>
+    <div class="meta">
+      <div class="strong">EGX Desk Product Research</div>
+      <div class="sub">12 tools &middot; 25 capabilities &middot; 19 registered gaps</div>
+      <div class="sub">September 2026</div>
+    </div>
+    <div class="footer">Prepared by Z.ai &middot; Research Edition</div>
+  </div>
+</div>
+</body>
+</html>

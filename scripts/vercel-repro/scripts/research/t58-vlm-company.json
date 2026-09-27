@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the screenshot of **esthmr.com** (عدسة الملكية / Ownership Lens) after the user clicked on **COMI** (شركة الملكية للدواء), here is a factual and exhaustive description of the visual changes and elements:\n\n### 1. Side Panel Content (Left Sidebar)\nThe left panel transforms to display detailed information about the selected company, **COMI**.\n\n*   **Header Section:**\n    *   **Company Name:** \"COMI - شركة الملكية للدواء\" (COMI - Ownership Pharmaceutical Company).\n    *   **Market Cap:** \"447.78B ر.س\" (447.78 Billion Saudi Riyals).\n    *   **Total Stake:** A large, bold figure displaying **\"43.82%\"**, labeled underneath as \"من الأسهم ذات حق التصويت\" (Of voting shares). This indicates the total ownership percentage being analyzed or held by the entities listed below.\n\n*   **Shareholder List (المساهمون الرئيسيون):**\n    *   A scrollable list appears below the header, detailing individual shareholders.\n    *   **Format:** Each row contains:\n        1.  **Percentage:** The stake size (e.g., 15.67%, 14.15%).\n        2.  **Name:** The name of the owning entity (e.g., \"ALPHA ORYX LIMITED\", \"A ORYX LIMITED\", \"مصرف التسليف السعودي للإسكان\").\n        3.  **Date/Status:** A date (mostly \"2026-06-30\") followed by an asterisk (*), likely indicating the reporting period or data source.\n        4.  **Color Indicator:** A colored dot (purple, orange, teal, gold) next to each name, which corresponds to the color coding on the map.\n    *   **Top Shareholders Visible:**\n        *   ALPHA ORYX LIMITED (...أوريكس ألفا): **15.67%**\n        *   A ORYX LIMITED: **14.15%**\n        *   مصروف التسليف السعودي للإسكان (Saudi Housing Bank): **7.80%**\n        *   ...nsurance Company: **1.47%**\n        *   (List continues down to smaller percentages like 0.04%).\n\n### 2. Map Visualization Changes (Right Panel)\nThe main map area updates to focus specifically on COMI and its relationships.\n\n*   **Focus & Dimming:**\n    *   **Focused Node:** The node representing **COMI** (located in the top right cluster, labeled \"الرعاية الصحية\" - Healthcare) is highlighted. It appears larger or more distinct than surrounding nodes.\n    *   **Dimmed Background:** The rest of the map (other clusters like \"البنوك\" - Banks, \"الطاقة\" - Energy, etc.) is significantly dimmed or faded out to reduce visual noise and direct attention to the selection.\n\n*   **Connecting Lines (Edges):**\n    *   **Active Lines:** Distinct lines emanate from the **COMI** node and stretch across the map to other nodes representing the shareholders listed in the side panel.\n    *   **Line Labels:** Each connecting line has a small label showing the specific stake percentage (e.g., \"15.67%\", \"14.15%\", \"7.80%\"). This visually confirms the weight of the connection.\n    *   **Line Color:** The lines appear to match the color indicators of the shareholders (e.g., a purple line for ALPHA ORYX).\n\n*   **Satellite Nodes (Seats/Labels):**\n    *   The nodes at the end of the connecting lines (the shareholders) are highlighted. Even though they might be physically located in different sectors on the map (e.g., a bank or insurance company in a different cluster), they are now visually linked to COMI.\n    *   Labels for these connected nodes are legible, while labels for unconnected nodes in the dimmed areas are faint.\n\n### 3. Top Navigation Bar (Context)\n*   The top bar remains visible but provides context for the selection.\n*   It shows general market stats (e.g., \"عدد الأوراق 70\", \"قيمة التداول\", etc.).\n*   The sector buttons (e.g., \"الرئيسية\", \"متوسط 28 يوم\", etc.) are still present, allowing the user to change filters even while a company is selected.\n\n### 4. Interaction Affordances\n*   **Zoom Controls:** Visible on the left of the map (plus, minus, fit-screen icons).\n*   **Playback Control:** A \"Play\" button triangle is visible, suggesting the visualization can animate ownership changes over time.\n*   **Bottom Navigation:** Icons at the bottom center (Grid view, List view, Star/Favorites, active \"Ownership Lens\" icon, Home) indicate the user can switch views or return home.\n*   **Scrollability:** The side panel list clearly implies scrolling functionality to see more minor shareholders.\n\n**Summary of State:** The interface has transitioned from a \"Macro\" view of the entire market to a \"Micro\" view centered on **COMI**, explicitly visualizing its capital structure by highlighting the specific entities that own it and the exact percentages they hold.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1790091057,
+  "id": "202609222330281ddd9787fb0f40fe",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202609222330281ddd9787fb0f40fe",
+  "usage": {
+    "completion_tokens": 1108,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 2238,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 3346
+  }
+}

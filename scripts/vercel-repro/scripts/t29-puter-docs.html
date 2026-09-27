@@ -1,0 +1,1048 @@
+<head><meta charset="utf-8"><title>puter.ai.chat() - Puter.js Docs</title><meta name="title" content="puter.ai.chat() - Puter.js Docs" /><link rel="canonical" href="https://docs.puter.com/AI/chat/"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="Chat with AI models, analyze images and videos, and perform function calls using 500+ models from OpenAI, Anthropic, Google, and more."><meta property="og:title" content="puter.ai.chat() - Puter.js Docs"><meta property="og:image" content="https://assets.puter.site/twitter.png"><meta name="twitter:image" content="https://assets.puter.site/twitter.png"><meta name="robots" content="index, follow" /><meta property="og:site_name" content="Puter.js Docs" />
+        <link rel="apple-touch-icon" sizes="57x57" href="/assets/favicon/apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="/assets/favicon/apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="/assets/favicon/apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="/assets/favicon/apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="/assets/favicon/apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="/assets/favicon/apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="/assets/favicon/apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="/assets/favicon/apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="/assets/favicon/android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+        <link rel="manifest" href="/assets/favicon/manifest.json">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="msapplication-TileImage" content="/assets/favicon/ms-icon-144x144.png">
+        <meta name="theme-color" content="#ffffff">
+        <link rel="stylesheet" href="/./assets/js/bundle.css"><link rel="stylesheet" href="/./assets/css/bootstrap.min.css"><link rel="stylesheet" href="/./assets/css/style.css"><script src="/./assets/js/bundle.js"></script>
+        <script type="application/ld+json">
+            {
+                "@context":"https://schema.org",
+                "@type":"WebSite",
+                "@id": "https://docs.puter.com/#website",
+                "name":"Puter.js Docs",
+                "alternateName": "Puter.js Documentation",
+                "url":"https://docs.puter.com",
+                "about": { "@id": "https://developer.puter.com/#puterjs" },
+                "publisher": { "@id": "https://puter.com/#organization" }
+            }
+        </script>
+        <script defer data-domain="docs.puter.com" src="https://plausible.io/js/script.js"></script>
+        <script type="text/javascript">
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                c[a]("identify", (sessionStorage.cid ??= crypto.randomUUID()));
+            })(window, document, "clarity", "script", "ubxybtas0w");
+        </script></head><body id="docs"><div class="progress-bar-container" style="position: fixed; width: 100%; height: 5px; z-index: 99999999999;"><div id="progress-bar" style="width: 0%; height: 5px; background-color: #dbdbe3; transition: 0.2s all; z-index: 99999999999;"></div></div><script>hljs.highlightAll();</script><div style="max-width: 1400px; margin: 0 auto;"><div><button class="sidebar-toggle hidden-lg hidden-xl"><div class="sidebar-toggle-button"><span></span><span></span><span></span></div></button><div class="col-xl-3 col-lg-3 hidden-md hidden-sm hidden-xs" id="sidebar-wrapper"><div id="sidebar"><div id="sidebar-title" style="font-weight: normal;"><a href="/">Puter.js Docs</a></div>
+        <div class="search-trigger">
+            <div class="search-trigger-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+            </div>
+            <div class="search-trigger-placeholder">Search</div>
+        </div>
+    <a target="_blank" href="https://github.com/heyPuter/puter/" class="download-prompt skip-insta-load" style="margin-top: 40px; font-size: 15px;"><svg role="img" style="margin-right:10px; margin-bottom: -3px;" width="20" height="20" viewBox="0 0 24 24" fill="#444" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span class="github-stars"></span></a><a target="_blank" href="/playground/" class="download-prompt skip-insta-load" style="margin-top: 10px; font-size: 15px;"><svg style="margin-right: 10px; margin-bottom: -5px" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flask-conical-icon lucide-flask-conical"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg>Open playground</a><a target="_blank" href="/recipes/" class="download-prompt skip-insta-load" style="margin-top: 10px; font-size: 15px;"><svg style="margin-right: 10px; margin-bottom: -5px" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open-icon lucide-book-open"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>Browse recipes</a><a href="/llms.txt" class="download-prompt skip-insta-load" target="_blank"><img src="/assets/img/download.svg"><span style="display: inline-block; margin-top: 3px; font-size: 14px; font-family: monospace;">llms.txt</span></a><div class="section-title">Overview</div><p><a href="/./getting-started/" class="">Getting Started</a></p><p><a href="/./supported-platforms/" class="">Supported Platforms</a></p><p><a href="/./security/" class="">Security and Permissions</a></p><p><a href="/./rate-limits-and-quotas/" class="">Rate Limits and Quotas</a></p><p><a href="/./user-pays-model/" class="">User-Pays Model</a></p><p><a href="/./frameworks/" class="">Framework Integrations</a></p><p><a href="/./mcp/" class="">MCP Server</a></p><p><a href="/./cli/" class="">CLI</a></p><p><a href="/./deployments/" class="">Deployments</a></p><p><a href="/./site-config/" class="">Site Configuration</a></p><p><a href="/./examples/" class="">Examples</a></p><div class="section-title"><img src="/./assets/img/ai.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./AI/" class="">AI</a></div><p><a href="/./AI/chat/" class="active"><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>chat()</code></a></p><p><a href="/./AI/listModels/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listModels()</code></a></p><p><a href="/./AI/listModelProviders/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listModelProviders()</code></a></p><p><a href="/./AI/txt2img/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2img()</code></a></p><p><a href="/./AI/txt2speech/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2speech()</code></a></p><p><a href="/./AI/txt2speech.listEngines/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2speech.listEngines()</code></a></p><p><a href="/./AI/txt2speech.listVoices/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2speech.listVoices()</code></a></p><p><a href="/./AI/txt2vid/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>txt2vid()</code></a></p><p><a href="/./AI/img2txt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>img2txt()</code></a></p><p><a href="/./AI/speech2txt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>speech2txt()</code></a></p><p><a href="/./AI/speech2speech/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>speech2speech()</code></a></p><div class="section-title"><img src="/./assets/img/apps.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Apps/" class="">Apps</a></div><p><a href="/./Apps/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Apps/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Apps/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Apps/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./Apps/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./Apps/checkName/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>checkName()</code></a></p><div class="section-title"><img src="/./assets/img/auth.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Auth/" class="">Auth</a></div><p><a href="/./Auth/signIn/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>signIn()</code></a></p><p><a href="/./Auth/signOut/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>signOut()</code></a></p><p><a href="/./Auth/isSignedIn/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>isSignedIn()</code></a></p><p><a href="/./Auth/getUser/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getUser()</code></a></p><p><a href="/./Auth/getMonthlyUsage/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getMonthlyUsage()</code></a></p><p><a href="/./Auth/getDetailedAppUsage/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getDetailedAppUsage()</code></a></p><div class="section-title"><img src="/./assets/img/fs.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./FS/" class="">Cloud Storage</a></div><p><a href="/./FS/write/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>write()</code></a></p><p><a href="/./FS/read/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>read()</code></a></p><p><a href="/./FS/mkdir/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>mkdir()</code></a></p><p><a href="/./FS/readdir/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>readdir()</code></a></p><p><a href="/./FS/rename/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>rename()</code></a></p><p><a href="/./FS/copy/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>copy()</code></a></p><p><a href="/./FS/move/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>move()</code></a></p><p><a href="/./FS/stat/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>stat()</code></a></p><p><a href="/./FS/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./FS/getReadURL/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getReadURL()</code></a></p><p><a href="/./FS/upload/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>upload()</code></a></p><p><a href="/./FS/share/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>share()</code></a></p><p><a href="/./FS/unshare/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>unshare()</code></a></p><p><a href="/./FS/listShared/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listShared()</code></a></p><p><a href="/./FS/getShares/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getShares()</code></a></p><div class="section-title"><a href="/./Events/" class="">Events</a></div><p><a href="/./Events/onLocal/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onLocal()</code></a></p><p><a href="/./Events/off/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>off()</code></a></p><p><a href="/./Events/onPersistent/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onPersistent()</code></a></p><p><a href="/./Events/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Events/unsubscribe/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>unsubscribe()</code></a></p><p><a href="/./Events/fetch/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>fetch()</code></a></p><p><a href="/./Events/handlers/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>handlers</code></a></p><p><a href="/./Events/workers/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>workers</code></a></p><div class="section-title"><img src="/./assets/img/workers.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Workers/" class="">Serverless Workers</a></div><p><a href="/./Workers/router/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>router</code></a></p><p><a href="/./Workers/types/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;">TypeScript Types</a></p><p><a href="/./Workers/dynamic/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;">Dynamic Workers</a></p><p><a href="/./Workers/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Workers/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Workers/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Workers/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./Workers/exec/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>exec()</code></a></p><div class="section-title"><img src="/./assets/img/hosting.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Hosting/" class="">Hosting</a></div><p><a href="/./Hosting/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Hosting/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Hosting/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Hosting/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./Hosting/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><div class="section-title"><img src="/./assets/img/kv.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./KV/" class="">Key-Value Store</a></div><p><a href="/./KV/set/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>set()</code></a></p><p><a href="/./KV/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./KV/incr/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>incr()</code></a></p><p><a href="/./KV/decr/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>decr()</code></a></p><p><a href="/./KV/add/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>add()</code></a></p><p><a href="/./KV/remove/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>remove()</code></a></p><p><a href="/./KV/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./KV/del/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>del()</code></a></p><p><a href="/./KV/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./KV/flush/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>flush()</code></a></p><p><a href="/./KV/expire/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>expire()</code></a></p><p><a href="/./KV/expireAt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>expireAt()</code></a></p><p><a href="/./KV/MAX_KEY_SIZE/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>MAX_KEY_SIZE</code></a></p><p><a href="/./KV/MAX_VALUE_SIZE/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>MAX_VALUE_SIZE</code></a></p><div class="section-title"><img src="/./assets/img/networking.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Networking/" class="">Networking</a></div><p><a href="/./Networking/Socket/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>Socket</code></a></p><p><a href="/./Networking/TLSSocket/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>TLSSocket</code></a></p><p><a href="/./Networking/fetch/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>fetch()</code></a></p><div class="section-title"><img src="/./assets/img/peer.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Peer/" class="">Peer</a></div><p><a href="/./Peer/serve/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>serve()</code></a></p><p><a href="/./Peer/connect/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>connect()</code></a></p><p><a href="/./Peer/createGuestGrant/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>createGuestGrant()</code></a></p><p><a href="/./Peer/ensureTurnRelays/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ensureTurnRelays()</code></a></p><div class="section-title"><img src="/./assets/img/ui.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./UI/" class="">UI</a></div><p><a href="/./UI/authenticateWithPuter/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>authenticateWithPuter()</code></a></p><p><a href="/./UI/alert/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>alert()</code></a></p><p><a href="/./UI/notify/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>notify()</code></a></p><p><a href="/./UI/contextMenu/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>contextMenu()</code></a></p><p><a href="/./UI/createWindow/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>createWindow()</code></a></p><p><a href="/./UI/exit/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>exit()</code></a></p><p><a href="/./UI/getLanguage/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>getLanguage()</code></a></p><p><a href="/./UI/hideWindow/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>hideWindow()</code></a></p><p><a href="/./UI/launchApp/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>launchApp()</code></a></p><p><a href="/./UI/on/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>on()</code></a></p><p><a href="/./UI/onItemsOpened/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onItemsOpened()</code></a></p><p><a href="/./UI/onLaunchedWithItems/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onLaunchedWithItems()</code></a></p><p><a href="/./UI/onWindowClose/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>onWindowClose()</code></a></p><p><a href="/./UI/parentApp/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>parentApp()</code></a></p><p><a href="/./UI/prompt/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>prompt()</code></a></p><p><a href="/./UI/setMenubar/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setMenubar()</code></a></p><p><a href="/./UI/setWindowHeight/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowHeight()</code></a></p><p><a href="/./UI/setWindowPosition/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowPosition()</code></a></p><p><a href="/./UI/setWindowSize/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowSize()</code></a></p><p><a href="/./UI/setWindowTitle/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowTitle()</code></a></p><p><a href="/./UI/setWindowWidth/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowWidth()</code></a></p><p><a href="/./UI/setWindowX/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowX()</code></a></p><p><a href="/./UI/setWindowY/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>setWindowY()</code></a></p><p><a href="/./UI/requestPictureInPicture/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>requestPictureInPicture()</code></a></p><p><a href="/./UI/exitPictureInPicture/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>exitPictureInPicture()</code></a></p><p><a href="/./UI/showColorPicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showColorPicker()</code></a></p><p><a href="/./UI/showDirectoryPicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showDirectoryPicker()</code></a></p><p><a href="/./UI/showFeedbackDialog/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showFeedbackDialog()</code></a></p><p><a href="/./UI/showFontPicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showFontPicker()</code></a></p><p><a href="/./UI/showOpenFilePicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showOpenFilePicker()</code></a></p><p><a href="/./UI/showSaveFilePicker/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showSaveFilePicker()</code></a></p><p><a href="/./UI/showSpinner/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showSpinner()</code></a></p><p><a href="/./UI/hideSpinner/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>hideSpinner()</code></a></p><p><a href="/./UI/showWindow/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>showWindow()</code></a></p><p><a href="/./UI/socialShare/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>socialShare()</code></a></p><p><a href="/./UI/wasLaunchedWithItems/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>wasLaunchedWithItems()</code></a></p><div class="section-title"><img src="/./assets/img/auth.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Perms/" class="">Perms</a></div><p><a href="/./Perms/request/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>request()</code></a></p><p><a href="/./Perms/check/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>check()</code></a></p><p><a href="/./Perms/appData/" class="">Using another app's data</a></p><div class="section-title"><img src="/./assets/img/auth.svg" style="width:16px; height: 16px; margin-right: 5px;"><a href="/./Teams/" class="">Teams</a></div><p><a href="/./Teams/create/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>create()</code></a></p><p><a href="/./Teams/list/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>list()</code></a></p><p><a href="/./Teams/get/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>get()</code></a></p><p><a href="/./Teams/update/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>update()</code></a></p><p><a href="/./Teams/delete/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>delete()</code></a></p><p><a href="/./Teams/listMembers/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listMembers()</code></a></p><p><a href="/./Teams/createMember/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>createMember()</code></a></p><p><a href="/./Teams/resendActivation/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>resendActivation()</code></a></p><p><a href="/./Teams/disableMember/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>disableMember()</code></a></p><p><a href="/./Teams/enableMember/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>enableMember()</code></a></p><p><a href="/./Teams/resetPassword/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>resetPassword()</code></a></p><p><a href="/./Teams/deleteMemberAccount/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>deleteMemberAccount()</code></a></p><p><a href="/./Teams/listAudit/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listAudit()</code></a></p><p><a href="/./Teams/listOwnAudit/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>listOwnAudit()</code></a></p><div class="section-title"><a href="/./Utils/" class="">Utilities</a></div><p><a href="/./Utils/appID/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>appID</code></a></p><p><a href="/./Utils/env/" class=""><img src="/./assets/img/attr.svg" style="width:12px; height: 12px; margin-right:7px;"><code>env</code></a></p><p><a href="/./Utils/print/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>print()</code></a></p><p><a href="/./Utils/randName/" class=""><img src="/./assets/img/function.svg" style="width:12px; height: 12px; margin-right:7px;"><code>randName()</code></a></p><div class="section-title"><a href="/./Objects/" class="">Objects</a></div><p><a href="/./Objects/AppConnection/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>AppConnection</code></a></p><p><a href="/./Objects/app/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>App</code></a></p><p><a href="/./Objects/createappresult/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>CreateAppResult</code></a></p><p><a href="/./Objects/chatresponse/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ChatResponse</code></a></p><p><a href="/./Objects/chatresponsechunk/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ChatResponseChunk</code></a></p><p><a href="/./Objects/detailedappusage/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>DetailedAppUsage</code></a></p><p><a href="/./Objects/fsitem/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>FSItem</code></a></p><p><a href="/./Objects/kvpair/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>KVPair</code></a></p><p><a href="/./Objects/kvlistpage/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>KVListPage</code></a></p><p><a href="/./Objects/monthlyusage/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>MonthlyUsage</code></a></p><p><a href="/./Objects/puterpeerconnection/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>PuterPeerConnection</code></a></p><p><a href="/./Objects/puterpeerserver/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>PuterPeerServer</code></a></p><p><a href="/./Objects/signinresult/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>SignInResult</code></a></p><p><a href="/./Objects/speech2txtresult/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>Speech2TxtResult</code></a></p><p><a href="/./Objects/subdomain/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>Subdomain</code></a></p><p><a href="/./Objects/ttsengine/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>TTSEngine</code></a></p><p><a href="/./Objects/ttsvoice/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>TTSVoice</code></a></p><p><a href="/./Objects/toolcall/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>ToolCall</code></a></p><p><a href="/./Objects/user/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>User</code></a></p><p><a href="/./Objects/workerdeployment/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>WorkerDeployment</code></a></p><p><a href="/./Objects/workerinfo/" class=""><img src="/./assets/img/object.svg" style="width:12px; height: 12px; margin-right:7px;"><code>WorkerInfo</code></a></p></div></div><div id="docs-content-" class="docs-content col-xl-7 col-lg-7 col-md-12 col-sm-12 col-xs-12"><div class="menu-dropdown">
+        <div class="menu-item-main">
+            <div class="menu-item-content" id="menu-copy-page">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy-icon lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy page</span>
+            </div>
+            <div class="dropdown-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+    <div class="menu-dropdown-items" style="display: none;">
+                <div class="menu-item" id="menu-view-markdown">
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Markdown</title><path d="M22.27 19.385H1.73A1.73 1.73 0 010 17.655V6.345a1.73 1.73 0 011.73-1.73h20.54A1.73 1.73 0 0124 6.345v11.308a1.73 1.73 0 01-1.73 1.731zM5.769 15.923v-4.5l2.308 2.885 2.307-2.885v4.5h2.308V8.078h-2.308l-2.307 2.885-2.308-2.885H3.46v7.847zM21.232 12h-2.309V8.077h-2.307V12h-2.308l3.461 4.039z"/></svg>
+                    <span>View as Markdown</span>
+                </div>
+            
+                <div class="menu-item" id="menu-open-chatgpt">
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>OpenAI</title><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
+                    <span>Open in ChatGPT</span>
+                </div>
+            
+                <div class="menu-item" id="menu-open-claude">
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Anthropic</title><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg>
+                    <span>Open in Claude</span>
+                </div>
+            </div></div><h1><img src="/./assets/img/function.svg" style="opacity:0.5; width: 24px; height: 24px; margin-right: 10px;"><code>puter.ai.chat()</code></h1><div class="platform-compatibility"><span class="platform-badge supported"><span class="platform-checkmark"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg></span> <span class="platform-name">Websites</span></span><span class="platform-badge supported"><span class="platform-checkmark"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg></span> <span class="platform-name">Puter Apps</span></span><span class="platform-badge supported"><span class="platform-checkmark"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg></span> <span class="platform-name">Node.js</span></span><span class="platform-badge supported"><span class="platform-checkmark"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg></span> <span class="platform-name">Workers</span></span></div><hr class="hr-inset"><p>Given a prompt returns the completion that best matches the prompt.</p>
+
+            <h2 class="anchored-heading" id="syntax">
+              <a class="anchor" href="#syntax"></a>
+              Syntax
+            </h2><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">puter.ai.chat(prompt)
+puter.ai.chat(prompt, options = {})
+puter.ai.chat(prompt, testMode = false, options = {})
+puter.ai.chat(prompt, media, testMode = false, options = {})
+puter.ai.chat(prompt, [mediaURLArray], testMode = false, options = {})
+puter.ai.chat([messages], testMode = false, options = {})
+</code></pre></div>
+
+            <h2 class="anchored-heading" id="parameters">
+              <a class="anchor" href="#parameters"></a>
+              Parameters
+            </h2>
+            <h4 class="anchored-heading" id="-code-prompt-code-string-">
+              <a class="anchor" href="#-code-prompt-code-string-"></a>
+              <code>prompt</code> (String)
+            </h4><p>A string containing the prompt you want to complete.</p>
+
+            <h4 class="anchored-heading" id="-code-options-code-object-optional-">
+              <a class="anchor" href="#-code-options-code-object-optional-"></a>
+              <code>options</code> (Object) (Optional)
+            </h4><p>An object containing the following properties:</p>
+<ul>
+<li><code>model</code> (String) - The model you want to use for the completion. If not specified, defaults to <code>gpt-5-nano</code>. More than 500 models are available from vendors including OpenAI, Anthropic, Google, Alibaba Cloud, xAI, Mistral, OpenRouter, Infron, and others. For a full list, see the <a href="https://developer.puter.com/ai/models/">AI models list</a> page.</li>
+<li><code>provider</code> (String) (Optional) - Pin the request to a specific vendor, for example <code>openrouter</code> or <code>infron</code>. Without it, Puter selects a vendor for the requested model. Call <a href="/AI/listModelProviders"><code>puter.ai.listModelProviders()</code></a> for the available values, and <a href="/AI/listModels"><code>puter.ai.listModels(provider)</code></a> for the models a given vendor serves.</li>
+<li><code>stream</code> (Boolean) - A boolean indicating whether you want to stream the completion. Defaults to <code>false</code>.</li>
+<li><code>max_tokens</code> (Number) - The maximum number of tokens to generate in the completion. By default, the specific model&#39;s maximum is used.</li>
+<li><code>temperature</code> (Number) - A number between 0 and 2 indicating the randomness of the completion. Lower values make the output more focused and deterministic, while higher values make it more random. By default, the specific model&#39;s temperature is used.</li>
+<li><code>tools</code> (Array) (Optional) - Function definitions the AI can call. See <a href="#function-calling">Function Calling</a> for details.</li>
+<li><code>reasoning_effort</code> / <code>reasoning.effort</code> (String) (Optional) - Controls how much effort reasoning models spend thinking. Supported values: <code>none</code>, <code>minimal</code>, <code>low</code>, <code>medium</code>, <code>high</code>, and <code>xhigh</code>. Lower values give faster responses with less reasoning. OpenAI models and Meta&#39;s Muse Spark models only; Muse Spark always reasons, so <code>none</code> is ignored for it.</li>
+<li><code>verbosity</code> / <code>text.verbosity</code> (String) (Optional) - Controls how long or short responses are. Supported values: <code>low</code>, <code>medium</code>, and <code>high</code>. Lower values give shorter responses. OpenAI models only.</li>
+<li><code>normalize</code> (Boolean) (Optional) - Controls the format of the non-streaming response. When <code>true</code>, the response is normalized to the OpenAI format regardless of the model&#39;s vendor: <code>message.content</code> is a string, tool calls appear as <code>message.tool_calls</code>, and <code>finish_reason</code> is one of <code>stop</code>, <code>length</code>, <code>tool_calls</code>, or <code>content_filter</code> — or the vendor&#39;s own stop reason, passed through unchanged when it has no OpenAI equivalent. When <code>false</code>, the response keeps the vendor&#39;s native format (for Anthropic models, an array of content blocks). When unset, the SDK-wide <code>puter.ai.normalize</code> applies — itself tri-state: set it to <code>true</code> to normalize every call regardless of release date, <code>false</code> to disable normalization for every call, and when it is left unset too (the default) the release-date policy applies: <strong>models released on or after September 1, 2026 return normalized (OpenAI-format) responses by default</strong>, and for older models the default is unchanged — <code>message.content</code> keeps its vendor-native shape. (A handful of reasoning fields were made consistent across all models independently of this option; see <a href="#reasoning-fields-on-existing-models">Reasoning fields on existing models</a>.) Streaming responses are unaffected — chunks already share one format across vendors. See <a href="#response-normalization">Response normalization</a>.</li>
+<li><code>compaction</code> (Boolean | Object) (Optional) - Opt into inline context compaction for long conversations. Pass <code>true</code> to enable it with provider defaults, or <code>{ trigger_tokens: number }</code> to set the token threshold at which earlier context is summarized. When the model compacts, you receive a <code>compaction</code> chunk while streaming (or a <code>compaction</code> field on the result when not streaming) containing an opaque <code>encrypted_content</code> summary. Resend that item in <code>messages</code> on the next turn in place of the summarized history. The compaction chunk shape is identical across providers, so the same code works whether <code>model</code> is an OpenAI or Anthropic model. See <a href="#compaction">Compaction</a>.</li>
+</ul>
+
+            <h4 class="anchored-heading" id="-code-testmode-code-boolean-optional-">
+              <a class="anchor" href="#-code-testmode-code-boolean-optional-"></a>
+              <code>testMode</code> (Boolean) (Optional)
+            </h4><p>A boolean indicating whether you want to use the test API. Defaults to <code>false</code>. This is useful for testing your code without using up API credits.</p>
+
+            <h4 class="anchored-heading" id="-code-media-code-string-file-">
+              <a class="anchor" href="#-code-media-code-string-file-"></a>
+              <code>media</code> (String | File)
+            </h4><p>A string containing the URL or Puter path of an image or video, or a <code>File</code> object containing the media you want to provide as context for the completion.</p>
+
+            <h4 class="anchored-heading" id="-code-mediaurlarray-code-array-">
+              <a class="anchor" href="#-code-mediaurlarray-code-array-"></a>
+              <code>mediaURLArray</code> (Array)
+            </h4><p>An array of strings containing the URLs of images or videos you want to provide as context for the completion.</p>
+
+            <h4 class="anchored-heading" id="-code-messages-code-array-">
+              <a class="anchor" href="#-code-messages-code-array-"></a>
+              <code>messages</code> (Array)
+            </h4><p>An array of objects containing the messages you want to complete. Each object must have a <code>role</code> and a <code>content</code> property. The <code>role</code> property must be one of <code>system</code>, <code>assistant</code>, <code>user</code>, or <code>tool</code>. The <code>content</code> property can be:</p>
+<ol>
+<li>A string containing the message text</li>
+<li>An array of content objects for multimodal messages</li>
+</ol>
+<p>When using an array of content objects, each object can have:</p>
+<ul>
+<li><code>type</code> (String) - The type of content:<ul>
+<li><code>&quot;text&quot;</code> - Text content</li>
+<li><code>&quot;file&quot;</code> - File content</li>
+</ul>
+</li>
+<li><code>text</code> (String) - The text content (required when type is &quot;text&quot;)</li>
+<li><code>puter_path</code> (String) - The path to the file in Puter&#39;s file system (required when type is &quot;file&quot;)</li>
+</ul>
+<p>An example of a valid <code>messages</code> parameter with text only:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">[
+  {
+    role: &quot;system&quot;,
+    content: &quot;Hello, how are you?&quot;,
+  },
+  {
+    role: &quot;user&quot;,
+    content: &quot;I am doing well, how are you?&quot;,
+  },
+];
+</code></pre></div>
+<p>An example with mixed content including files:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">[
+  {
+    role: &quot;user&quot;,
+    content: [
+      {
+        type: &quot;file&quot;,
+        puter_path: &quot;~/Desktop/document.pdf&quot;,
+      },
+      {
+        type: &quot;text&quot;,
+        text: &quot;Please summarize this document&quot;,
+      },
+    ],
+  },
+];
+</code></pre></div>
+<p>Providing a messages array is especially useful for building chatbots where you want to provide context to the completion.</p>
+
+            <h2 class="anchored-heading" id="return-value">
+              <a class="anchor" href="#return-value"></a>
+              Return value
+            </h2><p>Returns a <code>Promise</code> that resolves to either:</p>
+<ul>
+<li>A <a href="/Objects/chatresponse"><code>ChatResponse</code></a> object containing the chat response data, or</li>
+<li>An async iterable object of <a href="/Objects/chatresponsechunk"><code>ChatResponseChunk</code></a> (when <code>stream</code> is set to <code>true</code>) that you can use with a <code>for await...of</code> loop to receive the response in parts as they become available.</li>
+</ul>
+<p>In case of an error, the <code>Promise</code> will reject with an error message.</p>
+
+            <h2 class="anchored-heading" id="vendors">
+              <a class="anchor" href="#vendors"></a>
+              Vendors
+            </h2><p>We use different vendors for different models and try to use the best vendor available at the time of the request. Vendors currently include Alibaba Cloud, Anthropic, Azure OpenAI, DeepSeek, Google, Infron, Meta, MiniMax, Mistral, Moonshot AI, OpenAI, OpenRouter, Together AI, xAI, and Z.AI. Call <a href="/AI/listModelProviders"><code>puter.ai.listModelProviders()</code></a> for the current list, or pass <code>provider</code> in the options object to pin a request to one of them.</p>
+
+            <h2 class="anchored-heading" id="response-normalization">
+              <a class="anchor" href="#response-normalization"></a>
+              Response Normalization
+            </h2><p>Most vendors respond in the OpenAI chat format, where <code>message.content</code> is a string and tool calls appear as <code>message.tool_calls</code>. Anthropic models historically respond in Anthropic&#39;s native format instead, where <code>message.content</code> is an array of content blocks such as <code>[{ type: &quot;text&quot;, text: &quot;...&quot; }]</code>.</p>
+<p><strong>Going forward, all models released on or after September 1, 2026 return responses in the OpenAI format</strong>, no matter which vendor serves them — so the same response-handling code works across every new model. For models released before that date, the <code>normalize</code> default does not change: leave the option unset and <code>message.content</code> keeps its vendor-native shape.</p>
+
+            <h3 class="anchored-heading" id="reasoning-fields-on-existing-models">
+              <a class="anchor" href="#reasoning-fields-on-existing-models"></a>
+              Reasoning fields on existing models
+            </h3><p>Separately from the <code>normalize</code> default, four reasoning-related fields were made consistent across vendors. These apply to <strong>every</strong> model, including ones released before the cutoff, and are not affected by <code>normalize</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Before</th>
+<th>Now</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>message.reasoning_content</code></td>
+<td>Present on providers following the DeepSeek convention (DeepSeek, OpenRouter and others)</td>
+<td><strong>Renamed to <code>message.reasoning</code>.</strong> Read <code>reasoning</code> instead — <code>reasoning_content</code> is no longer present on non-streaming responses.</td>
+</tr>
+<tr>
+<td><code>message.reasoning</code> on OpenAI Responses models</td>
+<td>Always present as <code>null</code></td>
+<td>Absent when the model returned no reasoning summary; a string when it did. <code>if (msg.reasoning)</code> is unaffected; <code>&#39;reasoning&#39; in msg</code> changes.</td>
+</tr>
+<tr>
+<td><code>message.reasoning_details</code> on OpenAI Responses models</td>
+<td>Not present</td>
+<td>Present when the model returned reasoning items, carrying their <code>id</code> and <code>encrypted_content</code> for replay.</td>
+</tr>
+<tr>
+<td><code>finish_reason</code> on OpenAI Responses models</td>
+<td>Always <code>&quot;stop&quot;</code></td>
+<td><code>&quot;tool_calls&quot;</code> when the turn ended in tool calls, <code>&quot;stop&quot;</code> otherwise.</td>
+</tr>
+</tbody></table>
+<p>If your code reads <code>message.reasoning_content</code> on a non-streaming response, that is the one change that removes a field — switch to <code>message.reasoning</code>.</p>
+<p>You can control this per call with the <code>normalize</code> option:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">// Force the OpenAI format on any model, old or new:
+const response = await puter.ai.chat(&quot;Hello&quot;, { model: &quot;claude-sonnet-5&quot;, normalize: true });
+console.log(response.message.content);   // a string, or null on a tool-only turn
+console.log(response.finish_reason);     // &quot;stop&quot; | &quot;length&quot; | &quot;tool_calls&quot; | &quot;content_filter&quot; | vendor value
+
+// Force the vendor-native format, even on a post-cutoff model:
+const native = await puter.ai.chat(&quot;Hello&quot;, { model: &quot;claude-sonnet-5&quot;, normalize: false });
+</code></pre></div>
+<p>Or SDK-wide with <code>puter.ai.normalize</code>:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">// Unset (the default): the release-date rule applies — models released on or
+// after September 1, 2026 return the OpenAI format, older models stay native.
+puter.ai.normalize = true;      // force normalization: every chat() call
+                                // returns the OpenAI format, old or new model
+puter.ai.normalize = false;     // disable normalization: every chat() call
+                                // returns the vendor-native format
+puter.ai.normalize = undefined; // back to the release-date rule
+</code></pre></div>
+<p>A <code>normalize</code> option on an individual call always overrides <code>puter.ai.normalize</code> in either direction. Normalized responses carry <code>normalized: true</code>.</p>
+<p>On a normalized response, extended-thinking output (from reasoning models that expose it) is joined into <code>message.reasoning</code>, and Anthropic stop reasons are mapped to OpenAI values (<code>end_turn</code> → <code>stop</code>, <code>max_tokens</code> → <code>length</code>, <code>tool_use</code> → <code>tool_calls</code>, <code>refusal</code> → <code>content_filter</code>). A vendor stop reason with no OpenAI equivalent — Anthropic&#39;s <code>pause_turn</code>, for instance — passes through unchanged, so treat <code>finish_reason</code> as an open set. See <a href="/Objects/chatresponse"><code>finish_reason</code></a> for the full mapping.</p>
+<p>Normalization does not cost you the ability to continue a reasoning turn. The opaque parts a provider needs back — Anthropic thinking-block signatures, OpenAI reasoning item ids and encrypted content — are preserved verbatim on <code>message.reasoning_details</code>. Resend that array as-is alongside the message when you continue an extended-thinking tool-use loop. The artifacts are vendor-specific and only meaningful to the model that produced them, so replay them to the same model — don&#39;t carry them across vendors.</p>
+<p>One caveat. The release-date rule applies to the model that actually serves the request — if a request is rerouted to a fallback provider, the served model&#39;s release date decides.</p>
+<p>One thing to know about the release-date rule: a model&#39;s release date comes from the catalog of whichever provider serves it, and some providers report it from their own live listing. Models served through OpenRouter carry the date OpenRouter itself assigns, so a model newly listed there on or after September 1, 2026 is normalized by default without Puter shipping any change. Pin <code>normalize: false</code> if your code depends on a provider&#39;s native shape.</p>
+<p>Streaming is unaffected by normalization: streamed <a href="/Objects/chatresponsechunk"><code>ChatResponseChunk</code></a> objects already share one format across all vendors, and the chunk types a model emits do not depend on the <code>normalize</code> option. Reasoning models stream their thinking as <code>reasoning</code> chunks on every provider, whether or not normalization applies.</p>
+
+            <h2 class="anchored-heading" id="function-calling">
+              <a class="anchor" href="#function-calling"></a>
+              Function Calling
+            </h2><p>Function calling (also known as tool calling) allows AI models to request data or perform actions by calling functions you define. This enables the AI to access real-time information, interact with external systems, and perform tasks beyond its training data.</p>
+<ol>
+<li><strong>Define tools</strong> - Create function specifications in the <code>tools</code> array passed to <code>puter.ai.chat()</code></li>
+<li><strong>AI requests a tool call</strong> - If the AI determines it needs to call a function, it responds with a <code>tool_calls</code> array instead of a text message</li>
+<li><strong>Execute the function</strong> - Your code matches the requested function and runs it with the provided arguments</li>
+<li><strong>Send the result back</strong> - Pass the function result back to the AI with <code>role: &quot;tool&quot;</code></li>
+<li><strong>AI responds</strong> - The AI uses the tool result to generate its final response</li>
+</ol>
+<p>Tools are defined in the <code>tools</code> parameter as an array of function specifications:</p>
+<ul>
+<li><code>type</code> (String) - Must be <code>&quot;function&quot;</code></li>
+<li><code>function.name</code> (String) - The function name (e.g., <code>&quot;get_weather&quot;</code>)</li>
+<li><code>function.description</code> (String) - Description of what the function does and when to use it</li>
+<li><code>function.parameters</code> (Object) - <a href="https://json-schema.org/">JSON Schema</a> object defining the function&#39;s input arguments</li>
+<li><code>function.strict</code> (Boolean) (Optional) - Whether to enforce strict parameter validation</li>
+</ul>
+<p>When the AI wants to call a function, the response includes <code>message.tool_calls</code>. Each tool call contains:</p>
+<ul>
+<li><code>id</code> (String) - Unique identifier for this tool call (used when sending results back)</li>
+<li><code>function.name</code> (String) - The name of the function to call</li>
+<li><code>function.arguments</code> (String) - JSON string containing the function arguments</li>
+</ul>
+<p>After executing the function, send the result back by including a message with:</p>
+<ul>
+<li><code>role</code> (String) - Must be <code>&quot;tool&quot;</code></li>
+<li><code>tool_call_id</code> (String) - The <code>id</code> from the tool call</li>
+<li><code>content</code> (String) - The function result as a string</li>
+</ul>
+<p>See the <a href="/playground/ai-function-calling/">Function Calling example</a> for a complete working implementation.</p>
+
+            <h3 class="anchored-heading" id="web-search">
+              <a class="anchor" href="#web-search"></a>
+              Web Search
+            </h3><p>Specific to OpenAI models, you can use the built-in web search tool, allowing the AI to access up-to-date information from the internet.</p>
+<p>Pass in the <code>tools</code> parameter with the type of <code>web_search</code>.</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">{
+  model: &apos;openai/gpt-5.6-luna&apos;,
+  tools: [{type: &quot;web_search&quot;}]
+}
+</code></pre></div>
+<p>The code implementation is available in our <a href="/playground/ai-web-search/">web search example</a>.</p>
+<p>List of OpenAI models that support the web search can be found in their <a href="https://platform.openai.com/docs/guides/tools-web-search#api-compatibility">API compatibility documentation</a>.</p>
+
+            <h2 class="anchored-heading" id="prompt-caching">
+              <a class="anchor" href="#prompt-caching"></a>
+              Prompt Caching
+            </h2><p>Specific to Anthropic models, you can use the cache control feature, allowing you to optimize costs for repeated prompts.</p>
+<p>Pass in the <code>cache_control</code> parameter inside the object in the <code>messages</code> array.</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">[
+    {
+        role: &apos;system&apos;,
+        content: &apos;a really long system prompt&apos;,
+        cache_control: { type: &quot;ephemeral&quot; }
+    },
+    {
+        role: &apos;user&apos;,
+        content: &apos;&lt;your message&gt;&apos;
+    },
+]
+</code></pre></div>
+<p>You can find the implementation in our <a href="/playground/ai-claude-cache-control/">prompt caching example</a>. Find more details about cache control in <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Anthropic documentation</a>.</p>
+
+            <h2 class="anchored-heading" id="compaction">
+              <a class="anchor" href="#compaction"></a>
+              Compaction
+            </h2><p>For long, multi-turn conversations that you keep on the client, enable
+<code>compaction</code> so the model can summarize earlier context before it overflows the
+context window. When it fires, the model summarizes the older turns into a single
+<strong>compaction artifact</strong> and answers from that summary instead of the full
+history — so the request stays small.</p>
+<p>You get the artifact back as a <code>compaction</code> item (a stream chunk when streaming,
+or <code>result.compaction</code> when not). On the next turn you carry it forward <strong>as the
+first block of the assistant turn that produced it</strong>, together with that turn&#39;s
+reply text — the artifact stands in for the older turns it summarized, and the
+recent exchange is preserved. The item shape is the same across providers, so the
+same code works for OpenAI and Anthropic models.</p>
+
+            <h4 class="anchored-heading" id="enabling-it">
+              <a class="anchor" href="#enabling-it"></a>
+              Enabling it
+            </h4><p>Pass <code>compaction</code> in the options object:</p>
+<ul>
+<li><code>compaction: true</code> — enable with provider defaults.</li>
+<li><code>compaction: { trigger_tokens: 60000 }</code> — set the token threshold at which the
+model compacts.</li>
+</ul>
+<p>The artifact is <code>{ type: &#39;compaction&#39;, id, encrypted_content }</code>. <code>encrypted_content</code>
+is an opaque payload; treat it as a black box and just carry it forward.</p>
+
+            <h4 class="anchored-heading" id="streaming">
+              <a class="anchor" href="#streaming"></a>
+              Streaming
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">const resp = await puter.ai.chat(messages, {
+    model: &apos;gpt-5.5&apos;,                       // or &apos;claude-opus-4-8&apos; — same code
+    stream: true,
+    compaction: { trigger_tokens: 60000 },
+});
+
+let text = &apos;&apos;;
+let compaction = null;
+for await ( const part of resp ) {
+    if ( part.type === &apos;text&apos; )             text += part.text;
+    else if ( part.type === &apos;compaction&apos; )  compaction = part;                 // { type, id, encrypted_content }
+    else if ( part.type === &apos;error&apos; )       console.error(&apos;stream error:&apos;, part.message);
+}
+
+// Next turn: rebuild the assistant turn from the compaction artifact + the reply
+// text it came with (artifact first), then add the new user message. The artifact
+// replaces the older compacted turns; the recent exchange is kept. Keep
+// compaction enabled so it can compact again later.
+if ( compaction ) {
+    const next = await puter.ai.chat(
+        [
+            { role: &apos;system&apos;, content: &apos;You are a helpful assistant.&apos; },
+            {
+                role: &apos;assistant&apos;,
+                content: [ compaction, { type: &apos;text&apos;, text } ],
+            },
+            { role: &apos;user&apos;, content: &apos;now compare the two approaches&apos; },
+        ],
+        { model: &apos;gpt-5.5&apos;, stream: true, compaction: true }
+    );
+    for await ( const part of next ) {
+        if ( part.type === &apos;text&apos; ) document.write(part.text);
+    }
+}
+</code></pre></div>
+
+            <h4 class="anchored-heading" id="non-streaming">
+              <a class="anchor" href="#non-streaming"></a>
+              Non-streaming
+            </h4><div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">const result = await puter.ai.chat(messages, {
+    model: &apos;gpt-5.5&apos;,
+    compaction: { trigger_tokens: 60000 },
+});
+console.log(result.message.content);
+
+if ( result.compaction ) {
+    // result.compaction is { type: &apos;compaction&apos;, id, encrypted_content } — the
+    // same item you get from the stream. Rebuild the assistant turn from it plus
+    // the reply text (artifact first), then add the new user message:
+    const next = await puter.ai.chat(
+        [
+            { role: &apos;system&apos;, content: &apos;You are a helpful assistant.&apos; },
+            {
+                role: &apos;assistant&apos;,
+                content: [
+                    result.compaction,
+                    { type: &apos;text&apos;, text: result.message.content },
+                ],
+            },
+            { role: &apos;user&apos;, content: &apos;now compare the two approaches&apos; },
+        ],
+        { model: &apos;gpt-5.5&apos;, compaction: true }
+    );
+    console.log(next.message.content);
+}
+</code></pre></div>
+
+            <h4 class="anchored-heading" id="notes">
+              <a class="anchor" href="#notes"></a>
+              Notes
+            </h4><ul>
+<li><strong>Keep <code>compaction</code> enabled on every turn</strong> of the conversation so it can
+compact again as the conversation keeps growing.</li>
+<li><strong>Carry the artifact as the first block of its assistant turn</strong>, alongside that
+turn&#39;s reply text, then continue with new turns. The artifact replaces the older
+compacted turns; don&#39;t drop the recent exchange.</li>
+<li><strong>It only fires once the context is large enough.</strong> Anthropic models require a
+minimum threshold of <strong>50,000 tokens</strong>, and the conversation must actually
+exceed your <code>trigger_tokens</code>. OpenAI models don&#39;t enforce that floor, so they
+can compact smaller conversations. If nothing compacts, your input was below
+the threshold.</li>
+<li><strong>Handle the <code>error</code> chunk</strong> when streaming — provider errors (e.g. a
+<code>trigger_tokens</code> below a provider&#39;s minimum) arrive as an <code>error</code> chunk, not a
+thrown exception.</li>
+</ul>
+
+            <h2 class="anchored-heading" id="image-generation-gemini-image-models-">
+              <a class="anchor" href="#image-generation-gemini-image-models-"></a>
+              Image Generation (Gemini Image Models)
+            </h2><p>Certain Gemini models can generate and edit images as part of a chat conversation. These models accept text and image inputs, and return text and images in the response.</p>
+
+            <h4 class="anchored-heading" id="supported-models">
+              <a class="anchor" href="#supported-models"></a>
+              Supported Models
+            </h4><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Quality Levels</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>gemini-2.5-flash-image</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>gemini-3-pro-image-preview</code></td>
+<td><code>1K</code>, <code>2K</code>, <code>4K</code></td>
+</tr>
+<tr>
+<td><code>gemini-3.1-flash-image-preview</code></td>
+<td><code>512</code>, <code>1K</code>, <code>2K</code>, <code>4K</code></td>
+</tr>
+</tbody></table>
+
+            <h4 class="anchored-heading" id="options">
+              <a class="anchor" href="#options"></a>
+              Options
+            </h4><p>Pass <code>image_config</code> in the options object to control image output:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>image_config.aspect_ratio</code></td>
+<td><code>String</code></td>
+<td>Aspect ratio (e.g. <code>&quot;16:9&quot;</code>, <code>&quot;1:1&quot;</code>, <code>&quot;9:16&quot;</code>)</td>
+</tr>
+<tr>
+<td><code>image_config.image_size</code></td>
+<td><code>String</code></td>
+<td>Output quality/resolution. Must be one of the model&#39;s supported quality levels</td>
+</tr>
+</tbody></table>
+<p>For available aspect ratios and image sizes per model, see the <a href="https://ai.google.dev/gemini-api/docs/image-generation#aspect_ratios_and_image_size">Gemini Image Generation documentation</a>.</p>
+
+            <h4 class="anchored-heading" id="response-format">
+              <a class="anchor" href="#response-format"></a>
+              Response Format
+            </h4><p>The response includes an <code>images</code> array on the message when the model generates images:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">{
+    message: {
+        role: &quot;assistant&quot;,
+        content: &quot;Here is your image.&quot;,
+        images: [
+            {
+                type: &quot;image_url&quot;,
+                image_url: { url: &quot;data:image/png;base64,...&quot; }
+            }
+        ]
+    }
+}
+</code></pre></div>
+
+            <h4 class="anchored-heading" id="multi-turn-image-editing">
+              <a class="anchor" href="#multi-turn-image-editing"></a>
+              Multi-Turn Image Editing
+            </h4><p>You can send generated images back in the conversation to iteratively edit them. Include the image in an <code>assistant</code> message using the <code>image_url</code> content type, and pass the <code>thoughtSignature</code> from the previous response to maintain editing context:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">const previousImage = result.message.images[0].image_url.url;
+const thoughtSignature = result.message.images[0].thoughtSignature;
+
+const result2 = await puter.ai.chat([
+    { role: &quot;user&quot;, content: &quot;Create an infographic about photosynthesis&quot; },
+    { role: &quot;assistant&quot;, content: [
+        { type: &quot;text&quot;, text: &quot;Here is the infographic.&quot; },
+        { type: &quot;image_url&quot;, image_url: { url: previousImage }, thoughtSignature },
+    ]},
+    { role: &quot;user&quot;, content: &quot;Translate all text to Spanish&quot; },
+], {
+    model: &quot;gemini-3.1-flash-image-preview&quot;,
+    image_config: { aspect_ratio: &quot;16:9&quot;, image_size: &quot;2K&quot; },
+});
+
+const editedImage = result2.message.images[0].image_url.url;
+</code></pre></div>
+<p>The code implementation is available in our <a href="/playground/ai-image-chat/">image generation example</a> and <a href="/playground/ai-image-edit/">multi-turn image editing example</a>.</p>
+
+            <h4 class="anchored-heading" id="streaming">
+              <a class="anchor" href="#streaming"></a>
+              Streaming
+            </h4><p>Image generation works with <code>stream: true</code>. Image chunks arrive as <code>image</code> events:</p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><div class="code-button copy-code-button"><span class="copy"></span></div></div><pre><code class="language-js">const resp = await puter.ai.chat(&quot;Draw a cat&quot;, {
+    model: &quot;gemini-3.1-flash-image-preview&quot;,
+    stream: true,
+});
+
+for await (const part of resp) {
+    if (part.text) console.log(part.text);
+    if (part.image) {
+        // part.image is { type: &quot;image_url&quot;, image_url: { url: &quot;data:...&quot; } }
+        const img = document.createElement(&quot;img&quot;);
+        img.src = part.image.image_url.url;
+        document.body.appendChild(img);
+    }
+}
+</code></pre></div>
+
+            <h2 class="anchored-heading" id="examples">
+              <a class="anchor" href="#examples"></a>
+              Examples
+            </h2><p><strong class="example-title">Ask GPT-5.6 Luna a question</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-chatgpt/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        puter.ai.chat(`What is life?`, { model: &quot;gpt-5.6-luna&quot; }).then(puter.print);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Image Analysis</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-gpt-vision/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;img src=&quot;https://assets.puter.site/doge.jpeg&quot; style=&quot;display:block;&quot;&gt;
+    &lt;script&gt;
+        puter.ai
+            .chat(`What do you see?`, `https://assets.puter.site/doge.jpeg`, {
+                model: &quot;gpt-5.6-luna&quot;,
+            })
+            .then(puter.print);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Video Analysis</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-video-analysis/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        puter.ai
+            .chat(`What do you see?`, `https://assets.puter.site/puppy.mp4`, {
+                model: &quot;reka/reka-edge&quot;,
+            })
+            .then(puter.print);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Stream the response</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-chat-stream/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+    (async () =&gt; {
+        const resp = await puter.ai.chat(&apos;Tell me in detail what Rick and Morty is all about.&apos;, {model: &apos;gemini-3.1-flash-lite&apos;, stream: true });
+        for await ( const part of resp ) document.write(part?.text.replaceAll(&apos;\n&apos;, &apos;&lt;br&gt;&apos;));
+    })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Function Calling</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-function-calling/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        // Mock weather function
+        function getWeather(location) {
+            return location + &apos;: 22°C, Sunny&apos;;
+        }
+
+        // Define the tool
+        const tools = [{
+            type: &quot;function&quot;,
+            function: {
+                name: &quot;get_weather&quot;,
+                description: &quot;Get current weather for a location&quot;,
+                parameters: {
+                    type: &quot;object&quot;,
+                    properties: {
+                        location: { type: &quot;string&quot;, description: &quot;City name&quot; }
+                    },
+                    required: [&quot;location&quot;]
+                }
+            }
+        }];
+
+        (async () =&gt; {
+            const question = &quot;What&apos;s the weather in Paris?&quot;;
+            puter.print(&quot;Question: &quot; + question + &quot;&lt;br/&gt;&quot;);
+            puter.print(&quot;(Loading...)&lt;br/&gt;&quot;);
+
+            // Call AI with tools
+            const response = await puter.ai.chat(question, { tools });
+
+            // Check if AI wants to call a function
+            if (response.message.tool_calls?.length &gt; 0) {
+                const toolCall = response.message.tool_calls[0];
+                const args = JSON.parse(toolCall.function.arguments);
+                const weatherData = getWeather(args.location);
+
+                // Send result back to AI
+                const finalResponse = await puter.ai.chat([
+                    { role: &quot;user&quot;, content: question },
+                    response.message,
+                    { role: &quot;tool&quot;, tool_call_id: toolCall.id, content: weatherData }
+                ]);
+
+                puter.print(&quot;Answer: &quot; + finalResponse);
+            } else {
+                // If the AI responds directly without calling a tool, print its message
+                puter.print(&quot;Answer: &quot; + response);
+            }
+        })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Streaming Function Calling</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-streaming-function-calling/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        // Define the tool
+        const tools = [{
+            type: &quot;function&quot;,
+            function: {
+                name: &quot;get_weather&quot;,
+                description: &quot;Get current weather for a location&quot;,
+                parameters: {
+                    type: &quot;object&quot;,
+                    properties: {
+                        location: { type: &quot;string&quot;, description: &quot;City name&quot; }
+                    },
+                    required: [&quot;location&quot;]
+                }
+            }
+        }];
+
+        // Mock weather function
+        function getWeather(location) {
+            return `The weather in ${location} is 22°C and Sunny.`;
+        }
+
+        (async () =&gt; {
+            const question = &quot;What&apos;s the weather in Paris?&quot;;
+            puter.print(`Question: ${question}&lt;br/&gt;`);
+
+            // 1. Call AI with stream: true AND tools
+            const response = await puter.ai.chat(question, { 
+                tools,
+                stream: true 
+            });
+
+            // 2. Iterate through the stream
+            for await (const part of response) {
+                
+                // Standard Text Stream
+                if (part.type === &apos;text&apos;) {
+                    puter.print(part.text);
+                }
+                
+                // Tool Call Detected
+                else if (part.type === &apos;tool_use&apos;) {
+                    const toolCall = part;
+                    const funcName = toolCall.name;
+                    const args = toolCall.input; // Already parsed: { location: &quot;Paris&quot; }
+
+                    puter.print(`&lt;br/&gt;[System] Calling tool: ${funcName} with args: ${JSON.stringify(args)}&lt;br/&gt;`);
+
+                    // Execute the local function
+                    let result;
+                    if (funcName === &apos;get_weather&apos;) {
+                        result = getWeather(args.location);
+                    }
+
+                    // Send the tool result back to the AI to get the final answer
+                    const finalResponse = await puter.ai.chat([
+                        { role: &quot;user&quot;, content: question },
+                        { role: &quot;assistant&quot;, tool_calls: [{
+                            id: toolCall.id,
+                            type: &quot;function&quot;,
+                            function: { name: funcName, arguments: JSON.stringify(args) }
+                        }]},
+                        { role: &quot;tool&quot;, tool_call_id: toolCall.id, content: result }
+                    ], { stream: true });
+
+                    for await (const finalPart of finalResponse) {
+                        if (finalPart.text) puter.print(finalPart.text);
+                    }
+                }
+            }
+        })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Web Search</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-web-search/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        puter.print(`Loading...`);
+        puter.ai
+            .chat(&quot;Summarize what the User-Pays Model is: https://docs.puter.com/user-pays-model/&quot;, {
+                model: &quot;openai/gpt-5.6-luna&quot;,
+                tools: [{ type: &quot;web_search&quot; }],
+            })
+            .then(puter.print);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Prompt caching with Claude</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-claude-cache-control/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        const systemPrompt = `You are an expert customer support agent for Acme Corporation, a global technology company specializing in cloud computing, AI solutions, and enterprise software.
+COMPANY OVERVIEW:
+Acme Corporation was founded in 2010 and is headquartered in San Francisco, California. We serve over 50,000 enterprise customers across 120 countries. Our products include AcmeCloud (infrastructure-as-a-service), AcmeBrain (AI/ML platform), AcmeFlow (workflow automation), and AcmeShield (cybersecurity suite). Our mission is to empower businesses of all sizes with reliable, scalable, and secure technology solutions.
+
+PRODUCT POLICIES:
+Policy 1 - Subscription Tiers: We offer four subscription tiers: Starter ($29/month per user), Professional ($79/month per user), Enterprise ($149/month per user), and Ultimate ($299/month per user). Each tier includes different levels of API access, storage, and support. Starter includes 10GB storage and email support. Professional includes 100GB storage, priority email, and chat support. Enterprise includes 1TB storage, 24/7 phone support, and a dedicated account manager. Ultimate includes unlimited storage, 24/7 priority support, a dedicated account manager, and custom SLA agreements.
+Policy 2 - Refund Policy: All subscriptions come with a 30-day money-back guarantee. After 30 days, refunds are prorated based on remaining time. Annual subscriptions receive a 20% discount but refunds after 30 days are calculated at the monthly rate. Enterprise and Ultimate customers may negotiate custom refund terms with their account manager. Refund requests must be submitted through the billing portal or by contacting support.
+Policy 3 - Data Retention: Customer data is retained for the duration of the subscription plus 90 days after cancellation. After 90 days, all data is permanently deleted unless the customer requests an extension. Backups are maintained for 30 days on Starter and Professional tiers, 90 days on Enterprise, and 365 days on Ultimate. Customers can export their data at any time through the dashboard or API.
+Policy 4 - Service Level Agreements: Starter tier: 99.5% uptime guarantee. Professional tier: 99.9% uptime guarantee. Enterprise tier: 99.95% uptime guarantee. Ultimate tier: 99.99% uptime guarantee with custom SLA options. SLA credits are calculated as 10x the downtime duration applied to the next billing cycle. Scheduled maintenance windows are excluded from SLA calculations and are announced 72 hours in advance.
+Policy 5 - Security and Compliance: All tiers include SOC 2 Type II compliance, GDPR compliance, and TLS 1.3 encryption. Enterprise and Ultimate tiers additionally include HIPAA compliance, FedRAMP authorization (in progress), and custom data residency options. Two-factor authentication is available on all tiers and mandatory on Enterprise and Ultimate. SSO integration via SAML 2.0 and OIDC is available on Professional tier and above.
+Policy 6 - API Rate Limits: Starter: 100 requests per minute. Professional: 1,000 requests per minute. Enterprise: 10,000 requests per minute. Ultimate: 100,000 requests per minute with burst capacity up to 500,000. Rate limit increases can be requested by Enterprise and Ultimate customers through their account manager. API usage is monitored and customers approaching their limits are notified automatically.
+Policy 7 - Support Escalation: Level 1 (General Support): Available to all tiers, response within 24 hours for Starter, 4 hours for Professional, 1 hour for Enterprise, and 15 minutes for Ultimate. Level 2 (Technical Specialist): Available to Professional and above, response within 8 hours for Professional, 2 hours for Enterprise, and 30 minutes for Ultimate. Level 3 (Engineering Team): Available to Enterprise and above, response within 4 hours for Enterprise and 1 hour for Ultimate.
+Policy 8 - Account Management: Each Enterprise and Ultimate customer is assigned a dedicated account manager who conducts quarterly business reviews, provides usage analytics and optimization recommendations, assists with onboarding and training for new team members, and coordinates with product teams on feature requests. Account managers are available during business hours (9 AM - 6 PM in the customer&apos;s local timezone) and can be reached via email, phone, or the customer portal. For urgent issues outside business hours, Enterprise and Ultimate customers can use the 24/7 emergency hotline.
+`;
+
+        async function askQuestion(question) {
+            const response = await puter.ai.chat(
+                [
+                    {
+                        role: &quot;system&quot;,
+                        content: systemPrompt,
+                        cache_control: { type: &quot;ephemeral&quot; },
+                    },
+                    { role: &quot;user&quot;, content: question },
+                ],
+                { model: &quot;claude-sonnet-4-6&quot;, normalize: true }
+            );
+            return response.message.content;
+        }
+
+        (async () =&gt; {
+            puter.print(&quot;&lt;b&gt;Call 1 (cache write: first time processing system prompt)&lt;/b&gt;&lt;br&gt;&quot;);
+            const r1 = await askQuestion(&quot;How do I get a refund?&quot;);
+            puter.print(r1 + &quot;&lt;br&gt;&lt;br&gt;&quot;);
+
+            puter.print(&quot;&lt;b&gt;Call 2 (cache hit: system prompt reused from cache)&lt;/b&gt;&lt;br&gt;&quot;);
+            const r2 = await askQuestion(&quot;What are your API rate limits?&quot;);
+            puter.print(r2 + &quot;&lt;br&gt;&lt;br&gt;&quot;);
+
+            puter.print(&quot;&lt;b&gt;Call 3 (cache hit)&lt;/b&gt;&lt;br&gt;&quot;);
+            const r3 = await askQuestion(&quot;What is your data retention policy?&quot;);
+            puter.print(r3 + &quot;&lt;br&gt;&lt;br&gt;&quot;);
+        })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Image Generation</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-image-chat/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+    (async () =&gt; {
+        puter.print(&quot;Generating image...&lt;br&gt;&quot;);
+        const result = await puter.ai.chat(&quot;Draw a cute cat wearing a top hat&quot;, {
+            model: &quot;gemini-3.1-flash-image-preview&quot;,
+        });
+        puter.print(result.message.content + &quot;&lt;br&gt;&quot;);
+        if (result.message.images?.length &gt; 0) {
+            const img = document.createElement(&quot;img&quot;);
+            img.src = result.message.images[0].image_url.url;
+            img.style.maxWidth = &quot;512px&quot;;
+            document.body.appendChild(img);
+        }
+    })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Multi-Turn Image Editing</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-image-edit/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+    (async () =&gt; {
+        const model = &quot;gemini-3.1-flash-image-preview&quot;;
+
+        // Step 1: Generate initial image
+        puter.print(&quot;Step 1: Generating infographic...&lt;br&gt;&quot;);
+        const r1 = await puter.ai.chat(&quot;Create a simple infographic about photosynthesis&quot;, {
+            model,
+            image_config: { image_size: &quot;1K&quot; },
+        });
+        const img1 = r1.message.images?.[0]?.image_url?.url;
+        const thoughtSignature1 = r1.message.images?.[0]?.thoughtSignature;
+        if (img1) {
+            const el = document.createElement(&quot;img&quot;);
+            el.src = img1;
+            el.style.maxWidth = &quot;512px&quot;;
+            document.body.appendChild(el);
+        }
+
+        // Step 2: Edit the image in a follow-up turn
+        puter.print(&quot;&lt;br&gt;Step 2: Translating to Spanish...&lt;br&gt;&quot;);
+        const r2 = await puter.ai.chat([
+            { role: &quot;user&quot;, content: &quot;Create a simple infographic about photosynthesis&quot; },
+            { role: &quot;assistant&quot;, content: [
+                { type: &quot;text&quot;, text: r1.message.content },
+                { type: &quot;image_url&quot;, image_url: { url: img1 }, thoughtSignature: thoughtSignature1 },
+            ]},
+            { role: &quot;user&quot;, content: &quot;Translate all text to Spanish. Keep everything else the same.&quot; },
+        ], {
+            model,
+            image_config: { aspect_ratio: &quot;16:9&quot;, image_size: &quot;2K&quot; },
+        });
+        const img2 = r2.message.images?.[0]?.image_url?.url;
+        if (img2) {
+            const el = document.createElement(&quot;img&quot;);
+            el.src = img2;
+            el.style.maxWidth = &quot;512px&quot;;
+            document.body.appendChild(el);
+        }
+        puter.print(&quot;&lt;br&gt;Done!&quot;);
+    })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<p><strong class="example-title">Working with Files</strong></p>
+<div class="code-wrapper" style="position: relative;"><div class="code-buttons"><a href="/playground/ai-resume-analyzer/?autorun=1" class="code-button run-code-button" target="_blank"><span class="run"></span></a><div class="code-button copy-code-button"><span class="copy"></span></div><div class="code-button download-code-button"><span class="download"></span></div></div><pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Resume Analyzer&lt;/title&gt;
+    &lt;script src=&quot;https://js.puter.com/v2/&quot;&gt;&lt;/script&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px;}
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 5px;}
+        .upload-area {border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; border-radius: 5px; cursor: pointer;  transition: border-color 0.3s;}
+        .upload-area:hover {border-color: #007bff;}
+        .upload-area.dragover { border-color: #007bff; background-color: #f8f9fa;}
+        input[type=&quot;file&quot;] { display: none;}
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;}
+        button:disabled { background: #ccc; }
+        #response { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; display: none; }
+        .file-name { margin-top: 10px; font-style: italic; color: #666; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;h1&gt;Resume Analyzer&lt;/h1&gt;
+        &lt;p&gt;Upload your resume (PDF, DOC, or TXT) and get a quick analysis of your key strengths in two sentences.&lt;/p&gt;
+
+        &lt;div class=&quot;upload-area&quot; onclick=&quot;document.getElementById(&apos;fileInput&apos;).click()&quot;&gt;
+            &lt;p&gt;Click here to upload your resume or drag and drop&lt;/p&gt;
+            &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; accept=&quot;.pdf,.doc,.docx,.txt&quot; /&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;file-name&quot; id=&quot;fileName&quot; style=&quot;display: none;&quot;&gt;&lt;/div&gt;
+
+        &lt;button id=&quot;analyzeBtn&quot; disabled&gt;Analyze My Resume&lt;/button&gt;
+
+        &lt;div id=&quot;response&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        let uploadedFile = null;
+
+        // File upload handling
+        const fileInput = document.getElementById(&apos;fileInput&apos;);
+        const uploadArea = document.querySelector(&apos;.upload-area&apos;);
+        const fileName = document.getElementById(&apos;fileName&apos;);
+        const analyzeBtn = document.getElementById(&apos;analyzeBtn&apos;);
+        const response = document.getElementById(&apos;response&apos;);
+
+        fileInput.addEventListener(&apos;change&apos;, handleFileSelect);
+        uploadArea.addEventListener(&apos;dragover&apos;, handleDragOver);
+        uploadArea.addEventListener(&apos;drop&apos;, handleDrop);
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadedFile = file;
+                fileName.textContent = `Selected: ${file.name}`;
+                fileName.style.display = &apos;block&apos;;
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add(&apos;dragover&apos;);
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove(&apos;dragover&apos;);
+
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                uploadedFile = file;
+                fileName.textContent = `Selected: ${file.name}`;
+                fileName.style.display = &apos;block&apos;;
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // Remove dragover class when drag leaves
+        uploadArea.addEventListener(&apos;dragleave&apos;, () =&gt; {
+            uploadArea.classList.remove(&apos;dragover&apos;);
+        });
+
+        // Analyze resume
+        analyzeBtn.addEventListener(&apos;click&apos;, async () =&gt; {
+            if (!uploadedFile) return;
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = &apos;Analyzing...&apos;;
+            response.style.display = &apos;none&apos;;
+
+            try {
+                // First, upload the file to Puter
+                const puterFile = await puter.fs.write(`temp_resume_${Date.now()}.${uploadedFile.name.split(&apos;.&apos;).pop()}`,
+                    uploadedFile
+                );
+
+                const uploadedPath = puterFile.path;
+
+                // Analyze the resume with AI
+                const completion = await puter.ai.chat([
+                    {
+                        role: &apos;user&apos;,
+                        content: [
+                            {
+                                type: &apos;file&apos;,
+                                puter_path: uploadedPath
+                            },
+                            {
+                                type: &apos;text&apos;,
+                                text: &apos;Please analyze this resume and suggest how to improve it. Only a few sentences are needed.&apos;
+                            }
+                        ]
+                    }
+                ], { model: &apos;claude-sonnet-4-6&apos;, stream: true });
+
+                let text = &apos;&apos;;
+
+                // Display the response
+                for await ( const part of completion ) {
+                    text += part?.text;
+                    response.innerHTML = text;
+                }
+
+                response.style.display = &apos;block&apos;;
+
+                // Clean up the temporary file
+                await puter.fs.delete(uploadedPath);
+
+            } catch (error) {
+                response.innerHTML = `&lt;strong&gt;Error:&lt;/strong&gt;&lt;br&gt;${error.message}`;
+                response.style.display = &apos;block&apos;;
+            }
+
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = &apos;Analyze My Resume&apos;;
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>
+<div class="next-prev-buttons"><a href="/./AI/listModels/" class="next-prev-button next-button">
+                                <div class="next-btn-text-wrapper" style="flex-grow:1;">
+                                    <p style="color: #868686; font-weight: 600;">NEXT</p>
+                                    <p class="btn-page-title"><code>listModels()</code></p>
+                                </div>
+                                <svg style="margin-left: 15px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right-icon lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+                            </a><a href="/./AI/" class="next-prev-button prev-button">
+                                <svg style="margin-right: 15px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left-icon lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+                                <div>
+                                    <p style="color: #868686; font-weight: 600;">PREVIOUS</p>
+                                    <p class="btn-page-title">AI</p>
+                                </div>
+                            </a></div><footer><div><a href="https://puter.com" target="_blank">Puter.com</a><span class="bull">&bull;</span><a href="mailto:hey@puter.com" target="_blank">hey@puter.com</a><span class="bull">&bull;</span><a href="https://twitter.com/heyputer" target="_blank">X (Twitter)</a><span class="bull">&bull;</span><a href="https://github.com/HeyPuter" target="_blank">GitHub</a><span class="bull">&bull;</span><a href="/llms.txt" class="skip-insta-load" target="_blank">llms.txt</a></div><p class="copyright-notice">&copy; 2026 Puter Technologies Inc.</p></footer></div><div class="col-xl-2 col-lg-2 hidden-xs hidden-sm hidden-md" id="toc-wrapper"><div class="table-of-contents"><div class="toc-title">On this page</div><nav class="toc-nav"><a href="#" class="toc-link toc-level-1" data-level="1">puter.ai.chat()</a><a href="#syntax" class="toc-link toc-level-1" data-level="1">Syntax</a><a href="#parameters" class="toc-link toc-level-1" data-level="1">Parameters</a><a href="#return-value" class="toc-link toc-level-1" data-level="1">Return value</a><a href="#vendors" class="toc-link toc-level-1" data-level="1">Vendors</a><a href="#response-normalization" class="toc-link toc-level-1" data-level="1">Response Normalization</a><a href="#reasoning-fields-on-existing-models" class="toc-link toc-level-2" data-level="2">Reasoning fields on existing models</a><a href="#function-calling" class="toc-link toc-level-1" data-level="1">Function Calling</a><a href="#web-search" class="toc-link toc-level-2" data-level="2">Web Search</a><a href="#prompt-caching" class="toc-link toc-level-1" data-level="1">Prompt Caching</a><a href="#compaction" class="toc-link toc-level-1" data-level="1">Compaction</a><a href="#image-generation-gemini-image-models-" class="toc-link toc-level-1" data-level="1">Image Generation (Gemini Image Models)</a><a href="#examples" class="toc-link toc-level-1" data-level="1">Examples</a></nav></div></div></div></div>
+        <div class="search-overlay">
+            <div class="search-modal">
+                <div class="search-bar">
+                    <div class="search-bar-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+                    </div>
+                    <input type="text" class="search-input" placeholder="Search documentation..." />
+                </div>
+
+                <div class="search-results">
+                </div>
+            </div>
+        </div>
+    </body>

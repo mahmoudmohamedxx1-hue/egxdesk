@@ -1,0 +1,76 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+local-*
+.claude
+.z-ai-config
+*.log
+dev.log
+dev.out.log
+test
+prompt
+
+server.log
+# Skills directory
+/skills/
+# runtime data & environment (T29 hygiene — keep the repo code-only)
+/db/*
+# T50: the SQLite file IS the deployment dataset — tracked so Vercel-style
+# serverless builds carry every market table (flows, indices, news archive,
+# AI signal sets, agent records). Everything else in /db/ stays local.
+!/db/custom.db
+/.env
+/dev.log
+/tool-results/
+/agent-ctx/
+
+# local Vercel simulation output (T50)
+/.vercel-test/
+.vercel-sim/
+esthmr-session.txt
+esthmr-explore/cookies.txt
+esthmr-explore/temp_token.txt
+# T61: all local secrets stay out of the public repo (was: vapid.json only)
+/server-secrets/
+# T61: refresh-daemon runtime state (the log is covered by *.log)
+/scripts/refresh-state.json

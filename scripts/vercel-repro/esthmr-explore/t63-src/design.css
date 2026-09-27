@@ -1,0 +1,120 @@
+/* The palette, and the only place it is declared.
+ *
+ * It was declared in four places. This file said warm paper; `journal.css`
+ * said olive at line 29, slate at 198 and a bluish grey at 265, each
+ * overriding the last, so what a reader actually saw was the fourth one and
+ * no single file described the site. Editing a colour here changed nothing.
+ * `journal.css` now declares no palette at all: it owns components, this owns
+ * tokens, `shell.css` owns the frame.
+ */
+*{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg,#EDF2F7);color:var(--ink,#192C3C);-webkit-font-smoothing:antialiased}
+  :root[data-theme="light"],[data-theme="light"]{--bg:#EDF2F7;--surface:#FAFCFE;--ink:#192C3C;--t2:#455B6E;--faint:#556777;--accent:#126B75;--iris:#4C6099;--up:#3F6B52;--down:#A3402F;
+    --rule:rgba(27,25,23,.10);--rule2:rgba(27,25,23,.06);--thread:rgba(27,25,23,.22);--sunk:rgba(27,25,23,.035);
+    /* Flat. A panel is told apart from the page by its edge and its ground,
+       not by a shadow, and stacked translucency over a wash was most of what
+       made this hard to read on a phone in daylight. `--glass`, `--edge` and
+       the three shadows are kept as names because a hundred rules in
+       `template.html` ask for them by name; what changed is what they answer. */
+    --glass:#FAFCFE;--edge:rgba(27,25,23,.10);--edgeIn:rgba(27,25,23,.10);
+    --sh:none;--shLift:none;--shPill:none;
+    --activeBg:rgba(27,25,23,.05);
+    --radius-island:20px;--radius-control:12px;
+    /* The redesign's component layer (`primitives.js`). A pressed accent, and
+       the six data states — each one a fill, an edge and an ink, because the
+       whole point of the vocabulary is that they are told apart by shape and
+       texture rather than by a shade a reader has to remember. `--hatch` is
+       the stripe used for "did not trade" and for an unknown remainder: a
+       texture reads as absence where a flat grey reads as a value. */
+    --accentPress:#0E555D;
+    /* TWO HUES THE PALETTE DID NOT NAME, and so every screen spelled out its
+       own literal: a warning amber (#E69F00) and a notice blue (#0284c7),
+       both of which the 24 September audit measured as text at 2.19:1 and
+       3.98:1 — the two worst contrast failures on the site, and the reason
+       Valuation alone carried 45 of them. Each is now a PAIR, because the
+       failure was one colour asked to do two jobs: `--warnMark` fills a dot
+       or a quadrant on a chart, where the shape carries the meaning and the
+       hue only has to be told apart; `--warn` is the same idea as INK, dark
+       enough to read at 11px. A mark that is also a label takes the ink. */
+    --warn:#8F5E00;--warnMark:#E69F00;--warnTint:rgba(230,159,0,.12);
+    --info:#0369A1;--infoMark:#0284C7;--infoTint:rgba(2,132,199,.12);
+    /* Text ON the accent. The palette's ink was used for this while the
+       accent was a pale warm teal; it is #126B75 now, and dark ink on it is
+       unreadable — which is why journal.css carried a rule that repainted
+       every such chip in the light theme and left the dark one wrong. */
+    --onAccent:#FAFCFE;
+    /* Share bars need a THIRD and FOURTH step that are still visible on
+       --surface. --accTint/--irisTint are 10% and vanish; these are the same
+       two hues at a strength a reader can actually see a boundary at. */
+    --accMid:rgba(18,107,117,.38);--irisMid:rgba(83,104,163,.38);
+    --hatch:rgba(27,25,23,.16);--hatchBg:rgba(27,25,23,.04);
+    --stStale:#556777;--stEstimated:#4C6099;--stNone:#736B64;
+    /* Home's mosaic and island tints, moved here with the rest of the palette. */
+    --mosaic-up:#DCE9E0;--mosaic-up-ink:#2C5B44;--mosaic-down:#F3DFDA;--mosaic-down-ink:#8A3527;
+    --island-peach:#E3EEF5;--island-mint:#E4F0EC;
+    --upTint:rgba(63,107,82,.10);--downTint:rgba(163,64,47,.10);--irisTint:rgba(95,75,110,.10);--accTint:rgba(18,107,117,.10);
+    --wash1:transparent;--wash2:transparent;
+    /* The heat map. Seven steps rather than a gradient, because a reader can
+       count steps and cannot count shades. --hmNone is a company that did not
+       trade, and is deliberately not --hmZ: no trade and no change look the
+       same on a map that paints them alike, and they are opposite facts. Every
+       step carries white text at 4.5:1 or better, which is why the two nearest
+       zero are darker than a "small move" instinctively wants to be. */
+    --hmD3:#8C2B1C;--hmD2:#A2432F;--hmD1:#B05C46;--hmZ:#776E66;
+    --hmU1:#4A7F62;--hmU2:#386E4E;--hmU3:#22593B;--hmNone:#736B64;
+    --hmInk:#FFFFFF;--hmSunk:rgba(27,25,23,.05);
+    /* Holders on the ownership map. Six hues that sit with the teal accent and
+       stay apart from --up and --down, which the map already spends on "this
+       stake grew / shrank". Assigned by a hash of the holder's name, so a
+       person keeps their colour between sessions and between the two
+       languages. Contrast is against --surface, the ring's own ground. */
+    --own1:#126B75;--own2:#4C6099;--own3:#8A5A2B;--own4:#7A3E6B;--own5:#2F6E8C;--own6:#6B6420;
+    --ownNone:rgba(27,25,23,.10);
+    /* A sector is drawn as a lake. Shallow in the middle, deeper at the
+       shore, with a shoreline a shade firmer than either — the three of them
+       barely there on purpose, because they group the companies rather than
+       compete with them. */
+    --own-cell:rgba(27,25,23,.024);
+    --own-shallow:rgba(18,107,117,.035);--own-deep:rgba(18,107,117,.085);
+    --own-shore:rgba(18,107,117,.16)}
+  /* --up and --down were lifted on 24 September: at #6EA487 and #D97D64 they
+     cleared 4.5:1 on --surface and failed on the two island tints and on
+     --sunk, which is exactly where a price change is printed. */
+  :root[data-theme="dark"],[data-theme="dark"]{--bg:#111D29;--surface:#1B2B3B;--ink:#EDF4FA;--t2:#BFCDDA;--faint:#9BADBE;--accent:#86CFD2;--iris:#A7B8EB;--up:#88BB9F;--down:#E89B85;
+    --rule:rgba(240,235,229,.13);--rule2:rgba(240,235,229,.07);--thread:rgba(240,235,229,.26);--sunk:rgba(240,235,229,.04);
+    --glass:#1B2B3B;--edge:rgba(240,235,229,.13);--edgeIn:rgba(240,235,229,.13);
+    --sh:none;--shLift:none;--shPill:none;
+    --activeBg:rgba(240,235,229,.09);
+    --radius-island:20px;--radius-control:12px;
+    --accentPress:#A8E0E2;
+    --warn:#E8B84B;--warnMark:#E8B84B;--warnTint:rgba(232,184,75,.14);
+    --info:#38A9E3;--infoMark:#38A9E3;--infoTint:rgba(56,169,227,.14);
+    --onAccent:#111D29;
+    --accMid:rgba(134,207,210,.42);--irisMid:rgba(167,184,235,.42);
+    --hatch:rgba(240,235,229,.20);--hatchBg:rgba(240,235,229,.05);
+    --stStale:#9BADBE;--stEstimated:#A7B8EB;--stNone:#9A918A;
+    /* Lifted for the dark ground: the light set reads as mud at 12% opacity
+       over #111D29, and these are the same six hues taken up in value. */
+    --own1:#86CFD2;--own2:#A7B8EB;--own3:#D8A46B;--own4:#D3A0C6;--own5:#8FC2DC;--own6:#C6BE6A;
+    --ownNone:rgba(240,235,229,.13);
+    --own-cell:rgba(240,235,229,.028);
+    --own-shallow:rgba(134,207,210,.05);--own-deep:rgba(134,207,210,.11);
+    --own-shore:rgba(134,207,210,.2);
+    --mosaic-up:#243A30;--mosaic-up-ink:#8FCCAB;--mosaic-down:#3E2B27;--mosaic-down-ink:#E7A492;
+    --island-peach:#213749;--island-mint:#1D3432;
+    --upTint:rgba(110,164,135,.13);--downTint:rgba(217,125,100,.13);--irisTint:rgba(169,155,184,.13);--accTint:rgba(134,207,210,.13);
+    --hmD3:#7E2717;--hmD2:#973D2A;--hmD1:#A65440;--hmZ:#6B635B;
+    --hmU1:#437357;--hmU2:#336345;--hmU3:#1F5034;--hmNone:#6B635C;
+    --hmInk:#F6F2EE;--hmSunk:rgba(240,235,229,.05);
+    --wash1:transparent;--wash2:transparent}
+  a{color:var(--ink);text-decoration:none}
+  a:hover{color:var(--accent)}
+  ::selection{background:var(--accent);color:#192C3C}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .om-scr{animation:fadeUp .3s cubic-bezier(.2,.7,.3,1) both}
+  .om-main::-webkit-scrollbar,.om-rail::-webkit-scrollbar{width:11px}
+  .om-main::-webkit-scrollbar-thumb,.om-rail::-webkit-scrollbar-thumb{background:var(--rule);border-radius:9px;border:3px solid transparent;background-clip:content-box}
+  .om-main::-webkit-scrollbar-track,.om-rail::-webkit-scrollbar-track{background:transparent}
+  input::placeholder{color:var(--faint)}
+  .om-search:focus-within{border-color:color-mix(in oklch,var(--accent) 55%,transparent);box-shadow:var(--sh),0 0 0 3px var(--accTint)}

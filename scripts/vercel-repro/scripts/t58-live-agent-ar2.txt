@@ -1,0 +1,284 @@
+data: {"type":"status","note":"النموذج الخلفي غير متاح على هذا المستضيف — سيتم الرد عبر السحابة المجانية بلا تسجيل"}
+
+data: {"type":"step","tool":"market_overview","args":{},"ok":true}
+
+data: {"type":"status","note":"keyless cloud busy — retrying"}
+
+data: {"type":"status","note":"keyless cloud busy — retrying"}
+
+data: {"type":"step","tool":"web_search","args":{"query":"موسوعة رأس المال في مصر","limit":5},"ok":false}
+
+data: {"type":"status","note":"keyless cloud busy — retrying"}
+
+data: {"type":"step","tool":"top_movers","args":{"kind":"gainers","limit":5},"ok":true}
+
+data: {"type":"status","note":"keyless cloud busy — retrying"}
+
+data: {"type":"status","note":"keyless cloud busy — retrying"}
+
+data: {"type":"delta","text":"*"}
+
+data: {"type":"delta","text":"*ا"}
+
+data: {"type":"delta","text":"لخل"}
+
+data: {"type":"delta","text":"اصة"}
+
+data: {"type":"delta","text":":** merc"}
+
+data: {"type":"delta","text":"ado abe"}
+
+data: {"type":"delta","text":"rto e"}
+
+data: {"type":"delta","text":"stá e"}
+
+data: {"type":"delta","text":"stá"}
+
+data: {"type":"delta","text":"v"}
+
+data: {"type":"delta","text":"el, "}
+
+data: {"type":"delta","text":"com pequ"}
+
+data: {"type":"delta","text":"eno crescime"}
+
+data: {"type":"delta","text":"nto"}
+
+data: {"type":"delta","text":" no"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"E"}
+
+data: {"type":"delta","text":"G"}
+
+data: {"type":"delta","text":"X30"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"("}
+
+data: {"type":"delta","text":"+"}
+
+data: {"type":"delta","text":"0"}
+
+data: {"type":"delta","text":".12"}
+
+data: {"type":"delta","text":"%), movime"}
+
+data: {"type":"delta","text":"nto a"}
+
+data: {"type":"delta","text":"m"}
+
+data: {"type":"delta","text":"plo"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"d"}
+
+data: {"type":"delta","text":"e"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"102"}
+
+data: {"type":"delta","text":" em a"}
+
+data: {"type":"delta","text":"lta con"}
+
+data: {"type":"delta","text":"t"}
+
+data: {"type":"delta","text":"r"}
+
+data: {"type":"delta","text":"a"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"127"}
+
+data: {"type":"delta","text":" em ba"}
+
+data: {"type":"delta","text":"i"}
+
+data: {"type":"delta","text":"xa, "}
+
+data: {"type":"delta","text":"c"}
+
+data: {"type":"delta","text":"o"}
+
+data: {"type":"delta","text":"m"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"296 aç"}
+
+data: {"type":"delta","text":"ões neg"}
+
+data: {"type":"delta","text":"ocia"}
+
+data: {"type":"delta","text":"da"}
+
+data: {"type":"delta","text":"s – "}
+
+data: {"type":"delta","text":"dia relativame"}
+
+data: {"type":"delta","text":"nte equi"}
+
+data: {"type":"delta","text":"libr"}
+
+data: {"type":"delta","text":"a"}
+
+data: {"type":"delta","text":"do. Egypt"}
+
+data: {"type":"delta","text":"ian invest"}
+
+data: {"type":"delta","text":"ors "}
+
+data: {"type":"delta","text":"g"}
+
+data: {"type":"delta","text":"anha"}
+
+data: {"type":"delta","text":"ram "}
+
+data: {"type":"delta","text":"uma s"}
+
+data: {"type":"delta","text":"oma l"}
+
+data: {"type":"delta","text":"íqu"}
+
+data: {"type":"delta","text":"ida"}
+
+data: {"type":"delta","text":" d"}
+
+data: {"type":"delta","text":"e "}
+
+data: {"type":"delta","text":"E"}
+
+data: {"type":"delta","text":"G"}
+
+data: {"type":"delta","text":"P"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"403 milh"}
+
+data: {"type":"delta","text":"õ"}
+
+data: {"type":"delta","text":"es, enqua"}
+
+data: {"type":"delta","text":"nto estra"}
+
+data: {"type":"delta","text":"ngei"}
+
+data: {"type":"delta","text":"ros ven"}
+
+data: {"type":"delta","text":"de"}
+
+data: {"type":"delta","text":"ram p"}
+
+data: {"type":"delta","text":"ara "}
+
+data: {"type":"delta","text":"uma s"}
+
+data: {"type":"delta","text":"ubtra"}
+
+data: {"type":"delta","text":"ção l"}
+
+data: {"type":"delta","text":"íqu"}
+
+data: {"type":"delta","text":"ida"}
+
+data: {"type":"delta","text":" d"}
+
+data: {"type":"delta","text":"e "}
+
+data: {"type":"delta","text":"E"}
+
+data: {"type":"delta","text":"G"}
+
+data: {"type":"delta","text":"P"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"377 milh"}
+
+data: {"type":"delta","text":"ões h"}
+
+data: {"type":"delta","text":"o"}
+
+data: {"type":"delta","text":"je. "}
+
+data: {"type":"delta","text":"Setor"}
+
+data: {"type":"delta","text":"ialme"}
+
+data: {"type":"delta","text":"n"}
+
+data: {"type":"delta","text":"te, Utilit"}
+
+data: {"type":"delta","text":"ies li"}
+
+data: {"type":"delta","text":"d"}
+
+data: {"type":"delta","text":"e"}
+
+data: {"type":"delta","text":"ra, enqua"}
+
+data: {"type":"delta","text":"nto Hea"}
+
+data: {"type":"delta","text":"lth C"}
+
+data: {"type":"delta","text":"are secte"}
+
+data: {"type":"delta","text":"urs e"}
+
+data: {"type":"delta","text":"stá"}
+
+data: {"type":"delta","text":" em últ"}
+
+data: {"type":"delta","text":"imo lu"}
+
+data: {"type":"delta","text":"g"}
+
+data: {"type":"delta","text":"ar, "}
+
+data: {"type":"delta","text":"com ma"}
+
+data: {"type":"delta","text":"ior movime"}
+
+data: {"type":"delta","text":"nto individ"}
+
+data: {"type":"delta","text":"ual"}
+
+data: {"type":"delta","text":" S"}
+
+data: {"type":"delta","text":"PHT"}
+
+data: {"type":"delta","text":" "}
+
+data: {"type":"delta","text":"("}
+
+data: {"type":"delta","text":"+"}
+
+data: {"type":"delta","text":"2"}
+
+data: {"type":"delta","text":"2,"}
+
+data: {"type":"delta","text":"4%) tuvie"}
+
+data: {"type":"delta","text":"ron(colu"}
+
+data: {"type":"delta","text":"m"}
+
+data: {"type":"delta","text":"ns: tré"}
+
+data: {"type":"delta","text":"so"}
+
+data: {"type":"delta","text":"r"}
+
+data: {"type":"delta","text":" సి model"}
+
+data: {"type":"delta","text":"ing"}
+
+data: {"type":"done","answer":"**الخلاصة:** mercado aberto está estável, com pequeno crescimento no EGX30 (+0.12%), movimento amplo de 102 em alta contra 127 em baixa, com 296 ações negociadas – dia relativamente equilibrado. Egyptian investors ganharam uma soma líquida de EGP 403 milhões, enquanto estrangeiros venderam para uma subtração líquida de EGP 377 milhões hoje. Setorialmente, Utilities lidera, enquanto Health Care secteurs está em último lugar, com maior movimento individual SPHT (+22,4%) tuvieron(columns: trésor సి modeling","steps":[{"tool":"market_overview","args":{},"ok":true},{"tool":"web_search","args":{"query":"موسوعة رأس المال في مصر","limit":5},"ok":false},{"tool":"top_movers","args":{"kind":"gainers","limit":5},"ok":true}],"model":"mistral-Nemo-Instruct-2407","modelId":"llm7:mistral-Nemo-Instruct-2407","disclaimer":true}
+

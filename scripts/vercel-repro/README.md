@@ -1,0 +1,271 @@
+<div align="center">
+
+<img src="public/logo-mark.png" alt="EGX Desk" width="96" height="96" />
+
+# EGX Desk
+
+**The free, Arabic-first, AI-native research desk for the Egyptian Exchange (EGX).**
+
+Signals from **Technical + Fundamental + News analysis**, an **agentic AI assistant** with 1,000+ free cloud models,
+investor flows, full financial statements, GCC markets, paper trading — **no login, no paywall, no ads.**
+
+[![Version](https://img.shields.io/badge/version-2.36-blue)](src/lib/version.ts)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-22%20suites-green)](#testing)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
+[![Made in Egypt](https://img.shields.io/badge/made%20in-Egypt-red)](https://en.wikipedia.org/wiki/Egyptian_Exchange)
+
+<img src="public/screenshot-wide.png" alt="EGX Desk — market view" width="960" />
+
+<sup>Live delayed data · Arabic-first with full English · installable as an app (PWA)</sup>
+
+</div>
+
+---
+
+## Why this exists
+
+Egypt's market is in a retail boom — **~123,000 new investors in H1-2026** and an EGX30 that rose ~40% in 2025 —
+yet the serious tooling is either **global and paywalled** (TradingView, InvestingPro, Koyfin), **regional and paid**
+(Mubasher Smart Signals), or a **brokerage app** that requires an account (Thndr). Nothing gives an Egyptian
+retail investor a *free, Arabic-native desk* with transparent technical **and** fundamental analysis.
+
+EGX Desk fills that seat. Every number is sourced and labeled, every method is inspectable, and the whole
+thing runs without an account.
+
+➡️ **Full competitive research & strategy: [`docs/COMPETITIVE-ANALYSIS.md`](docs/COMPETITIVE-ANALYSIS.md)**
+
+---
+
+## The Composite Signal Engine — Technical × Fundamental × News
+
+The Signals tab ranks the **entire traded EGX universe** (and every company page carries the same three-pillar card) with a composite score built from three independent pillars:
+
+| Pillar | What it measures | Weight |
+|---|---|---|
+| **Technical** | 13 indicators on 1-year daily candles — SMA 20/50/200, EMA 20/50/100, RSI-14, Stochastic %K/%D, MACD histogram, CCI-20, Momentum-10, Williams %R, BB Power (the same math as the in-app Technical Panel) | **45%** |
+| **Fundamental** | 7 components in 3 pillars from reported financials — see below | **30%** |
+| **News** | a transparent bilingual lexicon over the last **14 days** of the archived Egyptian business press (Alborsaanews + Amwal Alghad) — title double-weighted, recency-decayed (1.0 → 0.25), saturation-clamped so one headline never swings the pillar | **25%** |
+
+### Fundamental pillars
+
+| Pillar | Components (all real, reported fields) | Scoring |
+|---|---|---|
+| **Valuation** (.40) | P/E and P/B **vs sector medians** | log₂(median ÷ stock): half the median = +1, double = −1; loss-making TTM = −0.5 |
+| **Quality** (.35) | ROE, net margin, debt/equity | ROE 25% = +1 / 8% = 0 · margin 25% = +1 / 10% = 0 · D/E 0.3 = +1 / 1.2 = 0 |
+| **Income** (.25) | dividend yield, payout ratio | yield 10% = +1 / 0% = −0.4 · payout >100% = −0.8 (unsustainable) |
+
+**Honesty rules baked in:** every component is null-safe (weights renormalize — a bank without P/B is never
+punished, a stock with no press coverage in the window is neither punished nor rewarded); a stock with fewer than 2 fundamental components falls back to technical-only instead of a noisy
+half-score; sector medians need ≥5 names or the market-wide median is used; every reason line quotes the real
+numbers ("P/E 6.4 vs sector 7.6 · ROE 34.4%" / "2 press articles — 1 bullish, 0 bearish"). The news pillar is
+re-blended at SERVE TIME (≤10-min press pass) so it never lags the hourly technical scan cache. The engine feeds the ranked table, the per-stock composite card, the CSV/XLSX exports, the
+AI-signals evidence pack, and the agent's `technicals` tool — one math everywhere. See
+[`src/lib/fundamentals.ts`](src/lib/fundamentals.ts) and [`src/lib/signals-scan.ts`](src/lib/signals-scan.ts).
+
+A separate **AI Signals** mode runs an **18-strategy ensemble** (trend, momentum, reversion, volume, dividend
+quality, press tone, an ML forecast layer, candlestick patterns, RSI divergence, z-score reversion, insider
+filings and foreign-institution flows — each deterministic, each with its own trigger and evidence codes) whose
+weighted consensus feeds a GLM model (shared compute — one call per cycle serves everyone). Every pick carries
+the fired-strategy chips, the vote count (e.g. 8/14), the consensus, and a **full executable trade plan** (T43):
+a limit-order entry zone, the stop with its risk %, and a T1/T2/T3 scale-out ladder — plus a **position-size
+calculator** that turns the plan into "how many shares" for the reader's own account and risk budget. A
+**published-signal track record** replays every past pick against the real closing prints that followed it
+(target / stopped / expired / open — no simulation, no backfill); the walk-forward backtest validates the
+ensemble AND each strategy standalone. See [`src/lib/strategies.ts`](src/lib/strategies.ts),
+[`src/lib/signal-track.ts`](src/lib/signal-track.ts) and [`scripts/backtest-signals.ts`](scripts/backtest-signals.ts).
+
+On top of it runs **HERMES — the autonomous self-learning signal agent** (T45): a weekday-scheduled agent
+(Sun–Thu Cairo: pre-open 09:15, midday 12:15, post-close 15:00, plus a guarded manual trigger) that gathers
+the same evidence through **ten skills**, renders the top candidates' real candlestick tapes as PNGs and has
+the free **GLM-4.6V-Flash vision model read them**, then reasons with the **GLM-4.7-Flash brain** (thinking
+ON — and the thinking stream itself is captured and shown) over evidence + vision + memory via a dedicated
+Z.AI key used for signals only — and its output passes the SAME charter gates (consensus ≥ 0.35, conviction
+caps, ATR math, language purity) as the shared pipeline. It **learns from its own published record**: closed
+episodes are attributed to the strategies that fired at issue, live hit rates bend each strategy's weight
+(×0.75–×1.25, n≥8 gate), and every weight change + a per-run reflection are journaled in a persistent lessons
+memory — so each session starts smarter than the last, while the mathematical gates never move. Its
+**supermemory** ([supermemoryai/supermemory](https://github.com/supermemoryai/supermemory) inspired, local-first)
+stores every run's reflection, picks, market reads, vision verdicts and lessons as never-evicted semantic
+memories and RECALLS the most relevant ones (hashed-embedding cosine + recency tilt) before each new run —
+unlimited, connected memory that also mirrors to the supermemory.ai cloud when a key is set. Its durable
+**signals file + worklog file** (`data/agent/signals.jsonl` + `data/agent/worklog.md`, crash-safe appends)
+keep the same ledger on disk — context that survives even a database loss. **Supabase is live** on the user's
+own project ([docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md)): real email-verified **AUTH** (header account
+button → emailed link/code → HttpOnly 30-day session; keys and tokens never reach the browser; signed-in
+users' triggered runs are attributed to their account), and the run/pick/memory/worklog **mirror** to
+`agent_runs`/`agent_signals`/`agent_memories`/`agent_worklog` — armed and honestly reporting
+"tables not created yet" until the one-time setup SQL runs. Every run emits **live per-signal notifications**
+(the event feed + browser notifications while the tab is open, real web-push for installed PWAs when it is
+closed). See
+[`src/lib/hermes-agent.ts`](src/lib/hermes-agent.ts), [`src/lib/agent-learning.ts`](src/lib/agent-learning.ts),
+[`src/lib/supermemory.ts`](src/lib/supermemory.ts), [`src/lib/agent-archive.ts`](src/lib/agent-archive.ts),
+[`src/lib/agent-scheduler.ts`](src/lib/agent-scheduler.ts), [`src/lib/supabase-mirror.ts`](src/lib/supabase-mirror.ts)
+and [`src/lib/chart-png.ts`](src/lib/chart-png.ts).
+
+---
+
+## The AI Assistant — agentic, bilingual, free-cloud
+
+A floating command center (⌘/Ctrl+K) inspired by modern AI-input UX — auto-growing composer, model chip,
+streaming answers — that **executes**, not just chats. 20 bilingual tools: navigate any view or stock page,
+live quotes, search, movers, technicals, news, GCC, watchlist add/remove, multi-condition alerts,
+paper buy/sell/portfolio, language switching.
+
+**Model switching across free online models (agent tab + assistant popup):**
+- **GLM-4-Plus** via the app's own gateway — always on, no sign-in (agent-tab default)
+- **3 KEYLESS cloud models — no sign-in, no key, no card, ever (LLM7.io)** — Codestral (fast, precise numbers), Mistral Nemo (fastest replies), MiniMax M2.7 (strong Arabic). Served server-side through the same SSE agent loop; work even where the Puter popup is blocked. The anonymous tier is one **globally shared** free daily pool — when strangers exhaust it, every keyless model **auto-falls back to GLM-4-Plus in <2s** with an honest streamed note + a permanent served-model chip on the answer (never a dead end)
+- **Anti-fabrication gate (machine-verified answers)** — every agent final answer is cross-checked against the tool data it was built from before you see it: invented numbers (the classic small-model failure), leaked Chinese characters inside Arabic, and degenerate replies are caught, given ONE repair round, and — if a keyless model still fails — re-answered on the GLM-4-Plus backbone. Surviving outliers ship with an honest verification footnote; the app never silently trusts a model's memory
+- **Honest-history chart guard** — free chart sources sometimes go stale under a ticker (Yahoo re-typed ORAS into a frozen 71.05 "mutual fund" while the real stock trades at 837). A flat zero-volume daily series is detected and refused before it can paint a fake ±10x rocket, wreck the 52-week band, or feed RSI-0/100 garbage into signals and the agent's technicals tool; affected names fall back to the verified milestone reconstruction with an explicit note
+- **Language-purity gate on AI signals** — the signals LLM occasionally leaked plain English words into Arabic theses (live case: "combination" inside a sentence). Every generated field is now machine-checked (Arabic fields: Arabic script + tickers/technical acronyms only; English fields: no Arabic script), given ONE repair round that must preserve every number, and irreparable fields fall back to deterministic evidence rendered in the reader's language — never served dirty
+- **Honest dead-feed cards** — a total data outage says so ("تعذر تحميل البيانات — أعد المحاولة") instead of skeleton-loading forever; a brief hiccup keeps serving fresh-enough data for a 10-minute grace window before the card appears
+- **Cross-view breadth consistency** — the AI-signals market bias now quotes the same full-universe breadth figure the homepage narrative shows (was: the scanned subset — two honest numbers that read like a contradiction)
+- **19 curated flagship families, free via the Puter cloud** — GPT-OSS 20B & 120B, GLM-5.3 / 5.3-Flash / 5.2, GPT-5.6 Luna, Claude Sonnet 5, Gemini 3.1 Pro, Grok 4.6, DeepSeek V4 Pro, Kimi K3, Qwen3-235B, Llama 4 Maverick & Scout, Mistral Large 3, MiniMax M2.5, Command A, Phi-4, Nemotron Super 49B (every id verified against the live catalog; the agent loop runs client-side, tools stay server-side)
+- **1,008 real cloud models** in a searchable catalog, one free Puter sign-in away (no card, no API keys)
+- An offline **Instant** regex router in the assistant popup
+- **Never a stale app again:** a boot-time version guard compares the loaded shell against `/api/health` — if the browser (or an installed PWA) is running an older build, it unregisters the service worker, wipes the caches and self-heals with one reload
+
+---
+
+## The desk — 19 views
+
+| | | |
+|---|---|---|
+| **Home** — market pulse, flows summary | **Market** — live table, 295 names | **Screener** — 40+ filters |
+| **Signals** — composite TA+FA+News ranking + AI mode | **Heatmap & Sectors** | **Investors** — official retail/institutional/foreign flows + history |
+| **Activity** — value/volume leaders | **Calendar** — earnings/dividends/events | **Funds** — money-market & ETF NAVs |
+| **Compare** — side-by-side companies | **GCC** — Tadawul/DFM/ADX indices & movers | **News** — ~9,900-item bilingual archive |
+| **Agent** — streaming AI analyst (16 tools) | **Strategy Lab** — back-test chartered rules | **Reports** — hourly AI desk reports |
+| **Watchlist** · **Paper Trading** — EGP 100k simulator with commissions, P&L, trade log | **Tools** — dividend/FX calculators | |
+
+Company pages add: 21 chart indicators (tunable), drawing tools (trendlines, levels), full financial
+statements (income / balance / cash-flow, 5FY + quarterly), dividends, insiders, valuation, disclosures log,
+and the signals-lite engine (streaks, unusual volume, 52-week position).
+
+## Data sources — verified & labeled
+
+| Data | Source | Notes |
+|---|---|---|
+| Quotes & TTM fundamentals | TradingView scanner | delayed ~15 min |
+| Daily candles & indices | Yahoo Finance | 209 EGX tickers; 86 history-less names get verified milestone-fallback charts |
+| Financial statements | stockanalysis.com | ~52 large/mid caps, EGP mn as filed |
+| Investor flows | Sigma Capital (republishes the official EGX table) | arithmetic self-validated on every parse |
+| News | two Egyptian publishers' public archives | bilingual, 9.9k items |
+| GCC | TradingView + Yahoo | TASI/MT30/DFMGI/ADI |
+
+Every panel states its source and delay. When free data is impossible (real-time quotes, the official
+disclosure archive), the UI says so instead of faking it.
+
+## Tech stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS + shadcn/ui · Prisma + SQLite ·
+z-ai-web-dev-sdk (GLM) · Puter.js (free cloud models) · PWA service worker (offline shell, install,
+web push) · Recharts + custom canvas charting · 841-key Arabic/English i18n with RTL-correct layouts.
+
+## Performance — fast first load (v2.24)
+
+The desk opens fast on any connection, by construction:
+
+- **Per-view code splitting** — all 22 views are lazy chunks; the first page load ships the shell + the
+  active view only (recharts, the markdown renderer and framer-motion used to ship with every load).
+- **Idle prefetch** — after first paint the remaining view chunks warm one-per-idle-slot (data-saver
+  users exempt), so navigation stays instant without paying the cost up front.
+- **Lazy AI assistant** — the 875-line agentic panel (+ animation + markdown stack) mounts on first
+  Ctrl+K / orb click instead of every page load.
+- **Asset diet** — header logo PNGs re-encoded from 1.5MB each to ~5KB (4× retina), PWA icons
+  optimized, AI-answer serif fonts (Lora/Amiri) no longer preloaded (~900KB off the critical path).
+- **Lighter service worker** — screenshots dropped from the install precache; versioned logo URLs
+  retire old caches on activate.
+
+## Quick start
+
+```bash
+git clone https://github.com/mahmoudmohamedxx1-hue/egxdesk.git
+cd egxdesk
+bun install                    # or npm install
+echo 'DATABASE_URL="file:./db/custom.db"' > .env
+bunx prisma db push            # create the SQLite schema
+bun run dev                    # http://localhost:3000
+```
+
+Production:
+
+```bash
+bun run build && bun run start
+```
+
+Optional `.env`: `DATABASE_URL` (SQLite path) and VAPID keys for web-push notifications — everything
+else works with zero configuration and zero API keys.
+
+**Deploying to Vercel**: the repo is serverless-ready — the SQLite dataset ships inside the
+deployment, the AI brains call Z.AI directly (no sandbox SDK), and background loops detect
+serverless and stand down. The only manual step is setting the env vars (Supabase/auth/ZAI keys)
+in the Vercel dashboard — see **[docs/VERCEL.md](docs/VERCEL.md)** for the exact table and a
+post-deploy checklist.
+
+## Testing
+
+16 end-to-end/API suites cover the whole surface — run against a live dev server:
+
+```bash
+bun scripts/e2e/api-test.js          # 100 checks — every route, NaN/consistency guards
+bun scripts/e2e/t21-features-test.ts # 62 checks — exports, alerts, signals, GCC, paper
+bun scripts/e2e/t22-reports-test.ts  # 67 checks — hourly reports & agent answers
+bun scripts/e2e/t20-ai-signals-test.ts
+bun scripts/e2e/t16-endpoints-test.js # 17 chat/endpoint checks
+bun scripts/e2e/new-endpoints-test.js # 36 checks — newest routes
+bun scripts/t31-test-fundamentals.ts  # 29 unit checks — composite engine math
+bun scripts/t32-test-news.ts            # 27 unit checks — the news pillar
+bun scripts/t35-test-models.ts           # 30 unit checks — model registry + version guard
+bun scripts/t37-test-failover.ts         # 10 live checks — LLM7→GLM auto-failover (quota-exhaustion path)
+bun scripts/t37-test-risk-levels.ts      # 18 unit checks — price-adaptive ATR levels (penny-stock R:R integrity)
+bun scripts/t38-test-audit-fixes.ts       # 64 unit checks — anti-fabrication gate, ticker aliases, Arabic search, UI regressions
+bun scripts/t39-test-fixes.ts            # 35 checks — audit-2 fixes: AR narrative units, picker aliases, name artifacts, P/E cap, sector labels
+bun scripts/t40-test-fixes.ts            # 38 checks — audit-3 fixes: vendor-stub chart guard, EN-news latinization, bilingual metadata, P&L decimals
+bun scripts/t41-test-fixes.ts            # 51 checks — audit-4 fixes: calendar dedupe, ai-signals language-purity gate + evidence fallback, lab notes AR, EN home news, honest dead-feed cards
+bun scripts/t42-test-strategies.ts       # 85 checks — the 18-strategy ensemble: per-strategy triggers, no-lookahead, consensus math, ATR guard, purity, live ensemble blocks + picks
+bun scripts/t43-test-signaltrack.ts       # 51 checks — trade-plan ladder math, legacy-set rebuild, outcome classification (order-based), episode grouping/freezing, live plan + trackRecord shape
+bun scripts/t45-test-hermes.ts            # 63 checks — PNG encoder validity (CRC/zlib/determinism), bounded learning math, weekday scheduler, evidenceAr 18-id Arabic render (T44 leak fix), Z.AI JSON extraction, LIVE agent run + events + metering
+bun scripts/t46-test-supermemory.ts       # 44 checks — deterministic 384-dim embeddings + semantic recall ranking, crash-safe signals.jsonl/worklog.md round-trip (torn-line self-heal), kind-filtered recall, honest supabase-mirror OFF state, LIVE agent run end-to-end (thinking stream + memory storage + durable files + events)
+bun scripts/t47-test-supabase.ts        # 18 checks — email validation, HttpOnly session-cookie codec (12-char opaque rt regression), secure-flag logic, LIVE PGRST205 → honest needs-setup hint, route guards; full E2E auth (real email → session → logout) in scripts/t47-live-auth.mjs
+bunx tsc --noEmit && bunx eslint src/
+```
+
+## Project structure
+
+```
+src/
+  app/            # 28 API routes + the single-page App Shell entry
+  components/
+    market/       # app shell, chart workstation (21 indicators), AI assistant, panels
+    views/        # the 19 desk views
+  lib/            # 43 engine modules: market, history, indicators, fundamentals,
+                  # signals-scan, ai-signals, strategy, paper, alerts, flows, i18n…
+  data/           # backtest results backing the AI-signal charter
+scripts/
+  e2e/            # the 12 test suites
+  research/       # source-verification logs + competitive research
+docs/             # COMPETITIVE-ANALYSIS.md — deep research & roadmap
+```
+
+## Where we stand
+
+**We lead** (see the [full analysis](docs/COMPETITIVE-ANALYSIS.md)): the only free whole-market TA+FA
+composite for EGX · the only agentic AI desk that executes actions · investor flows nobody else shows free ·
+zero-login everything · Arabic-native + English · PWA install · honesty labeling.
+
+**We're behind**: real-time quotes (~15-min delay), fair-value modeling depth, community features,
+app-store presence, and brand reach. The roadmap (3 waves) attacks these in order:
+① public signal track-record + per-ticker SEO pages + portfolio CSV import + Play Store TWA →
+② transparent fair-value layer + Telegram/WhatsApp alerts + Arabic AI morning brief →
+③ real-time feed partnership + community notes + public API.
+
+## Disclaimer
+
+Market data is delayed and provided for research/education. Nothing here is investment advice.
+Signals are statistical descriptions of price action and reported financials — inspect the formula,
+do your own work, manage your risk.
+
+## License
+
+[MIT](LICENSE) — use it, learn from it, build on it.

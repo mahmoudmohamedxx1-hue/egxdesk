@@ -1,0 +1,3 @@
+[
+  {"file": "t27-np-chart.png", "ask": "This is a stock company page (Egyptian exchange, Arabic UI). Check: (1) Is there a visible price CHART rendered (line/area with data points)? (2) Is there an informational notice about milestone/verified horizon prices near the chart? (3) Any broken layout or overlapping elements? Format: CHART_OK: yes/no | NOTICE: yes/no | ISSUES: <none or list>"}
+]

@@ -1,0 +1,38 @@
+{
+  "hapi_home": {
+    "title": "الرئيسية",
+    "url": "https://hapijournal.com/",
+    "len": 172158,
+    "sample": "<html dir=\"rtl\" lang=\"ar\" class=\" js_active  vc_desktop  vc_transform  vc_transform \" style=\"--publisher-menu-height: 49px;\"><!--<![endif]--><head>\n<meta charset=\"UTF-8\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<link rel=\"pingback\" href=\"https://hapijournal.com/xmlrpc.php\">\n<meta name=\"robots\" content=\"index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1\">\n<!-- This site is optimized with the Yoast SEO Premium plugin v24.9 (Yoast SEO v28.5) - https://yoast.com/product/yoast-seo-premium-"
+  },
+  "hapi_feed": {
+    "title": "جريدة حابي",
+    "url": "https://hapijournal.com/feed",
+    "len": 8874,
+    "sample": "<html><head><title>جريدة حابي</title><meta name=\"description\" content=\"جريدة حابي\"></head><body><div><h3><a href=\"https://hapijournal.com/2026/09/24/%d9%85%d8%b3%d8%a7%d8%b9%d8%af-%d9%88%d8%b2%d9%8a%d8%b1-%d8%a7%d9%84%d8%b5%d9%86%d8%a7%d8%b9%d8%a9-%d9%88%d8%a7%d9%84%d8%b3%d9%81%d9%8a%d8%b1-%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a-%d9%8a%d9%81%d8%aa/\">مساعد وزير الصناعة والسفير التركي يفتتحان معرض «إيجيبت ستيتش آند تكس 2026»</a></h3><p></p><a href=\"https://hapijournal.com/2026/09/24/%d9%85%d8%b3%d8%a7%d8%b9%d8%af-%d9%88%d8%b2%d9%8a%d8%b1-%d8%a7%d9%84%d8%b5%d9%86%d8%a7%d8%b9%d8%a9-%d9%88%d8%a7%d9%84"
+  },
+  "almal_home": {
+    "title": "جريدة المال",
+    "url": "https://almalnews.com/",
+    "len": 290296,
+    "sample": "<html lang=\"ar\" dir=\"rtl\" class=\"fontawesome-i2svg-active fontawesome-i2svg-complete\"><head>\n    <meta charset=\"UTF-8\">\n    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0\">\n\n    <style type=\"text/css\">:host,:root{--fa-font-solid:normal 900 1em/1 \"Font Awesome 6 Free\";--fa-font-regular:normal 400 1em/1 \"Font Awesome 6 Free\";--fa-font-light:normal 300 1em/1 \"Font Awesome 6 Pro\";--fa-font-thin:normal 100 1em/1 \"Font Awesome 6 Pro\";--fa-font-duotone:normal 900 1em/1 \"Fo"
+  },
+  "almal_feed": {
+    "title": "الصفحة غير موجودة - جريدة المال",
+    "url": "https://almalnews.com/feed",
+    "len": 43826,
+    "sample": "<html lang=\"ar\" dir=\"rtl\"><head>\n    <meta charset=\"UTF-8\">\n    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0\">\n\n    <link rel=\"preconnect\" href=\"https://www.googletagmanager.com\" crossorigin=\"\">\n    <link rel=\"preload\" href=\"/images/almal-main-logo.svg\" as=\"image\" type=\"image/svg+xml\">\n\n    <meta name=\"theme-color\" content=\"#004a80\">\n\n    <link href=\"/fav.ico\" rel=\"shortcut icon\" type=\"image/x-icon\">\n\n        <title>الصفحة غير موجودة - جريدة المال</title>\n        "
+  },
+  "arabfinance_home": {
+    "title": "آراب فاينانس - الصفحة الرئيسية",
+    "url": "https://www.arabfinance.com/",
+    "len": 429648,
+    "sample": "<html lang=\"ar\" dir=\"rtl\" class=\"h-100\"><!-- PostHog --><head>\n    \n    <script async=\"\" src=\"https://scripts.clarity.ms/0.8.70/clarity.js\"></script><script src=\"https://pagead2.googlesyndication.com/pagead/managed/js/adsense/m202609210101/show_ads_impl_fy2021.js\" fetchpriority=\"high\"></script><script async=\"\" src=\"https://www.clarity.ms/tag/tckqx5qgku\"></script><script async=\"\" src=\"https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5568308957469516\" crossorigin=\"anonymous\" data-checked-head=\"true\"></script>\n    <!-- jQuery -->\n    <script src=\"https://code.jquery.co"
+  },
+  "arabfinance_news": {
+    "title": "",
+    "url": "https://www.arabfinance.com/ar/news",
+    "len": 82,
+    "sample": "<html><head></head><body>410 - This resource is no longer available.</body></html>"
+  }
+}

@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="index, follow">
+    <!-- Google Analytics (GA4) — these SSR SEO pages had no analytics before; now measured. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SCD3LVSQFL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-SCD3LVSQFL');
+    </script>
+    <!-- Self-referencing canonical for every static page (FAQ, blog, terms, …) so each is
+         indexed in its own right and never flagged as a duplicate. -->
+    <link rel="canonical" href="https://egxbot.com/en/market-report/2026-08-25">
+    
+    
+<link rel="alternate" hreflang="ar" href="https://egxbot.com/market-report/2026-08-25">
+<link rel="alternate" hreflang="en" href="https://egxbot.com/en/market-report/2026-08-25">
+<link rel="alternate" hreflang="x-default" href="https://egxbot.com/market-report/2026-08-25">
+
+    <title>Egyptian Exchange (EGX) Report 2026-08-25 — Session Summary, Indices & Stocks</title>
+    <meta name="description" content="Egyptian Exchange (EGX) session summary for 2026-08-25: EGX30/EGX70/EGX100 index performance, top gainers and losers, sector performance, and key news & ideas — updated automatically.">
+
+    <!-- Social share preview: a real branded screenshot of the terminal so links shared on
+         Facebook/WhatsApp/Telegram/Twitter show the product, not a generic/empty card.
+         Per-page title/description flow through via the og:* blocks below. -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="المحلل الآلي للبورصة المصرية">
+    <meta property="fb:app_id" content="3377644402397818">
+    <meta property="og:title" content="Egyptian Exchange (EGX) Report 2026-08-25 — Session Summary, Indices & Stocks">
+    <meta property="og:description" content="Egyptian Exchange (EGX) session summary for 2026-08-25: EGX30/EGX70/EGX100 index performance, top gainers and losers, sector performance, and key news & ideas — updated automatically.">
+    <meta property="og:url" content="https://egxbot.com/en/market-report/2026-08-25">
+    <meta property="og:image" content="https://egxbot.com/static/img/og-cover.jpg">
+    <meta property="og:image:secure_url" content="https://egxbot.com/static/img/og-cover.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="منصة المحلل الآلي للبورصة المصرية">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Egyptian Exchange (EGX) Report 2026-08-25 — Session Summary, Indices & Stocks">
+    <meta name="twitter:description" content="Egyptian Exchange (EGX) session summary for 2026-08-25: EGX30/EGX70/EGX100 index performance, top gainers and losers, sector performance, and key news & ideas — updated automatically.">
+    <meta name="twitter:image" content="https://egxbot.com/static/img/og-cover.jpg">
+
+    <!-- BreadcrumbList: shows the "الرئيسية › <page>" trail in Google results and helps
+         search engines + AI understand each page's place in the site hierarchy. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://egxbot.com/"},
+        {"@type": "ListItem", "position": 2, "name": "Report 2026-08-25", "item": "https://egxbot.com/en/market-report/2026-08-25"}
+      ]
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=optional" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- PWA + favicons (installable, branded) -->
+    <meta name="theme-color" content="#11806a">
+    <link rel="icon" href="/static/img/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+
+    <style>
+        :root {
+            /* Daylight design system (light/linen + sage-green). Legacy var names kept,
+               remapped to Daylight values so all content pages adopt the identity. */
+            --primary-color: #11806a;   /* brand green */
+            --secondary-color: #11806a; /* accents */
+            --accent-color: #11806a;
+            --success-color: #11806a;
+            --warning-color: #d6aa5a;   /* gold */
+            --danger-color: #c0392b;
+            --white: #ffffff;
+            --surface: #ffffff;
+            --bg-linen: #f4f1ea;
+            --light-color: #f4f1ea;
+            --text-dark: #1a2420;       /* ink */
+            --text-light: #5a6760;      /* ink-2 */
+            --ink-3: #6b746d;
+            --border-soft: rgba(26,36,32,.07);
+            --border-strong: rgba(26,36,32,.12);
+            --border-green: rgba(17,128,106,.18);
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+            /* gradient-primary stays DARK — used by the dark Daylight footer. Hero overrides it. */
+            --gradient-primary: linear-gradient(135deg, #16201c 0%, #1f2d28 100%);
+            --gradient-accent: linear-gradient(135deg, #11806a, #0c6e5a);
+            --gradient-success: linear-gradient(135deg, #11806a, #15997f);
+            --gradient-gold: linear-gradient(135deg, #d6aa5a, #c79338);
+            --shadow-sm: 0 4px 14px rgba(26,36,32,.05);
+            --shadow-md: 0 10px 28px rgba(26,36,32,.05);
+            --shadow-lg: 0 18px 40px rgba(26,36,32,.08);
+            --shadow-xl: 0 26px 54px rgba(26,36,32,.12);
+            --shadow-glow: 0 12px 28px rgba(17,128,106,.3);
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Cairo', -apple-system, sans-serif;
+            line-height: 1.7;
+            color: var(--text-dark);
+            background: var(--bg-linen);
+        }
+        ::selection { background: rgba(20,150,100,.22); }
+        /* ── Navbar (Daylight light glass) ── */
+        .navbar {
+            background: rgba(244, 241, 234, 0.85) !important;
+            backdrop-filter: saturate(150%) blur(12px);
+            padding: 0.7rem 0;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .navbar .navbar-toggler { border-color: var(--border-strong); }
+        .navbar .navbar-toggler-icon { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%231a2420' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
+        .navbar-brand { font-weight: 800; font-size: 1.35rem; color: var(--text-dark) !important; display: flex; align-items: center; }
+        .navbar-brand img { border: 2px solid var(--border-green); }
+        .navbar-nav .nav-link { color: var(--text-light) !important; font-weight: 600; margin: 0 0.2rem; padding: 0.5rem 0.9rem !important; border-radius: 10px; transition: all 0.3s; }
+        .navbar-nav .nav-link:hover { color: var(--primary-color) !important; background: var(--light-color); }
+        .btn-nav { background: var(--primary-color); color: #fff; border: none; padding: 9px 22px; border-radius: 12px; font-weight: 700; text-decoration: none; transition: all 0.3s; box-shadow: var(--shadow-glow); white-space: nowrap; }
+        .btn-nav:hover { transform: translateY(-2px); color: #fff; box-shadow: 0 16px 34px rgba(17,128,106,.38); }
+        /* ── Page Hero ── */
+        .page-hero {
+            background:
+                radial-gradient(circle at 88% 0%, rgba(17,128,106,.10), transparent 45%),
+                radial-gradient(circle at 5% 100%, rgba(214,170,90,.10), transparent 45%),
+                linear-gradient(180deg, #f7f5ef, var(--bg-linen));
+            color: var(--text-dark);
+            padding: 120px 0 56px;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .page-hero-content { position: relative; z-index: 2; }
+        .page-hero h1 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -.5px; margin-bottom: 0.75rem; }
+        .page-hero .lead { color: var(--text-light) !important; }
+        .breadcrumb-item a { color: var(--primary-color); text-decoration: none; }
+        .breadcrumb-item.active { color: var(--text-light); }
+        .breadcrumb-item + .breadcrumb-item::before { color: var(--ink-3); }
+        /* ── Content ── */
+        .page-content { padding: 60px 0; }
+        .section-card {
+            background: var(--surface);
+            border-radius: 22px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-soft);
+            margin-bottom: 1.5rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .section-card:hover { box-shadow: var(--shadow-lg); border-color: rgba(17,128,106,.22); }
+        .section-card h3 { color: var(--text-dark); font-weight: 800; margin-bottom: 1rem; }
+        .highlight-box {
+            background: #eef6f1;
+            border-right: 4px solid var(--secondary-color);
+            border-radius: 0 12px 12px 0;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+        }
+        .highlight-box.success { background: #eef6f1; border-color: var(--success-color); }
+        .highlight-box.warning { background: #faf3e3; border-color: var(--warning-color); }
+        .highlight-box.danger  { background: #fbeceb; border-color: var(--danger-color); }
+        /* English LTR: flip the highlight accent bar to the left edge */
+        html[lang="en"] .highlight-box { border-right: none; border-left: 4px solid var(--secondary-color); border-radius: 12px 0 0 12px; }
+        /* ── Footer ── */
+        .footer {
+            background: var(--gradient-primary);
+            color: rgba(255,255,255,0.8);
+            padding: 60px 0 30px;
+        }
+        .footer h5, .footer h3 { color: var(--warning-color); font-weight: 800; margin-bottom: 1.25rem; }
+        .footer-links { list-style: none; padding: 0; margin: 0; }
+        .footer-links li { margin-bottom: 0.5rem; }
+        .footer-links a { color: rgba(255,255,255,0.66); text-decoration: none; transition: color 0.3s; font-size: 0.9rem; }
+        .footer-links a:hover { color: #9fe3cf; }
+        /* Long footer "Services" list -> two balanced columns */
+        .footer-links-2col { column-count: 2; column-gap: 1.75rem; }
+        .footer-links-2col li { break-inside: avoid; }
+        @media (max-width: 575px) { .footer-links-2col { column-count: 1; } }
+        /* ── Related searches ── */
+        .related-searches { background: #efece4; border-top: 1px solid var(--border-soft); padding: 1.6rem 0; }
+        .related-searches .rs-h { font-size: 1rem; font-weight: 800; color: var(--text-light); margin-bottom: 0.8rem; }
+        .rs-links { display: flex; flex-wrap: wrap; gap: 8px; }
+        .rs-links a { display: inline-block; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 999px; padding: 6px 14px; font-size: 0.85rem; color: var(--primary-color); text-decoration: none; transition: all 0.2s; }
+        .rs-links a:hover { border-color: var(--secondary-color); color: var(--secondary-color); }
+        /* ── Sticky conversion CTA ── */
+        body { padding-bottom: 54px; }
+        .sticky-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1050; background: linear-gradient(135deg,#16201c,#1f2d28); color: #fff; box-shadow: 0 -2px 14px rgba(26,36,32,0.18); }
+        .sc-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 9px 14px; }
+        .sc-text { font-size: 0.9rem; font-weight: 600; flex: 1; line-height: 1.4; }
+        .sc-trust { display: block; font-size: 0.72rem; font-weight: 500; color: rgba(255,255,255,0.7); }
+        .sc-btn { background: #229ED9; color: #fff; font-weight: 800; font-size: 0.9rem; padding: 8px 18px; border-radius: 22px; text-decoration: none; white-space: nowrap; transition: transform 0.15s; }
+        .sc-btn:hover { color: #fff; transform: translateY(-1px); }
+        .sc-close { background: transparent; border: none; color: rgba(255,255,255,0.7); font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 0 4px; }
+        @media (max-width: 560px) { .sc-text { font-size: 0.8rem; } .sc-btn { padding: 7px 14px; font-size: 0.82rem; } }
+        .social-links { display: flex; gap: 12px; margin-top: 1rem; flex-wrap: wrap; }
+        .social-links a {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            text-decoration: none; transition: all 0.3s; font-size: 1rem;
+        }
+        .social-links a:hover { background: var(--secondary-color); transform: translateY(-3px); }
+        .copyright {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 25px; margin-top: 40px;
+            text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5);
+        }
+        /* ── Language toggle (inline inside the navbar) ── */
+        .language-toggle {
+            position: static;
+            background: var(--light-color);
+            border-radius: 999px; padding: 4px; display: inline-flex;
+            border: 1px solid var(--border-soft); flex: none;
+        }
+        .lang-btn { padding: 5px 14px; border: none; background: transparent; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 0.82rem; color: var(--text-light); transition: all 0.3s; }
+        .lang-btn.active { background: var(--primary-color); color: #fff; }
+        .lang-btn:not(.active):hover { color: var(--primary-color); }
+        html[lang="en"] { direction: ltr; }
+
+        /* ============ Mobile / small-screen refinements ============ */
+        @media (max-width: 768px) {
+            .page-hero { padding: 96px 0 30px; }
+            .page-content { padding: 30px 0; }
+            .footer { padding: 40px 0 24px; }
+        }
+        @media (max-width: 576px) {
+            .container { padding-left: 16px; padding-right: 16px; }
+            .page-hero { padding: 86px 0 24px; }
+            .page-hero h1 { font-size: clamp(1.5rem, 7vw, 2rem); line-height: 1.2; }
+            .page-hero .lead { font-size: 0.95rem; }
+            .section-card { padding: 1.1rem; border-radius: 16px; margin-bottom: 1rem; }
+            .section-card:hover { transform: none; box-shadow: var(--shadow-md); }
+            /* many-row tables stay tabular but get compact cells */
+            .section-card td, .section-card th { padding: 9px 8px; font-size: 0.84rem; }
+            /* comfortable tap targets */
+            .navbar-nav .nav-link { padding: 0.65rem 0.9rem !important; }
+            .rs-links a { padding: 8px 14px; }
+        }
+        /* momentum scroll on any horizontally-scrollable table wrapper */
+        .section-card div[style*="overflow"], .md-card div[style*="overflow"], .table-responsive { -webkit-overflow-scrolling: touch; }
+
+        /* ===== Reusable mobile table → cards (.dl-mtable) =====
+           Few-row data tables stack into cards on phones. Add data-label="…" to each <td>
+           and class dl-mcell-main to the primary (name) cell. Header row is visually hidden
+           but kept for screen readers. */
+        @media (max-width: 576px) {
+            table.dl-mtable thead { position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+            table.dl-mtable, table.dl-mtable tbody, table.dl-mtable tr, table.dl-mtable td { display:block; width:100%; }
+            table.dl-mtable tr { background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; box-shadow:var(--shadow-sm); margin-bottom:10px; padding:4px 2px; }
+            table.dl-mtable td { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:9px 14px!important; border:0!important; text-align:start; }
+            table.dl-mtable td::before { content:attr(data-label); color:var(--text-light); font-weight:700; font-size:0.8rem; flex:none; }
+            table.dl-mtable td.dl-mcell-main { padding-bottom:6px!important; border-bottom:1px solid var(--border-soft)!important; }
+            table.dl-mtable td.dl-mcell-main::before { content:none; }
+        }
+
+        /* ===== Mobile bottom quick-nav bar (phones only) ===== */
+        .dl-tabbar { display: none; }
+        @media (max-width: 767px) {
+            .dl-tabbar {
+                display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1045;
+                background: rgba(255,255,255,.97); backdrop-filter: saturate(150%) blur(10px);
+                border-top: 1px solid var(--border-soft);
+                padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+                box-shadow: 0 -4px 18px rgba(26,36,32,.07);
+            }
+            .dl-tabbar a {
+                flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+                text-decoration: none; color: var(--text-light); font-size: .64rem; font-weight: 700;
+                padding: 5px 2px; border-radius: 12px;
+            }
+            .dl-tabbar a i { font-size: 1.18rem; line-height: 1; }
+            .dl-tabbar a.active { color: var(--primary-color); background: var(--light-color); }
+            .dl-tabbar a.dl-tab-cta { color: var(--primary-color); }
+            /* the quick-nav replaces the bottom conversion bar on phones */
+            .sticky-cta { display: none !important; }
+            body { padding-bottom: calc(62px + env(safe-area-inset-bottom)) !important; }
+        }
+        
+.report-body { font-size: 1rem; line-height: 1.9; color: #2c3e50; }
+.report-body .report-body-title { font-size: 1.5rem; font-weight: 800; color: var(--primary-color); margin: 1.4rem 0 0.6rem; }
+.report-body h2, .report-body h3 { font-size: 1.2rem; font-weight: 800; color: var(--primary-color); margin: 1.6rem 0 0.6rem; }
+.report-body p { margin-bottom: 0.8rem; }
+.report-body ul, .report-body ol { margin: 0.4rem 1.4rem 1rem; }
+.report-body li { margin-bottom: 0.35rem; }
+.report-body hr { border: none; border-top: 1px solid rgba(44,62,80,0.12); margin: 1.2rem 0; }
+.report-body table { width: 100%; border-collapse: collapse; margin: 0.6rem 0 1.2rem; font-size: 0.92rem; }
+.report-body th, .report-body td { border: 1px solid rgba(44,62,80,0.12); padding: 7px 10px; text-align: right; }
+html[dir="ltr"] .report-body th, html[dir="ltr"] .report-body td { text-align: left; }
+.report-body thead th { background: #f4f8fb; color: var(--primary-color); font-weight: 700; }
+.report-body tbody tr:nth-child(even) { background: #fafbfc; }
+.report-body strong { color: var(--primary-color); }
+.report-meta { color: var(--text-light); font-size: 0.86rem; margin-bottom: 1rem; }
+.archive a { display:inline-block; margin: 3px 4px; padding: 5px 12px; border:1px solid rgba(44,62,80,0.12); border-radius: 20px; text-decoration:none; color: var(--primary-color); font-size: 0.85rem; }
+.archive a:hover { border-color: var(--secondary-color); color: var(--secondary-color); }
+
+    </style>
+    
+    
+    <!-- Organization + WebApplication entity — every page reinforces the egxbot entity for
+         Google's knowledge graph and AI assistants (sameAs links the official profiles). -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://egxbot.com/#organization",
+      "name": "المحلل الآلي للبورصة المصرية",
+      "alternateName": "EGX Stock AI Analyzer",
+      "url": "https://egxbot.com",
+      "logo": "https://egxbot.com/static/img/bot-logo.jpg",
+      "sameAs": [
+        "https://t.me/egx_stock_analyzer_bot",
+        "https://www.facebook.com/profile.php?id=100089722161850",
+        "https://twitter.com/egx_ai_analyzer"
+      ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://egxbot.com/#webapp",
+      "name": "egxbot — EGX Stock AI Analyzer",
+      "url": "https://egxbot.com",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, Android, iOS, Telegram",
+      "inLanguage": ["ar", "en"],
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EGP"},
+      "publisher": {"@id": "https://egxbot.com/#organization"}
+    }
+  ]
+}
+</script>
+</head>
+<body>
+    
+
+    
+
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" role="navigation" aria-label="Primary navigation">
+  <div class="container">
+    <a class="navbar-brand" href="/en">
+      <img src="/static/img/bot-logo.jpg" alt="EGXBot" width="40" height="40" class="me-2 rounded-circle">
+      <span class="brand-text">EGXBot</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav" aria-controls="publicNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="publicNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/en">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/en/market">Market</a></li>
+        <li class="nav-item"><a class="nav-link" href="/en/stocks">Stocks</a></li>
+        <li class="nav-item"><a class="nav-link" href="/en/learn">Learn</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Tools</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/terminal/">Live Terminal</a></li>
+            <li><a class="dropdown-item" href="/terminal/ai">AI Assistant</a></li>
+            <li><a class="dropdown-item" href="/en/market-report">Market Report</a></li>
+            <li><a class="dropdown-item" href="/en/funds">Investment Funds</a></li>
+            <li><a class="dropdown-item" href="/en/guide">User Guide</a></li>
+          </ul>
+        </li>
+      </ul>
+      <div class="d-flex align-items-center gap-2 me-0 ms-3">
+        <div class="language-toggle" role="group" aria-label="Change language">
+          <a class="lang-btn " href="https://egxbot.com/market-report/2026-08-25" hreflang="ar">عربي</a>
+          <a class="lang-btn active" href="https://egxbot.com/en/market-report/2026-08-25" hreflang="en">EN</a>
+        </div>
+        <a href="https://t.me/egx_stock_analyzer_bot" class="btn-nav">
+          <i class="fab fa-telegram me-1"></i><span class="cta-text">Start now</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <div class="container page-hero-content">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/en">Home</a></li>
+                    <li class="breadcrumb-item active">Report 2026-08-25</li>
+                </ol>
+            </nav>
+            <h1>Daily Market Report</h1>
+            <p class="lead mb-0" style="color:rgba(255,255,255,0.75); max-width:600px;">Egyptian Exchange session summary · 2026-08-25</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="page-content">
+        <div class="container">
+            
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+
+    
+    <article class="section-card">
+      <div class="report-meta">
+        <i class="fas fa-calendar me-1"></i>2026-08-25
+        <span class="ms-2"><i class="fas fa-robot me-1"></i>Updated daily after the session close — around <b>4:00 PM Cairo time</b></span>
+      </div>
+      <div style="background:#f0f7ff;border-right:3px solid var(--secondary-color);border-left:3px solid var(--secondary-color);border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:1rem;font-size:0.86rem;color:var(--text-light);">
+        <i class="fas fa-circle-info me-1"></i>
+        Each session's report is published after the close (~4 PM Cairo). If the session just ended and today's report isn't here yet, it's being prepared — this is the latest available report.
+      </div>
+      
+      <div class="report-body">
+        <h2 class="report-body-title">📊 Egyptian Exchange Daily Bulletin — Tuesday, 25 August 2026</h2>
+<p><em>(Live data from the Egyptian Exchange EGX — today's session after the close)</em></p>
+<hr/>
+<h2>🏁 First: Market Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Value</th>
+<th>Change</th>
+<th>Change %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EGX30</strong></td>
+<td>55,277.03</td>
+<td>+110.55</td>
+<td><strong>+0.20%</strong> 🔴</td>
+</tr>
+<tr>
+<td><strong>EGX70</strong></td>
+<td>21,101.43</td>
+<td>−267.99</td>
+<td><strong>−1.27%</strong> 🟢</td>
+</tr>
+<tr>
+<td><strong>EGX100</strong></td>
+<td>27,390.50</td>
+<td>−257.47</td>
+<td><strong>−0.94%</strong> 🟢</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Trading value:</strong> EGP 13.79 billion | <strong>Volume:</strong> 3.52 billion shares</li>
+<li><strong>Market breadth:</strong> 65 advancers 🟢 vs <strong>154 decliners</strong> 🔴 (and 17 unchanged) — clearly negative breadth</li>
+</ul>
+<p>&gt; ⚠️ <strong>Key note:</strong> The thirty-index rose led by large-cap stocks, while the broad market bled (EGX70 −1.27%). This is <strong>dangerous divergence</strong> — the internal market is far weaker than the main index suggests.</p>
+<hr/>
+<h2>🔍 Second: Today's Performance Analysis</h2>
+<p><strong>1) Session narrative:</strong><br/>
+- A fragile rise in EGX30 (+0.2%) driven by heavyweight blue-chip stocks</p>
+      </div>
+    </article>
+
+    <div class="section-card mt-4 text-center">
+      <h5 class="fw-bold mb-2"><i class="fas fa-bolt me-2 text-primary"></i>Get the report the moment it's out</h5>
+      <p class="text-muted mb-3">Receive the session summary and ideas daily on Telegram — free.</p>
+      <a href="https://t.me/egx_stock_analyzer_bot" target="_blank" rel="noopener" class="btn btn-primary">
+        <i class="fab fa-telegram me-2"></i>Start free on Telegram
+      </a>
+    </div>
+
+    
+
+    
+    <div class="section-card mt-4 archive">
+      <h5 class="fw-bold mb-3"><i class="fas fa-clock-rotate-left me-2 text-primary"></i>Past reports</h5>
+      
+      <a href="/en/market-report/2026-09-06">2026-09-06</a>
+      
+      <a href="/en/market-report/2026-09-03">2026-09-03</a>
+      
+      <a href="/en/market-report/2026-09-02">2026-09-02</a>
+      
+      <a href="/en/market-report/2026-09-01">2026-09-01</a>
+      
+      <a href="/en/market-report/2026-08-31">2026-08-31</a>
+      
+      <a href="/en/market-report/2026-08-30">2026-08-30</a>
+      
+      <a href="/en/market-report/2026-08-26">2026-08-26</a>
+      
+      <a href="/en/market-report/2026-08-24">2026-08-24</a>
+      
+      <a href="/en/market-report/2026-08-23">2026-08-23</a>
+      
+      <a href="/en/market-report/2026-08-20">2026-08-20</a>
+      
+    </div>
+    
+
+  </div>
+</div>
+
+        </div>
+    </main>
+
+    
+    
+    
+    <section class="related-searches">
+        <div class="container">
+            <h2 class="rs-h">Related searches</h2>
+            <div class="rs-links">
+                <a href="/en">EGX AI stock analysis</a><a href="/en/stocks">All Egyptian stock prices &amp; analysis</a><a href="/en/market">Egyptian Exchange today</a><a href="/en/movers">Top gainers &amp; losers today</a><a href="/en/sectors">EGX stocks by sector</a><a href="/en/funds">Egyptian investment funds</a><a href="/en/currencies">Currency rates vs the Egyptian pound</a><a href="/en/commodities">Gold &amp; metals prices today</a><a href="/en/global-indices">World stock indices today</a>
+            </div>
+        </div>
+    </section>
+    
+
+    
+<footer class="footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-3 col-md-6 mb-4">
+        <h3 class="ft-h"><i class="fas fa-chart-line me-2"></i><span class="footer-brand">EGXBot</span></h3>
+        <p class="footer-desc">AI-assisted Egyptian Exchange analysis, live market monitoring, education and disciplined decision tools.</p>
+        <div class="social-links">
+          <a href="https://t.me/egx_stock_analyzer_bot" aria-label="Telegram" title="Telegram"><i class="fab fa-telegram"></i></a>
+          <a href="https://web.telegram.org/a/#-1001707596997" target="_blank" rel="noopener" aria-label="Telegram Group" title="Telegram Group"><i class="fas fa-users"></i></a>
+          <a href="https://www.facebook.com/profile.php?id=100089722161850" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">Market &amp; Analysis</span></h3>
+        <ul class="footer-links footer-links-2col">
+          <li><a href="/en/market">EGX Today</a></li>
+          <li><a href="/en/stocks">Stocks</a></li>
+          <li><a href="/en/movers">Market Movers</a></li>
+          <li><a href="/en/sectors">Sectors</a></li>
+          <li><a href="/en/market-report">Market Report</a></li>
+          <li><a href="/en/funds">Investment Funds</a></li>
+          <li><a href="/en/currencies">Currencies</a></li>
+          <li><a href="/en/commodities">Commodities</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">Products</span></h3>
+        <ul class="footer-links">
+          <li><a href="/terminal/">Live Terminal</a></li>
+          <li><a href="/terminal/ai">AI Assistant</a></li>
+          <li><a href="/alerts">Smart Alerts</a></li>
+          <li><a href="/reports">Reports</a></li>
+          <li><a href="/en/ai-portfolio">Portfolio Analysis</a></li>
+          <li><a href="/en/copy-trading">Copy Trading</a></li>
+          <li><a href="/track-record">Track Record</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">Learn &amp; Support</span></h3>
+        <ul class="footer-links">
+          <li><a href="/en/learn">Learning Library</a></li>
+          <li><a href="/en/guide">User Guide</a></li>
+          <li><a href="/en/faq">FAQ</a></li>
+          <li><a href="/en/support">Support</a></li>
+          <li><a href="/en/community">Community</a></li>
+          <li><a href="/affiliate/apply">Affiliate Program</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h3 class="ft-h"><span class="footer-section-title">Company</span></h3>
+        <ul class="footer-links">
+          <li><a href="/en/about">About</a></li>
+          <li><a href="/en/blog">Blog</a></li>
+          <li><a href="/en/press">Press &amp; Widgets</a></li>
+          <li><a href="/en/contact">Contact</a></li>
+          <li><a href="/en/terms">Terms</a></li>
+          <li><a href="/en/privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="copyright">
+      <p>&copy; 2026 EGXBot. All rights reserved.</p>
+      <p style="font-size:.9rem;">Risk warning: stock trading carries financial risk. Past performance does not guarantee future results.</p>
+      <p><a href="mailto:support@egxbot.com" style="color:rgba(255,255,255,.65);">support@egxbot.com</a></p>
+    </div>
+  </div>
+</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Language toggle = NAVIGATE to the server-rendered twin. Real English pages now
+        // exist (/en, /en/stock/<code>, /en/market, /en/sectors, …). The route injects the
+        // exact ar/en twin URLs when it has them; otherwise we fall back to the English /
+        // Arabic landing. The SERVER language wins — no client-side DOM swap (which used to
+        // leave the page half-translated and the same Arabic content under an "en" flag).
+        var LANG_ALT_EN = "https://egxbot.com/en/market-report/2026-08-25";
+        var LANG_ALT_AR = "https://egxbot.com/market-report/2026-08-25";
+        function setLang(lang) {
+            try { localStorage.setItem('preferredLanguage', lang); } catch (e) {}
+            window.location.href = (lang === 'en') ? LANG_ALT_EN : LANG_ALT_AR;
+        }
+    </script>
+    
+
+<!-- NewsArticle: a dated market-session report → eligible for Google news/article rich
+     results and a clean, citable source for AI assistants. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": "\ud83d\udcca Egyptian Exchange Daily Bulletin \u2014 Tuesday, 25 August 2026",
+  "description": "Egyptian Exchange (EGX) session summary for 2026-08-25",
+  "inLanguage": "en",
+  "datePublished": "2026-08-25",
+  "dateModified": "2026-08-25",
+  "image": "https://egxbot.com/static/img/og-cover.jpg",
+  "articleSection": "Market reports",
+  "author": {"@type": "Organization", "name": "EGX Stock AI Analyzer", "url": "https://egxbot.com"},
+  "publisher": {
+    "@type": "Organization",
+    "name": "EGX Stock AI Analyzer",
+    "logo": {"@type": "ImageObject", "url": "https://egxbot.com/static/img/bot-logo.jpg"}
+  },
+  "mainEntityOfPage": {"@type": "WebPage", "@id": "https://egxbot.com/en/market-report/2026-08-25"}
+}
+</script>
+
+
+    <!-- Live in-place price updates (no-ops unless the page has [data-live-code] elements). -->
+    <script src="/static/js/live.js?v=3" defer></script>
+
+    <!-- Sticky conversion CTA (dismissible; fixed — no layout shift) -->
+    <div id="stickyCta" class="sticky-cta">
+        <div class="sc-inner">
+            <span class="sc-text">Full analysis, signals &amp; price alerts for EGX stocks — free on Telegram<small class="sc-trust">Free • no sign-up • 5000+ investors</small></span>
+            <a class="sc-btn" href="https://t.me/egx_stock_analyzer_bot?start=web_marketreport" target="_blank" rel="noopener"><i class="fab fa-telegram me-1"></i>Start free</a>
+            <button class="sc-close" type="button" aria-label="إغلاق" onclick="var s=document.getElementById('stickyCta');if(s)s.style.display='none';try{sessionStorage.setItem('scHide','1')}catch(e){}">&times;</button>
+        </div>
+    </div>
+    <script>try{if(sessionStorage.getItem('scHide')){var s=document.getElementById('stickyCta');if(s)s.style.display='none';}}catch(e){}</script>
+
+    <!-- Mobile bottom quick-nav (phones only; replaces the conversion bar on small screens) -->
+    <nav class="dl-tabbar" aria-label="Quick navigation">
+        <a href="/en" >
+            <i class="fas fa-house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/en/market" >
+            <i class="fas fa-chart-line" aria-hidden="true"></i><span>Market</span></a>
+        <a href="/en/stocks" >
+            <i class="fas fa-list-ul" aria-hidden="true"></i><span>Stocks</span></a>
+        <a href="/en/market-report" class="active" aria-current="page">
+            <i class="fas fa-newspaper" aria-hidden="true"></i><span>Report</span></a>
+        <a class="dl-tab-cta" href="https://t.me/egx_stock_analyzer_bot?start=web_marketreport" target="_blank" rel="noopener">
+            <i class="fab fa-telegram" aria-hidden="true"></i><span>Start</span></a>
+    </nav>
+    
+
+<style>
+  .dl-exit-ov{
+    position:fixed; inset:0; z-index:2000; display:none;
+    background:rgba(22,32,28,.55); backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:20px;
+    opacity:0; transition:opacity .25s ease;
+  }
+  .dl-exit-ov.show{ display:flex; opacity:1; }
+  .dl-exit-card{
+    background:var(--surface,#fff); border-radius:22px; max-width:440px; width:100%;
+    padding:34px 30px 28px; text-align:center; position:relative;
+    box-shadow:var(--shadow-xl,0 26px 54px rgba(26,36,32,.12));
+    transform:translateY(16px) scale(.98); transition:transform .3s ease;
+  }
+  .dl-exit-ov.show .dl-exit-card{ transform:none; }
+  .dl-exit-x{ position:absolute; top:12px; inset-inline-end:16px; background:none; border:none;
+    font-size:1.5rem; line-height:1; color:var(--ink-3,#6b746d); cursor:pointer; }
+  .dl-exit-badge{ display:inline-block; background:var(--green-soft,#eef6f1); color:var(--primary-color,#11806a);
+    font-weight:800; font-size:.82rem; padding:6px 14px; border-radius:999px; margin-bottom:14px; }
+  .dl-exit-card h3{ color:var(--text-dark,#1a2420); font-weight:900; font-size:1.5rem; margin:0 0 10px; }
+  .dl-exit-card p{ color:var(--text-light,#5a6760); font-size:.98rem; margin:0 0 18px; line-height:1.7; }
+  .dl-exit-code{ font-family:var(--font-mono,monospace); background:var(--primary-color,#11806a); color:#fff;
+    padding:2px 10px; border-radius:7px; font-weight:700; letter-spacing:1px; }
+  .dl-exit-cta{ display:block; text-decoration:none; background:var(--gradient-gold,linear-gradient(135deg,#d6aa5a,#c79338));
+    color:#3a2c08; font-weight:800; font-size:1.05rem; padding:14px; border-radius:14px; transition:transform .2s ease; }
+  .dl-exit-cta:hover{ transform:translateY(-2px); color:#3a2c08; }
+  .dl-exit-skip{ display:block; margin-top:14px; background:none; border:none; color:var(--ink-3,#6b746d);
+    font-size:.85rem; cursor:pointer; text-decoration:underline; width:100%; }
+  @media (max-width:768px){ .dl-exit-ov{ display:none !important; } }  /* desktop only */
+</style>
+<div id="dlExit" class="dl-exit-ov" role="dialog" aria-modal="true" aria-labelledby="dlExitTitle">
+  <div class="dl-exit-card">
+    <button class="dl-exit-x" type="button" aria-label="Close">&times;</button>
+    <span class="dl-exit-badge">🎁 Before you go</span>
+    <h3 id="dlExitTitle">Analyze any EGX stock — free</h3>
+    <p>
+      Get full AI technical analysis, entry signals, targets &amp; alerts on Telegram. And take
+      <span class="dl-exit-code">WELCOME20</span> for 20% off your first subscription.
+    </p>
+    <a class="dl-exit-cta" href="https://t.me/egx_stock_analyzer_bot?start=web_marketreport"
+       target="_blank" rel="noopener">
+       <i class="fab fa-telegram" aria-hidden="true"></i> Start free now</a>
+    <a href="/ai-portfolio" style="display:block;margin-top:12px;color:var(--primary-color,#11806a);font-weight:700;text-decoration:none;font-size:.9rem;">Or analyze your portfolio with AI →</a>
+    <button class="dl-exit-skip" type="button">No thanks, maybe later</button>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='dlExitShown';
+  try{ if(sessionStorage.getItem(KEY)) return; }catch(e){}
+  if(window.matchMedia && window.matchMedia('(max-width:768px)').matches) return;       // desktop only
+  if(('ontouchstart' in window) || navigator.maxTouchPoints>0) return;                   // skip touch laptops
+  var ov=document.getElementById('dlExit'); if(!ov) return;
+  function close(){ ov.classList.remove('show'); setTimeout(function(){ov.style.display='none';},250); }
+  function open(){
+    try{ sessionStorage.setItem(KEY,'1'); }catch(e){}
+    ov.style.display='flex'; requestAnimationFrame(function(){ ov.classList.add('show'); });
+    document.removeEventListener('mouseout', onOut);
+  }
+  function onOut(e){ if(!e.relatedTarget && !e.toElement && e.clientY <= 4){ open(); } }
+  // Arm only after the visitor has had a moment on the page (avoids firing on accidental early flicks).
+  setTimeout(function(){ document.addEventListener('mouseout', onOut); }, 6000);
+  ov.querySelector('.dl-exit-x').addEventListener('click', close);
+  ov.querySelector('.dl-exit-skip').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+})();
+</script>
+    
+<style>
+  .dl-toast{
+    position:fixed; inset-inline-start:18px; bottom:90px; z-index:1090;
+    width:min(340px, calc(100vw - 32px));
+    background:var(--surface,#fff);
+    border:1px solid var(--border-soft,rgba(26,36,32,.08));
+    border-radius:16px; box-shadow:var(--shadow-lg,0 18px 40px rgba(26,36,32,.12));
+    padding:14px 16px; font-family:'Cairo',sans-serif;
+    opacity:0; transform:translateY(14px); pointer-events:none;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .dl-toast.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .dl-toast-body{ display:flex; gap:12px; align-items:flex-start; }
+  .dl-toast-body > i{
+    flex:0 0 auto; width:38px; height:38px; border-radius:11px;
+    display:flex; align-items:center; justify-content:center; font-size:1rem;
+    background:var(--green-soft,#eef6f1); color:var(--primary-color,#11806a);
+  }
+  .dl-toast-txt{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .dl-toast-line{ font-size:.9rem; font-weight:700; color:var(--text-dark,#1a2420); line-height:1.45; }
+  .dl-countdown{
+    font-family:var(--font-mono,'JetBrains Mono',monospace);
+    font-size:.82rem; font-weight:700; color:var(--danger-color,#c0392b);
+    letter-spacing:.3px;
+  }
+  .dl-toast-cta{
+    align-self:flex-start; margin-top:4px; text-decoration:none;
+    background:var(--gradient-gold,linear-gradient(135deg,#d6aa5a,#c79338));
+    color:#3a2c08; font-weight:800; font-size:.8rem; padding:6px 14px; border-radius:10px;
+    transition:transform .2s ease;
+  }
+  .dl-toast-cta:hover{ transform:translateY(-1px); color:#3a2c08; }
+  .dl-toast-x{
+    position:absolute; top:8px; inset-inline-end:10px; background:none; border:none;
+    color:var(--ink-3,#6b746d); font-size:1.1rem; line-height:1; cursor:pointer; padding:2px 4px;
+  }
+  .dl-toast-verify{ font-size:.66rem; color:var(--ink-3,#6b746d); margin-top:6px; display:flex; align-items:center; gap:4px; }
+  .dl-toast-verify i{ color:var(--primary-color,#11806a); }
+  @media (max-width:768px){ .dl-toast{ bottom:78px; } }   /* clear the mobile tab-bar */
+  @media (prefers-reduced-motion:reduce){ .dl-toast{ transition:opacity .2s ease; transform:none; } }
+</style>
+
+<div id="dlToast" class="dl-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+  <button class="dl-toast-x" type="button" aria-label="إغلاق">&times;</button>
+  <div class="dl-toast-body"><!-- filled by JS --></div>
+</div>
+
+<script>
+(function(){
+  try { if (sessionStorage.getItem('dlToastHide')) return; } catch(e){}
+  var el = document.getElementById('dlToast');
+  if(!el) return;
+  var en = (document.documentElement.lang === 'en');
+  var DEADLINE = parseInt("1789039800000", 10) || 0;
+  var body = el.querySelector('.dl-toast-body');
+  var verifyTxt = en ? 'Live data from egxbot' : 'بيانات حيّة من egxbot';
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function fmt(ms){
+    var s = Math.floor(ms/1000);
+    var d = Math.floor(s/86400); s-=d*86400;
+    var h = Math.floor(s/3600);  s-=h*3600;
+    var m = Math.floor(s/60);    s-=m*60;
+    if(d>0) return en ? (d+'d '+pad(h)+':'+pad(m)+':'+pad(s)) : (d+' يوم '+pad(h)+':'+pad(m)+':'+pad(s));
+    return pad(h)+':'+pad(m)+':'+pad(s);
+  }
+  function updateCd(){
+    var cd = document.getElementById('dlCd');
+    if(!cd || !DEADLINE) return;
+    var diff = DEADLINE - Date.now();
+    cd.textContent = diff<=0 ? (en?'Ends soon':'ينتهي قريباً')
+                             : (en?'Ends in ':'ينتهي خلال ') + fmt(diff);
+  }
+  function esc(t){ var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+  function render(s){
+    var label = en ? s.en : s.ar;
+    var html = '<i class="fas '+esc(s.icon||'fa-bolt')+'" aria-hidden="true"></i>'
+             + '<div class="dl-toast-txt"><span class="dl-toast-line">'+esc(label)+'</span>';
+    if(s.offer){
+      html += '<span class="dl-countdown" id="dlCd"></span>'
+            + '<a class="dl-toast-cta" href="https://t.me/egx_stock_analyzer_bot?start=welcome20" '
+            + 'target="_blank" rel="noopener">'+(en?'Claim now':'احصل عليه الآن')+'</a>';
+    } else if(s.href){
+      var ctaLabel = en ? (s.cta_en||'Open') : (s.cta_ar||'افتح');
+      html += '<a class="dl-toast-cta" href="'+esc(s.href)+'" target="_blank" rel="noopener">'+esc(ctaLabel)+'</a>';
+    }
+    html += '<span class="dl-toast-verify"><i class="fas fa-circle-check" aria-hidden="true"></i>'+verifyTxt+'</span>';
+    html += '</div>';
+    body.innerHTML = html;
+    updateCd();
+  }
+
+  var slides = [], idx = 0, timer = null;
+  function next(){ if(slides.length){ render(slides[idx % slides.length]); idx++; } }
+  function show(){ el.hidden=false; requestAnimationFrame(function(){ el.classList.add('show'); }); }
+
+  el.addEventListener('mouseenter', function(){ if(timer){ clearInterval(timer); timer=null; } });
+  el.addEventListener('mouseleave', function(){ if(!timer){ timer=setInterval(next, 7000); } });
+  el.querySelector('.dl-toast-x').addEventListener('click', function(){
+    el.classList.remove('show');
+    setTimeout(function(){ el.hidden=true; }, 350);
+    if(timer){ clearInterval(timer); timer=null; }
+    try{ sessionStorage.setItem('dlToastHide','1'); }catch(e){}
+  });
+
+  fetch('/live/social-proof').then(function(r){ return r.json(); }).then(function(d){
+    slides = (d && d.messages) ? d.messages.slice() : [];
+    if(!slides.length){
+      slides = [{icon:'fa-gift', offer:true,
+                 ar:'عرض هذا الأسبوع: خصم 20% بكود WELCOME20',
+                 en:'This week: 20% off with WELCOME20'}];
+    }
+    setTimeout(function(){ show(); next(); timer=setInterval(next, 7000); }, 3500);
+  }).catch(function(){ /* silent: marketing widget is non-critical */ });
+
+  setInterval(updateCd, 1000);
+})();
+</script>
+    
+
+<style>
+  .dl-cookie{
+    position:fixed; inset-inline:14px; bottom:14px; z-index:1300; display:none;
+    background:var(--surface,#fff); border:1px solid var(--border-strong,rgba(26,36,32,.12));
+    border-radius:14px; box-shadow:var(--shadow-lg,0 18px 40px rgba(26,36,32,.12));
+    padding:14px 18px; max-width:760px; margin-inline:auto;
+    align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .dl-cookie.show{ display:flex; }
+  .dl-cookie p{ flex:1 1 320px; margin:0; color:var(--text-light,#5a6760); font-size:.86rem; line-height:1.6; }
+  .dl-cookie p a{ color:var(--primary-color,#11806a); font-weight:700; }
+  .dl-cookie .dl-cookie-btns{ display:flex; gap:8px; flex:0 0 auto; }
+  .dl-cookie button{ border:none; border-radius:10px; font-weight:700; font-size:.85rem; padding:9px 18px; cursor:pointer; }
+  .dl-cookie .ck-accept{ background:var(--primary-color,#11806a); color:#fff; }
+  .dl-cookie .ck-reject{ background:var(--green-soft,#eef6f1); color:var(--primary-color,#11806a); }
+  @media (max-width:560px){ .dl-cookie .dl-cookie-btns{ flex:1 1 100%; } .dl-cookie button{ flex:1; } }
+</style>
+<div id="dlCookie" class="dl-cookie" role="region" aria-label="Cookie notice">
+  <p>
+    We use minimal cookies to remember your preferences and improve the experience. See our
+      <a href="/privacy">Privacy Policy</a>.
+  </p>
+  <div class="dl-cookie-btns">
+    <button type="button" class="ck-reject" id="ckReject">Reject</button>
+    <button type="button" class="ck-accept" id="ckAccept">Accept</button>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='dlCookieConsent';
+  var el=document.getElementById('dlCookie'); if(!el) return;
+  var choice; try{ choice=localStorage.getItem(KEY); }catch(e){}
+  if(choice){ return; }                       // already chosen — never show again
+  setTimeout(function(){ el.classList.add('show'); }, 800);
+  function decide(v){ try{ localStorage.setItem(KEY, v); }catch(e){} el.classList.remove('show'); }
+  document.getElementById('ckAccept').addEventListener('click', function(){ decide('accepted'); });
+  document.getElementById('ckReject').addEventListener('click', function(){ decide('rejected'); });
+})();
+</script>
+    <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/static/sw.js').catch(function(){});});}</script>
+</body>
+</html>

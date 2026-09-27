@@ -1,0 +1,1172 @@
+/* Sector pulse & ownership lens. High-end financial terminal aesthetic. */
+.ft-portals{display:grid;grid-template-columns:1.15fr 1fr;gap:20px;margin:24px 0 36px}
+.ft-portal{position:relative;display:block;text-align:start;min-width:0;padding:0;border:1px solid var(--edge);border-radius:var(--radius-island);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;overflow:hidden;box-shadow:0 10px 30px -10px rgba(0,0,0,0.06);transition:transform .22s cubic-bezier(0.23,1,0.32,1),border-color .22s ease,box-shadow .22s ease}
+.ft-portal:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 16px 36px -12px color-mix(in srgb,var(--accent) 18%,transparent)}
+.ft-portal:active{transform:scale(0.985)}
+.ft-portal-shell{padding:clamp(22px,2.6vw,32px);display:flex;flex-direction:column;height:100%;box-sizing:border-box}
+.ft-portal-sector{background:radial-gradient(100% 120% at 90% 0%,color-mix(in srgb,var(--up) 8%,transparent),transparent 65%),var(--surface)}
+.ft-portal-owner{background:radial-gradient(100% 120% at 90% 0%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 65%),var(--surface)}
+.ft-eyebrow-line{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ft-eyebrow{font-size:10px;font-weight:750;letter-spacing:.14em;color:var(--t2);text-transform:uppercase}
+.ft-pulse-badge{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--up);background:color-mix(in srgb,var(--up) 12%,transparent);padding:3px 8px;border-radius:12px}
+.ft-pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--up);box-shadow:0 0 8px var(--up)}
+.ft-tag-pill{font-size:9.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);padding:3px 9px;border-radius:12px}
+.ft-portal h2{font-size:clamp(23px,2.2vw,30px);letter-spacing:-.03em;margin:6px 0 4px;line-height:1.22;font-weight:750}
+.ft-portal p{font-size:12.5px;color:var(--t2);margin:0 0 16px;line-height:1.55}
+/* Portal Hero Visuals */
+.ft-portal-visual{margin:4px 0 16px;background:var(--sunk);border:1px solid var(--edgeIn);border-radius:var(--radius-control);padding:12px;min-width:0}
+.ft-preview-grid{display:grid;gap:8px}
+.ft-preview-item{display:grid;grid-template-columns:1.2fr 1.1fr auto;gap:10px;align-items:center;padding:7px 10px;background:var(--surface);border-radius:12px;border:1px solid var(--edge);font-size:11.5px}
+.ft-preview-info{display:flex;flex-direction:column;min-width:0}
+.ft-preview-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
+.ft-preview-val{font-size:10.5px;color:var(--t2);font-weight:500}
+.ft-preview-row-center{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.ft-preview-badge{font-size:11.5px;font-weight:700;letter-spacing:-.01em}
+.ft-owner-stream{padding:10px}
+.ft-stake-feed{display:grid;gap:8px}
+.ft-stake-feed-item{background:var(--surface);border:1px solid var(--edge);border-radius:13px;padding:9px 12px;display:flex;flex-direction:column;gap:5px}
+.ft-feed-top{display:flex;align-items:center;gap:8px;font-size:11px}
+.ft-feed-ticker{font-weight:750;font-size:12px;color:var(--ink);letter-spacing:.02em}
+.ft-feed-rel{color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ft-feed-date{font-size:10px;color:var(--faint);font-family:'IBM Plex Mono',monospace}
+.ft-feed-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ft-stake-badge{font-size:11.5px;font-weight:750;border:1px solid var(--rule2);background:color-mix(in srgb,var(--surface) 60%,transparent);padding:3px 9px;border-radius:10px}
+.ft-feed-value{font-size:11px;color:var(--t2);font-weight:600}
+.ft-portal-meta{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--t2);margin-top:auto;padding-top:10px}
+.ft-market-turnover{font-weight:650;color:var(--ink)}
+.ft-portal-foot{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid var(--edgeIn);margin-top:10px;font-weight:650;font-size:13px}
+.ft-arrow-pill{width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--ink) 6%,transparent);display:grid;place-items:center;font-size:16px;transition:transform .2s ease,background-color .2s ease}
+.ft-portal:hover .ft-arrow-pill{transform:translate(2px,-2px);background:var(--accent);color:#1b1917}
+.ft-band{height:8px;display:flex;overflow:hidden;background:var(--rule2);border-radius:var(--radius-control);direction:ltr}
+.ft-band i{display:block;height:100%;transition:width .3s ease}
+/* Full Screen Layouts */
+.ft-screen{margin-block:20px 48px;min-width:0}
+.ft-heading h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.035em;margin:10px 0 8px;line-height:1.2;font-weight:750}
+.ft-heading p{color:var(--t2);font-size:14px;margin:0 0 20px}
+.ft-market-ribbon{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.ft-ribbon-card{background:var(--surface);border:1px solid var(--edge);border-radius:var(--radius-control);padding:16px 20px;display:flex;flex-direction:column;gap:4px}
+.ft-ribbon-card span{font-size:11px;color:var(--t2)}
+.ft-ribbon-card strong{font-size:clamp(20px,2vw,26px);letter-spacing:-.03em;font-weight:700}
+.ft-toolbar{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin:16px 0 24px}
+.ft-pills{display:flex;flex-wrap:wrap;gap:6px}
+.ft-pill,.ft-pagination button,.ft-select select{font:inherit;color:var(--ink);border:1px solid var(--edge);background:var(--surface);border-radius:var(--radius-control);min-height:42px;padding:8px 14px;cursor:pointer;transition:transform .12s ease,background-color .12s ease}
+.ft-pill:active,.ft-pagination button:active{transform:scale(0.97)}
+/* `#app button{color:inherit}` in journal.css is (1,0,1) and this was (0,2,0),
+   so the pressed pill took the page's ink for its text AND for its background:
+   every active pill on this site was a solid dark box with an invisible label
+   in it. The id is here to outrank that rule, not for scoping. */
+#app .ft-pill[aria-pressed=true],
+.ft-pill[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.ft-select{display:grid;gap:5px;min-width:0;max-width:100%;flex:1 1 180px;font-size:11.5px;color:var(--t2)}
+.ft-select select{width:100%;max-width:100%;font-size:13px}
+/* Sector Grid */
+.ft-sector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:18px 0 28px}
+.ft-sector-tile{text-align:start;display:grid;gap:10px;border:1px solid var(--edge);border-radius:var(--radius-control);padding:18px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-width:0;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.ft-sector-tile:hover{transform:translateY(-2px);border-color:var(--accent)}
+.ft-sector-tile[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent);background:color-mix(in srgb,var(--surface) 96%,var(--accent))}
+.ft-tile-header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+/* `flex:1` grows the title but does not let it shrink: a flex child keeps a
+   min-width of auto, so "مقاولات و إنشاءات هندسية" held the header at 163px
+   inside a 149px content box and the tile clipped its own numbers at 390px. */
+.ft-tile-title{font-size:13px;font-weight:700;line-height:1.3;flex:1;min-width:0;overflow-wrap:anywhere}
+.ft-tile-header,.ft-tile-spark-row,.ft-tile-meta{min-width:0}
+.ft-tile-header>*,.ft-tile-spark-row>*,.ft-tile-meta>*{min-width:0}
+.ft-tile-header strong{font-size:22px;letter-spacing:-.03em}
+.ft-tile-spark-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-block:4px}
+.ft-velocity-pill{font-size:10px;color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);padding:2px 7px;border-radius:10px;font-weight:600}
+.ft-tile-meta{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--t2)}
+.ft-tile-action{font-size:9.5px;color:var(--faint);text-align:end}
+/* Detail Panel */
+.ft-detail{padding:clamp(20px,3vw,34px);background:var(--surface);border:1px solid var(--edge);border-radius:var(--radius-island);box-shadow:0 12px 40px -16px rgba(0,0,0,0.06);margin-bottom:32px;scroll-margin-top:24px}
+.ft-section-heading{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:16px}
+.ft-section-heading h2{margin:4px 0 0;font-size:26px;letter-spacing:-.03em;font-weight:750}
+.ft-section-heading h3{margin:4px 0 0;font-size:19px;letter-spacing:-.02em;font-weight:700}
+.ft-range-badge{font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace;background:var(--sunk);padding:4px 10px;border-radius:10px;border:1px solid var(--edgeIn)}
+.ft-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;padding:18px 0}
+.ft-metrics-sub{border-top:1px solid var(--edgeIn);padding-top:18px;margin-top:4px}
+.ft-metric{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ft-metric>span{font-size:11px;color:var(--t2)}
+.ft-metric strong{font-size:clamp(19px,2.3vw,27px);font-weight:700;letter-spacing:-.03em;text-align:start;overflow-wrap:anywhere}
+.ft-metric small{font-size:10px;color:var(--t2)}
+.ft-charts-heading{margin-top:20px}
+.ft-charts-heading h3{margin:0;font-size:18px;font-weight:700}
+.ft-charts-heading p{margin:4px 0 0;font-size:12px;color:var(--t2)}
+.ft-charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0 28px}
+.ft-chart-shell{min-width:0;background:var(--sunk);border:1px solid var(--edgeIn);border-radius:var(--radius-control);padding:18px}
+.ft-chart{margin:0;min-width:0}
+.ft-chart figcaption{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;font-size:11px;min-height:30px}
+.ft-chart-legend{display:flex;align-items:center;gap:12px}
+.ft-legend-item{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600}
+.ft-legend-item i{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor}
+.ft-chart svg{width:100%;display:block;height:auto;margin-top:14px;overflow:visible}
+.ft-chart-dates{display:flex;justify-content:space-between;gap:12px;color:var(--t2);font-size:10px;margin-top:10px;font-family:'IBM Plex Mono',monospace}
+/* Stock movements relative to size */
+.ft-stock-breakdown{margin:28px 0 24px;border-top:1px solid var(--edgeIn);padding-top:24px}
+.ft-stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:14px}
+.ft-stock-card{background:var(--sunk);border:1px solid var(--edgeIn);border-radius:var(--radius-control);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.ft-stock-top{display:flex;align-items:center;gap:10px}
+.ft-stock-ticker-btn{font:inherit;font-size:13px;font-weight:750;color:var(--ink);background:var(--surface);border:1px solid var(--edge);border-radius:9px;padding:4px 9px;cursor:pointer;transition:background-color .15s}
+.ft-stock-ticker-btn:hover{background:var(--accent);color:#1b1917}
+.ft-stock-name{font-size:11.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ft-stock-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:10px}
+.ft-stock-metrics>div{display:flex;flex-direction:column;gap:2px}
+.ft-stock-metrics span{color:var(--t2)}
+.ft-stock-metrics strong{font-size:12.5px;font-weight:700}
+.ft-stock-metrics small{font-size:9.5px;font-weight:600}
+/* Balanced Purchases / Sales */
+.ft-balanced{display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--sunk);border:1px solid var(--edgeIn);border-radius:var(--radius-control);padding:18px 24px;margin:24px 0}
+.ft-balanced>b{font-size:32px;font-weight:300;color:var(--t2)}
+/* Ownership Lens Elements */
+.ft-thesis-banner{display:flex;align-items:center;gap:18px;background:radial-gradient(90% 120% at 0% 0%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 75%),var(--surface);border:1px solid var(--edge);border-radius:var(--radius-island);padding:18px 24px;margin-bottom:20px}
+.ft-thesis-icon{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:1px solid var(--accent);display:grid;place-items:center;font-size:22px;font-weight:300;color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.ft-thesis-text strong{font-size:14.5px;display:block;margin-bottom:2px}
+.ft-thesis-text p{font-size:12.5px;color:var(--t2);margin:0;line-height:1.55}
+.ft-company-ownership-card{background:var(--surface);border:1px solid var(--edge);border-radius:var(--radius-island);padding:24px;margin-bottom:20px}
+.ft-event-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.ft-event{border:1px solid var(--edge);border-radius:var(--radius-island);background:var(--surface);padding:22px;min-width:0;display:flex;flex-direction:column;transition:border-color .15s}
+.ft-event:hover{border-color:var(--accent)}
+.ft-event-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--t2);margin-bottom:12px}
+.ft-direction{font-weight:700}
+.ft-event-party{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.ft-party-label{font-size:12px;color:var(--t2)}
+.ft-rel-pill{font-size:10px;color:var(--ink);background:var(--sunk);border:1px solid var(--edgeIn);padding:2px 8px;border-radius:10px}
+.ft-event-numbers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-block:16px}
+.ft-event-numbers .ft-metric:first-child{grid-column:1/-1}
+.ft-event-numbers .ft-metric:first-child strong{font-size:30px;letter-spacing:-.03em}
+.ft-event-numbers .ft-metric strong{font-size:20px}
+.ft-stake-track{height:6px;background:var(--rule2);border-radius:6px;overflow:hidden;direction:ltr;margin-block:10px}
+.ft-stake-track i{display:block;height:100%}
+.ft-source{display:inline-flex;align-items:center;font-size:11.5px;color:var(--ink);font-weight:600;text-underline-offset:4px;margin-top:auto;padding-top:10px}
+.ft-pagination{display:flex;align-items:center;justify-content:center;gap:18px;font-size:13px;margin:24px 0}
+.ft-pagination button:disabled{opacity:.45;cursor:default}
+.ft-empty{padding:32px;border:1px dashed var(--edge);border-radius:var(--radius-island);color:var(--t2);font-size:14px;text-align:center}
+.ft-table-wrap{overflow:auto;max-height:360px;border:1px solid var(--edge);border-radius:var(--radius-control)}
+.ft-table{width:100%;border-collapse:collapse;font-size:12px;text-align:start}
+.ft-table th,.ft-table td{padding:12px;border-bottom:1px solid var(--rule2);text-align:start;white-space:nowrap}
+.ft-table thead{position:sticky;top:0;background:var(--surface);color:var(--ink)}
+.ft-screen :focus-visible,.ft-portals :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media(max-width:768px){
+  .ft-portals,.ft-charts,.ft-event-grid,.ft-market-ribbon{grid-template-columns:1fr}
+  .ft-portals{gap:14px}
+  .ft-sector-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .ft-sector-tile{padding:14px;border-radius:var(--radius-control)}
+  .ft-metrics{grid-template-columns:1fr 1fr;gap:14px 10px}
+  .ft-toolbar{align-items:stretch}.ft-select{flex-basis:100%}
+  .ft-event{padding:18px}
+  .ft-balanced{flex-direction:column;text-align:center;gap:12px}
+  .ft-balanced>b{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .ft-portal,.ft-portal:hover{transform:none;transition:none}
+  .ft-arrow-pill{transition:none}
+}
+.ft-drawing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.ft-drawing-header h3 {
+  margin: 6px 0 4px;
+  font-size: clamp(19px, 2.2vw, 24px);
+  letter-spacing: -0.025em;
+  font-weight: 750;
+}
+.ft-drawing-header p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--t2);
+  max-width: 680px;
+  line-height: 1.55;
+}
+.ft-drawing-tag {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+.ft-drawing-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  background: var(--sunk);
+  border-radius: 12px;
+  border: 1px solid var(--edgeIn);
+  font-size: 11px;
+}
+.ft-flow-svg, .ft-trajectory-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 12px 0;
+  overflow: visible;
+}
+/* Sized Sector Hubs in SVG */
+.ft-hub-node {
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.2s ease;
+}
+.ft-hub-node:hover circle {
+  stroke-width: 2.2px;
+  stroke: var(--accent);
+}
+.ft-hub-selected circle {
+  stroke-width: 2.5px;
+}
+/* Focused Sector Capsule */
+.ft-focus-capsule {
+  margin-top: 20px;
+  padding: 18px 22px;
+  background: var(--sunk);
+  border: 1px solid var(--edgeIn);
+  border-radius:var(--radius-control);
+}
+.ft-focus-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ft-focus-eyebrow {
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t2);
+}
+.ft-focus-head h4 {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 750;
+}
+.ft-focus-pill {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  padding: 5px 12px;
+  border-radius: 12px;
+}
+.ft-satellites-title {
+  font-size: 11px;
+  color: var(--t2);
+  margin-bottom: 10px;
+}
+.ft-satellites-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.ft-satellite-card {
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius:var(--radius-control);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.ft-satellite-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.ft-satellite-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.ft-sat-ticker {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.ft-sat-weight {
+  font-size: 10px;
+  color: var(--t2);
+}
+.ft-satellite-mid {
+  font-size: 10.5px;
+  color: var(--t2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ft-satellite-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.ft-inspector-hero {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+.ft-hero-metric-box {
+  background: var(--sunk);
+  border: 1px solid var(--edgeIn);
+  border-radius:var(--radius-control);
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ft-hero-eyebrow {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t2);
+}
+.ft-hero-number-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.ft-hero-number {
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.ft-hero-scope {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ft-hero-note {
+  font-size: 11px;
+  color: var(--t2);
+  line-height: 1.45;
+}
+.ft-hero-side-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+/* Trajectory Drawing */
+.ft-trajectory-container {
+  margin-bottom: 24px;
+}
+.ft-trajectory-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--t2);
+  margin-top: 8px;
+}
+/* Home Mini Previews */
+.ft-mini-drawing {
+  margin-bottom: 10px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius:var(--radius-control);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ft-mini-constellation, .ft-mini-web-svg {
+  width: 100%;
+  height: 64px;
+  display: block;
+}
+@media (max-width: 768px) {
+  .ft-portals {
+    grid-template-columns: 1fr;
+  }
+  .ft-inspector-hero {
+    grid-template-columns: 1fr;
+  }
+  .ft-drawing-header {
+    flex-direction: column;
+  }
+}
+/* Regulatory Notice Filing Card */
+.ft-event-notice {
+  background: var(--sunk);
+  border: 1px solid var(--edgeIn);
+}
+.ft-event-notice:hover {
+  border-color: var(--edge);
+  background: var(--surface);
+}
+.ft-notice-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.ft-notice-content {
+  margin: 12px 0;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--edgeIn);
+  border-radius:var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ft-notice-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.45;
+}
+.ft-notice-callout {
+  font-size: 11.5px;
+  color: var(--t2);
+  line-height: 1.5;
+  margin: 0;
+}
+.ft-notice-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--edgeIn);
+  flex-wrap: wrap;
+}
+.ft-filing-ref {
+  font-size: 10.5px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--t2);
+}
+.ft-source-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  text-decoration: none;
+  transition: background-color .15s, border-color .15s;
+}
+.ft-source-btn:hover {
+  background: var(--accent);
+  color: #1b1917;
+  border-color: var(--accent);
+}
+.ft-node-selected rect {
+  stroke: var(--ink) !important;
+  stroke-width: 2px !important;
+}
+/* ── Named people, and the journey of a stake ─────────────────────────────────
+   A row is read left-to-right as a sentence: who, where, from what to what,
+   and how many times. The percentages sit in their own column so a reader
+   scanning down compares stakes with stakes rather than re-reading names. */
+.ft-people-panel .ft-people-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ft-person-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, .7fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--rule2);
+  border-radius:var(--radius-control);
+  background: var(--sunk);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.ft-person-row:hover { border-color: var(--accent); background: var(--surface); }
+.ft-person-id { display: grid; min-width: 0; }
+.ft-person-id b { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.ft-person-id small { font-size: 10.5px; color: var(--faint); overflow-wrap: anywhere; }
+.ft-person-where { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.ft-person-where code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px; font-weight: 600;
+  padding: 2px 6px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--rule);
+  color: var(--t2);
+}
+.ft-person-where small { font-size: 10px; color: var(--faint); align-self: center; }
+.ft-person-move {
+  display: flex; align-items: baseline; gap: 6px; min-width: 0;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 650;
+}
+.ft-stake-from { color: var(--faint); }
+.ft-stake-arrow { color: var(--faint); font-size: 11px; }
+.ft-person-multi { font-family: inherit; font-size: 11px; color: var(--faint); font-weight: 500; }
+.ft-person-count { display: flex; gap: 6px; font-size: 10.5px; font-style: normal; }
+.ft-tick-buy { color: var(--up); font-style: normal; }
+.ft-tick-sell { color: var(--down); font-style: normal; }
+@media (max-width: 768px) {
+  /* Four columns cannot hold an Arabic name, a ticker and two percentages at
+     390px. The name takes its own line and the numbers share the next one. */
+  .ft-person-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "who who" "where move" "count count";
+    gap: 6px 10px;
+  }
+  .ft-person-id { grid-area: who; }
+  .ft-person-where { grid-area: where; }
+  .ft-person-move { grid-area: move; justify-content: flex-end; }
+  .ft-person-count { grid-area: count; }
+}
+
+/* ── The ownership map ────────────────────────────────────────────────────── */
+.om-panel .ft-section-heading { align-items: flex-start; }
+
+/* Week strip across the top, board and side panel beneath it. The strip spans
+   both columns because it governs both of them. */
+.om-map-host { display: grid; gap: 12px; min-width: 0;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-areas: "strip strip" "stage side"; }
+.om-map-wrap { min-width: 0; }
+.om-periods { grid-area: strip; display: flex; gap: 4px; padding: 4px;
+  border-radius:var(--radius-control); background: var(--sunk); border: 1px solid var(--rule2);
+  flex-wrap: wrap; align-items: stretch; min-width: 0; }
+.om-period {
+  border: 0; background: transparent; color: var(--t2);
+  font: inherit; font-family: 'IBM Plex Mono', monospace;
+  padding: 5px 11px; border-radius:var(--radius-control); cursor: pointer; min-width: 0;
+  display: grid; gap: 1px; text-align: center; line-height: 1.25;
+}
+.om-period strong { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.om-period small { font-size: 9px; opacity: .72; white-space: nowrap; }
+.om-period-on { background: var(--accent); color: var(--surface); }
+.om-period:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.om-map-tools { margin-inline-start: auto; display: flex; align-items: stretch;
+  gap: 4px; min-width: 0; }
+.om-play, .om-tool { border: 1px solid var(--rule2); cursor: pointer;
+  background: var(--surface); color: var(--t2); border-radius:var(--radius-control);
+  padding: 0 12px; font: inherit; font-size: 12px; line-height: 1;
+  display: grid; place-items: center; min-width: 32px; }
+.om-play:hover, .om-tool:hover { color: var(--accent); border-color: var(--accent); }
+.om-play:focus-visible, .om-tool:focus-visible { outline: 2px solid var(--accent);
+  outline-offset: 2px; }
+.om-tool:disabled { opacity: .35; cursor: default; }
+.om-tool:disabled:hover { color: var(--t2); border-color: var(--rule2); }
+.om-zoom-level { display: grid; place-items: center; min-width: 34px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--faint); }
+
+/* Full screen holds the live board. It is a plain fixed layer rather than a
+   <dialog> because the board keeps its own click handling and a modal dialog
+   would put the page behind an inert barrier the map's own tooltips sit under. */
+.om-sheet { position: fixed; inset: 0; z-index: 90; background: var(--bg);
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+           max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow: auto; }
+body.om-sheet-open { overflow: hidden; }
+.om-sheet .om-map-host { height: 100%; grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 360px; }
+.om-sheet .om-register-list { max-height: none; }
+.om-sheet .om-map-slot { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.om-sheet .om-map-scroll { height: 100%; display: grid; }
+.om-sheet .om-map-svg { height: 100%; width: 100%; }
+.om-sheet .om-side { overflow: auto; }
+
+.om-map-slot { grid-area: stage; min-width: 0; }
+/* Shown only where the board pans — see the narrow-screen block below. */
+.om-pan-hint { display: none; margin: 6px 2px 0; font-size: 10.5px;
+  color: var(--faint); }
+.om-map-scroll { min-width: 0; border-radius:var(--radius-island); background: var(--sunk);
+  border: 1px solid var(--rule2); overflow: hidden; }
+/* `pan-y` and not `pan-x pan-y`: the board takes the sideways gesture itself
+   now, at every zoom, and the browser keeps only the up-and-down one so a
+   reader can still scroll past the board without being trapped on it.
+   Handing the sideways drag to the container was what "it doesn't go all the
+   way" was — the gesture ended wherever a native flick decided, not at the
+   edge of the exchange. `none` while two fingers are down, so a pinch is a
+   pinch rather than the page zooming underneath it. */
+.om-map-svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.om-map-svg[data-panning] { touch-action: none; }
+.om-map-scroll:has(.om-map-svg) { cursor: grab; }
+.om-map-scroll:active { cursor: grabbing; }
+
+.om-side { grid-area: side; display: grid; gap: 10px; align-content: start;
+  min-width: 0; grid-template-rows: auto minmax(0, 1fr); }
+.om-side-cards { display: grid; gap: 10px; align-content: start; min-width: 0; }
+
+/* The index to the map. Every filed name is here, in an order that is stated,
+   because a board that names only the holders whose labels happen to fit is a
+   ranking nobody asked for. */
+.om-register { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 8px; min-width: 0; min-height: 0; padding: 12px; border-radius:var(--radius-control);
+  background: var(--sunk); border: 1px solid var(--rule2); }
+.om-search { width: 100%; min-width: 0; box-sizing: border-box; font: inherit;
+  font-size: 12px; padding: 7px 11px; border-radius: 12px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule2); }
+.om-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.om-crumb:empty { display: none; }
+.om-crumb-clear { font: inherit; font-size: 10.5px; padding: 4px 10px;
+  border-radius:var(--radius-island); cursor: pointer; color: var(--surface);
+  background: var(--accent); border: 0; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.om-register-count { margin: 0; font-size: 10px; color: var(--faint);
+  letter-spacing: .04em; }
+.om-register-list { overflow-y: auto; min-height: 0; max-height: 340px;
+  display: grid; align-content: start; gap: 1px; }
+.om-reg-row { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center; gap: 8px; width: 100%; text-align: start; cursor: pointer;
+  padding: 6px 4px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--ink); font: inherit; min-width: 0; }
+.om-reg-row:hover, .om-reg-row:focus-visible { background: var(--activeBg); }
+.om-reg-row-on { background: var(--accTint); }
+.om-reg-row i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.om-reg-row span { min-width: 0; display: grid; }
+.om-reg-row strong { font-size: 11.5px; font-weight: 500; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.om-reg-row small { font-size: 9.5px; color: var(--faint); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.om-reg-row b { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  color: var(--t2); white-space: nowrap; }
+.om-reg-head { margin: 10px 0 2px; font-size: 9.5px; color: var(--faint);
+  letter-spacing: .07em; text-transform: uppercase; }
+/* A board member in the register list. The seat on the BOARD is `.om-seat`,
+   an SVG group, and these two shared a class until one of them noticed. */
+.om-board-seat { padding: 5px 4px; display: grid;
+  border-bottom: 1px solid var(--rule2); }
+.om-board-seat:last-child { border-bottom: 0; }
+.om-board-seat strong { font-size: 11px; font-weight: 500; }
+.om-board-seat small { font-size: 9.5px; color: var(--faint); overflow: hidden;
+  text-overflow: ellipsis; }
+.om-reg-none { margin: 6px 2px; font-size: 11px; color: var(--faint); }
+.om-card { padding: 14px 16px; border-radius:var(--radius-control); background: var(--sunk);
+  border: 1px solid var(--rule2); min-width: 0; }
+.om-card h4 { margin: 0 0 8px; font-size: 10.5px; font-weight: 600; color: var(--faint);
+  letter-spacing: .09em; text-transform: uppercase; overflow-wrap: anywhere; }
+.om-card strong { display: block; font-size: 21px; font-weight: 700; letter-spacing: -.02em;
+  overflow-wrap: anywhere; }
+.om-card small { display: block; margin-top: 5px; font-size: 10.5px; color: var(--t2); }
+.om-card-meta { margin: -4px 0 8px; font-size: 10.5px; color: var(--faint); }
+.om-card-warn { color: var(--down) !important; }
+.om-card-more { display: block; margin-top: 7px; font-size: 10px; color: var(--faint); }
+
+.om-holder-row {
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center; gap: 8px; width: 100%;
+  padding: 6px 0; border: 0; border-bottom: 1px solid var(--rule2);
+  background: transparent; color: var(--ink); font: inherit; font-size: 11.5px;
+  text-align: start; cursor: pointer; min-width: 0;
+}
+.om-holder-row:last-child { border-bottom: 0; }
+button.om-holder-row:hover span { color: var(--accent); }
+.om-holder-row i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+.om-holder-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.om-holder-row b { font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  font-weight: 600; color: var(--t2); white-space: nowrap; }
+
+.om-legend { display: grid; gap: 6px; margin-top: 12px; font-size: 11px;
+  color: var(--faint); line-height: 1.5; }
+/* Each line carries the mark it is describing, so the legend can be read
+   against the drawing instead of remembered. */
+.om-key { display: grid; grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px; align-items: start; }
+.om-key::before { content: ''; width: 13px; height: 13px; margin-top: 2px;
+  border-radius: 50%; }
+.om-key-ring::before { border: 3px solid var(--own3); }
+.om-lake-name { pointer-events: none; }
+.om-lake-name text { paint-order: stroke; stroke: var(--surface); stroke-width: 3px;
+  stroke-linejoin: round; }
+.om-bridge-rest { pointer-events: none; }
+.om-key-none::before { border: 3px solid var(--ownNone); }
+.om-key-arc::before { border: 0; border-radius: 0; height: 4px; margin-top: 6px;
+  background: linear-gradient(90deg, var(--up) 50%, var(--down) 50%); }
+.om-key-bridge::before { border: 0; border-radius: 0; height: 0; margin-top: 8px;
+  border-top: 2px solid var(--own5); }
+.om-key-dot::before { border: 0; width: 9px; height: 9px; margin: 4px 2px 0;
+  background: var(--own2); }
+
+/* Focus is expressed by fading everything else, so the thing you asked about
+   keeps its own colour rather than gaining a highlight nothing else has. */
+/* Faded, not erased. At .1 a board of nine hundred dots went to a haze and
+   the sectors around the answer stopped being readable as context. */
+.om-dim { opacity: .17; }
+.om-co, .om-slice, .om-bridge { transition: opacity .18s ease; }
+.om-co, .om-hit { cursor: pointer; }
+.om-pin { cursor: pointer; }
+.om-pin:hover text { fill: var(--accent); }
+/* A name read against a ring is not read. The plate is the page's own ground
+   so the label sits on the board rather than in it. */
+.om-pin-plate { fill: var(--surface); stroke: var(--rule2); stroke-width: .7; }
+.om-moved-ring, .om-flow-dot, .om-move-line { pointer-events: none; }
+/* Motion is the direction of a holding, not decoration — but it is still
+   motion, and a reader who has asked their machine for less of it gets the
+   lines and the colours without the travelling dots. */
+@media (prefers-reduced-motion: reduce) {
+  .om-flow-dot { display: none; }
+}
+.om-seat { cursor: pointer; }
+.om-seat:hover circle { stroke: var(--accent); }
+
+@media (max-width: 900px) {
+  .om-map-host { grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "strip" "stage" "side"; }
+  /* The sheet's own rule is more specific than the one above it, so full
+     screen on a phone kept the desktop's two columns while the areas had
+     become one: every area landed in a 104px first column with 360px of
+     nothing beside it, and the board was drawn two pixels tall. The strip,
+     the board and the register stack here like everywhere else on a phone,
+     and the board keeps the height. */
+  .om-sheet .om-map-host { grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(300px, 1fr) auto; }
+  .om-sheet .om-side { overflow: visible; }
+  .om-sheet .om-map-scroll { min-height: 300px; }
+  /* Stacked, the sheet has no column to scroll the register inside, so the
+     list keeps a ceiling of its own. Without one the full-screen board was a
+     fifty-thousand-pixel page with a map at the top of it. */
+  .om-sheet .om-register-list { max-height: 44vh; }
+  /* And the board keeps its own proportions. Stretched to the height of a
+     squat stage it was letterboxed inside its 880px canvas — two hundred
+     blank pixels down the left, and the right-hand third of the exchange off
+     the edge. It is 880 by 563 here and the stage scrolls to it. */
+  /* Full screen is the same one coordinate system, with a taller frame. */
+  .om-sheet .om-map-svg { height: 100%; min-height: 0; }
+  .om-sheet .om-map-scroll { overflow: hidden; }
+  /* Two-up rather than a single column of near-empty cards under a wide map. */
+  .om-side { grid-template-columns: 1fr 1fr; }
+  .om-legend { font-size: 10.5px; }
+  .om-period { padding: 5px 8px; }
+  .om-period strong { font-size: 10.5px; }
+
+  /* Fifty rings cannot be labelled inside 390 points: squeezed to fit, a
+     ticker renders at three pixels and a ring is an eight-pixel tap target.
+     So the board keeps a width it can be read at and pans inside its own box,
+     and the page itself still never scrolls sideways. The list beside it is
+     the readable interface on a phone; the board is the picture. */
+  /* NO container scroll, and no 880px element behind a 343px window.
+     That was two offsets for one gesture: the reader's finger moved the
+     viewBox and the board's own ends belonged to `scrollLeft`, so the
+     furthest east that could be got on screen was unit 1053 of 1200 and a
+     hundred pixels of finger moved the board twenty-seven units instead of
+     seventy. The board now keeps a frame and pans inside it, and the script
+     fits the window to that frame — the whole height, at a scale a ring can
+     be read at, with the rest of the market a drag away. */
+  .om-map-scroll { overflow: hidden; }
+  .om-map-svg { min-width: 0; width: 100%;
+    height: min(62vh, 520px); min-height: 320px; }
+  .om-pan-hint { display: block; }
+}
+
+/* ── the sector lens ────────────────────────────────────────────────────────
+   Months of money, where it rotated, and which sectors own each other. */
+.sl-block { margin-bottom: 28px; }
+.sl-months, .sl-ring { width: 100%; height: auto; display: block; }
+.sl-months { margin: 8px 0 4px; }
+.sl-col { cursor: pointer; }
+/* Selection is a stroke, never a fill. A fill here beat the column's own
+   colour and emptied the month the reader had just picked. */
+.sl-col rect { transition: opacity .15s ease; }
+.sl-col:hover rect { opacity: .78; }
+.sl-col-on rect { stroke: var(--accent); stroke-width: 1.2; }
+.sl-col:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* One row per sector, always every sector: the bar grows either side of a
+   centre line so a fall is a fall and not a shorter rise. */
+.sl-rotation { display: grid; gap: 2px; margin-top: 12px; }
+.sl-rot-row { display: grid; align-items: center; gap: 10px;
+  grid-template-columns: minmax(0, 1.6fr) 56px minmax(90px, 1fr) 82px;
+  padding: 7px 10px; border: 1px solid transparent; border-radius: 10px;
+  background: none; text-align: start; cursor: pointer; font: inherit;
+  color: var(--t1); }
+.sl-rot-row:hover { background: var(--sunk); }
+.sl-rot-on { border-color: var(--edge); background: var(--sunk); }
+.sl-rot-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.sl-rot-share { font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--t2); text-align: end; }
+.sl-rot-bar { position: relative; height: 8px; border-radius: 4px;
+  background: var(--sunk); box-shadow: inset 0 0 0 1px var(--edgeIn); }
+.sl-rot-bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.sl-rot-bar .sl-pos { background: var(--up); }
+.sl-rot-bar .sl-neg { background: var(--down); }
+.sl-rot-delta { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+  text-align: end; }
+
+/* The ring, and the register under it. */
+.sl-flow path { transition: opacity .2s ease; }
+.sl-node { cursor: pointer; }
+.sl-node:hover circle { stroke: var(--accent); }
+.sl-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sl-links { display: grid; gap: 14px; margin-top: 18px; }
+.sl-owner { border-top: 1px solid var(--edgeIn); padding-top: 12px; }
+.sl-owner-head { display: flex; align-items: baseline; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 6px; }
+.sl-owner-name { font-weight: 650; font-size: 13px; }
+.sl-owner-head small { color: var(--t2); font-size: 11px; }
+.sl-link { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 5px 0 5px 14px; font-size: 12px; }
+.sl-arrow { color: var(--t2); }
+.sl-held-name { font-weight: 550; }
+.sl-held-sector { color: var(--t2); font-size: 11px; }
+.sl-held-value { font-family: 'IBM Plex Mono', monospace; color: var(--t2); }
+.sl-link small { color: var(--t2); font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px; }
+.sl-link a { color: var(--accent); font-size: 11px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-flow circle { display: none; }
+}
+
+@media (max-width: 768px) {
+  .sl-rot-row { grid-template-columns: minmax(0, 1fr) 52px 74px;
+    column-gap: 8px; }
+  /* The diverging bar is the first thing to go: at 120px it reads as noise,
+     and the number beside it says the same thing exactly. */
+  .sl-rot-bar { display: none; }
+  .sl-links { gap: 10px; }
+  .sl-link { padding-inline-start: 8px; }
+}
+
+/* Which scale the months are drawn on. Sits above the chart because it
+   changes what the chart means, not how it is filtered. */
+.sl-scale { margin: 10px 0 2px; }
+
+/* ── the world monitor ──────────────────────────────────────────────────────
+   What moved outside Egypt, and which filings it reaches. */
+.wm-screen .wm-block { margin-bottom: 22px; }
+.wm-windows { margin: 14px 0 18px; }
+.wm-moves { display: grid; gap: 2px; margin-top: 10px; }
+/* The bar is how UNUSUAL the move was, never how big — a reader who reads it
+   as size has oil and the EGX 30 the wrong way round this week. */
+.wm-move { display: grid; align-items: center; gap: 10px;
+  grid-template-columns: minmax(0, 1.2fr) 76px minmax(80px, 0.8fr) minmax(0, 1.4fr);
+  padding: 8px 10px; border-radius: 10px; }
+.wm-move:nth-child(odd) { background: var(--sunk); }
+.wm-move-name { display: grid; min-width: 0; }
+.wm-move-name strong { font-size: 13px; }
+.wm-move-name small { font-size: 10px; color: var(--t2);
+  font-family: 'IBM Plex Mono', monospace; }
+.wm-move-change { font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  text-align: end; }
+.wm-move-bar { height: 7px; border-radius: 4px; background: var(--sunk);
+  box-shadow: inset 0 0 0 1px var(--edgeIn); overflow: hidden; }
+.wm-move-bar i { display: block; height: 100%; background: var(--accent);
+  border-radius: 4px; }
+.wm-move-against { font-size: 11px; color: var(--t2); }
+
+.wm-channel .om-search { margin-top: 12px; }
+.wm-rows { display: grid; gap: 2px; margin-top: 8px;
+  max-height: 60vh; overflow-y: auto; }
+.wm-row { display: grid; align-items: center; gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) 90px;
+  padding: 8px 10px; border-radius: 10px; }
+.wm-row:nth-child(odd) { background: var(--sunk); }
+.wm-row-who { display: grid; min-width: 0; }
+.wm-row-who strong { font-size: 12.5px; }
+.wm-row-who small { font-size: 10.5px; color: var(--t2); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.wm-row-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px; }
+.wm-row-figures span { display: grid; min-width: 0; }
+.wm-row-figures small { font-size: 9.5px; color: var(--faint); }
+.wm-row-figures b { font-size: 12px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; }
+.wm-row-filed { font-size: 10px; color: var(--t2); text-align: end;
+  font-family: 'IBM Plex Mono', monospace; }
+/* Two filed numbers that do not describe each other, said out loud. */
+.wm-row-warn { grid-column: 1 / -1; font-size: 10.5px; color: var(--down); }
+/* The currency note prints however many currencies it prints, so the position
+   runs across the row rather than fighting the three figure columns. */
+.wm-row-fx { grid-column: 1 / -1; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: 6px; }
+.wm-row-fx > small { font-size: 9.5px; color: var(--faint); }
+/* Today's rate, so a net dollar position has something to mean. */
+.wm-today { margin-top: 10px; padding: 10px; border-radius: 10px;
+  background: var(--sunk); }
+.wm-today-rates { display: flex; flex-wrap: wrap; gap: 14px; }
+.wm-today-rates span { display: grid; }
+.wm-today-rates small { font-size: 9.5px; color: var(--faint); }
+.wm-today-rates b { font-size: 12px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; }
+.wm-today-note { display: block; margin-top: 8px; font-size: 10.5px;
+  color: var(--t2); }
+.wm-fx-chip { font-size: 11px; font-weight: 600; padding: 1px 6px;
+  border: 1px solid var(--line); border-radius:var(--radius-island);
+  font-family: 'IBM Plex Mono', monospace; }
+
+@media (max-width: 768px) {
+  .wm-move { grid-template-columns: minmax(0, 1fr) 70px; }
+  .wm-move-bar { display: none; }
+  .wm-move-against { grid-column: 1 / -1; }
+  .wm-row { grid-template-columns: minmax(0, 1fr); }
+  .wm-row-filed { text-align: start; }
+}
+
+/* Changes in trading share — a table, because the numbers are the reading and
+   the colour only agrees with them. */
+.sl-heat-wrap { margin-top: 12px; overflow-x: auto; }
+.sl-heat { border-collapse: collapse; width: 100%; min-width: 520px;
+  font-size: 11px; font-family: 'IBM Plex Mono', monospace; }
+.sl-heat-cap { caption-side: bottom; padding-top: 10px; text-align: start;
+  font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  font-size: 11.5px; color: var(--t2); line-height: 1.55; }
+.sl-heat th, .sl-heat td { padding: 4px 6px; text-align: end; }
+.sl-heat-month { font-size: 9.5px; color: var(--faint); font-weight: 500; }
+.sl-heat-side { text-align: start; font-weight: 500; font-size: 10.5px;
+  font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  max-width: 168px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; position: sticky; inset-inline-start: 0;
+  background: var(--bg); }
+.sl-heat-row { cursor: pointer; }
+.sl-heat-row:nth-child(odd) { background: var(--sunk); }
+.sl-heat-row:nth-child(odd) .sl-heat-side { background: var(--sunk); }
+.sl-heat-row:hover { outline: 1px solid var(--line); }
+.sl-heat-on { outline: 1.5px solid var(--ink); }
+.sl-heat-cell { color: var(--t2); }
+
+.sl-rate { margin-top: 12px; font-size: 13.5px; line-height: 1.6; }
+.sl-eras, .sl-refuses { margin-top: 6px; }
+.sl-refuses { border-inline-start: 2px solid var(--line); padding-inline-start: 10px; }
+
+.sl-followed { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.sl-followed h3 { font-size: 13px; margin: 0 0 4px; }
+.sl-cases { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.sl-cases li { display: grid; grid-template-columns: 64px 52px auto 52px;
+  gap: 8px; align-items: baseline; padding: 4px 8px; border-radius: 8px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+.sl-cases li:nth-child(odd) { background: var(--sunk); }
+.sl-cases small { color: var(--faint); font-size: 10px; }
+
+@media (max-width: 768px) {
+  .sl-heat-side { max-width: 104px; }
+}
+
+/* A channel, shut until it is asked for. Open, the three of them put four
+   hundred rows between the reader and the rest of the page. */
+.wm-channel-head { display: flex; width: 100%; align-items: center; gap: 12px;
+  justify-content: space-between; background: none; border: 0; padding: 0;
+  text-align: start; cursor: pointer; font: inherit; color: inherit; }
+.wm-channel-head h2 { margin: 2px 0 0; }
+.wm-channel-head > div > small { display: block; margin-top: 4px;
+  font-size: 11px; color: var(--t2); }
+.wm-chevron { font-size: 20px; line-height: 1; color: var(--t2);
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius:var(--radius-island); flex: none; }
+.wm-channel-head:hover .wm-chevron { color: var(--ink); border-color: var(--ink); }
+.wm-channel-body { margin-top: 14px; }
+.wm-filters { margin-top: 10px; }
+
+/* One line a sector, labelled at its own end rather than in a legend. */
+.sl-lines-wrap { overflow-x: auto; margin-top: 12px; }
+.sl-lines { width: 100%; height: auto; display: block; }
+.sl-line { cursor: pointer; }
+.sl-line:hover { stroke-width: 2.6; }
+.sl-line-label { cursor: pointer; font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; }
+.sl-line-label:hover { text-decoration: underline; }
+
+/* "What is this?" on a figure that needs it. A <details>, not a hover
+   tooltip: a tooltip does not exist on a phone, and this screen is read on
+   one. Shut it is a 22px mark; open it is a sentence under the number. */
+.ft-ribbon-card { position: relative; }
+.ft-what { margin-top: 6px; }
+.ft-what > summary {
+  list-style: none; cursor: pointer; width: 20px; height: 20px;
+  display: grid; place-items: center; border-radius:var(--radius-island);
+  border: 1px solid var(--line); color: var(--t2);
+  font-size: 11px; font-weight: 700; line-height: 1;
+}
+.ft-what > summary::-webkit-details-marker { display: none; }
+.ft-what > summary:hover, .ft-what[open] > summary {
+  color: var(--bg); background: var(--ink); border-color: var(--ink);
+}
+.ft-what > p {
+  margin: 8px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--t2);
+  max-width: 44ch;
+}
+
+@media (max-width: 768px) {
+  /* Squeezed into 390 points the sector names rendered at five and a half
+     pixels — drawn, and unreadable. The chart keeps a width its own labels can
+     be read at and scrolls inside its box, the way the grid under it does. */
+  .sl-lines { min-width: 680px; }
+}
+
+/* The join, opened on one company: what the outside reaches it through. */
+.wm-row[role="button"] { cursor: pointer; }
+.wm-row-open { outline: 1.5px solid var(--ink); }
+.wm-card { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--line); }
+.wm-card-says { margin: 0 0 8px; font-size: 13px; line-height: 1.65; }
+.wm-card-figures { display: grid; grid-template-columns: 1fr auto;
+  gap: 2px 14px; margin: 10px 0 0; font-size: 11.5px; }
+.wm-card-figures dt { color: var(--t2); }
+.wm-card-figures dd { margin: 0; font-weight: 600; text-align: end;
+  font-family: 'IBM Plex Mono', monospace; }
+.wm-card-note { margin: 10px 0 0; font-size: 10.5px; color: var(--faint);
+  line-height: 1.55; }
+
+/* Three kinds of thing, not twelve unrelated numbers. */
+.wm-group + .wm-group { margin-top: 18px; }
+.wm-group-head { margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+
+/* ── the corridor the MPC set ───────────────────────────────────────────────
+   Two walls and a marker. Four of the five rates here are not series and
+   never will be — a policy rate does not move between decisions — so they are
+   drawn as one figure rather than as four flat lines in the list below. */
+.wm-corridor { margin: 0 0 12px; padding: 12px 12px 10px; border-radius: 12px;
+  background: var(--sunk); box-shadow: inset 0 0 0 1px var(--edgeIn); }
+.wm-corridor-head { display: flex; align-items: baseline; gap: 8px;
+  justify-content: space-between; }
+.wm-corridor-head strong { font-size: 12px; }
+.wm-corridor-head small { font-size: 10px; color: var(--t2);
+  font-family: 'IBM Plex Mono', monospace; }
+
+/* The track is the corridor itself, floor at one end and ceiling at the
+   other. `position: relative` is what the marker's percentage offset is
+   measured against; without it the marker walks to the edge of the screen. */
+.wm-corridor-track { position: relative; height: 10px; margin: 10px 0 6px; }
+.wm-corridor-band { position: absolute; inset: 2px 0; border-radius: 5px;
+  background: var(--sunk); box-shadow: inset 0 0 0 1px var(--thread); }
+/* How far up the corridor the market's own rate sits, drawn from the floor.
+   A tick on its own is a mark the reader has to measure against two ends by
+   eye; the fill IS the distance, and "just above the floor" is the only thing
+   this figure has to say. */
+.wm-corridor-fill { position: absolute; inset-block: 2px;
+  inset-inline-start: 0; border-radius: 5px 0 0 5px;
+  background: color-mix(in srgb, var(--accent) 45%, transparent); }
+[dir="rtl"] .wm-corridor-fill { border-radius: 0 5px 5px 0; }
+/* Centred on its own position rather than starting there, so the marker sits
+   ON the rate instead of just to the right of it — at the floor that is a
+   half-width of error, which is the whole width of the claim. */
+.wm-corridor-mark { position: absolute; top: -2px; width: 3px; height: 14px;
+  border-radius: 2px; background: var(--ink); transform: translateX(-50%); }
+[dir="rtl"] .wm-corridor-mark { transform: translateX(50%); }
+
+.wm-corridor-ends { display: flex; justify-content: space-between; gap: 10px; }
+.wm-corridor-ends span { display: grid; min-width: 0; }
+.wm-corridor-ends .wm-corridor-end-hi { text-align: end; justify-items: end; }
+.wm-corridor-ends strong { font-size: 12.5px;
+  font-family: 'IBM Plex Mono', monospace; }
+.wm-corridor-ends small { font-size: 10px; color: var(--t2); }
+
+.wm-corridor-paid { margin: 8px 0 0; font-size: 12px; color: var(--t2); }
+.wm-corridor-paid strong { font-size: 15px; color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace; }
+.wm-corridor-rest { display: flex; flex-wrap: wrap; gap: 6px 16px;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--edgeIn); }
+.wm-corridor-rest span { display: flex; align-items: baseline; gap: 6px; }
+.wm-corridor-rest small { font-size: 10.5px; color: var(--t2); }
+.wm-corridor-rest strong { font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; }
+/* Sized to the figure rather than to the page. At the site's own note size
+   the two explanatory lines were taller than everything they explain — six
+   lines of body text under a track 10px high. */
+.wm-corridor .ft-note { margin: 8px 0 0; font-size: 11px; line-height: 1.55;
+  color: var(--faint); }
+
+/* On a phone the two end labels are the first thing to collide — "Overnight
+   deposit rate" and "Overnight lending rate" are long, and the figure is
+   worthless if they wrap into each other. */
+@media (max-width: 460px) {
+  .wm-corridor-ends { gap: 6px; }
+  .wm-corridor-ends small { font-size: 9.5px; line-height: 1.3; }
+}
+
+/* §8: Latest session / Historical, inside the sector panel.
+ * Scoped under `.ft-detail` because `.ft-charts` and `.ft-detail` also serve
+ * the ownership lens, which has no tabs and must not grow any. */
+.ft-detail .ft-detail-tabs {
+  display: flex; gap: 4px; padding: 3px; margin: 14px 0 16px;
+  border-radius: var(--radius-control); background: var(--sunk);
+  border: 1px solid var(--edgeIn); width: fit-content; max-width: 100%;
+}
+.ft-detail .ft-detail-tab {
+  min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px;
+  background: transparent; color: var(--t2); font: inherit; font-size: 13px;
+  cursor: pointer; white-space: nowrap;
+}
+.ft-detail .ft-detail-tab[aria-selected="true"] {
+  background: var(--surface); color: var(--ink); font-weight: 600;
+  box-shadow: var(--shPill);
+}
+.ft-detail .ft-detail-tab:hover { color: var(--ink); }
+
+/* Turn 6, blocks 16/17/28: sector pulse, ownership lens, market liquidity.
+ *
+ * Three cards where there were two portals. The portals were each one
+ * card-sized <button>, which made every row inside unreachable on its own and
+ * put a button inside a button. These are articles with one small link out,
+ * so the ticker in an ownership row can be its own control. */
+#app .ft-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px; align-items: start;
+}
+#app .ft-card {
+  display: flex; flex-direction: column; min-width: 0;
+  padding: 20px 22px 18px; border-radius: var(--radius-island);
+  background: var(--surface); border: 1px solid var(--edgeIn); box-shadow: var(--sh);
+}
+#app .ft-card-dateline {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin: 0 0 10px;
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans Arabic', monospace;
+  font-size: 11.5px; color: var(--faint);
+}
+#app .ft-card-open {
+  flex: none; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--accent); font: inherit; white-space: nowrap;
+}
+#app .ft-card-open:hover { text-decoration: underline; }
+#app .ft-card-title { margin: 0; font: 600 16.5px/1.45 var(--font-heading); }
+#app .ft-card-lede { margin: 6px 0 14px; font-size: 14px; line-height: 1.55; color: var(--t2); }
+#app .ft-card-rows { display: flex; flex-direction: column; gap: 2px; }
+#app .ft-card-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline; gap: 10px; padding: 7px 0;
+  border-top: 1px solid var(--edgeIn); font-size: 13px;
+}
+#app .ft-card-row:first-child { border-top: 0; }
+#app .ft-card-row-wide { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+#app .ft-row-name, #app .ft-row-who {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t2);
+}
+#app .ft-row-val, #app .ft-row-ret, #app .ft-row-when, #app .ft-row-stake {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+}
+#app .ft-row-when { color: var(--faint); font-size: 11px; }
+#app .ft-row-code {
+  background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  letter-spacing: .04em;
+}
+#app .ft-row-code:hover { text-decoration: underline; }
+#app .ft-card-limit {
+  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--rule);
+  font-size: 12px; line-height: 1.6; color: var(--faint);
+}
+
+/* One plain line under a heading on the world monitor: what the block is for. */
+#app .ft-lede, #app .wm-lede { margin: 6px 0 10px; font-size: 14.5px; line-height: 1.6; color: var(--t2); max-width: 70ch; }
