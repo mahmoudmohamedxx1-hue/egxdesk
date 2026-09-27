@@ -112,3 +112,12 @@
 - brain: glm-4-plus
 - journal: Momentum and trend strategies showed strength today in identifying leaders with positive foreign inflows. The learning memory confirms the timing accuracy of 'Volume Surge' and 'Whale Watch' strategies. I will monitor the performance of the selected stocks closely, especially given the market's thin liquidity.
 
+## 2026-09-28 08:33:04Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 09:07:46Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 09:18:46Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
