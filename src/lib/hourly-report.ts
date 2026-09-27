@@ -26,6 +26,7 @@ import { fetchUniverse, fetchIndices } from "@/lib/market";
 import { fetchStockChart } from "@/lib/history";
 import { marketStatus } from "@/lib/market-status";
 import { getLatestAiSignals } from "@/lib/ai-signals";
+import { keylessBrainChat } from "@/lib/keyless-brain";
 import {
   strategyFeaturesAt,
   riskLevels,
@@ -44,7 +45,11 @@ const CAND_VOLUME = 5;
 const FAIL_BACKOFF_MS = 4 * 60_000; // after a failed generation, wait before retrying
 export const REPORT_REV = "egx-desk-report-v1";
 
-// ── z-ai SDK singleton ──
+// ── z-ai SDK singleton (WEB SEARCH FUNCTION ONLY — T71) ──
+// The SDK gateway's chat tier was removed with GLM-4-Plus (it served
+// glm-4-plus for every chat call); the gateway's web_search FUNCTION is
+// model-agnostic and stays. Report synthesis now runs on the keyless
+// GLM-5.3-Flash brain (lib/keyless-brain.ts).
 
 type Zai = Awaited<ReturnType<typeof ZAI.create>>;
 let zaiPromise: Promise<Zai> | null = null;
@@ -351,17 +356,16 @@ const OUTPUT_SCHEMA = `{
 }`;
 
 async function createChat(
-  zai: Zai,
   messages: { role: "user" | "assistant"; content: string }[],
   retry: { budgetLeft: number }
 ): Promise<string> {
+  // T71 — the keyless GLM-5.3-Flash brain (no key, no sign-in). The old SDK
+  // chat tier (glm-4-plus) was removed entirely at the user's request.
   for (let attempt = 0; ; attempt++) {
     try {
-      const completion = await zai.chat.completions.create({
-        messages,
-        thinking: { type: "enabled" }, // the desk's synthesis moment — genuine reasoning
-      });
-      return completion.choices[0]?.message?.content ?? "";
+      return await keylessBrainChat(
+        messages.map((m, i) => (i === 0 ? { role: "system" as const, content: m.content } : m))
+      );
     } catch (err) {
       const wait = RETRY_BACKOFF_MS[attempt];
       if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait) {
@@ -471,7 +475,6 @@ async function generateReport(
 
   const retry = { budgetLeft: RETRY_BUDGET_MS };
   const raw = await createChat(
-    zai,
     [
       { role: "assistant", content: REPORT_CHARTER },
       { role: "user", content: userMsg },

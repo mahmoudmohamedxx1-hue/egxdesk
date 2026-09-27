@@ -1,4 +1,4 @@
-/** The AGENT model registry (T30 → T68 rewrite).
+/** The AGENT model registry (T30 → T71 rewrite).
  *
  *  Every option is an online model served SERVER-side through /api/agent —
  *  no client-side loops, no third-party scripts, no sign-in walls:
@@ -12,15 +12,15 @@
  *     llm7's glm-5.3 / glm-5.2 are NOT keyless (401 missing_api_key) —
  *     GLM-5.3-Flash is the only keyless GLM there.
  *
- *  2. "glm-4-plus" (provider zai) — the STRONG-BACKBONE tier: in the dev
- *     sandbox it runs through the z-ai-web-dev-sdk gateway (verified:
- *     served=glm-4-plus); on ANY public host (Vercel…) it needs the
- *     ZAI_API_KEY env var (direct Z.AI cloud). It is an explicit PICK in
- *     the menu and the auto-failover backbone when the SDK gateway is
- *     alive — but no longer the default (it cannot answer keylessly).
- *
- *  3. Keyless Kilo Gateway pool (3 routes, 200 req/hr per IP) and
+ *  2. Keyless Kilo Gateway pool (3 routes, 200 req/hr per IP) and
  *     Pollinations GPT-OSS-20B — vetted via the freellmpool catalog.
+ *
+ *  T71 — GLM-4-Plus REMOVED ENTIRELY (the user's call: its live thinking
+ *  took a while and it never ran in an instant way — responses took a
+ *  while to end). The old "zai" provider tier (sandbox SDK gateway + the
+ *  ZAI_API_KEY direct cloud) is gone from the registry, the agent loop,
+ *  the assistant popup and the brain fallback: every answer now comes
+ *  from the keyless chain, which streams its thinking live.
  *
  *  T67 removals (probe-verified failures, 2026-09-27):
  *  - PUTER: the whole client-side puter.js ladder was removed from the
@@ -32,10 +32,10 @@
  *
  *  This registry stays dependency-free (pure data) so BOTH the server route
  *  and the client composer can import it. */
-export type AiModelProvider = "zai" | "llm7" | "pollinations" | "kilo";
+export type AiModelProvider = "llm7" | "pollinations" | "kilo";
 
 export type AiModel = {
-  /** the id the client persists/selects: "glm-4-plus", "llm7:…", "kilo:…", "pollinations:…" */
+  /** the id the client persists/selects: "llm7:…", "kilo:…", "pollinations:…" */
   id: string;
   provider: AiModelProvider;
   /** provider-side model id (SDK `model` param / llm7 / kilo / pollinations id) */
@@ -61,15 +61,6 @@ export const AI_MODELS: AiModel[] = [
     ctx: 400_000,
     note: "THE MAIN MODEL — a real GLM brain, keyless: no key, no sign-in, works on every host. Streams its live chain-of-thought as it answers, strong Arabic. Auto-falls back through the keyless pool (Nemotron → Step → Router → GPT-OSS) when the shared pool is busy",
     noteAr: "النموذج الرئيسي — دماغ GLM حقيقي بلا تسجيل ولا مفاتيح ويعمل على أي مستضيف. يعرض تفكيره لحظة بلحظة أثناء الإجابة، وعربيته قوية. وعند انشغاله يتحول تلقائيًا عبر سلسلة النماذج المجانية (Nemotron ← Step ← Router ← GPT-OSS)",
-  },
-  {
-    id: "glm-4-plus",
-    provider: "zai",
-    providerModel: "glm-4-plus",
-    label: "GLM-4-Plus",
-    labelAr: "GLM-4-Plus",
-    note: "The strongest brain — runs through the dev sandbox gateway, or on public hosting with the ZAI_API_KEY env var. Pre-thinking generation: it does not stream its reasoning (its live work-trace shows instead). The auto-failover backbone wherever it can run",
-    noteAr: "الأقوى — يعمل عبر بوابة بيئة التطوير، أو على الاستضافة العامة مع متغير البيئة ZAI_API_KEY. من جيل ما قبل بثّ التفكير فلا يرسل سلسلة تفكيره (يُعرض مسار عمله بدلًا منها). وهو العمود الاحتياطي أينما كان متاحًا",
   },
   {
     id: "kilo:nvidia/nemotron-3-super-120b-a12b:free",
@@ -113,19 +104,12 @@ export const AI_MODELS: AiModel[] = [
   },
 ];
 
-// T68 — THE MAIN MODEL IS NOW GLM-5.3-Flash (the user's explicit call:
-// "if glm 4 plus isnt working and glm 5.3 flash is working so replace
-// them"). GLM-4-Plus physically cannot answer on public hosting without
-// ZAI_API_KEY, while GLM-5.3-Flash answers everywhere, keyless, with a live
-// thinking stream — so the default pick, the menu's first row and every
-// fresh client now start on GLM-5.3-Flash. Old localStorage picks stay
-// honored (the id still exists in the registry).
+// T68/T71 — THE MAIN MODEL IS GLM-5.3-Flash on every host, and after T71
+// it is the ONLY tier of its family: GLM-4-Plus was removed entirely (the
+// user's call — it never streamed its thinking and took a while to finish).
+// Old localStorage "glm-4-plus" picks migrate to this default automatically
+// (loadAiModelId drops ids that left the registry).
 export const DEFAULT_AI_MODEL_ID = "llm7:GLM-5.3-Flash";
-
-/** T68 — the STRONG backbone the sandbox failovers re-route to: the SDK
- *  gateway's GLM-4-Plus (alive only in the dev sandbox; on keyed hosts the
- *  DIRECT_GLM route plays this role instead — see /api/agent). */
-export const SDK_BACKBONE_ID = "glm-4-plus";
 
 /** The keyless GLM main (and the keyless chain's first hop): LLM7's
  *  anonymous GLM-5.3-Flash tier — a REAL GLM brain, probe-verified live
@@ -171,13 +155,11 @@ export function aiModelLabel(id: string): string {
 
 /** The honest identity line for the system prompt. */
 export function aiModelIdentity(m: AiModel): string {
-  return m.provider === "zai"
-    ? "a REAL large language model (GLM-4-Plus, by Z.ai)"
-    : m.provider === "llm7"
-      ? `a REAL large language model (${m.label} — served keyless via the free LLM7.io cloud)`
-      : m.provider === "pollinations"
-        ? `a REAL large language model (GPT-OSS-20B, OpenAI open weights — served keyless via the free Pollinations cloud)`
-        : `a REAL large language model (${m.label} — served keyless via the free Kilo Gateway cloud)`;
+  return m.provider === "llm7"
+    ? `a REAL large language model (${m.label} — served keyless via the free LLM7.io cloud)`
+    : m.provider === "pollinations"
+      ? `a REAL large language model (GPT-OSS-20B, OpenAI open weights — served keyless via the free Pollinations cloud)`
+      : `a REAL large language model (${m.label} — served keyless via the free Kilo Gateway cloud)`;
 }
 
 /** Client-side localStorage persistence helper (never throws). */

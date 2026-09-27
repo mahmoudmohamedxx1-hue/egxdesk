@@ -474,12 +474,11 @@ export function runHermesAgent(kind: AgentRunKind, user?: { id: string; email: s
       // 3. the vision pass
       const vision = await visionPass(ev, learning);
 
-      // 4. the brain — T52: LAYERED. glm-4.7-flash (direct key, thinking ON,
-      //    full retry chain) first; when the free tier is inside a 1305
-      //    overload window (they run minutes) the sandbox SDK's GLM-4-Plus
-      //    pool takes over — the run records which tier actually served.
-      //    The THINKING STREAM itself is captured either way and ships with
-      //    the run.
+      // 4. the brain — T52/T71: LAYERED. glm-4.7-flash (direct key, thinking
+      //    ON, full retry chain) first; on keyless hosts the KEYLESS
+      //    GLM-5.3-Flash cloud takes over — the run records which tier
+      //    actually served. The THINKING STREAM itself is captured whenever
+      //    the tier emits one and ships with the run.
       const tBrain = Date.now();
       const brain = await brainJson({
         messages: [

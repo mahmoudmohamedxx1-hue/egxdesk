@@ -20,8 +20,8 @@
  *    own focus ring, a round "+" context button, tools/model chips, an
  *    "extended thinking" toggle (a REAL flag the backend honors), and the
  *    filled circular send button that becomes stop while streaming.
- *  - The model chip states the FULL served model name (GLM-4-Plus by Z.ai),
- *    verified against the gateway's own response payload.
+ *  - The model chip states the FULL served model name (verified against
+ *    the provider's own response payload).
  *
  *  Everything else from Task 20/21/22 is preserved: SSE streaming with live
  *  tool chips, stop/copy controls, server-side chat history + usage strip,
@@ -58,7 +58,7 @@ type AgentMsg = {
   error?: boolean;
   ts: number;
   /** T37 — the model that ACTUALLY served this answer (done event); when a
-   *  keyless model auto-fell back to GLM-4-Plus, this records it honestly. */
+   *  keyless model auto-failed over to another tier, this records it honestly. */
   servedModel?: string;
   /** T67 — the model's reasoning trail (reasoning_content), streamed live
    *  during the answer and kept attached to it for review. Present only
@@ -66,9 +66,9 @@ type AgentMsg = {
   thinking?: string;
 };
 
-/** T67 — the HOST BACKBONE (GET /api/agent): which engine serves answers on
- *  this host, so "why did GLM-5.3-Flash answer when I picked GLM-4-Plus?"
- *  is answered in the open, with the fix spelled out. */
+/** T67 — the HOST ENGINE (GET /api/agent): which engine serves answers on
+ *  this host. T71: after the GLM-4-Plus removal there is exactly one engine
+ *  everywhere — the keyless GLM-5.3-Flash main. */
 type HostBackbone = { backbone: "sdk" | "direct" | "keyless"; engine: string; needsKey: boolean };
 
 const CHAT_KEY = "egx-agent-chat";
@@ -928,17 +928,12 @@ export function AgentView() {
               {tt(T.agentTitle, lang)}
             </h1>
             {/* T67 — the HOST ENGINE chip: which model ACTUALLY serves answers
-                here, with the honest explanation when GLM-4-Plus can't run */}
+                here (the keyless GLM-5.3-Flash main on every host after the
+                T71 GLM-4-Plus removal) */}
             <p
               className="num truncate text-[10px]"
               style={{ color: "var(--chat-muted)" }}
-              title={
-                backbone?.needsKey
-                  ? `${tt(T.agentHostEngine, lang)}: ${backbone.engine} — ${tt(T.agentHostKeylessWhy, lang)}`
-                  : backbone
-                    ? `${tt(T.agentHostEngine, lang)}: ${backbone.engine}`
-                    : undefined
-              }
+              title={backbone ? `${tt(T.agentHostEngine, lang)}: ${backbone.engine}` : undefined}
             >
               {backbone ? `${backbone.engine} · ` : ""}
               {tt(T.delayed, lang)}
@@ -1011,9 +1006,6 @@ export function AgentView() {
               <h2 className="claude-serif text-xl sm:text-2xl font-semibold" style={{ color: "var(--chat-ink)" }}>
                 {tt(T.agentGreeting, lang)}
               </h2>
-              <p className="mx-auto max-w-xl text-xs leading-relaxed" style={{ color: "var(--chat-muted)" }}>
-                {tt(T.agentNote, lang)}
-              </p>
               <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto">
                 {suggestions.map((s, i) => (
                   <button
@@ -1043,10 +1035,10 @@ export function AgentView() {
                 </span>
               </div>
               {/* T67 — LIVE THINKING: the reasoning trail streams token by
-                  token; when the engine never emits one (GLM-4-Plus is a
-                  pre-thinking generation), the honest note replaces it after
-                  a beat so the user knows WHY there is no stream, while the
-                  tool steps + statuses tell the live work-trace story. */}
+                  token; when the serving tier never emits one, the honest
+                  note replaces it after a beat so the user knows WHY there
+                  is no stream, while the tool steps + statuses tell the
+                  live work-trace story. */}
               {thinkText ? (
                 <ThinkPanel text={thinkText} live lang={lang} />
               ) : (

@@ -103,11 +103,6 @@ export function OwnershipCard({ ticker, lang }: { ticker: string; lang: Lang }) 
           {p.crossIn.length > 0 && `${lang === "ar" ? "تملكها:" : "held by:"} ${p.crossIn.map((c) => `${c.owner}${c.pct != null ? ` ${c.pct}%` : ""}`).join(" · ")}`}
         </p>
       )}
-      <p className="mt-2 text-[10px] text-muted-foreground leading-relaxed">
-        {lang === "ar"
-          ? "وفق آخر إفصاحات الملكية المنشورة للبورصة المصرية — الجزء غير المعلن ليس أسهماً حرة، والنسب قد تغفل ملكية أقل من حد الإفصاح."
-          : "Per the latest EGX ownership disclosures — the undisclosed part is not free float, and stakes below the disclosure threshold may be omitted."}
-      </p>
     </section>
   );
 }

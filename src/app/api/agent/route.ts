@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import ZAI from "z-ai-web-dev-sdk";
 
-import { ZAI_API_KEY, zaiChatStream } from "@/lib/zai-client";
 import { pollinationsRound } from "@/lib/pollinations";
-import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, KEYLESS_POOL_MODEL_IDS, SDK_BACKBONE_ID } from "@/lib/ai-models";
-type Zai = Awaited<ReturnType<typeof ZAI.create>>;
+import { KEYLESS_MODEL_ID, KEYLESS_FALLBACK_MODEL_ID, KEYLESS_POOL_MODEL_IDS } from "@/lib/ai-models";
 import { db } from "@/lib/db";
 import { findAiModel, DEFAULT_AI_MODEL_ID, aiModelIdentity, type AiModel } from "@/lib/ai-models";
 import { AGENT_TOOLS } from "@/lib/agent-core";
@@ -24,11 +21,14 @@ import { composeBriefing, languageOk, languageRepairMessage, type ToolResultRef 
  *  answer. Gateway 429s are retried with backoff; every request is metered
  *  in UsageEvent.
  *
- *  T33 → T67: the model registry is now SERVER-ONLY — every model (the
- *  z-ai gateway GLM-4-Plus, llm7's keyless GLM-5.3-Flash, the Kilo pool,
- *  Pollinations) runs through this route's SSE loop. The old client-side
- *  Puter loop was REMOVED at the user's request (T67) — puter ids sent by
- *  an old client simply fall back to the server default instead of erroring.
+ *  T33 → T71: the model registry is now SERVER-ONLY — every model (llm7's
+ *  keyless GLM-5.3-Flash, the Kilo pool, Pollinations) runs through this
+ *  route's SSE loop. The old client-side Puter loop was REMOVED at the
+ *  user's request (T67), and GLM-4-Plus (sandbox SDK gateway + the
+ *  ZAI_API_KEY direct cloud) was REMOVED ENTIRELY at the user's request
+ *  (T71 — its thinking never streamed and answers took a while to end).
+ *  A "zai" model id sent by an old client simply falls back to the server
+ *  default instead of erroring.
  *
  *  Honesty by design: tools return only real (delayed ~15-min) data; the
  *  system prompt forbids invented numbers; the response carries a fixed
@@ -96,11 +96,9 @@ type ServedModelFn = (m: string) => void;
 
 /** T67 — LIVE THINKING: whenever the serving model streams its chain of
  *  thought (GLM `reasoning_content` deltas — emitted by GLM-5.3-Flash on
- *  the keyless cloud and by the direct Z.AI cloud when thinking is on),
- *  every token is forwarded to the client as a `think` SSE event so the
- *  user literally watches the model reason. GLM-4-Plus (pre-thinking
- *  generation) emits none — the client then shows the honest work-trace
- *  (tool steps + statuses) instead. */
+ *  the keyless cloud), every token is forwarded to the client as a `think`
+ *  SSE event so the user literally watches the model reason. A tier that
+ *  emits none shows the honest work-trace (tool steps + statuses) instead. */
 type ThinkFn = (text: string) => void;
 
 /** Consume the gateway's SSE chat stream (data: lines with
@@ -157,72 +155,22 @@ async function consumeSse(
   return out;
 }
 
-let zaiPromise: Promise<Zai> | null = null;
-
-function getZai(): Promise<Zai> {
-  if (!zaiPromise) {
-    zaiPromise = ZAI.create();
-    // T67 — a FAILED create must not poison the cache forever (a cold-start
-    // hiccup used to sink every later request to the keyless tier even
-    // after the gateway recovered): clear the cache so the next request
-    // retries the SDK path.
-    zaiPromise.catch(() => {
-      zaiPromise = null;
-    });
-  }
-  return zaiPromise;
-}
-
 /** GET /api/agent — the HOST BACKBONE report the model switcher shows before
- *  the user ever asks a question: which engines are available on THIS host
- *  and which one is the MAIN. T68: the main model is now GLM-5.3-Flash on
- *  EVERY host (the user's call — it answers keyless everywhere and streams
- *  its live thinking); GLM-4-Plus stays as the explicit strong pick / the
- *  auto-failover backbone wherever it can run (sandbox SDK gateway, or the
- *  direct Z.AI cloud via ZAI_API_KEY on public hosts). Cheap: one SDK
- *  create race + env check. */
+ *  the user ever asks a question: which engine serves THIS host. T71: after
+ *  GLM-4-Plus was removed entirely there is exactly ONE engine on every
+ *  host — the keyless GLM-5.3-Flash main (streams its live thinking,
+ *  answers everywhere, no key, no sign-in). Cheap: a static report now. */
 export async function GET() {
-  let sdk = false;
-  try {
-    await Promise.race([
-      getZai(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("sdk probe timeout")), 3_000)),
-    ]);
-    sdk = true;
-  } catch {
-    sdk = false;
-  }
-  const backbone: "sdk" | "direct" | "keyless" = sdk ? "sdk" : ZAI_API_KEY ? "direct" : "keyless";
+  const backbone: "keyless" = "keyless";
   return NextResponse.json(
     {
       backbone,
-      // T68 — the MAIN engine that serves answers by default on every host
       engine: "GLM-5.3-Flash",
-      // a key (ZAI_API_KEY) would additionally unlock the GLM-4-Plus strong
-      // tier on a keyless host; on sdk/direct hosts it is already available
-      needsKey: backbone === "keyless",
+      needsKey: false,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
-
-// ── T56 → T65 — the DIRECT GLM-4-Plus backbone (plain HTTPS, user's ZAI_API_KEY)
-// Outside the sandbox (Vercel, containers…) the z-ai SDK cannot authenticate,
-// but the agent must NOT sink to the weak keyless tier when a perfectly good
-// strong model is one fetch away. T65 — the user asked for GLM-4-PLUS as the
-// MAIN model: when the key is configured, glm-4-plus via the direct API is
-// now the backbone (was glm-4.7-flash) — the tool loop, the verification
-// failovers and the final synthesis all run on it, exactly like the GLM-4-Plus
-// backbone runs inside the sandbox.
-const DIRECT_GLM: AiModel = {
-  id: "zai-direct:glm-4-plus",
-  provider: "zai",
-  providerModel: "glm-4-plus",
-  label: "GLM-4-Plus",
-  labelAr: "GLM-4-Plus",
-  note: "Direct Z.AI cloud via the server key — the GLM-4-Plus backbone on any host",
-  noteAr: "سحابة Z.AI المباشرة عبر مفتاح الخادم — العمود الفقري GLM-4-Plus على أي مستضيف",
-};
 
 // T56 — weak-model output hygiene: keyless models (Mistral Nemo…) sometimes
 // emit literal "\n" escapes as TEXT and markdown tables whose headers carry
@@ -420,48 +368,6 @@ async function llm7Round(
   }
 }
 
-/** One LLM round with streaming + the same 429 backoff as before. Falls back
- *  gracefully if the gateway ignores stream:true (returns a plain object). */
-async function createChatStream(
-  zai: Zai,
-  opts: { messages: { role: "user" | "assistant"; content: string }[]; thinking: "enabled" | "disabled"; model?: string },
-  retry: { budgetLeft: number },
-  onDelta?: DeltaFn,
-  onStatus?: (note: string) => void,
-  onServedModel?: ServedModelFn,
-  onThink?: ThinkFn
-): Promise<string> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const res = await zai.chat.completions.create({
-        ...(opts.model ? { model: opts.model } : {}),
-        messages: opts.messages,
-        thinking: { type: opts.thinking },
-        stream: true,
-      });
-      // the SDK hands back the raw SSE body when the gateway streams
-      if (res && typeof (res as { getReader?: unknown }).getReader === "function") {
-        return await consumeSse(res as ReadableStream<Uint8Array>, onDelta, onServedModel, onThink);
-      }
-      // non-streaming shape — still surface the text for the live preview
-      const c = res as { choices?: { message?: { content?: string } }[]; model?: unknown };
-      if (!attempt && typeof c.model === "string" && c.model.length > 0) onServedModel?.(c.model);
-      const text = c.choices?.[0]?.message?.content ?? "";
-      if (text) onDelta?.(text);
-      return text;
-    } catch (err) {
-      const wait = RETRY_BACKOFF_MS[attempt];
-      if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait) {
-        retry.budgetLeft -= wait;
-        onStatus?.(attempt === 0 ? "provider busy — retrying" : "provider busy — retrying again");
-        await sleep(wait);
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 type AgentStep = { tool: string; args: Record<string, unknown>; ok: boolean };
@@ -571,17 +477,16 @@ export async function POST(req: Request) {
       // stream metadata). LAST-WINS: when a mid-loop failover re-routes a
       // later round to another model, the final answer was written by THAT
       // model, so the done event must report it — the old first-wins capture
-      // labeled a glm-4-plus failover answer as GLM-5.3-Flash (T68 fix).
+      // labeled a failover answer with the first tier's name (T68 fix).
       let servedModel = "";
       const noteServedModel: ServedModelFn = (m) => {
         if (m) servedModel = m;
       };
       // T67 — LIVE THINKING streamer: every reasoning token the serving
-      // model emits (GLM-5.3-Flash keyless / direct-cloud GLMs) reaches the
-      // client the instant it arrives, and accumulates into the done event
-      // so the reasoning trail stays attached to the answer. GLM-4-Plus
-      // emits none (pre-thinking generation) — the client then shows the
-      // honest work-trace (tool steps + statuses) instead.
+      // model emits (GLM-5.3-Flash keyless) reaches the client the instant
+      // it arrives, and accumulates into the done event so the reasoning
+      // trail stays attached to the answer. A tier that emits none shows
+      // the honest work-trace (tool steps + statuses) instead.
       let thinkingAccum = "";
       const emitThink: ThinkFn = (text) => {
         if (thinkingAccum.length < 24_000) thinkingAccum += text;
@@ -613,58 +518,14 @@ export async function POST(req: Request) {
         } catch {}
       };
 
-      // T50/T56 — outside the sandbox (Vercel…) the z-ai SDK can't authenticate,
-      // so the request would die HERE before a single token streams. The
-      // backbone is now layered: DIRECT GLM cloud via the server key when
-      // ZAI_API_KEY is configured (strong model, works on any host), otherwise
-      // the keyless LLM7 cloud (no key, no sign-in) keeps the conversation
-      // alive on the weak tier.
-      let zai: Zai | null = null;
-      try {
-        zai = await getZai();
-      } catch {
-        zai = null;
-        // T68 — the override now fires ONLY when the picked model actually
-        // NEEDS this host's gateway: a "zai" pick (GLM-4-Plus) that cannot
-        // run here. A keyless pick (llm7/kilo/pollinations — incl. the new
-        // GLM-5.3-Flash default) runs fine and is HONORED as picked (the old
-        // code stomped even explicit Kilo picks to the keyless GLM on
-        // keyless hosts — one of the "wrong model answered" bugs).
-        if (model.provider === "zai") {
-          if (ZAI_API_KEY) {
-            send({
-              type: "status",
-              note:
-                lang === "ar"
-                  ? "البوابة المحلية غير متاحة — سيتم الرد عبر سحابة GLM المباشرة (نموذج قوي)"
-                  : "gateway unavailable on this host — answering via the direct GLM cloud (strong model)",
-            });
-            model = DIRECT_GLM;
-            msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
-          } else {
-            send({
-              type: "status",
-              note:
-                lang === "ar"
-                  ? "GLM-4-Plus لا يعمل على هذا المستضيف بلا مفتاح — سيتم الرد عبر النموذج الرئيسي GLM-5.3-Flash (بلا تسجيل ولا مفاتيح)"
-                  : "GLM-4-Plus cannot run on this host without a key — answering via the main GLM-5.3-Flash (no key, no sign-in)",
-            });
-            model = findAiModel(KEYLESS_MODEL_ID)!;
-            msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
-          }
-        }
-      }
-      // T68 — HOST BACKBONE meta, FIRST event on the wire: tells the client
-      // which engine serves THIS request (the picked/default model — now
-      // GLM-5.3-Flash by default on every host, GLM-4-Plus when picked where
-      // it can run) plus the host's backbone tier, BEFORE any answer
-      // streams. The old "why did GLM-5.3-Flash answer when I picked
-      // GLM-4-Plus?" confusion is gone at the root: 5.3-Flash IS the main.
+      // T71 — the backbone tier is gone with GLM-4-Plus: every request runs
+      // on the keyless chain (a "zai" pick from an old client was already
+      // normalized to the server default during model resolution).
       send({
         type: "meta",
-        backbone: zai ? "sdk" : ZAI_API_KEY ? "direct" : "keyless",
+        backbone: "keyless",
         engine: model.label,
-        needsKey: !zai && !ZAI_API_KEY,
+        needsKey: false,
       });
 
       // T66/T67 — the keyless provider chain (strictly DOWN, no loops): the
@@ -673,16 +534,13 @@ export async function POST(req: Request) {
       // GPT-OSS as the final hop. (T67: the old llm7-mistral last hop was
       // pruned — probes showed crash-text Arabic from that tier.)
       const KEYLESS_CHAIN = [KEYLESS_MODEL_ID, ...KEYLESS_POOL_MODEL_IDS, KEYLESS_FALLBACK_MODEL_ID];
-      // T56/T59/T65/T68 — the backbone the failovers re-route to: SDK
-      // GLM-4-Plus in the sandbox (the STRONG brain — the default pick is
-      // the keyless GLM-5.3-Flash, so a failing keyless round must upgrade,
-      // not hop to itself), DIRECT GLM-4-Plus on keyed hosts, keyless
-      // GLM-5.3-Flash otherwise; the Kilo pool and Pollinations GPT-OSS are
-      // the keyless hops.
-      const backboneModel = (): AiModel =>
-        zai ? findAiModel(SDK_BACKBONE_ID)! : ZAI_API_KEY ? DIRECT_GLM : findAiModel(KEYLESS_MODEL_ID)!;
-      const keylessFallbackModel = (): AiModel => findAiModel(KEYLESS_FALLBACK_MODEL_ID)!;
-      const hasBackbone = () => zai !== null || ZAI_API_KEY.length > 0;
+      // T71 — with GLM-4-Plus gone there is no backbone tier: a failing
+      // keyless round hops strictly DOWN the keyless chain (GLM-5.3-Flash →
+      // Kilo nemotron → Kilo step → Kilo router → GPT-OSS), and the
+      // deterministic briefing remains the honest last resort once real
+      // tool data is on the table.
+      // T71 — KEYLESS_FALLBACK_MODEL_ID stays exported for the composer and
+      // any future hop logic; the loop itself walks KEYLESS_CHAIN directly.
       // T59/T65/T67 — WEAK keyless tiers never stream raw deltas (crash-text
       // guard). The GLM-5.3-Flash keyless tier is a STRONG tier (verified
       // MSA Arabic + protocol compliance) — it streams like a backbone so
@@ -692,10 +550,11 @@ export async function POST(req: Request) {
       // pruned from the registry.)
       const isWeakKeyless = () => model.provider === "pollinations";
       const isKeyless = () => model.provider === "llm7" || model.provider === "pollinations" || model.provider === "kilo";
-      // T36 — the per-provider round runner: z-ai gateway (GLM-4-Plus) or the
-      // keyless LLM7.io cloud. Same strict-JSON protocol either way; LLM7
-      // gets the system prompt as a proper "system" role (no thinking
-      // toggle — the anonymous tier doesn't support one).
+      // T36 — the per-provider round runner: the keyless LLM7.io cloud
+      // (GLM-5.3-Flash main), the Kilo pool, or Pollinations. Same
+      // strict-JSON protocol either way; LLM7 gets the system prompt as a
+      // proper "system" role (no thinking toggle — the anonymous tier
+      // doesn't support one).
       const runRound = (thinking: "enabled" | "disabled", onDelta?: DeltaFn): Promise<string> =>
         model.provider === "pollinations"
           ? pollinationsRound({
@@ -718,8 +577,7 @@ export async function POST(req: Request) {
               noteServedModel,
               emitThink
             )
-          : model.provider === "llm7" || (!zai && !ZAI_API_KEY)
-          ? llm7Round(
+          : llm7Round(
               model.providerModel,
               {
                 messages: msgs.map((m, i) =>
@@ -731,29 +589,7 @@ export async function POST(req: Request) {
               (note) => send({ type: "status", note }),
               noteServedModel,
               emitThink
-            )
-          : zai
-            ? createChatStream(
-                zai,
-                { messages: msgs, model: model.providerModel, thinking },
-                retry,
-                onDelta,
-                (note) => send({ type: "status", note }),
-                noteServedModel,
-                emitThink
-              )
-            : // T56 — direct GLM cloud (keyed hosts without the SDK gateway):
-              // bounded retry chain so a dead direct tier hands the request
-              // back to the honest error path instead of hanging the stream.
-              zaiChatStream({
-                messages: msgs.map((m, i) => (i === 0 ? { role: "system" as const, content: m.content } : m)),
-                model: model.providerModel,
-                thinking: thinking === "enabled",
-                maxRetries: 2,
-                onDelta,
-                onServedModel: noteServedModel,
-                onThink: emitThink,
-              });
+            );
 
       const toolJsons: string[] = []; // T38 — raw tool payloads for final-answer verification
       const toolResults: ToolResultRef[] = []; // T58 — structured tool outputs for the deterministic composer
@@ -798,7 +634,7 @@ export async function POST(req: Request) {
             if (isKeyless()) {
               const chainIdx = KEYLESS_CHAIN.indexOf(model.id);
               if (chainIdx >= 0 && chainIdx < KEYLESS_CHAIN.length - 1) {
-                const next = hasBackbone() ? backboneModel() : findAiModel(KEYLESS_CHAIN[chainIdx + 1])!;
+                const next = findAiModel(KEYLESS_CHAIN[chainIdx + 1])!;
                 if (next.id !== model.id) {
                   failedOver = true;
                   send({
@@ -859,11 +695,10 @@ export async function POST(req: Request) {
             // T38 — ANTI-FABRICATION GATE: verify every significant number
             // in the answer against the tool data it was built from, and
             // reject CJK leakage into Arabic/English. One repair round on
-            // failure; if a keyless model STILL fabricates, the request
-            // quality-falls-back to the GLM-4-Plus backbone (same pattern
-            // as the quota failover) so the user never receives invented
-            // numbers; the backbone's own failures ship with an honest
-            // verification footnote instead.
+            // failure; a keyless model that STILL fabricates falls to the
+            // deterministic briefing below so the user never receives
+            // invented numbers (T71: the GLM-4-Plus backbone that used to
+            // catch these was removed with the model itself).
             // T58 — LANGUAGE GATE: the numbers can be perfectly copied while
             // the answer itself is Portuguese/Spanish/exotic-script soup (the
             // live "crash text"). languageOk() fails it → one repair round →
@@ -882,19 +717,12 @@ export async function POST(req: Request) {
               msgs.push({ role: "user", content: languageRepairMessage(lang) });
               continue; // numbers verified; only the LANGUAGE needs a rewrite
             }
-            if (!verdict.ok && isKeyless() && !failedOver && hasBackbone()) {
+            if (!verdict.ok && isKeyless() && !failedOver) {
+              // T71 — no GLM-4-Plus backbone to upgrade to anymore: a keyless
+              // tier that failed verification after its repair round falls
+              // straight through to the deterministic-briefing guard below
+              // (its numbers are copied verbatim from the tool data).
               failedOver = true;
-              send({
-                type: "status",
-                note:
-                  lang === "ar"
-                    ? "تعذّر التحقق من أرقام هذا النموذج المجاني — سيتم الرد عبر نموذج GLM القوي لضمان الدقة"
-                    : "This free model's numbers could not be verified — answering via the strong GLM backbone for accuracy",
-              });
-              model = backboneModel();
-              msgs[0] = { role: "assistant", content: buildAgentSystemPrompt(lang, aiModelIdentity(model)) };
-              verifyRetried = false; // the backbone gets its own repair budget
-              continue; // re-answer the SAME conversation on the backbone
             }
             // T58/T59 — LAST GUARD before shipping: a WRONG-LANGUAGE answer is
             // never usable (any model); a failed number verification on a
@@ -904,8 +732,9 @@ export async function POST(req: Request) {
             // is templated, so it is correct by construction. With NO tool
             // data (a general knowledge question), a wrong-language answer is
             // STILL never shipped: the honest degrade message replaces it.
-            // A STRONG model (zai/direct tier) with only re-formatted numbers
-            // keeps the old honest path: rich answer + verification footnote.
+            // A model that only re-formatted numbers but failed the exact
+            // check keeps the old honest path: rich answer + verification
+            // footnote.
             if (!langOk || (!verdict.ok && isKeyless())) {
               const briefing = composeBriefing(lang, toolResults);
               if (briefing) {

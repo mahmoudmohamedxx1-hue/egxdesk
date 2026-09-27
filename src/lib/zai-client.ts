@@ -29,6 +29,8 @@ if (!ZAI_SERVER_ONLY_GUARD) {
   throw new Error("zai-client must never run in the browser — the API key would leak");
 }
 
+import { keylessBrainChat } from "@/lib/keyless-brain";
+
 export const ZAI_API_KEY = process.env.ZAI_API_KEY ?? "";
 const ZAI_BASE = "https://api.z.ai/api/paas/v4/chat/completions";
 
@@ -397,131 +399,85 @@ export async function zaiVision(opts: {
   return { content: res.content, servedModel: res.servedModel, ms: res.ms };
 }
 
-// ── T52 — the SDK FALLBACK TIER for server-side JSON brains ─────────────────
-// The direct API's free tier has overload windows (1305) that can run for
-// MINUTES; the sandbox SDK's GLM-4-Plus is a SEPARATE quota pool. When the
-// direct tier is unavailable (no key configured / overload exhausted), the
-// autonomous agent's brain falls back here so it keeps thinking through
-// the window instead of failing the whole run. Outside the sandbox the SDK
-// rejects at create() and the honest direct-tier error surfaces as before.
+// ── T52 → T71 — the layered JSON brain: direct key → keyless GLM ────────────
+// GLM-4-Plus was removed entirely at the user's request (T71 — its live
+// thinking never streamed and answers took a while to end), and with it the
+// whole sandbox-SDK fallback tier (the SDK's default model WAS glm-4-plus,
+// probe-verified — even explicit other-model requests came back served as
+// glm-4-plus). The brain is now layered: the DIRECT Z.AI key (glm-4.7-flash /
+// glm-4.6v-flash for vision) when ZAI_API_KEY is configured, then the KEYLESS
+// GLM-5.3-Flash cloud (lib/keyless-brain.ts — no key, no sign-in) so the
+// autonomous agent keeps thinking on hosts without a key. When both tiers
+// are unavailable callers degrade honestly — the run row records the failure
+// instead of fabricating output, and the shared pipelines keep serving their
+// last persisted set.
 
-type SdkMessage = { role: "system" | "user" | "assistant"; content: string };
-
-let sdkPromise: Promise<Awaited<ReturnType<typeof import("z-ai-web-dev-sdk").default.create>>> | null = null;
-async function getSdk() {
-  if (!sdkPromise) sdkPromise = (await import("z-ai-web-dev-sdk")).default.create();
-  return sdkPromise;
-}
-
-async function sdkChatRound(
-  messages: SdkMessage[],
-  thinking: boolean
-): Promise<{ content: string; reasoning: string | null; servedModel: string }> {
-  const client = await getSdk();
-  // a leading "assistant" charter message is legal on the direct API but
-  // some SDK backends reject it — map message[0] to a proper system role
-  const mapped = messages.map((m, i) =>
-    i === 0 && m.role === "assistant" ? ({ role: "system" as const, content: m.content } as SdkMessage) : m
-  );
-  const res = (await client.chat.completions.create({
-    messages: mapped,
-    thinking: { type: thinking ? "enabled" : "disabled" },
-  })) as {
-    model?: string;
-    choices?: { message?: { content?: string; reasoning_content?: string; reasoning?: string } }[];
-  };
-  const content = res.choices?.[0]?.message?.content ?? "";
-  if (!content.trim()) throw new ZaiError("sdk: empty content", null, false);
-  const reasoningRaw = res.choices?.[0]?.message?.reasoning_content ?? res.choices?.[0]?.message?.reasoning;
-  return {
-    content,
-    reasoning: typeof reasoningRaw === "string" && reasoningRaw.trim().length > 0 ? reasoningRaw.trim() : null,
-    servedModel: res.model ?? "glm-4-plus (sdk fallback)",
-  };
-}
-
-/** One SDK round with ONE throttle backoff (6s), then honest failure. */
-async function sdkChat(
-  messages: SdkMessage[],
-  thinking: boolean
-): Promise<{ content: string; reasoning: string | null; servedModel: string; ms: number }> {
-  const t0 = Date.now();
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const r = await sdkChatRound(messages, thinking);
-      return { ...r, ms: Date.now() - t0 };
-    } catch (err) {
-      const e = classify(err);
-      if (attempt < 1 && (e.retryable || /rate|throttle|429|overload|1305/i.test(e.message))) {
-        await sleep(6_000);
-        continue;
-      }
-      throw e;
-    }
-  }
-}
-
-/** T52 — the LAYERED JSON brain: direct key first (thinking on, full retry
- *  chain), sandbox SDK second (separate quota pool). Whichever answers with
- *  a parseable JSON object wins; the served model is reported honestly so
- *  the run row records which tier actually thought. */
+/** T52 → T71 — the LAYERED JSON brain: direct key first (thinking on, full
+ *  retry chain), keyless GLM-5.3-Flash second (no key, no sign-in). The
+ *  served model is reported honestly so the run row records which tier
+ *  actually thought. */
 export async function brainJson(opts: {
   messages: { role: "system" | "user" | "assistant"; content: unknown }[];
   maxTokens?: number;
-}): Promise<{ parsed: Record<string, unknown>; reasoning: string | null; servedModel: string; usage: ZaiUsage | null; ms: number; tier: "direct" | "sdk" }> {
+}): Promise<{ parsed: Record<string, unknown>; reasoning: string | null; servedModel: string; usage: ZaiUsage | null; ms: number }> {
   let directErr: unknown = null;
   try {
     const r = await zaiChatJson({ messages: opts.messages, thinking: true, maxTokens: opts.maxTokens });
-    return { ...r, tier: "direct" };
+    return r;
   } catch (err) {
     directErr = err;
-    console.warn(
-      "[zai] direct brain tier unavailable — trying the sandbox SDK fallback:",
-      err instanceof Error ? err.message : String(err)
-    );
+    // no key configured is the EXPECTED state on keyless hosts — not worth a
+    // loud warning; only real mid-flight failures get logged
+    if (!/ZAI_API_KEY is not configured/.test(err instanceof Error ? err.message : String(err))) {
+      console.warn(
+        "[zai] direct brain tier unavailable — trying the keyless GLM-5.3-Flash tier:",
+        err instanceof Error ? err.message : String(err)
+      );
+    }
   }
+  // keyless GLM-5.3-Flash tier (LLM7.io anonymous cloud)
   try {
-    const messages: SdkMessage[] = opts.messages.map((m) => ({
+    const messages = opts.messages.map((m) => ({
       role: m.role,
       content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
     }));
-    const first = await sdkChat(messages, true);
-    let parsed = zaiExtractJson(first.content);
-    if (parsed) return { parsed, reasoning: first.reasoning, servedModel: first.servedModel, usage: null, ms: first.ms, tier: "sdk" };
-    // one repair round (thinking off — mechanical fix-up), same as direct
-    const fix = await sdkChat(
+    const t0 = Date.now();
+    const first = await keylessBrainChat(messages, { timeoutMs: 120_000 });
+    let parsed = zaiExtractJson(first);
+    if (parsed) return { parsed, reasoning: null, servedModel: "GLM-5.3-Flash (keyless)", usage: null, ms: Date.now() - t0 };
+    // one repair round (mechanical fix-up), same as the direct tier
+    const fix = await keylessBrainChat(
       [
         {
           role: "user",
           content:
             "Your previous reply was not parseable as a single JSON object. Here it is, truncated:\n" +
-            first.content.slice(0, 3000) +
+            first.slice(0, 3000) +
             "\n\nRe-send the SAME answer as EXACTLY ONE valid JSON object (no fences, no commentary). Keep every field and number.",
         },
       ],
-      false
+      { timeoutMs: 120_000 }
     );
-    parsed = zaiExtractJson(fix.content);
-    if (parsed) return { parsed, reasoning: first.reasoning, servedModel: fix.servedModel, usage: null, ms: first.ms + fix.ms, tier: "sdk" };
-    throw new ZaiError("sdk: unparseable JSON reply after repair", null, false);
-  } catch (sdkErr) {
+    parsed = zaiExtractJson(fix);
+    if (parsed) return { parsed, reasoning: null, servedModel: "GLM-5.3-Flash (keyless)", usage: null, ms: Date.now() - t0 };
+    throw new ZaiError("keyless: unparseable JSON reply after repair", null, false);
+  } catch (keylessErr) {
     console.warn(
-      "[zai] SDK fallback tier also unavailable:",
-      sdkErr instanceof Error ? sdkErr.message : String(sdkErr)
+      "[zai] keyless GLM tier also unavailable:",
+      keylessErr instanceof Error ? keylessErr.message : String(keylessErr)
     );
     // both tiers failed → surface the DIRECT error (the primary brain)
     throw directErr instanceof Error ? directErr : new ZaiError(String(directErr), null, false);
   }
 }
 
-/** T52 — the layered small-fix-up chat (thinking off): direct key first,
- *  SDK fallback second. Used by the shared validation spine. */
+/** T52 → T71 — the layered small-fix-up chat (thinking off): direct key
+ *  first, keyless GLM second. Used by the shared validation spine. */
 export async function brainChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
   try {
     const r = await zaiChat({ messages, thinking: false, maxTokens: 1200 });
     return r.content;
   } catch {
-    const r = await sdkChat(messages, false);
-    return r.content;
+    return await keylessBrainChat(messages, { timeoutMs: 120_000 });
   }
 }

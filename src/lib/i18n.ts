@@ -1346,7 +1346,6 @@ export const T = {
   // ── AI agent tab ──
   agentNav: { ar: "مساعد AI", en: "AI Agent" },
   agentBackToDesk: { ar: "العودة إلى المكتب", en: "Back to the desk" },
-  agentModelName: { ar: "GLM-4-Plus من Z.ai", en: "GLM-4-Plus by Z.ai" },
   aiModelSwitch: { ar: "نموذج الذكاء الاصطناعي — التبديل بين النماذج السحابية المجانية", en: "AI model — switch between the free cloud models" },
   agentTitle: { ar: "مساعد EGX ديسك الذكي", en: "EGX Desk AI Agent" },
   agentNote: {
@@ -1377,17 +1376,13 @@ export const T = {
   agentThinking: { ar: "يفكر ويستدعي الأدوات…", en: "Thinking and calling tools…" },
   agentThinkLive: { ar: "سلسلة تفكير النموذج — مباشر", en: "The model's reasoning — live" },
   agentThinkNoStream: {
-    ar: "هذا النموذج (GLM-4-Plus) من جيل ما قبل بثّ التفكير — لا يرسل سلسلة تفكيره، لذا يُعرض مسار عمله: الأدوات المستدعاة وحالاتها لحظة بلحظة.",
-    en: "This model (GLM-4-Plus) is a pre-thinking generation — it does not stream its reasoning, so its work trace (tools called + live statuses) is shown instead.",
+    ar: "هذا النموذج لا يبثّ سلسلة تفكيره — لذا يُعرض مسار عمله: الأدوات المستدعاة وحالاتها لحظة بلحظة.",
+    en: "This model does not stream its reasoning — its work trace (tools called + live statuses) is shown instead.",
   },
   agentThinkShow: { ar: "عرض سلسلة التفكير", en: "Show the reasoning trail" },
   agentThinkHide: { ar: "إخفاء سلسلة التفكير", en: "Hide the reasoning trail" },
   agentThinkUnit: { ar: "حرف", en: "chars" },
   agentHostEngine: { ar: "المحرك الرئيسي هنا", en: "Main engine here" },
-  agentHostKeylessWhy: {
-    ar: "GLM-5.3-Flash هو النموذج الرئيسي — دماغ GLM حقيقي بلا مفاتيح ولا تسجيل، يعرض تفكيره لحظة بلحظة. ولتشغيل GLM-4-Plus (الأقوى) على هذه الاستضافة أضف متغير البيئة ZAI_API_KEY في إعدادات Vercel — وسيعمل تلقائيًا كخيار إضافي وعمود احتياطي.",
-    en: "GLM-5.3-Flash is the main model — a real GLM brain, no key, no sign-in, streaming its thinking live. To also run GLM-4-Plus (the strongest) on this host, add the ZAI_API_KEY env var in Vercel — it becomes an extra pick and the failover backbone.",
-  },
   agentStepsUsed: { ar: "الأدوات المستخدمة", en: "Tools used" },
   agentSuggest1: { ar: "ما حالة السوق الآن؟", en: "What is the state of the market right now?" },
   agentSuggest2: { ar: "أقوى ٥ إشارات فنية اليوم", en: "The 5 strongest technical signals today" },

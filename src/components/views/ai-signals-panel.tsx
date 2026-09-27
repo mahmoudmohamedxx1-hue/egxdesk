@@ -16,10 +16,10 @@ import { fmtNum } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ExportXlsxButton } from "@/components/market/export-xlsx-button";
-import { BrainCircuit, Calculator, ChevronDown, ChevronUp, History, Layers, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { BrainCircuit, Calculator, History, Layers, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import type { AiSignalsResponse, AiPick } from "@/lib/ai-signals";
 import type { TrackRecord, TrackedSignal } from "@/lib/signal-track";
-import { STRATEGY_REGISTRY, strategyById } from "@/lib/strategies";
+import { strategyById } from "@/lib/strategies";
 import { AutonomousAgentSection, LiveFeedSection } from "@/components/views/agent-live-sections";
 
 type Response = AiSignalsResponse & { error?: string };
@@ -488,7 +488,6 @@ function TrackRecordSection({ tr, lang }: { tr: TrackRecord; lang: "ar" | "en" }
 export function AiSignalsPanel() {
   const { lang, navigate } = useApp();
   const { data, error, loading, refresh } = useLiveData<Response>("/api/ai-signals?wait=75", 5 * 60_000);
-  const [howOpen, setHowOpen] = useState(false);
 
   const bt = data?.backtest;
   const stats = bt?.stats;
@@ -741,43 +740,6 @@ export function AiSignalsPanel() {
         </section>
       )}
 
-      {/* how it works — the tested charter */}
-      <section className="rounded-lg border bg-card overflow-hidden">
-        <button
-          onClick={() => setHowOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 text-start hover:bg-accent/40 transition-colors"
-          aria-expanded={howOpen}
-        >
-          <span className="text-sm font-semibold">{tt(T.aiSignalsHowTitle, lang)}</span>
-          {howOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
-        {howOpen && data?.meta && (
-          <div className="px-4 pb-4 space-y-3">
-            {/* T42 — the twelve strategies, one line each */}
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-medium text-muted-foreground">{tt(T.aiSignalsStrategiesTitle, lang)}</p>
-              <ul className="space-y-1">
-                {STRATEGY_REGISTRY.map((s) => (
-                  <li key={s.id} className="flex items-baseline gap-2 text-[10px] leading-relaxed">
-                    <span className={`shrink-0 rounded-sm px-1.5 py-0.5 font-medium ${s.family === "news" || s.family === "fundamental" ? "bg-secondary/70 text-muted-foreground" : "bg-primary/10 text-primary"}`}>
-                      {lang === "ar" ? s.nameAr : s.nameEn}
-                    </span>
-                    <span className="text-muted-foreground">{lang === "ar" ? s.oneLineAr : s.oneLineEn}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.aiSignalsCharterLabel, lang)}</p>
-            <pre dir="ltr" className="text-[10px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono bg-secondary/30 rounded-md p-3 max-h-80 overflow-y-auto thin-scroll">
-              {data.meta.charter}
-            </pre>
-            <p className="num text-[10px] text-muted-foreground/70">
-              rev {data.meta.strategyRev} · backtest {data.meta.backtestRev}
-              {data.meta.backtestStale ? " ⚠ rerun scripts/backtest-signals.ts" : ""} · {data.set?.llmMs ? `${data.set.llmMs}ms` : ""} · {data.set?.model}
-            </p>
-          </div>
-        )}
-      </section>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ExportXlsxButton } from "@/components/market/export-xlsx-button";
 import {
-  AlertTriangle, ChevronDown, ChevronUp, Clock, ExternalLink, FileClock, Flame,
+  AlertTriangle, Clock, ExternalLink, FileClock, Flame,
   Globe, Newspaper, Sparkles, TrendingUp,
 } from "lucide-react";
 import type { ReportsResponse, ReportRow, ReportMover } from "@/lib/hourly-report";
@@ -167,7 +167,6 @@ export function ReportsView() {
   const [archived, setArchived] = useState<ReportRow | null>(null);
   const [archivedId, setArchivedId] = useState<string | null>(null);
   const [archLoading, setArchLoading] = useState(false);
-  const [howOpen, setHowOpen] = useState(false);
 
   // restore a deep-linked archived report (?id=) once on mount — a one-time
   // boot restore of a shared link's state (same pattern as the agent's ?q=)
@@ -412,30 +411,9 @@ export function ReportsView() {
             </section>
           )}
 
-          {/* how it works */}
-          <section className="rounded-lg border bg-card overflow-hidden">
-            <button
-              onClick={() => setHowOpen((o) => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 text-start hover:bg-accent/40 transition-colors"
-              aria-expanded={howOpen}
-            >
-              <span className="text-sm font-semibold">{tt(T.reportsHowTitle, lang)}</span>
-              {howOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {howOpen && (
-              <div className="px-4 pb-4 space-y-2">
-                <p className="text-[11px] text-muted-foreground leading-relaxed">{tt(T.reportsHowNote, lang)}</p>
-                {data?.meta && (
-                  <pre dir="ltr" className="text-[10px] leading-relaxed text-muted-foreground whitespace-pre-wrap font-mono bg-secondary/30 rounded-md p-3 max-h-80 overflow-y-auto thin-scroll">
-                    {data.meta.charter}
-                  </pre>
-                )}
-                <p className="num text-[10px] text-muted-foreground/70">
-                  rev {data?.meta?.reportRev} · {report.llmMs}ms · {report.webSearches} searches · {report.model}
-                </p>
-              </div>
-            )}
-          </section>
+          {/* T71 — the "how this report is written" explainer block was
+              removed at the user's request (texts like the ownership-lens
+              explainers); the risk disclaimer below stays */}
 
           <p className="text-[10px] text-muted-foreground leading-relaxed">{tt(T.reportsDisclaimer, lang)}</p>
         </>

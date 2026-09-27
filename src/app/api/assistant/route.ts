@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { zaiChat } from "@/lib/zai-client";
 import { pollinationsRound } from "@/lib/pollinations";
 // T58 — the answer stage gets the same crash-text guard as the agent: the
 // keyless tier answers Arabic questions in the wrong language, so a failed
@@ -17,14 +16,13 @@ import { composeBriefing, languageOk } from "@/lib/briefing-composer";
  *  2. stage "answer": after the client executed the tool, the model writes
  *     the final bilingual markdown answer from the REAL tool result.
  *
- *  T50 — the brain now goes through the app's OWN Z.AI key
- *  (src/lib/zai-client.ts — glm-4.7-flash, plain HTTPS) instead of the
- *  sandbox-only SDK, so the assistant works identically on the preview
- *  server AND on any external host (Vercel…). The key stays server-side;
- *  free Puter cloud models still run client-side and never touch this
- *  endpoint. The tool list mirrors the client registry in
- *  src/lib/assistant-tools.ts (kept in sync by hand — it is a prompt
- *  constant, not shared code, so the client lib never loads here). */
+ *  T71 — the brain is the KEYLESS chain (GLM-5.3-Flash → Kilo pool →
+ *  Pollinations → Mistral Nemo): GLM-4-Plus (the old direct-key + SDK
+ *  tiers) was removed entirely at the user's request — it never streamed
+ *  its thinking and answers took a while to end. The tool list mirrors
+ *  the client registry in src/lib/assistant-tools.ts (kept in sync by
+ *  hand — it is a prompt constant, not shared code, so the client lib
+ *  never loads here). */
 
 export const runtime = "nodejs";
 
@@ -48,68 +46,24 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-// ── the brain: FIVE layered providers, whichever answers first wins ──
-//  T50: the popup must stay snappy on EVERY host, including during the free
-//  tier's 1305 overload windows (which can run minutes):
-//   1. direct Z.AI chat (glm-4-PLUS via the app's own key — T65: the user
-//      asked for GLM-4-Plus as the MAIN model) — works on ANY host (sandbox,
-//      Vercel, anywhere); ONE throttle backoff max so an overload window
-//      fails over fast instead of hanging the popup.
-//   2. the sandbox SDK's GLM-4-Plus — instant when available, throws
-//      immediately outside the sandbox.
-//   3. T65 — LLM7's anonymous GLM-5.3-Flash: a REAL GLM brain, keyless (no
-//      key, no sign-in), probe-verified clean MSA Arabic + JSON compliance,
-//      so keyless hosts keep a GLM main before sinking to the weaker tiers.
-//   4. Pollinations keyless cloud (GPT-OSS-20B) — no key, no sign-in; T59:
-//      excellent Modern Standard Arabic (the llm7 mistral tier answered
-//      Arabic questions in Portuguese soup — the "crash text").
-//   5. LLM7.io keyless cloud (Mistral Nemo) — no key, no sign-in; last
-//      resort when the stronger pools are busy.
+// ── the brain: the layered KEYLESS providers, whichever answers first wins ──
+//  T71 — GLM-4-Plus REMOVED ENTIRELY (the user's call: it never streamed its
+//  thinking and took a while to finish). The old tiers 1 (direct Z.AI
+//  glm-4-plus via ZAI_API_KEY) and 2 (the sandbox SDK's GLM-4-Plus) are gone;
+//  the popup brain is now the same keyless chain the agent view runs on:
+//   1. T65 — LLM7's anonymous GLM-5.3-Flash: a REAL GLM brain, keyless (no
+//      key, no sign-in), probe-verified clean MSA Arabic + JSON compliance.
+//   2. T66 — the Kilo keyless pool (three vetted routes, capacity independent
+//      of LLM7's shared anonymous pool).
+//   3. Pollinations keyless cloud (GPT-OSS-20B) — no key, no sign-in; T59:
+//      excellent Modern Standard Arabic.
+//   4. LLM7.io keyless cloud (Mistral Nemo) — last resort when the stronger
+//      pools are busy.
 //  All fail honestly → the client shows its generic error card.
 
 const WHY = (err: unknown): string => (err instanceof Error ? err.message : String(err)).slice(0, 140);
 
-// 1 — direct Z.AI key (T65: glm-4-plus — the user's pick for the MAIN model)
-async function zaiDirectRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
-  const r = await zaiChat({
-    model: "glm-4-plus",
-    messages,
-    // planning/answering is mechanical JSON work — thinking off keeps
-    // the popup snappy (the autonomous agent keeps thinking ON)
-    thinking: false,
-    temperature: 0.4,
-    maxRetries: 1,
-  });
-  if (!r.content.trim()) throw new Error("zai: empty content");
-  return r.content;
-}
-
-// 2 — the sandbox SDK (GLM-4-Plus). Lazy import + lazy singleton: outside
-// the sandbox ZAI.create() rejects almost instantly and we move on.
-let sdkPromise: Promise<Awaited<ReturnType<typeof import("z-ai-web-dev-sdk").default.create>>> | null = null;
-async function sdkRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
-  const ZAI = (await import("z-ai-web-dev-sdk")).default;
-  if (!sdkPromise) sdkPromise = ZAI.create();
-  const client = await sdkPromise;
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const res = await client.chat.completions.create({ messages, thinking: { type: "disabled" } });
-      const c = res as { choices?: { message?: { content?: string } }[] };
-      const text = c.choices?.[0]?.message?.content ?? "";
-      if (!text.trim()) throw new Error("sdk: empty content");
-      return text;
-    } catch (err) {
-      const e = err as { status?: number; message?: string };
-      if (attempt < 1 && (e?.status === 429 || /rate|throttle|429/i.test(String(e?.message ?? "")))) {
-        await new Promise((r) => setTimeout(r, 1500));
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
-// 3/5 — keyless LLM7.io (shared anonymous tier; the same cloud the agent view
+// 1 — keyless LLM7.io (shared anonymous tier; the same cloud the agent view
 // offers as "no sign-in" models). T65: the GLM-5.3-Flash tier is tried FIRST
 // (a real GLM brain) and mistral stays the last resort. Non-streaming is
 // fine for JSON rounds.
@@ -155,7 +109,7 @@ async function pollinationsTier(messages: { role: "system" | "user" | "assistant
   return await pollinationsRound({ messages, timeoutMs: 45_000 });
 }
 
-// T66 — the freellmpool-style KILO keyless pool (Kilo Gateway, 200 req/hr
+// 2 — T66 — the freellmpool-style KILO keyless pool (Kilo Gateway, 200 req/hr
 // per IP, capacity independent of LLM7): three routes live-vetted for
 // strict-JSON + clean MSA Arabic. Tried between the GLM keyless tier and
 // Pollinations so a saturated LLM7 pool no longer degrades the answer.
@@ -190,16 +144,6 @@ async function kiloTier(messages: { role: "system" | "user" | "assistant"; conte
 }
 
 async function createChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
-  try {
-    return await zaiDirectRound(messages);
-  } catch (err) {
-    console.warn("[assistant] direct zai tier unavailable:", WHY(err));
-  }
-  try {
-    return await sdkRound(messages);
-  } catch (err) {
-    console.warn("[assistant] sdk tier unavailable:", WHY(err));
-  }
   try {
     return await llm7GlmRound(messages);
   } catch (err) {

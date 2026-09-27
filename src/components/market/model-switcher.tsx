@@ -1,20 +1,20 @@
 "use client";
 
-/** The agent's model switcher (T30 → T68 rewrite) — every option is served
+/** The agent's model switcher (T30 → T71) — every option is served
  *  SERVER-side through /api/agent; no client-side loops, no sign-in walls:
  *
- *  - MAIN (no sign-in, no keys): llm7's GLM-5.3-Flash — the user's explicit
- *    call ("if glm 4 plus isnt working and glm 5.3 flash is working so
- *    replace them"): it answers keyless on EVERY host and streams its live
- *    chain-of-thought. First row of the menu, the default pick.
- *  - STRONG tier: GLM-4-Plus — runs via the dev-sandbox SDK gateway, or on
- *    public hosting with ZAI_API_KEY (the host banner says what's live).
+ *  - MAIN (no sign-in, no keys): llm7's GLM-5.3-Flash — it answers keyless
+ *    on EVERY host and streams its live chain-of-thought. First row of the
+ *    menu, the default pick.
  *  - BACKUP keyless pool: the three Kilo Gateway routes + Pollinations
  *    GPT-OSS-20B (auto-failover hops when the shared GLM pool is busy).
  *
- *  T67: the Puter family was REMOVED from the agent view. T68: the Puter
- *  ladder was ALSO removed from the Ctrl+K assistant popup — the app no
- *  longer loads any third-party model script anywhere. */
+ *  T71: the GLM-4-Plus strong tier (sandbox SDK gateway / ZAI_API_KEY
+ *  direct cloud) was REMOVED ENTIRELY at the user's request — its live
+ *  thinking never streamed and answers took a while to end. T67: the
+ *  Puter family was REMOVED from the agent view; T68 the Puter ladder was
+ *  ALSO removed from the Ctrl+K assistant popup — the app no longer loads
+ *  any third-party model script anywhere. */
 
 import { useEffect, useState } from "react";
 import { AI_MODELS, DEFAULT_AI_MODEL_ID, aiModelLabel, loadAiModelId, saveAiModelId } from "@/lib/ai-models";
@@ -24,7 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown, Info, Server, Sparkles, Zap } from "lucide-react";
+import { Check, ChevronsUpDown, Info, Sparkles, Zap } from "lucide-react";
 
 type HostBackbone = { backbone: "sdk" | "direct" | "keyless"; engine: string; needsKey: boolean };
 
@@ -79,9 +79,9 @@ export function ModelSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80 p-0">
         <div className="max-h-[420px] overflow-y-auto thin-scroll p-1">
-          {/* ── T67 — HOST BACKBONE banner: which engine actually serves
-              answers on THIS host, and (when keyless) exactly why plus the
-              fix (ZAI_API_KEY). Honesty up front, before any pick. ── */}
+          {/* ── T67/T71 — HOST ENGINE banner: which engine serves answers on
+              THIS host. After the GLM-4-Plus removal there is exactly one
+              engine everywhere — the keyless GLM-5.3-Flash main. ── */}
           {backbone && (
             <div
               className="mx-1.5 mb-2 rounded-md border px-2.5 py-2"
@@ -92,11 +92,6 @@ export function ModelSwitcher({
                 <Info className="h-3 w-3 shrink-0" style={{ color: "var(--chat-accent)" }} aria-hidden />
                 {tt(T.agentHostEngine, lang)}: <span className="num">{backbone.engine}</span>
               </div>
-              {backbone.needsKey && (
-                <p className="mt-1 text-[10px] leading-relaxed" style={{ color: "var(--chat-muted)" }}>
-                  {tt(T.agentHostKeylessWhy, lang)}
-                </p>
-              )}
             </div>
           )}
 
@@ -111,20 +106,6 @@ export function ModelSwitcher({
               title={m.label}
               sub={`${tt({ ar: m.noteAr, en: m.note }, lang)}${m.ctx ? ` · ${Math.round(m.ctx / 1000)}k` : ""}`}
               badge={tt(T.aiModelMainBadge, lang)}
-            />
-          ))}
-
-          {/* ── the strong tier: GLM-4-Plus — the sandbox SDK gateway or the
-              ZAI_API_KEY direct cloud (the host banner says which is live) ── */}
-          {AI_MODELS.filter((m) => m.provider === "zai").map((m) => (
-            <ModelRow
-              key={m.id}
-              active={modelId === m.id}
-              onClick={() => onModelChange(m.id)}
-              icon={<Server className="h-3.5 w-3.5" aria-hidden />}
-              title={m.label}
-              sub={tt({ ar: m.noteAr, en: m.note }, lang)}
-              badge={null}
             />
           ))}
 

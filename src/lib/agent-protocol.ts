@@ -5,7 +5,8 @@
  *  so the agent view can import the SAME system prompt, tool list and
  *  reply-JSON parser the server uses — one protocol, two runtimes:
  *
- *    - server loop: z-ai gateway (GLM-4-Plus) streams over SSE
+ *    - server loop: the keyless cloud models stream over SSE
+      (GLM-5.3-Flash main + the Kilo/Pollinations failover hops)
  *    - client loop: free Puter cloud models (GPT-OSS 20B, GLM-5.3, …)
  *      plan in the browser, tools executed by POST /api/agent/tools
  *
@@ -48,9 +49,8 @@ export const AGENT_TOOL_NAMES = AGENT_TOOL_SPECS.map((t) => t.name);
 // ── the system prompt (identical text on both runtimes) ──
 
 /** The agent's system prompt. `identity` is the honest one-line model
- *  identity, e.g. "a REAL large language model (GLM-4-Plus, by Z.ai)" or
- *  "a REAL large language model (GPT-OSS 20B — open-weights OpenAI model
- *  via the free Puter cloud)". */
+ *  identity, e.g. "a REAL large language model (GLM-5.3 Flash — served
+ *  keyless via the free LLM7.io cloud)". */
 export function buildAgentSystemPrompt(lang: "ar" | "en", identity: string): string {
   return `You are EGX Desk Agent — ${identity} running inside the EGX Desk web app, acting as a bilingual (Arabic-first) Egyptian Exchange (EGX) market analyst. You are not a script or a keyword bot: you reason over evidence and write your own analysis. Every market number you state comes from tools that return real delayed (~15 min) data.
 

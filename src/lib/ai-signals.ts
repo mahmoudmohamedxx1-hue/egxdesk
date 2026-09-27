@@ -17,11 +17,11 @@
  *   - picks are validated against the candidate set and clamped before they
  *     reach a single user. */
 
-import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
 import { scanSignals, reblendNews, type SignalRow } from "@/lib/signals-scan";
 import { fetchIndices, fetchUniverse } from "@/lib/market";
 import { fetchStockChart } from "@/lib/history";
+import { keylessBrainChat } from "@/lib/keyless-brain";
 import {
   STRATEGY_CHARTER,
   STRATEGY_REV,
@@ -59,14 +59,10 @@ const CAND_BULL = 12;
 const CAND_BEAR = 8;
 const CAND_MOVERS = 5;
 
-// ── z-ai SDK singleton ──
-
-type Zai = Awaited<ReturnType<typeof ZAI.create>>;
-let zaiPromise: Promise<Zai> | null = null;
-function getZai(): Promise<Zai> {
-  if (!zaiPromise) zaiPromise = ZAI.create();
-  return zaiPromise;
-}
+// ── T71 — the synthesis brain is the KEYLESS GLM-5.3-Flash cloud (LLM7.io,
+//  no key, no sign-in) via lib/keyless-brain.ts. The old z-ai SDK gateway
+//  chat tier was removed with GLM-4-Plus (the gateway served glm-4-plus for
+//  every chat call — probe-verified) at the user's request. ──
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -309,17 +305,16 @@ function sectorExtremes(rows: SignalRow[]): { best: string | null; worst: string
 // ── the one LLM call ──
 
 async function createChat(
-  zai: Zai,
   messages: { role: "user" | "assistant"; content: string }[],
   retry: { budgetLeft: number }
 ): Promise<string> {
+  // T71 — the keyless GLM-5.3-Flash brain (no key, no sign-in). The old SDK
+  // chat tier (glm-4-plus) was removed entirely at the user's request.
   for (let attempt = 0; ; attempt++) {
     try {
-      const completion = await zai.chat.completions.create({
-        messages,
-        thinking: { type: "enabled" }, // synthesis moment — genuine reasoning
-      });
-      return completion.choices[0]?.message?.content ?? "";
+      return await keylessBrainChat(
+        messages.map((m, i) => (i === 0 ? { role: "system" as const, content: m.content } : m))
+      );
     } catch (err) {
       const wait = RETRY_BACKOFF_MS[attempt];
       if (isThrottleError(err) && wait !== undefined && retry.budgetLeft >= wait) {
@@ -896,16 +891,14 @@ export async function assembleSet(
   return payload;
 }
 
-/** The 45-minute shared refresh: SDK brain over the same spine. (The
- *  autonomous weekday agent calls gatherEvidence + its OWN Z.AI-key brain +
+/** The 45-minute shared refresh: keyless GLM brain over the same spine. (The
+ *  autonomous weekday agent calls gatherEvidence + its OWN layered brain +
  *  assembleSet — see lib/hermes-agent.ts.) */
 async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> {
   const t0 = Date.now();
   const ev = await gatherEvidence();
-  const zai = await getZai();
   const retry = { budgetLeft: RETRY_BUDGET_MS };
   const raw = await createChat(
-    zai,
     [
       { role: "assistant", content: STRATEGY_CHARTER },
       { role: "user", content: composeUserMsg(ev) },
@@ -916,7 +909,7 @@ async function generateSet(): Promise<{ payload: AiSetPayload; llmMs: number }> 
 
   const parsed = extractJson(raw);
   if (!parsed) throw new Error("ai-signals: unparseable LLM reply");
-  const payload = await assembleSet(parsed, ev, (messages) => createChat(zai, messages, retry));
+  const payload = await assembleSet(parsed, ev, (messages) => createChat(messages, retry));
   return { payload, llmMs };
 }
 

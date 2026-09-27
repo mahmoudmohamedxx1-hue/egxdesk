@@ -311,6 +311,28 @@ const fmtEgp = (v: number | null, lang: Lang): string => {
 };
 const fmtPct = (p: number): string => (p < 10 ? p.toFixed(2) : p.toFixed(1));
 
+/** T71 — CONCRETE move sizing (the user's ask): the moved quantity in actual
+ *  SHARES plus its EGP value. Total shares = market cap ÷ close (both from
+ *  the live universe); moved shares = |Δ stake %| × total shares ÷ 100.
+ *  Returns null when the price/cap is unknown — never a fabricated number. */
+function moveSize(
+  company: LensCompany | undefined,
+  deltaPct: number | null | undefined
+): { shares: number; valueEgp: number } | null {
+  if (!company || company.marketCap == null || company.close == null || company.close <= 0 || deltaPct == null) return null;
+  const fraction = Math.abs(deltaPct) / 100;
+  return { shares: fraction * (company.marketCap / company.close), valueEgp: fraction * company.marketCap };
+}
+
+/** T71 — share-count formatter: compact western digits ("1.2M", "12.4K"). */
+const fmtShares = (n: number): string => {
+  if (!Number.isFinite(n)) return "—";
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)}K`;
+  return `${Math.round(n)}`;
+};
+
 // ── the view ────────────────────────────────────────────────────────────────
 
 type Focus = { type: "company"; ticker: string } | { type: "holder"; h: number } | null;
@@ -860,6 +882,42 @@ export function LensView() {
     return { rows, totalValue, valuedCount };
   })();
 
+  // T71 — the investor BRIEF (the user's ask): a written, data-grounded
+  // paragraph about the focused holder — kind, footprint, biggest holding,
+  // total filed-stake value, his disclosed move record (count + the latest
+  // move with its concrete share quantity) and his recent net direction.
+  // Every number comes from the official filings / the live universe —
+  // nothing is invented.
+  const holderBrief = (() => {
+    if (focusState?.kind !== "holder" || !holderPortfolio) return null;
+    const h = focusState.h;
+    const rows = holderPortfolio.rows;
+    const sectors = new Set(
+      rows.map((r) => (r.ring ? (lang === "ar" ? r.ring.company.sectorAr : r.ring.company.sectorEn) : "")).filter(Boolean)
+    );
+    const biggest = rows[0] ?? null;
+    const moves: { per: string; ticker: string; from: number | null; to: number | null; c: number | null }[] = [];
+    for (const per of data.periods) {
+      for (const m of per.m) {
+        if (m.h === h) moves.push({ per: per.l, ticker: m.t, from: m.f, to: m.o, c: m.c });
+      }
+    }
+    const latest = moves[0] ?? null;
+    const latestSz = latest ? moveSize(data.companies.find((c) => c.ticker === latest.ticker), latest.c) : null;
+    const netRecent = moves.slice(0, 3).reduce((s, m) => s + (m.c ?? 0), 0);
+    return {
+      isFirm: data.people[h]?.k === "f",
+      sectorCount: sectors.size,
+      biggest,
+      moves,
+      latest,
+      latestSz,
+      netRecent,
+      totalValue: holderPortfolio.totalValue,
+      companies: focusState.rings.length,
+    };
+  })();
+
   const holderColorOf = (h: number) => holderColor(data.people[h]?.n ?? String(h));
 
   return (
@@ -889,11 +947,6 @@ export function LensView() {
             </span>
           )}
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl mt-1">
-          {lang === "ar"
-            ? "أعضاء المجالس وكبار المساهمين يعلنون حين تتغير حصتهم. اختر شركة ليفتح هيكل ملكيتها في نفس الصفحة — كل شريحة على الحلقة حصة مُفصح عنها، وكل نسبة موثقة بالنشرة الرسمية."
-            : "Board members and major shareholders must disclose when their stake changes. Choose a company and its equity structure opens on this same page — every ring slice is a filed stake, every percentage documented by the official bulletin."}
-        </p>
         {stats && (
           <div className="flex flex-wrap gap-2 mt-2 text-xs">
             <span className="rounded-full border bg-card px-2.5 py-1">
@@ -923,19 +976,6 @@ export function LensView() {
             </span>
           </div>
         )}
-      </div>
-
-      {/* ── how to read the map ── */}
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-        <span className="rounded-full border bg-card px-2.5 py-1">
-          {lang === "ar" ? "① اختر شركة → يفتح هيكل ملكيتها هنا" : "① pick a company → its equity opens here"}
-        </span>
-        <span className="rounded-full border bg-card px-2.5 py-1">
-          {lang === "ar" ? "② اختر مستثمرًا → تظهر استثماراته عبر الأسهم" : "② pick an investor → their stakes across stocks light up"}
-        </span>
-        <span className="rounded-full border bg-card px-2.5 py-1">
-          {lang === "ar" ? "③ ▶ شغّل الأسابيع لرؤية تحركات الحصص" : "③ ▶ play the weeks to replay stake moves"}
-        </span>
       </div>
 
       {/* ── week strip ── */}
@@ -1053,10 +1093,11 @@ export function LensView() {
             </div>
           )}
 
-          {/* T69 — in-fullscreen MOVES side summary: the digest panel docks
-              over the board's right edge so the period replay stays readable
-              with zero chrome around it */}
-          {fs && weekMoves && (
+          {/* T69/T71 — the MOVES side summary docks over the board's right
+              edge whenever a week is active — in NORMAL mode too (the user's
+              ask: it used to appear only in fullscreen), so clicking ▶ or a
+              period shows the ranked moves next to the arcs themselves. */}
+          {weekMoves && (
             <div className="absolute top-12 right-2 z-20 w-[300px] max-h-[70%] overflow-auto rounded-xl border bg-card/95 p-3 text-xs shadow-xl backdrop-blur thin-scroll">
               <p className="font-bold mb-1">
                 {weekMoves.period.l} · {weekMoves.period.m.length} {lang === "ar" ? "تحركًا" : "moves"}
@@ -1066,18 +1107,20 @@ export function LensView() {
                 .slice(0, 12)
                 .map((m, i) => {
                   const up = (m.c ?? 0) >= 0;
+                  const sz = moveSize(data.companies.find((c) => c.ticker === m.t), m.c);
                   return (
                     <button
                       key={`${m.t}-${m.h}-${i}`}
                       className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-start hover:bg-accent/50"
                       onClick={() => setFocus({ type: "company", ticker: m.t })}
+                      title={`${data.people[m.h]?.n ?? String(m.h)} · ${m.t}${m.f != null && m.o != null ? ` (${fmtPct(m.f)}% → ${fmtPct(m.o)}%)` : ""}${sz ? ` · ≈ ${fmtShares(sz.shares)} ${lang === "ar" ? "سهم" : "shares"}` : ""}`}
                     >
                       <span className="min-w-0 truncate">
                         <b className="text-[10px] rounded bg-secondary px-1" dir="ltr">{m.t}</b>{" "}
                         {data.people[m.h]?.n ?? String(m.h)}
                       </span>
                       <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`} dir="ltr">
-                        {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}
+                        {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}%
                       </b>
                     </button>
                   );
@@ -1276,11 +1319,11 @@ export function LensView() {
                                 // + from→to live in the native tooltip.
                                 const mvHolder = data ? data.people[mv.h]?.n ?? String(mv.h) : String(mv.h);
                                 const mvHolderShort = mvHolder.split(/\s+/).slice(0, 2).join(" ");
-                                // T67 — the stake-point unit spelled out: "3.5p" was
-                                // cryptic; the label now says what it IS (نقطة
-                                // ملكية / stake pts) and the tooltip defines it
-                                const ptsLabel = lang === "ar" ? "نقطة ملكية" : "stake pts";
-                                const tip = `${mvHolder} · ${ring.ticker} ${mv.c != null ? `${mv.c > 0 ? "+" : ""}${mv.c.toFixed(2)} ${ptsLabel}` : ""}${mv.from != null && mv.to != null ? ` (${fmtPct(mv.from)}% → ${fmtPct(mv.to)}%)` : ""}${lang === "ar" ? " — النقطة = 1% من أسهم الشركة" : " — 1 point = 1% of the company's shares"}`;
+                                // T71 — the move now speaks in CONCRETE terms: the % of
+                                // the company's total equity + the share quantity it
+                                // represents (plus its EGP value in the tooltip)
+                                const mvSz = moveSize(ring.company, mv.c);
+                                const tip = `${mvHolder} · ${ring.ticker} ${mv.c != null ? `${mv.c > 0 ? "+" : ""}${mv.c.toFixed(2)}% ${lang === "ar" ? "من إجمالي ملكية الشركة" : "of the company's total equity"}` : ""}${mv.from != null && mv.to != null ? ` (${fmtPct(mv.from)}% → ${fmtPct(mv.to)}%)` : ""}${mvSz ? ` · ≈ ${fmtShares(mvSz.shares)} ${lang === "ar" ? "سهم" : "shares"} · ≈ ${fmtEgp(mvSz.valueEgp, lang)}` : ""}`;
                                 return (
                                   <g key={`wa-${i}`}>
                                     <path
@@ -1305,7 +1348,7 @@ export function LensView() {
                                         style={{ fill: col }}
                                         className="pointer-events-none"
                                       >
-                                        {`${(mv.c ?? 0) > 0 ? "+" : ""}${(mv.c ?? 0).toFixed(1)}${lang === "ar" ? " نقطة" : " pts"}`}
+                                        {`${(mv.c ?? 0) > 0 ? "+" : ""}${(mv.c ?? 0).toFixed(1)}%`}
                                       </text>
                                     )}
                                     {ring.r > 13 && Math.abs(mv.c ?? 0) >= 0.5 && (
@@ -1522,27 +1565,6 @@ export function LensView() {
               {view.k.toFixed(1)}× · {lang === "ar" ? "إعادة" : "reset"}
             </button>
           </div>
-
-          {/* legend */}
-          <div className="absolute bottom-2 right-2 max-w-[56%] rounded-lg border bg-card/90 px-2.5 py-1.5 text-[10.5px] leading-relaxed text-muted-foreground">
-            {lang === "ar" ? (
-              <>
-                التمرير بإصبعين يتنقّل في اللوحة، و ctrl/⌘ مع التمرير أو القرص للتكبير (والسحب بالمؤشر يتنقّل أيضاً).
-                الحلقة شركة، حجمها بالقيمة السوقية، والشرائح الملوّنة مالكون وردت أسماؤهم في إفصاح.
-                الحد المنقّط = شركة لم يرد لها إفصاح ملكية بعد (كل شركة عامة لها مالكون — الإفصاح لم يذكرهم).
-                الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليست أسهماً حرة.
-                الهالة النابضة تميّز الشركات التي تحرّكت حصصها في الأسبوع المختار، والقوس الخارجي بحجم ما اكتسبته الحصة أو تخلّت عنه (الرقم بنقاط الحصة).
-              </>
-            ) : (
-              <>
-                Two-finger scroll pans the board · ctrl/⌘ + scroll or pinch zooms · drag pans too.
-                A ring is a company, sized by market cap; the colored slices are holders named in disclosures.
-                A dotted outline = no disclosure filed for that company yet (every public company has owners — the filings just have not named them).
-                The grey part is ownership nobody had to disclose — NOT free float.
-                The pulsing halo marks companies whose stakes moved in the chosen week; the outer arc sizes what a stake gained or shed (the number is in stake points).
-              </>
-            )}
-          </div>
         </div>
 
         {/* ── right panel: company profile / investor portfolio / register ── */}
@@ -1596,19 +1618,23 @@ export function LensView() {
                         <div className="mt-1 space-y-0.5">
                           {top.map((m, j) => {
                             const up = (m.c ?? 0) >= 0;
+                            const sz = moveSize(data.companies.find((c) => c.ticker === m.t), m.c);
                             return (
                               <button
                                 key={`${m.t}-${m.h}-${j}`}
                                 className="flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-[10.5px] text-start hover:bg-accent/50"
                                 onClick={() => setFocus({ type: "company", ticker: m.t })}
-                                title={lang === "ar" ? "افتح ملكية الشركة" : "open the company's ownership"}
+                                title={`${data.people[m.h]?.n ?? String(m.h)} · ${m.t}${m.f != null && m.o != null ? ` (${fmtPct(m.f)}% → ${fmtPct(m.o)}%)` : ""}${sz ? ` · ≈ ${fmtShares(sz.shares)} ${lang === "ar" ? "سهم" : "shares"} · ≈ ${fmtEgp(sz.valueEgp, lang)}` : ""}`}
                               >
                                 <span className="min-w-0 truncate text-muted-foreground">
                                   <b className="rounded bg-secondary px-1 font-bold text-foreground/80" dir="ltr">{m.t}</b>{" "}
                                   {(data.people[m.h]?.n ?? String(m.h)).slice(0, 22)}
+                                  {sz && (
+                                    <span className="ms-1 tabular-nums" dir="ltr">· {fmtShares(sz.shares)}</span>
+                                  )}
                                 </span>
                                 <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`} dir="ltr">
-                                  {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}
+                                  {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}%
                                 </b>
                               </button>
                             );
@@ -1619,11 +1645,6 @@ export function LensView() {
                   );
                 })}
               </div>
-              <p className="text-[10px] leading-relaxed text-muted-foreground">
-                {lang === "ar"
-                  ? "كل فترة إفصاح أسبوعية بأكبر تحركاتها المسماة — اضغط الفترة لعرضها على اللوحة، أو اضغط تحركًا لفتح ملكية شركته."
-                  : "Every weekly filing period with its biggest named moves — click a period to replay it on the board, or click a move to open that company's ownership."}
-              </p>
             </div>
           )}
           {/* T65 — the WEEK'S MOVES, ranked: the most recognizable form of
@@ -1656,6 +1677,7 @@ export function LensView() {
                     const up = (m.c ?? 0) >= 0;
                     const holder = data ? data.people[m.h]?.n ?? String(m.h) : String(m.h);
                     const holderAlts = data ? data.people[m.h]?.alts : undefined;
+                    const sz = moveSize(data.companies.find((c) => c.ticker === m.t), m.c);
                     return (
                       <button
                         key={`${m.t}-${m.h}-${i}`}
@@ -1689,30 +1711,29 @@ export function LensView() {
                             className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
                             title={
                               lang === "ar"
-                                ? "نقطة ملكية = 1% من أسهم الشركة — أي فرق حصة المالك في هذه الشركة بين نشرتين"
-                                : "1 stake point = 1% of the company's share capital — the holder's delta between two filings"
+                                ? "النسبة المتغيرة من إجمالي حقوق ملكية الشركة (رأس مالها الأساسي) بين نشرتين"
+                                : "the changed share of the company's total equity (share capital) between two filings"
                             }
                           >
                             {up ? "+" : ""}
-                            {(m.c ?? 0).toFixed(2)}
-                            {lang === "ar" ? " نقطة ملكية" : " stake pts"}
+                            {(m.c ?? 0).toFixed(2)}%
                           </b>
                         </div>
-                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
                           <b className="rounded bg-secondary px-1 py-px font-bold text-foreground/80" dir="ltr">{m.t}</b>
                           <span>
                             {m.f != null && m.o != null ? `${fmtPct(m.f)}% → ${fmtPct(m.o)}%` : m.o != null ? `${lang === "ar" ? "إفصاح جديد" : "new filing"} ${fmtPct(m.o)}%` : "—"}
                           </span>
+                          {sz && (
+                            <span dir="auto" title={lang === "ar" ? "الكمية المقدّرة من الأسهم التي تمثلها هذه الحركة، وقيمتها بالسعر الحالي" : "the estimated share quantity this move represents, and its value at the current price"}>
+                              · ≈ <b>{fmtShares(sz.shares)}</b> {lang === "ar" ? "سهم" : "shares"} · ≈ <b>{fmtEgp(sz.valueEgp, lang)}</b>
+                            </span>
+                          )}
                         </div>
                       </button>
                     );
                   })}
               </div>
-              <p className="text-[10px] leading-relaxed text-muted-foreground">
-                {lang === "ar"
-                  ? "الأكبر أولًا · «نقطة الملكية» = 1% من أسهم الشركة: فمثلًا +3.5 نقطة تعني أن حصة المالك زادت بمقدار 3.5% من رأس مال الشركة (من 4.8% إلى 8.3% مثلًا). اسم المالك أعلى كل صف — اضغطه لفتح ملفه، أو اضغط الصف لفتح الشركة. على اللوحة: الهالة النابضة تميّز الشركات المتحركة، وقوس كل حركة يحمل حجمها واسم صاحبها."
-                  : "Biggest first · a stake point = 1% of the company's share capital: +3.5 pts means the holder's stake grew by 3.5% of the company's capital (e.g. from 4.8% to 8.3%). The holder's name leads every row — click it to open their profile, or click the row for the company. On the board: the pulsing halo marks moved companies, and each arc carries its size AND its holder's name."}
-              </p>
             </div>
           )}
           {focusState?.kind === "company" ? (
@@ -1740,8 +1761,8 @@ export function LensView() {
                 /* T59 — honest empty state: public company, no filed owners yet */
                 <div className="rounded-lg border border-dashed bg-background/60 px-2.5 py-3 text-[11px] text-muted-foreground leading-relaxed">
                   {lang === "ar"
-                    ? `لا توجد إفصاحات ملكية منشورة لهذه الشركة حتى ${data.asOf.slice(0, 10)}. كل شركة عامة لها مالكون بالتأكيد — لكن لم يذكر أي نموذج إفصاح رسمي أسماءهم بعد، فتبقى ملكيتها كلها ضمن الجزء غير المعلن (وليست أسهماً حرة بالضرورة).`
-                    : `No ownership disclosures have been filed for this company as of ${data.asOf.slice(0, 10)}. A public company certainly has owners — no official disclosure form has named them yet, so all of its ownership sits in the undisclosed part (not necessarily free float).`}
+                    ? `لا توجد إفصاحات ملكية منشورة لهذه الشركة حتى ${data.asOf.slice(0, 10)}.`
+                    : `No ownership disclosures have been filed for this company as of ${data.asOf.slice(0, 10)}.`}
                 </div>
               ) : (
                 <>
@@ -1828,11 +1849,6 @@ export function LensView() {
               >
                 {lang === "ar" ? "افتح صفحة الشركة ↗" : "open company page ↗"}
               </button>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                {lang === "ar"
-                  ? "من رأس مال الشركة، وفق آخر إفصاحات الملكية المنشورة. الجزء غير المعلن ليس أسهماً حرة."
-                  : "Of the company's share capital, per the latest filed ownership disclosures. The undisclosed part is not free float."}
-              </p>
             </div>
           ) : focusState?.kind === "holder" && holderPortfolio ? (
             /* ── T59 — INVESTOR PORTFOLIO: his investments across the stocks ── */
@@ -1866,6 +1882,87 @@ export function LensView() {
                   {lang === "ar" ? "رجوع" : "back"}
                 </button>
               </div>
+
+              {/* T71 — the INVESTOR BRIEF: a written, data-grounded paragraph
+                  about the focused holder (the user's ask) */}
+              {holderBrief && (
+                <div className="rounded-lg border bg-background/60 px-2.5 py-2 text-[11px] leading-relaxed">
+                  <p className="font-bold mb-1">{lang === "ar" ? "ملخص المستثمر" : "Investor brief"}</p>
+                  <p>
+                    {lang === "ar" ? (
+                      <>
+                        {personName(focusState.h)}{" "}
+                        {holderBrief.isFirm ? "كيان (شركة أو صندوق) ورد اسمه في إفصاحات الملكية الرسمية كمالك أو عضو مجلس في" : "شخص طبيعي ورد اسمه في إفصاحات الملكية الرسمية كمالك أو عضو مجلس في"}{" "}
+                        <b>{holderBrief.companies}</b>{" "}
+                        {holderBrief.companies === 1 ? "شركة مدرجة واحدة" : "شركات مدرجة"}
+                        {holderBrief.sectorCount > 0 && (
+                          <>
+                            {""} عبر <b>{holderBrief.sectorCount}</b>{" "}
+                            {holderBrief.sectorCount === 1 ? "قطاع" : "قطاعات"}
+                          </>
+                        )}. 
+                        {holderBrief.biggest?.value != null && (
+                          <>
+                            أكبر حصصه المعلنة في <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}%، بقيمة تقديرية {fmtEgp(holderBrief.biggest.value, lang)}).
+                          </>
+                        )}{" "}
+                        {holderBrief.moves.length > 0 && holderBrief.latest && (
+                          <>
+                            يوثّق سجل الإفصاحات <b>{holderBrief.moves.length}</b>{" "}
+                            {holderBrief.moves.length === 1 ? "تحركًا واحدًا لحصصه" : holderBrief.moves.length === 2 ? "تحركين لحصصه" : "تحركات لحصصه"}؛ أحدثها في فترة {holderBrief.latest.per}: {" "}
+                            {holderBrief.latest.from != null && holderBrief.latest.to != null
+                              ? `تحرّكت حصته في ${holderBrief.latest.ticker} من ${fmtPct(holderBrief.latest.from)}% إلى ${fmtPct(holderBrief.latest.to)}%`
+                              : `تحرك في ${holderBrief.latest.ticker}`}
+                            {holderBrief.latestSz
+                              ? ` — أي ما يعادل تقديريًا ${fmtShares(holderBrief.latestSz.shares)} سهمًا بقيمة ${fmtEgp(holderBrief.latestSz.valueEgp, lang)}`
+                              : ""}
+                            .
+                          </>
+                        )}{" "}
+                        {holderBrief.moves.length >= 3 && (
+                          <>
+                            صافي اتجاهه في آخر تحركاته <b className={holderBrief.netRecent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>{holderBrief.netRecent >= 0 ? "شرائي (تراكم مراكز)" : "بيعي (تخفيف مراكز)"}</b>.
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {personName(focusState.h)} is{" "}
+                        {holderBrief.isFirm ? "an entity (firm / fund) named in the official ownership disclosures as a holder or board member in" : "an individual named in the official ownership disclosures as a holder or board member in"}{" "}
+                        <b>{holderBrief.companies === 1 ? "one listed company" : `${holderBrief.companies} listed companies`}</b>
+                        {holderBrief.sectorCount > 0 && (
+                          <>
+                            {""} across <b>{holderBrief.sectorCount === 1 ? "one sector" : `${holderBrief.sectorCount} sectors`}</b>
+                          </>
+                        )}. 
+                        {holderBrief.biggest?.value != null && (
+                          <>
+                            Largest filed stake: <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}%, est. {fmtEgp(holderBrief.biggest.value, lang)}).
+                          </>
+                        )}{" "}
+                        {holderBrief.moves.length > 0 && holderBrief.latest && (
+                          <>
+                            The filing record documents <b>{holderBrief.moves.length}</b>{" "}
+                            {holderBrief.moves.length === 1 ? "stake move" : "stake moves"}; the latest in {holderBrief.latest.per}: {" "}
+                            {holderBrief.latest.from != null && holderBrief.latest.to != null
+                              ? `his stake in ${holderBrief.latest.ticker} moved from ${fmtPct(holderBrief.latest.from)}% to ${fmtPct(holderBrief.latest.to)}%`
+                              : `a move in ${holderBrief.latest.ticker}`}
+                            {holderBrief.latestSz
+                              ? ` — an estimated ${fmtShares(holderBrief.latestSz.shares)} shares worth ${fmtEgp(holderBrief.latestSz.valueEgp, lang)}`
+                              : ""}
+                            .
+                          </>
+                        )}{" "}
+                        {holderBrief.moves.length >= 3 && (
+                          <>
+                            Recent net direction: <b className={holderBrief.netRecent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>{holderBrief.netRecent >= 0 ? "accumulating (net buyer)" : "reducing (net seller)"}</b>.
+                          </>
+                        )}
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
 
               {/* portfolio headline: total estimated value of the filed stakes */}
               <div className="rounded-lg border bg-background/60 px-2.5 py-2">
@@ -1923,11 +2020,6 @@ export function LensView() {
                   );
                 })}
               </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                {lang === "ar"
-                  ? "قيمة كل حصة = النسبة المفصح عنها × القيمة السوقية الحالية للشركة — تقدير يتغير مع السعر. النسب تخص كل شركة على حدة ولا تُجمع أبدًا."
-                  : "Each stake value = filed percentage × the company's current market cap — an estimate that moves with the price. Percentages belong to each single company and are never summed."}
-              </p>
             </div>
           ) : (
             <div className="rounded-xl border bg-card p-3">
@@ -1987,46 +2079,8 @@ export function LensView() {
                   <p className="text-xs text-muted-foreground py-2">{lang === "ar" ? "لا نتائج." : "no matches."}</p>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
-                {lang === "ar"
-                  ? "الترتيب أبجدي بقرار تحريري — هذا المشروع لا ينشر أي ترتيب آخر للأطراف المذكورة."
-                  : "Alphabetical by editorial policy — this project publishes no other ranking of named parties."}
-              </p>
             </div>
           )}
-
-          {/* method / honesty details */}
-          <details className="rounded-xl border bg-card px-3 py-2 text-xs">
-            <summary className="cursor-pointer font-semibold">
-              {lang === "ar" ? "ما الذي تخبرك به هذه الخريطة — وما الذي لا تستطيع" : "What this can — and cannot — tell you"}
-            </summary>
-            <div className="mt-2 space-y-1.5 text-muted-foreground leading-relaxed">
-              <p>
-                {lang === "ar"
-                  ? "هذه خط زمني للإفصاحات وليست سجل مساهمين كاملًا: غياب مبلغ لا يعني عدم وجود نشاط."
-                  : "This is a disclosure timeline, not a complete shareholder register: a missing amount does not mean zero activity."}
-              </p>
-              <p>
-                {lang === "ar"
-                  ? "الجزء الرمادي ملكية لم يُلزم أحد بالإفصاح عنها — وليست أسهماً حرة."
-                  : "The grey remainder is ownership nobody was obliged to disclose — it is NOT free float."}
-              </p>
-              <p>
-                {lang === "ar"
-                  ? `تتحدث البيانات تلقائيًا يوميًا من نماذج الإفصاح الرسمية — آخر تحديث ${data.asOf.slice(0, 10)}.`
-                  : `The data refreshes automatically every day from the official disclosure forms — last update ${data.asOf.slice(0, 10)}.`}
-              </p>
-              <p>
-                {lang === "ar" ? "المصدر:" : "Source:"} {lang === "ar" ? data.sourceAr : data.source} ({data.asOf}).
-              </p>
-              {data.refused.length > 0 && (
-                <p>
-                  {lang === "ar" ? "إفصاحات مستبعدة:" : "Refused filings:"}{" "}
-                  {data.refused.map((r) => `${r.holder} → ${r.t}`).join(" · ")} ({data.refused[0]?.why})
-                </p>
-              )}
-            </div>
-          </details>
         </aside>
       </div>
     </div>
