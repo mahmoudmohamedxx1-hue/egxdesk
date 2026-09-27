@@ -344,6 +344,35 @@ export function LensView() {
   const [query, setQuery] = useState("");
   const svgRef = useRef<SVGSVGElement | null>(null);
 
+  // ── T69 — FULLSCREEN: native Fullscreen API when the browser grants it
+  // (desktop Chrome/Safari/Android), CSS fixed-overlay fallback otherwise
+  // (iOS Safari never fullscreens arbitrary elements — the map then becomes
+  // a fixed inset-0 layer over the app). "fs" covers both modes; the
+  // fullscreenchange listener keeps state honest for ESC / programmatic exits.
+  const mapWrapRef = useRef<HTMLDivElement | null>(null);
+  const [fs, setFs] = useState<boolean>(false);
+  useEffect(() => {
+    const onFsChange = () => setFs(document.fullscreenElement === mapWrapRef.current);
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+  const toggleFullscreen = () => {
+    const el = mapWrapRef.current;
+    if (!el) return;
+    if (fs || document.fullscreenElement === el) {
+      if (document.fullscreenElement === el) void document.exitFullscreen().catch(() => {});
+      setFs(false);
+      return;
+    }
+    if (el.requestFullscreen) {
+      el.requestFullscreen()
+        .then(() => setFs(true))
+        .catch(() => setFs(true)); // API present but refused → CSS overlay mode
+    } else {
+      setFs(true); // no Fullscreen API (iOS Safari) → CSS overlay mode
+    }
+  };
+
   useEffect(() => {
     let alive = true;
     fetch("/api/ownership-lens", { cache: "no-store" })
@@ -950,12 +979,117 @@ export function LensView() {
 
       {/* ── map + panel ── */}
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
-        <div className="relative rounded-xl border overflow-hidden lens-map">
+        <div
+          ref={mapWrapRef}
+          className={`relative overflow-hidden lens-map ${
+            fs ? "fixed inset-0 z-[60] rounded-none border-0 lens-fs" : "rounded-xl border"
+          }`}
+        >
+          {/* T69 — the fullscreen toggle (native API, CSS-overlay fallback) */}
+          <button
+            className="absolute top-2 right-2 z-20 flex items-center gap-1.5 rounded-md border bg-card/90 px-2.5 py-1.5 text-[11px] font-medium hover:bg-accent"
+            onClick={toggleFullscreen}
+            title={
+              fs
+                ? lang === "ar"
+                  ? "اخرج من ملء الشاشة (Esc)"
+                  : "exit fullscreen (Esc)"
+                : lang === "ar"
+                  ? "اعرض اللوحة في ملء الشاشة"
+                  : "open the board in fullscreen"
+            }
+          >
+            {fs ? (
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 9V5a2 2 0 0 1 2-2h4M21 9V5a2 2 0 0 0-2-2h-4M3 15v4a2 2 0 0 0 2 2h4M21 15v4a2 2 0 0 1-2 2h-4" />
+              </svg>
+            )}
+            <span>{fs ? (lang === "ar" ? "خروج" : "exit") : lang === "ar" ? "ملء الشاشة" : "fullscreen"}</span>
+          </button>
+
+          {/* T69 — in-fullscreen week strip (the page-level strip is covered
+              by the fixed overlay, so the period replay rides INSIDE the map) */}
+          {fs && data && (
+            <div className="absolute top-2 left-2 z-20 flex max-w-[46%] flex-wrap items-center gap-1.5 rounded-lg border bg-card/90 px-2 py-1.5 text-[11px] backdrop-blur">
+              <button
+                className={`rounded-full border px-2 py-0.5 transition-colors ${weekIdx === null ? "border-primary bg-primary/15 font-semibold" : "bg-background/60 hover:bg-accent"}`}
+                onClick={() => {
+                  setPlaying(false);
+                  setWeekIdx(null);
+                }}
+              >
+                {lang === "ar" ? "الوضع الحالي" : "standing"}
+              </button>
+              <button
+                className="rounded-full border bg-background/60 px-2 py-0.5 hover:bg-accent"
+                title={lang === "ar" ? "تشغيل الأسابيع" : "play weeks"}
+                onClick={() => {
+                  setPlaying((p) => !p);
+                  if (weekIdx === null) setWeekIdx(0);
+                }}
+              >
+                {playing ? "⏸" : "▶"}
+              </button>
+              <div className="flex items-center gap-1 flex-wrap max-h-[60px] overflow-y-auto thin-scroll">
+                {data.periods.map((per, i) => (
+                  <button
+                    key={per.start}
+                    className={`rounded-full border px-1.5 py-px text-[10px] transition-colors ${
+                      weekIdx === i ? "border-primary bg-primary/15 font-semibold" : "bg-background/60 hover:bg-accent"
+                    }`}
+                    onClick={() => {
+                      setPlaying(false);
+                      setWeekIdx(weekIdx === i ? null : i);
+                    }}
+                  >
+                    {per.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* T69 — in-fullscreen MOVES side summary: the digest panel docks
+              over the board's right edge so the period replay stays readable
+              with zero chrome around it */}
+          {fs && weekMoves && (
+            <div className="absolute top-12 right-2 z-20 w-[300px] max-h-[70%] overflow-auto rounded-xl border bg-card/95 p-3 text-xs shadow-xl backdrop-blur thin-scroll">
+              <p className="font-bold mb-1">
+                {weekMoves.period.l} · {weekMoves.period.m.length} {lang === "ar" ? "تحركًا" : "moves"}
+              </p>
+              {[...weekMoves.period.m]
+                .sort((a, b) => Math.abs(b.c ?? 0) - Math.abs(a.c ?? 0))
+                .slice(0, 12)
+                .map((m, i) => {
+                  const up = (m.c ?? 0) >= 0;
+                  return (
+                    <button
+                      key={`${m.t}-${m.h}-${i}`}
+                      className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-start hover:bg-accent/50"
+                      onClick={() => setFocus({ type: "company", ticker: m.t })}
+                    >
+                      <span className="min-w-0 truncate">
+                        <b className="text-[10px] rounded bg-secondary px-1" dir="ltr">{m.t}</b>{" "}
+                        {data.people[m.h]?.n ?? String(m.h)}
+                      </span>
+                      <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`} dir="ltr">
+                        {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}
+                      </b>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+
           <svg
             ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
             className="w-full touch-none select-none cursor-grab active:cursor-grabbing"
-            style={{ height: "min(72vh, 720px)" }}
+            style={{ height: fs ? "100vh" : "min(72vh, 720px)" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -1413,6 +1547,85 @@ export function LensView() {
 
         {/* ── right panel: company profile / investor portfolio / register ── */}
         <aside className="space-y-3">
+          {/* T69 — PERIOD MOVES side summary, ALWAYS visible (the user's ask:
+           * "a side summary shows period moves"): every disclosed period with
+           * its date, move count and the biggest named moves inline — clicking
+           * a period replays it on the board; clicking a move opens that
+           * company's ownership profile. */}
+          {data.periods.length > 0 && (
+            <div className="rounded-xl border bg-card p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold leading-snug">
+                    {lang === "ar" ? "ملخص تحركات الفترات" : "Period moves digest"}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {data.periods.reduce((s, p) => s + p.m.length, 0).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB")}{" "}
+                    {lang === "ar" ? "تحرك حصة في" : "stake moves across"}{" "}
+                    {data.periods.length} {lang === "ar" ? "فترة إفصاح" : "filing periods"}
+                  </p>
+                </div>
+                {weekIdx !== null && (
+                  <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setWeekIdx(null)}>
+                    {lang === "ar" ? "إخفاء الأسبوع" : "clear week"}
+                  </button>
+                )}
+              </div>
+              <div className="max-h-[40vh] overflow-auto space-y-1 pr-1 thin-scroll">
+                {data.periods.map((per, idx) => {
+                  // the API lists periods newest-first — the digest keeps that
+                  // order and its index matches the week strip exactly
+                  const active = weekIdx === idx;
+                  const top = [...per.m].sort((a, b) => Math.abs(b.c ?? 0) - Math.abs(a.c ?? 0)).slice(0, 3);
+                  return (
+                    <div
+                      key={per.start}
+                      className={`rounded-lg border px-2 py-1.5 transition-colors ${active ? "border-primary bg-primary/10" : "bg-background/60"}`}
+                    >
+                      <button
+                        className="flex w-full items-center justify-between gap-2 text-xs"
+                        onClick={() => setWeekIdx(active ? null : idx)}
+                        title={lang === "ar" ? "اعرض تحركات هذه الفترة على اللوحة" : "replay this period's moves on the board"}
+                      >
+                        <span className="font-semibold">{per.l}</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {per.m.length} {lang === "ar" ? "تحرك" : "moves"}
+                        </span>
+                      </button>
+                      {top.length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {top.map((m, j) => {
+                            const up = (m.c ?? 0) >= 0;
+                            return (
+                              <button
+                                key={`${m.t}-${m.h}-${j}`}
+                                className="flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-[10.5px] text-start hover:bg-accent/50"
+                                onClick={() => setFocus({ type: "company", ticker: m.t })}
+                                title={lang === "ar" ? "افتح ملكية الشركة" : "open the company's ownership"}
+                              >
+                                <span className="min-w-0 truncate text-muted-foreground">
+                                  <b className="rounded bg-secondary px-1 font-bold text-foreground/80" dir="ltr">{m.t}</b>{" "}
+                                  {(data.people[m.h]?.n ?? String(m.h)).slice(0, 22)}
+                                </span>
+                                <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`} dir="ltr">
+                                  {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}
+                                </b>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                {lang === "ar"
+                  ? "كل فترة إفصاح أسبوعية بأكبر تحركاتها المسماة — اضغط الفترة لعرضها على اللوحة، أو اضغط تحركًا لفتح ملكية شركته."
+                  : "Every weekly filing period with its biggest named moves — click a period to replay it on the board, or click a move to open that company's ownership."}
+              </p>
+            </div>
+          )}
           {/* T65 — the WEEK'S MOVES, ranked: the most recognizable form of
            * the week replay — not tiny arcs on the board but a plain list of
            * who moved, in which company, from → to, biggest first. Clicking a

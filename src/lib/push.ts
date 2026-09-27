@@ -17,41 +17,55 @@ import { db } from "@/lib/db";
 import { fetchUniverse, type Stock } from "@/lib/market";
 import { resolveTicker } from "@/lib/ticker-aliases";
 
-// ── VAPID keys (generated once by scripts/gen-vapid.js) ──
+// ── VAPID keys (server-secrets/vapid.json locally; data/push-vapid.json is
+// the committed app identity that reaches Vercel — see getVapid below) ──
 
 type VapidKeys = { publicKey: string; privateKey: string };
 
-function resolveVapidPath(): string {
-  const cwd = process.cwd();
-  const argv1 = process.argv[1] ?? "";
-  const serverDir = path.dirname(path.resolve(argv1));
-  const candidates = [
-    path.join(cwd, "server-secrets", "vapid.json"),
-    path.join(cwd, "..", "server-secrets", "vapid.json"),
-    path.join(cwd, "..", "..", "server-secrets", "vapid.json"),
-    path.join(serverDir, "..", "..", "server-secrets", "vapid.json"),
-  ];
-  for (const c of candidates) {
-    try {
-      if (fs.existsSync(c)) return c;
-    } catch {}
-  }
-  return candidates[0];
-}
-
 let vapid: VapidKeys | null = null;
 
+/** T69 — VAPID resolution, in priority order:
+ *  1. VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY env vars (the rotate-anytime
+ *     override — set them on the host and they win over every file),
+ *  2. server-secrets/vapid.json (the local dev box's own pair, gitignored),
+ *  3. data/push-vapid.json — the app's COMMITTED Web-Push identity.
+ *
+ *  Why commit a pair at all: the deploy workflow is git-push → Vercel, and
+ *  a gitignored file never reaches the server, so push notifications were
+ *  silently DEAD on production (GET /api/push/key → "push not configured").
+ *  A VAPID keypair is an APPLICATION IDENTITY for Web Push, not an access
+ *  credential: the private half only SIGNS push requests to the push
+ *  services, and reaching any device additionally requires that device's
+ *  subscription endpoint + p256dh + auth secrets, which never leave the
+ *  server. Env vars remain the first-class override for rotation. */
 function getVapid(): VapidKeys | null {
   if (vapid) return vapid;
-  try {
-    const raw = fs.readFileSync(resolveVapidPath(), "utf8");
-    const parsed = JSON.parse(raw) as VapidKeys;
-    if (parsed.publicKey && parsed.privateKey) {
-      vapid = parsed;
-      webpush.setVapidDetails("mailto:egx-desk@localhost", parsed.publicKey, parsed.privateKey);
+  const envPub = process.env.VAPID_PUBLIC_KEY;
+  const envPriv = process.env.VAPID_PRIVATE_KEY;
+  if (envPub && envPriv) {
+    vapid = { publicKey: envPub, privateKey: envPriv };
+  } else {
+    // same launch-dir robustness as lib/db.ts: project root, one level
+    // below, .next/standalone, or derived from the server entry's location
+    const cwd = process.cwd();
+    const argv1 = process.argv[1] ?? "";
+    const serverDir = path.dirname(path.resolve(argv1));
+    const bases = [cwd, path.join(cwd, ".."), path.join(cwd, "..", ".."), serverDir];
+    outer: for (const rel of ["server-secrets/vapid.json", "data/push-vapid.json"]) {
+      for (const base of bases) {
+        try {
+          const raw = fs.readFileSync(path.join(base, rel), "utf8");
+          const parsed = JSON.parse(raw) as VapidKeys;
+          if (parsed.publicKey && parsed.privateKey) {
+            vapid = parsed;
+            break outer;
+          }
+        } catch {}
+      }
     }
-  } catch {
-    // missing/corrupt keys — push disabled; the app still works
+  }
+  if (vapid) {
+    webpush.setVapidDetails("mailto:egx-desk@localhost", vapid.publicKey, vapid.privateKey);
   }
   return vapid;
 }
@@ -469,6 +483,204 @@ export async function pushSignalEvents(): Promise<{ devices: number; notified: n
     out.notified += fresh.length;
     await db.pushDevice
       .update({ where: { id: d.id }, data: { signalsNotifiedAt: newestAt, lastNotifiedAt: new Date() } })
+      .catch(() => {});
+  }
+  return out;
+}
+
+// ── T69: FAVORITE-STOCK notifications (the user's ask: "a notification for
+// every stock i made as a favorite") ────────────────────────────────────────
+
+/** Every favorited ticker earns TWO notification kinds, both deduped per
+ *  device, both honest about the ~15-min quote delay:
+ *
+ *  1. FRESH NEWS naming a favorite — the enriched multi-outlet feed the
+ *     news screen reads, matched by its own ticker attribution. Deduped by
+ *     a per-device cursor (watchlistNotifiedAt = published time of the
+ *     newest item already pushed). A null cursor starts at now-45min, so
+ *     enabling notifications never replays the day's backlog as spam.
+ *
+ *  2. SIGNIFICANT MOVES — |changePct| ≥ 4% on a favorite while quotes are
+ *     from today's Cairo session. Deduped per Cairo day per ticker via
+ *     `mv-<date>-<ticker>` markers appended to notifiedJson (the same
+ *     mechanism alert ids use — re-subscribing prunes them, harmless for a
+ *     same-day-only marker).
+ *
+ *  One COMBINED notification per device per tick (the alert engine's own
+ *  pacing discipline), capped at 3 headlines in the body. Runs in the same
+ *  5-minute loop as evaluateDevices. */
+export async function pushWatchlistNews(): Promise<{ devices: number; notified: number }> {
+  const out = { devices: 0, notified: 0 };
+  if (!getVapid()) return out;
+  let devices: Awaited<ReturnType<typeof db.pushDevice.findMany>> = [];
+  try {
+    devices = await db.pushDevice.findMany();
+  } catch {
+    return out;
+  }
+  // only devices that actually mirrored favorites
+  const withWatch = devices.filter((d) => {
+    try {
+      return (JSON.parse(d.watchlistJson) as string[]).length > 0;
+    } catch {
+      return false;
+    }
+  });
+  out.devices = withWatch.length;
+  if (!withWatch.length) return out;
+
+  // the union of every favorite + one shared universe fetch
+  const allFavs = new Set<string>();
+  for (const d of withWatch) {
+    try {
+      for (const t of JSON.parse(d.watchlistJson) as string[]) allFavs.add(t);
+    } catch {}
+  }
+
+  // significant moves (per Cairo day) — quotes + session check
+  const today = cairoTodayStr();
+  // T69 honesty guard: outside a live EGX session (weekend / after close)
+  // the universe's changePct is the LAST session's move — notifying
+  // "moved 5% today" on a Saturday would be false. Movers notify only
+  // while the session is actually open; news notifications run always.
+  const { marketStatus } = await import("@/lib/market-status");
+  const status = marketStatus();
+  const sessionLive = status.open && status.lastSession === today;
+  const universe = await fetchUniverse().catch(() => [] as Stock[]);
+  const byTicker = new Map(universe.map((s) => [s.ticker, s] as const));
+  const bigMovers = new Map<string, { changePct: number; close: number }>();
+  if (sessionLive) {
+    for (const t of allFavs) {
+      const s = byTicker.get(t);
+      if (!s || !s.changePct || !Number.isFinite(s.changePct)) continue;
+      if (Math.abs(s.changePct) >= 4) bigMovers.set(t, { changePct: s.changePct, close: s.close });
+    }
+  }
+
+  // fresh news naming a favorite — the same enriched feed the news screen
+  // reads (5-min shared cache, outlets fetched once)
+  type FeedItemLite = { id?: unknown; headline?: unknown; published?: unknown; tickers?: unknown; sources?: { name?: unknown }[] };
+  let feedItems: FeedItemLite[] = [];
+  if (allFavs.size > 0) {
+    try {
+      const { getEnrichedFeedCached } = await import("@/lib/news-sources");
+      const snapshotMod = (await import("@/data/news-snapshot.json").catch(() => null)) as unknown;
+      const feed = await getEnrichedFeedCached(
+        async () => universe.map((s) => ({ ticker: s.ticker, name: s.name, volume: s.volume, avgVolume: s.avgVolume })),
+        (snapshotMod ?? undefined) as never,
+      );
+      feedItems = (feed.items ?? []) as FeedItemLite[];
+    } catch {
+      feedItems = [];
+    }
+  }
+  const newsByTicker = new Map<string, FeedItemLite[]>();
+  for (const it of feedItems) {
+    const tks = Array.isArray(it.tickers) ? (it.tickers as string[]) : [];
+    const pub = typeof it.published === "string" ? it.published : "";
+    if (!pub || !tks.length) continue;
+    for (const t of tks) {
+      if (!allFavs.has(t)) continue;
+      const arr = newsByTicker.get(t) ?? [];
+      arr.push(it);
+      newsByTicker.set(t, arr);
+    }
+  }
+
+  for (const d of withWatch) {
+    let favs: string[] = [];
+    try {
+      favs = JSON.parse(d.watchlistJson) as string[];
+    } catch {}
+    if (!favs.length) continue;
+    let notifiedIds: string[] = [];
+    try {
+      notifiedIds = JSON.parse(d.notifiedJson) as string[];
+    } catch {}
+    const notifiedSet = new Set(notifiedIds);
+    const en = d.lang === "en";
+
+    // 1) fresh news for this device's favorites
+    const cursor = d.watchlistNotifiedAt ?? new Date(Date.now() - 45 * 60_000);
+    const freshNews: { ticker: string; headline: string; publishedAt: Date; source: string }[] = [];
+    let newestPub = d.watchlistNotifiedAt ?? null;
+    for (const t of favs) {
+      for (const it of newsByTicker.get(t) ?? []) {
+        const pub = typeof it.published === "string" ? new Date(it.published) : null;
+        if (!pub || Number.isNaN(pub.getTime())) continue;
+        if (pub <= cursor) continue;
+        if (newestPub === null || pub > newestPub) newestPub = pub;
+        freshNews.push({
+          ticker: t,
+          headline: typeof it.headline === "string" ? it.headline : "",
+          publishedAt: pub,
+          source: typeof it.sources?.[0]?.name === "string" ? String(it.sources[0].name) : "",
+        });
+      }
+    }
+    freshNews.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+
+    // 2) today's significant moves not yet notified for this device
+    const moveLines: { ticker: string; changePct: number }[] = [];
+    for (const [t, m] of bigMovers) {
+      if (!favs.includes(t)) continue;
+      const marker = `mv-${today}-${t}`;
+      if (notifiedSet.has(marker)) continue;
+      moveLines.push({ ticker: t, changePct: m.changePct });
+      notifiedIds.push(marker);
+    }
+
+    if (!freshNews.length && !moveLines.length) continue;
+
+    // ONE combined notification per device per tick
+    const top = freshNews[0];
+    const title = moveLines.length && !freshNews.length
+      ? en
+        ? `EGX Desk — ${moveLines[0].ticker} ${moveLines[0].changePct >= 0 ? "+" : ""}${moveLines[0].changePct.toFixed(1)}%`
+        : `EGX Desk — ${moveLines[0].ticker} ${moveLines[0].changePct >= 0 ? "+" : ""}${moveLines[0].changePct.toFixed(1)}%`
+      : en
+        ? `EGX Desk — news for your favorites`
+        : `EGX Desk — أخبار عن أسهمك المفضلة`;
+    const parts: string[] = [];
+    for (const n of freshNews.slice(0, 3)) {
+      parts.push(`${en ? n.ticker : n.ticker}: ${n.headline}`.slice(0, 110));
+    }
+    for (const m of moveLines.slice(0, 3)) {
+      parts.push(
+        en
+          ? `${m.ticker} ${m.changePct >= 0 ? "up" : "down"} ${Math.abs(m.changePct).toFixed(1)}% today`
+          : `${m.ticker} ${m.changePct >= 0 ? "مرتفع" : "منخفض"} ${Math.abs(m.changePct).toFixed(1)}% اليوم`,
+      );
+    }
+    const url = top
+      ? `/?view=company&ticker=${encodeURIComponent(top.ticker)}&panel=overview`
+      : moveLines[0]
+        ? `/?view=company&ticker=${encodeURIComponent(moveLines[0].ticker)}&panel=overview`
+        : "/?view=watchlist";
+    const ok = await sendPush(
+      { endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth },
+      {
+        title,
+        body: parts.join(" • ").slice(0, 200) || (en ? "favorite stock update" : "تحديث سهم مفضل"),
+        url,
+        tag: "egx-favorites",
+        lang: d.lang,
+      }
+    );
+    if (!ok) {
+      await db.pushDevice.delete({ where: { id: d.id } }).catch(() => {});
+      continue;
+    }
+    out.notified += freshNews.length + moveLines.length;
+    await db.pushDevice
+      .update({
+        where: { id: d.id },
+        data: {
+          ...(newestPub ? { watchlistNotifiedAt: newestPub } : {}),
+          notifiedJson: JSON.stringify(notifiedIds.slice(-400)),
+          lastNotifiedAt: new Date(),
+        },
+      })
       .catch(() => {});
   }
   return out;

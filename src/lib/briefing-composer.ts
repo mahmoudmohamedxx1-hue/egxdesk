@@ -305,6 +305,38 @@ export function composeBriefing(lang: "ar" | "en", toolResults: ToolResultRef[])
   const sections: string[] = [];
   for (const { tool, result } of toolResults) {
     if (result && typeof result === "object" && !Array.isArray(result) && "error" in (result as Row)) continue; // failed tool
+    // T69 — all_signals is a WRAPPER of every tool's viewpoint: unwrap its
+    // sub-results and render each recognizable one (its own object shape is
+    // never a section itself).
+    if (tool === "all_signals" && result && typeof result === "object" && !Array.isArray(result)) {
+      const renderAny = (sub: unknown): void => {
+        if (sub && typeof sub === "object" && !Array.isArray(sub) && "error" in (sub as Row)) return;
+        if (isMarketOverview(sub)) {
+          const s = marketOverviewSection(sub, lang);
+          if (s) sections.push(s);
+        } else if (isScreen(sub)) {
+          const s = screenSection(sub, lang);
+          if (s) sections.push(s);
+        } else if (isMoversList(sub)) {
+          const s = moversSection(sub, lang);
+          if (s) sections.push(s);
+        } else if (isSignals(sub)) {
+          const s = signalsSection(sub, lang);
+          if (s) sections.push(s);
+        } else if (isTechnicals(sub)) {
+          const s = technicalsSection(sub, lang);
+          if (s) sections.push(s);
+        } else if (isQuote(sub)) {
+          const s = quoteSection(sub, lang);
+          if (s) sections.push(s);
+        } else if (sub && typeof sub === "object" && !Array.isArray(sub)) {
+          // one more level of wrapper (the optional single-stock pass)
+          for (const inner of Object.values(sub as Record<string, unknown>)) renderAny(inner);
+        }
+      };
+      for (const sub of Object.values(result as Record<string, unknown>)) renderAny(sub);
+      continue;
+    }
     // compare/quotes return ARRAYS of full quote rows — render each as its own
     // quote section, not the generic movers table
     if ((tool === "compare" || tool === "quotes" || tool === "quote") && isMoversList(result)) {

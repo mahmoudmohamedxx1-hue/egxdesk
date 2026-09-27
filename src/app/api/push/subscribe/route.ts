@@ -26,6 +26,7 @@ type Body = {
   alerts?: unknown;
   lang?: unknown;
   signalsOptIn?: unknown; // T44 — live signal-event notifications opt-in
+  watchlist?: unknown; // T69 — favorite tickers mirrored for favorite-stock notifications
 };
 
 const VALID_CONDS = new Set(["above", "below", "risePct", "fallPct", "onDate"]);
@@ -73,6 +74,18 @@ export async function POST(req: Request) {
         }))
     : [];
 
+  // T69 — the device's WATCHLIST (favorites), sanitized to valid EGX-style
+  // tickers. Absent (undefined) keeps the stored list — a legacy client
+  // syncing only alerts must not wipe favorites it never sent.
+  const watchlist = Array.isArray(body.watchlist)
+    ? [...new Set(
+        (body.watchlist as unknown[])
+          .filter((t): t is string => typeof t === "string")
+          .map((t) => t.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))
+          .filter(Boolean),
+      )].slice(0, 80)
+    : undefined;
+
   // a fresh subscribe resets server-side "already notified" bookkeeping for
   // alerts that are no longer triggered client-side (e.g. user re-created it)
   const device = await db.pushDevice.findUnique({ where: { deviceId } });
@@ -96,6 +109,8 @@ export async function POST(req: Request) {
     // signals panel's bell toggle; absent (undefined) keeps the stored
     // value so the legacy alert sync path never silently switches it off
     ...(typeof body.signalsOptIn === "boolean" ? { signalsOptIn: body.signalsOptIn } : {}),
+    // T69 — favorite tickers (undefined = keep what is stored)
+    ...(watchlist ? { watchlistJson: JSON.stringify(watchlist) } : {}),
     lang,
     userAgent,
     lastSeenAt: new Date(),
@@ -108,7 +123,7 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json(
-    { ok: true, deviceId: saved.deviceId, alerts: alerts.length, signalsOptIn: saved.signalsOptIn },
+    { ok: true, deviceId: saved.deviceId, alerts: alerts.length, signalsOptIn: saved.signalsOptIn, watchlist: JSON.parse(saved.watchlistJson).length },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

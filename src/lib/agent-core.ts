@@ -109,6 +109,70 @@ export function compactSignal(r: SignalRow) {
 // ── the runners (one per AGENT_TOOL_SPECS entry, same order) ──
 
 const RUNNERS: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {
+  /** T69 — ALL TOOLS AT ONCE: the user's ask ("use all tools in the same
+   *  time to know the signal from all the tools' point of view"). One call
+   *  fans out to every desk tool in parallel (Promise.allSettled — a slow
+   *  or failing tool never blocks the others) and returns each tool's
+   *  COMPACT viewpoint under its own key, so the model can synthesize a
+   *  full-spectrum report covering every angle in a single round. The
+   *  per-viewpoint compaction mirrors what each single tool returns, so
+   *  the verification gate sees the same numbers either way. */
+  all_signals: async (args) => {
+    const t = cleanTicker(args.ticker);
+    const settled = await Promise.allSettled([
+      RUNNERS.market_overview({}),
+      RUNNERS.top_movers({ kind: "gainers", limit: 10 }),
+      RUNNERS.top_movers({ kind: "losers", limit: 10 }),
+      RUNNERS.top_movers({ kind: "active", limit: 10 }),
+      RUNNERS.best_signals({ direction: "top", limit: 6 }),
+      RUNNERS.best_signals({ direction: "bottom", limit: 5 }),
+      RUNNERS.ai_signals({}),
+      RUNNERS.desk_reports({}),
+      RUNNERS.news({ feed: "ar", limit: 8 }),
+      RUNNERS.calendar({ days: 14 }),
+      RUNNERS.rates({}),
+      RUNNERS.insiders({ limit: 8 }),
+    ]);
+    const [overview, gainers, losers, active, sigTop, sigBottom, aiSig, desk, news, cal, rates, insiders] =
+      settled.map((r) => (r.status === "fulfilled" ? r.value : { error: String((r as PromiseRejectedResult).reason).slice(0, 80) }));
+    const out: Record<string, unknown> = {
+      note: "ALL desk tools ran in parallel — each key below is one tool's live viewpoint. Your final answer MUST give every one of these viewpoints its own section.",
+      market: overview,
+      gainers,
+      losers,
+      mostActive: active,
+      strongestSignals: sigTop,
+      weakestSignals: sigBottom,
+      aiSignals: aiSig,
+      deskReport: desk,
+      latestNews: news,
+      upcomingEvents: cal,
+      interestRates: rates,
+      insiderFilings: insiders,
+    };
+    // optional deep single-stock pass in the SAME call
+    if (t) {
+      const [quote, tech, stmts, divs, coNews, coInsiders] = await Promise.allSettled([
+        RUNNERS.quote({ ticker: t }),
+        RUNNERS.technicals({ ticker: t }),
+        RUNNERS.statements({ ticker: t }),
+        RUNNERS.dividends({ ticker: t }),
+        RUNNERS.news({ feed: "ar", ticker: t, limit: 6 }),
+        RUNNERS.insiders({ ticker: t, limit: 6 }),
+      ]);
+      out.stock = {
+        ticker: t,
+        quote: quote.status === "fulfilled" ? quote.value : { error: "n/a" },
+        technicals: tech.status === "fulfilled" ? tech.value : { error: "n/a" },
+        statements: stmts.status === "fulfilled" ? stmts.value : { error: "n/a" },
+        dividends: divs.status === "fulfilled" ? divs.value : { error: "n/a" },
+        companyNews: coNews.status === "fulfilled" ? coNews.value : { error: "n/a" },
+        insiderFilings: coInsiders.status === "fulfilled" ? coInsiders.value : { error: "n/a" },
+      };
+    }
+    return out;
+  },
+
   market_overview: async () => {
     const [stocks, indices] = await Promise.all([fetchUniverse(), fetchIndices()]);
     const up = stocks.filter((s) => s.changePct > 0).length;

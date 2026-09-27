@@ -410,6 +410,7 @@ html {
   --lens-map-1: oklch(0.955 0.012 100);      /* map canvas gradient */
   --lens-map-2: oklch(0.92 0.02 120);
   --lens-grid: oklch(0.5 0.04 235 / 7%);     /* faint cartographic grid */
+  --lens-dot: oklch(0.55 0.02 250 / 26%);    /* T69 — canva-workspace dot grid */
 }
 .dark {
   --lens-ink: oklch(0.93 0.01 250);
@@ -426,15 +427,29 @@ html {
   --lens-map-1: oklch(0.21 0.015 255);
   --lens-map-2: oklch(0.16 0.02 260);
   --lens-grid: oklch(0.7 0.04 235 / 6%);
+  --lens-dot: oklch(0.75 0.01 255 / 22%);    /* T69 — canva-workspace dot grid */
 }
 
-/* the map canvas: layered radial washes + a faint lat/long grid so the
- * archipelago reads as a CARTOGRAPHIC surface, not a bare SVG box */
+/* T69 — the map canvas: a CANVA-WORKSPACE surface — a calm neutral board
+ * with an even DOT GRID (the editor-canvas look: small dots at a regular
+ * 22px pitch, exactly like design-tool artboards). The old radial washes +
+ * lat/long lines read as parchment; the dots read as a WORKSPACE you can
+ * move things around on — which is what a pan/zoom ownership board is.
+ * Theme-aware: ivory board + soft slate dots in light, deep slate + faint
+ * dots in dark. */
 .lens-map {
-  background:
-    radial-gradient(120% 90% at 20% 0%, var(--lens-map-1) 0%, var(--lens-map-2) 78%),
-    repeating-linear-gradient(0deg, transparent 0 79px, var(--lens-grid) 79px 80px),
-    repeating-linear-gradient(90deg, transparent 0 79px, var(--lens-grid) 79px 80px);
+  background-color: var(--lens-map-1);
+  background-image: radial-gradient(var(--lens-dot) 1.15px, transparent 1.15px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+}
+/* fullscreen mode (native API or the CSS fixed-overlay fallback): the board
+ * owns the whole viewport — darker chrome-free surface, slightly larger
+ * dot pitch so the grid reads calmly at distance */
+.lens-fs {
+  background-color: var(--lens-map-2);
+  background-size: 26px 26px;
+  background-position: 13px 13px;
 }
 
 /* company ring hover: a confident 6% grow (fill-box keeps the origin local) */

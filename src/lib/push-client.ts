@@ -98,6 +98,30 @@ export async function syncPushAlerts(
   }
 }
 
+/** T69 — mirror the device's WATCHLIST (favorite tickers) so favorites earn
+ *  their own notifications (fresh news naming a favorite + big same-session
+ *  moves). Same upsert semantics as the alert mirror: fire-and-forget, keeps
+ *  alerts untouched (the route preserves what it is not sent). */
+export async function syncPushWatchlist(
+  tickers: string[],
+  lang: "ar" | "en"
+): Promise<void> {
+  if (!isPushEnabled()) return;
+  const deviceId = getDeviceId();
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return;
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, subscription: sub.toJSON(), watchlist: tickers, lang }),
+    });
+  } catch {
+    // best-effort sync — the next watchlist change retries
+  }
+}
+
 /** T44 — opt this device INTO (or out of) LIVE SIGNAL notifications:
  *  new picks, tracked outcomes and self-validation pushes on top of the
  *  personal price alerts. Works when push is already enabled; returns
@@ -165,11 +189,18 @@ export async function enablePush(lang: "ar" | "en"): Promise<PushEnableResult> {
       const raw = localStorage.getItem("egx-alerts");
       if (raw) alerts = JSON.parse(raw);
     } catch {}
+    // T69 — the watchlist rides along on enable: favorites start earning
+    // their notifications from the very first evaluation pass
+    let watchlist: string[] = [];
+    try {
+      const raw = localStorage.getItem("egx-watchlist");
+      if (raw) watchlist = JSON.parse(raw) as string[];
+    } catch {}
 
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deviceId, subscription: sub.toJSON(), alerts, lang }),
+      body: JSON.stringify({ deviceId, subscription: sub.toJSON(), alerts, lang, watchlist }),
     });
     if (!res.ok) {
       return { ok: false, reason: "server" };

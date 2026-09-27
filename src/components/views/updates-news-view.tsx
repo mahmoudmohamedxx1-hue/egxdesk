@@ -165,7 +165,15 @@ export function UpdatesNewsView() {
     } catch {}
   }, []);
 
-  const items = useMemo(() => (data ? data.items : []), [data]);
+  // T69 — harden against any unexpected API shape: a malformed item must
+  // never throw during render (that is the "opening news the website
+  // crashes" class of bug — one bad row unmounted the whole app before the
+  // error boundary existed). Rows missing their essentials are skipped.
+  const rawItems = useMemo(() => (data ? (data.items ?? []) : []), [data]);
+  const safeItems = useMemo(
+    () => rawItems.filter((it) => it && typeof it.headline === "string" && typeof it.link === "string"),
+    [rawItems]
+  );
 
   const speak = (it: FeedItem) => {
     try {
@@ -223,11 +231,12 @@ export function UpdatesNewsView() {
     );
   }
 
-  const p = data.provenance;
+  const p = data.provenance ?? { generatedAt: "", outlets: [], unreachable: [], mergedCount: 0, withheldCount: 0, itemCount: 0 };
+  const items = safeItems;
   const shownItems = items.slice(0, shown);
   const marketDate = longDate(new Date().toISOString().slice(0, 10), lang);
-  const outletList = p.outlets;
-  const unreachable = p.unreachable;
+  const outletList = p.outlets ?? [];
+  const unreachable = p.unreachable ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -263,7 +272,7 @@ export function UpdatesNewsView() {
           const pill = EVENT_COLORS[it.event] ?? "";
           const hasKind = Boolean(pill); // "عام" draws nothing at all
           const whenStamp = when(it.published, lang);
-          const sourceName = it.sources.map((s) => s.name).join(" · ");
+          const sourceName = (it.sources ?? []).map((s) => s.name).join(" · ");
           const impact = lang === "ar" ? it.meaningAr : it.meaningEn;
           const volume = lang === "ar" ? it.volumeNoteAr : it.volumeNoteEn;
           const isSpeaking = speaking === it.id;
@@ -358,7 +367,7 @@ export function UpdatesNewsView() {
                       </svg>
                       <span>{isSpeaking ? (lang === "ar" ? "إيقاف" : "Stop") : lang === "ar" ? "استمع" : "Listen"}</span>
                     </button>
-                    {it.tickers.map((t) => (
+                    {it.tickers?.map((t) => (
                       <button
                         key={t}
                         onClick={() => navigate("company", { ticker: t })}

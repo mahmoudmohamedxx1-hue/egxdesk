@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
    * At runtime src/lib/db.ts copies it to /tmp — the only writable dir on
    * a serverless instance — so all read-backed features work on Vercel. */
   outputFileTracingIncludes: {
-    "/api/**": ["./db/custom.db"],
+    "/api/**": ["./db/custom.db", "./data/push-vapid.json"],
   },
   async headers() {
     return [

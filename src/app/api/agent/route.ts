@@ -468,7 +468,7 @@ type AgentStep = { tool: string; args: Record<string, unknown>; ok: boolean };
 
 // ── the agent loop (Task 20: streamed over SSE) ──
 
-const MAX_TOOL_CALLS = 10;
+const MAX_TOOL_CALLS = 12;
 
 export async function POST(req: Request) {
   const ip =
@@ -844,13 +844,13 @@ export async function POST(req: Request) {
           if (debug) debugRaw.push(raw.slice(0, 800));
 
           const parsed = extractJson(raw);
-          if (!parsed || (!("tool" in parsed) && !("final" in parsed))) {
+          if (!parsed || (!("tool" in parsed) && !("final" in parsed) && !("tools" in parsed))) {
             corrections++;
             if (corrections > 2) break;
             msgs.push({
               role: "user",
               content:
-                'Format error. Reply with exactly ONE JSON object, no fences: {"tool": "<name>", "args": {...}} to call a tool, or {"final": "<markdown answer>"} to answer.',
+                'Format error. Reply with exactly ONE JSON object, no fences: {"tool": "<name>", "args": {...}} to call one tool, {"tools": [{"tool": …, "args": …}, …]} to call several at once, or {"final": "<markdown answer>"} to answer.',
             });
             continue;
           }
@@ -932,6 +932,50 @@ export async function POST(req: Request) {
             return void done(shipped);
           }
 
+          // ── T69 — PARALLEL TOOL BATCH: {"tools": [{tool, args}, …]} executes
+          // every requested tool simultaneously (Promise.all — independent
+          // data fetchers, safe to run together) and feeds each result back as
+          // its own labeled message. The user's ask: "use all tools in the
+          // same time". A bad entry in the batch is skipped with its error
+          // noted, never sinking the rest.
+          if (Array.isArray(parsed.tools) && parsed.tools.length > 0) {
+            const batch = (parsed.tools as unknown[])
+              .filter((c): c is Record<string, unknown> => c !== null && typeof c === "object" && typeof (c as { tool?: unknown }).tool === "string")
+              .slice(0, MAX_TOOL_CALLS - steps.length);
+            if (batch.length === 0) {
+              msgs.push({
+                role: "user",
+                content: 'Format error: "tools" must be an array of {"tool": "<name>", "args": {…}} objects. Reply again with a valid batch or {"final": …}.',
+              });
+              continue;
+            }
+            const results = await Promise.all(
+              batch.map(async (c) => {
+                const name = String(c.tool);
+                const tool = AGENT_TOOLS.find((t) => t.name === name);
+                if (!tool) return { name, args: {}, result: { error: `unknown tool "${name}"` } };
+                const a = (c.args && typeof c.args === "object" ? c.args : {}) as Record<string, unknown>;
+                try {
+                  return { name, args: a, result: await tool.run(a) };
+                } catch (err) {
+                  return { name, args: a, result: { error: err instanceof Error ? err.message : "tool failed" } };
+                }
+              })
+            );
+            for (const r of results) {
+              const ok = !(r.result && typeof r.result === "object" && "error" in (r.result as Record<string, unknown>));
+              steps.push({ tool: r.name, args: r.args, ok });
+              send({ type: "step", tool: r.name, args: r.args, ok });
+              if (r.name === "web_search" && ok) usage.webSearches++;
+              const cap = r.name === "all_signals" ? 16_000 : 9_000;
+              const payload = JSON.stringify(r.result).slice(0, cap);
+              msgs.push({ role: "user", content: `TOOL RESULT (${r.name}): ${payload}` });
+              toolJsons.push(payload);
+              toolResults.push({ tool: r.name, result: r.result });
+            }
+            continue;
+          }
+
           const toolName = typeof parsed.tool === "string" ? parsed.tool : "";
           const tool = AGENT_TOOLS.find((t) => t.name === toolName);
           if (!tool) {
@@ -947,8 +991,10 @@ export async function POST(req: Request) {
           // T36 — duplicate-call guard: small keyless models (Mistral Nemo,
           // MiniMax…) sometimes loop calling the SAME tool with the SAME args
           // until the budget dies. One nudge, then the loop forces synthesis.
+          // all_signals is exempt: its result is the whole market's state and
+          // a re-run after other tools is a legitimate synthesis refresh.
           const callKey = `${toolName}:${JSON.stringify(args)}`;
-          if (seenCalls.has(callKey)) {
+          if (seenCalls.has(callKey) && toolName !== "all_signals") {
             msgs.push({
               role: "user",
               content:
@@ -969,8 +1015,8 @@ export async function POST(req: Request) {
           send({ type: "step", tool: toolName, args, ok });
           if (toolName === "web_search" && ok) usage.webSearches++;
 
-          msgs.push({ role: "user", content: JSON.stringify(result).slice(0, 9000) });
-          toolJsons.push(JSON.stringify(result).slice(0, 9000));
+          msgs.push({ role: "user", content: `TOOL RESULT (${toolName}): ${JSON.stringify(result).slice(0, toolName === "all_signals" ? 16_000 : 9_000)}` });
+          toolJsons.push(JSON.stringify(result).slice(0, toolName === "all_signals" ? 16_000 : 9_000));
           toolResults.push({ tool: toolName, result });
         }
 
@@ -980,7 +1026,7 @@ export async function POST(req: Request) {
           msgs.push({
             role: "user",
             content:
-              'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Format: {"final": "<markdown answer>"}',
+              'Tool budget exhausted. Reply NOW with your final answer using ONLY the tool data collected above — do not request more tools; if a requested stock was not found, say so plainly. Write the COMPLETE professional analyst report (NOT a summary — cover every tool viewpoint that ran, with sections, tables and exact numbers). Format: {"final": "<markdown answer>"}',
           });
           try {
             // T58/T65 — weak keyless rounds never stream raw deltas (crash-text guard)

@@ -29,7 +29,7 @@ import {
 } from "@/lib/alerts";
 import type { CompanyRow } from "./types";
 import { resolveTicker } from "@/lib/ticker-aliases";
-import { syncPushAlerts } from "@/lib/push-client";
+import { syncPushAlerts, syncPushWatchlist } from "@/lib/push-client";
 
 /** T27 — indicator-snapshot cache for the alert engine (per ticker, 60s
  *  TTL — the /api/chart 6M fetch is shared across alerts on the same name). */
@@ -198,6 +198,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const restoredAlerts = loadAlerts();
       alertsRef.current = { list: restoredAlerts, ready: true };
       setAlertsState({ list: restoredAlerts, ready: true });
+      // T69 — mirror the restored watchlist so favorites notify from boot
+      try {
+        const wl = JSON.parse(localStorage.getItem(WATCH_KEY) ?? "[]");
+        if (Array.isArray(wl) && wl.length) {
+          void syncPushWatchlist(
+            wl.filter((x): x is string => typeof x === "string").map((x) => resolveTicker(x)),
+            (localStorage.getItem("egx-lang") === "en" ? "en" : "ar")
+          ).catch(() => {});
+        }
+      } catch {}
     } catch {}
     setView(viewFromParams(params));
     // if the link had no lang param, stamp it once so every shared URL from
@@ -311,6 +321,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ? lang === "ar" ? `أُضيف ${t} إلى المتابعة` : `${t} added to watchlist`
             : lang === "ar" ? `أُزيل ${t} من المتابعة` : `${t} removed from watchlist`
         );
+        // T69 — favorites notify: mirror the change so the server pushes
+        // news + big moves for the new list from the next evaluation pass
+        void syncPushWatchlist(next, lang).catch(() => {});
         return { tickers: next, ready: true };
       });
     },

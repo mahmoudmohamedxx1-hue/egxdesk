@@ -39,7 +39,7 @@
  *  Guarded by a globalThis flag so dev hot-reloads / route module isolation
  *  can never start a second copy of the same interval. */
 
-import { evaluateDevices, pushSignalEvents } from "@/lib/push";
+import { evaluateDevices, pushSignalEvents, pushWatchlistNews } from "@/lib/push";
 
 const g = globalThis as unknown as { __egxBgStarted?: boolean };
 
@@ -59,6 +59,16 @@ async function safePushTick(): Promise<void> {
     }
   } catch (err) {
     console.warn("[push] tick failed:", err instanceof Error ? err.message : err);
+  }
+  // T69 — favorites earn their own notifications: fresh news naming a
+  // favorite + significant same-session moves, same 5-minute cadence
+  try {
+    const favs = await pushWatchlistNews();
+    if (favs.devices > 0 || favs.notified > 0) {
+      console.log(`[push-favorites] devices=${favs.devices} notified=${favs.notified}`);
+    }
+  } catch (err) {
+    console.warn("[push-favorites] tick failed:", err instanceof Error ? err.message : err);
   }
 }
 

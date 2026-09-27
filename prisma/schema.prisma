@@ -138,6 +138,13 @@ model PushDevice {
   /// newest SignalEvent.createdAt already pushed to this device — the push
   /// loop only sends strictly newer events, so each fires exactly once
   signalsNotifiedAt DateTime?
+  /// T69 — the device's WATCHLIST (favorite tickers), mirrored like alerts.
+  /// Favorites earn notifications by default: fresh news items that name a
+  /// favorite + significant same-session moves (|chg| ≥ 4%), each deduped
+  /// per device by the watchlistNotifiedAt cursor + per-day tags.
+  watchlistJson  String    @default("[]")
+  /// item id of the newest watchlist-news item already pushed (cursor)
+  watchlistNotifiedAt DateTime?
   lang           String    @default("ar")
   userAgent      String?
   createdAt      DateTime  @default(now())
