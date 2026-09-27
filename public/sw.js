@@ -16,7 +16,7 @@
  *  - VERSION bump on every release so installed apps pick the new shell on
  *    their next launch (skipWaiting + clients.claim apply it immediately). */
 
-const VERSION = "egx-desk-v49";
+const VERSION = "egx-desk-v50";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 
@@ -134,6 +134,9 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "EGX Desk";
   const body = payload.body || "";
   const url = payload.url || "/?view=watchlist";
+  // T70 — direction follows the notification language (Arabic renders
+  // right-to-left; English/numeric move notifications read left-to-right)
+  const lang = payload.lang || "ar";
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
@@ -141,8 +144,8 @@ self.addEventListener("push", (event) => {
       badge: "/icon-192.png",
       tag: payload.tag || `egx-push-${Date.now()}`,
       renotify: true,
-      dir: "rtl",
-      lang: payload.lang || "ar",
+      dir: lang === "en" ? "ltr" : "rtl",
+      lang,
       data: { url },
     })
   );
@@ -171,4 +174,18 @@ self.addEventListener("notificationclick", (event) => {
 // the page asks the new SW to take over right away (update flow)
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
+  // T70 self-test hook (inert for real traffic): the page asks the worker
+  // to run its OWN push handler with a synthetic event — PushEvent is only
+  // constructible inside the worker scope, so this is the one honest way to
+  // regression-test the handler's payload parsing + dir/lang derivation.
+  else if (event.data && typeof event.data.__pushSelfTest === "string") {
+    let ev;
+    try {
+      ev = new PushEvent("push", { data: event.data.__pushSelfTest });
+    } catch {
+      ev = { data: { json: () => JSON.parse(event.data.__pushSelfTest) } };
+    }
+    self.dispatchEvent(ev);
+    if (event.source) event.source.postMessage({ __pushEcho: true });
+  }
 });

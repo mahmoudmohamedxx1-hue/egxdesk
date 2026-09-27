@@ -1,0 +1,43 @@
+# T70 — PUSH HEARTBEAT: run the full push engine every 5 minutes.
+#
+# WHY THIS EXISTS: the always-on background loop (lib/push-loop.ts) is
+# deliberately skipped on serverless hosts (process.env.VERCEL — the
+# function freezes between requests, so intervals never fire). Without a
+# heartbeat there, phone notifications for alerts / favorites news /
+# 0.5% step moves would simply never fire on production. This workflow is
+# that heartbeat: POST /api/push/run evaluates every subscribed device
+# (idempotent — alert ids, news cursors and move-band state all persist,
+# so a missed or doubled tick can never spam or lose a notification).
+#
+# Cost: the repo is PUBLIC (Actions minutes are free/unlimited). Each run
+# is a single curl (~15-20s of runner time), 288 runs/day. The engine
+# itself self-gates: outside the EGX session the move engine no-ops and
+# the news engine dedupes by cursor, so weekend ticks are near-free.
+#
+# If the deployment URL changes (custom domain, project rename), update
+# EGX_DESK_URL below. Failures never block anything else: `|| true` keeps
+# the tick green even during a Vercel outage — the next tick retries.
+
+name: push-heartbeat
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: run the push engine (alerts + favorites news + 0.5% moves)
+        run: |
+          curl -fsS -m 120 -X POST "${{ vars.EGX_DESK_URL || 'https://egxdesk.vercel.app' }}/api/push/run" \
+            || echo "::warning::push run failed (deployment down or unreachable) — next tick retries"

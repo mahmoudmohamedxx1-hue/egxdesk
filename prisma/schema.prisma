@@ -145,6 +145,12 @@ model PushDevice {
   watchlistJson  String    @default("[]")
   /// item id of the newest watchlist-news item already pushed (cursor)
   watchlistNotifiedAt DateTime?
+  /// T70 — per-device state for the 0.5% STEP-MOVE engine: the last band
+  /// index each favorite sat in, date-scoped to the Cairo session so a new
+  /// trading day resets every tracker honestly (no cross-day false moves).
+  /// Shape: {"date":"2026-09-28","bands":{"COMI":2,"TMGH":-1}} where band =
+  /// number of FULL 0.5% steps crossed vs the previous close (sign-aware).
+  movesJson      String    @default("{}")
   lang           String    @default("ar")
   userAgent      String?
   createdAt      DateTime  @default(now())

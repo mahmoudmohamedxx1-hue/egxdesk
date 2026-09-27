@@ -133,12 +133,14 @@ type ServerAlert = {
 
 type NormCond = { kind: CondKindServer; value: number };
 
-/** Today's date in Africa/Cairo as YYYY-MM-DD (server runs in UTC). */
-export function cairoTodayStr(): string {
+/** Today's date in Africa/Cairo as YYYY-MM-DD (server runs in UTC).
+ * T70: accepts an explicit `now` so the move engine (and its tests) can
+ * reason about a specific moment in Cairo time. */
+export function cairoTodayStr(now: Date = new Date()): string {
   try {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(new Date());
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(now);
   } catch {
-    return new Date().toISOString().slice(0, 10);
+    return now.toISOString().slice(0, 10);
   }
 }
 
@@ -491,8 +493,8 @@ export async function pushSignalEvents(): Promise<{ devices: number; notified: n
 // ── T69: FAVORITE-STOCK notifications (the user's ask: "a notification for
 // every stock i made as a favorite") ────────────────────────────────────────
 
-/** Every favorited ticker earns TWO notification kinds, both deduped per
- *  device, both honest about the ~15-min quote delay:
+/** Favorited tickers earn TWO notification kinds, both honest about the
+ *  ~15-min quote delay:
  *
  *  1. FRESH NEWS naming a favorite — the enriched multi-outlet feed the
  *     news screen reads, matched by its own ticker attribution. Deduped by
@@ -500,15 +502,16 @@ export async function pushSignalEvents(): Promise<{ devices: number; notified: n
  *     newest item already pushed). A null cursor starts at now-45min, so
  *     enabling notifications never replays the day's backlog as spam.
  *
- *  2. SIGNIFICANT MOVES — |changePct| ≥ 4% on a favorite while quotes are
- *     from today's Cairo session. Deduped per Cairo day per ticker via
- *     `mv-<date>-<ticker>` markers appended to notifiedJson (the same
- *     mechanism alert ids use — re-subscribing prunes them, harmless for a
- *     same-day-only marker).
+ *  2. STEP MOVES — every 0.5% a favorite climbs or falls vs the previous
+ *     close (T70: the user's "notification for every 0.5% up or down",
+ *     which SUPERSEDED the old coarse |chg| ≥ 4% same-day marker — the
+ *     4% case is now just the 8th step of the same engine, and keeping
+ *     both would double-notify). Owns its own engine (pushWatchlistMoves
+ *     below) with per-device persisted band state in PushDevice.movesJson.
  *
- *  One COMBINED notification per device per tick (the alert engine's own
- *  pacing discipline), capped at 3 headlines in the body. Runs in the same
- *  5-minute loop as evaluateDevices. */
+ *  This function keeps only the NEWS half. ONE combined notification per
+ *  device per tick (the alert engine's own pacing discipline), capped at 3
+ *  headlines in the body. Runs in the same 5-minute loop. */
 export async function pushWatchlistNews(): Promise<{ devices: number; notified: number }> {
   const out = { devices: 0, notified: 0 };
   if (!getVapid()) return out;
@@ -537,25 +540,10 @@ export async function pushWatchlistNews(): Promise<{ devices: number; notified: 
     } catch {}
   }
 
-  // significant moves (per Cairo day) — quotes + session check
-  const today = cairoTodayStr();
-  // T69 honesty guard: outside a live EGX session (weekend / after close)
-  // the universe's changePct is the LAST session's move — notifying
-  // "moved 5% today" on a Saturday would be false. Movers notify only
-  // while the session is actually open; news notifications run always.
-  const { marketStatus } = await import("@/lib/market-status");
-  const status = marketStatus();
-  const sessionLive = status.open && status.lastSession === today;
+  // T70 — step moves moved to their own engine (pushWatchlistMoves): every
+  // 0.5% crossing vs the previous close, per-stock notifications, persisted
+  // band state. The old |chg| ≥ 4% same-day markers were retired with it.
   const universe = await fetchUniverse().catch(() => [] as Stock[]);
-  const byTicker = new Map(universe.map((s) => [s.ticker, s] as const));
-  const bigMovers = new Map<string, { changePct: number; close: number }>();
-  if (sessionLive) {
-    for (const t of allFavs) {
-      const s = byTicker.get(t);
-      if (!s || !s.changePct || !Number.isFinite(s.changePct)) continue;
-      if (Math.abs(s.changePct) >= 4) bigMovers.set(t, { changePct: s.changePct, close: s.close });
-    }
-  }
 
   // fresh news naming a favorite — the same enriched feed the news screen
   // reads (5-min shared cache, outlets fetched once)
@@ -593,11 +581,6 @@ export async function pushWatchlistNews(): Promise<{ devices: number; notified: 
       favs = JSON.parse(d.watchlistJson) as string[];
     } catch {}
     if (!favs.length) continue;
-    let notifiedIds: string[] = [];
-    try {
-      notifiedIds = JSON.parse(d.notifiedJson) as string[];
-    } catch {}
-    const notifiedSet = new Set(notifiedIds);
     const en = d.lang === "en";
 
     // 1) fresh news for this device's favorites
@@ -620,43 +603,20 @@ export async function pushWatchlistNews(): Promise<{ devices: number; notified: 
     }
     freshNews.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 
-    // 2) today's significant moves not yet notified for this device
-    const moveLines: { ticker: string; changePct: number }[] = [];
-    for (const [t, m] of bigMovers) {
-      if (!favs.includes(t)) continue;
-      const marker = `mv-${today}-${t}`;
-      if (notifiedSet.has(marker)) continue;
-      moveLines.push({ ticker: t, changePct: m.changePct });
-      notifiedIds.push(marker);
-    }
+    if (!freshNews.length) continue;
 
-    if (!freshNews.length && !moveLines.length) continue;
-
-    // ONE combined notification per device per tick
+    // ONE combined news notification per device per tick
     const top = freshNews[0];
-    const title = moveLines.length && !freshNews.length
-      ? en
-        ? `EGX Desk — ${moveLines[0].ticker} ${moveLines[0].changePct >= 0 ? "+" : ""}${moveLines[0].changePct.toFixed(1)}%`
-        : `EGX Desk — ${moveLines[0].ticker} ${moveLines[0].changePct >= 0 ? "+" : ""}${moveLines[0].changePct.toFixed(1)}%`
-      : en
-        ? `EGX Desk — news for your favorites`
-        : `EGX Desk — أخبار عن أسهمك المفضلة`;
+    const title = en
+      ? `EGX Desk — news for your favorites`
+      : `EGX Desk — أخبار عن أسهمك المفضلة`;
     const parts: string[] = [];
     for (const n of freshNews.slice(0, 3)) {
       parts.push(`${en ? n.ticker : n.ticker}: ${n.headline}`.slice(0, 110));
     }
-    for (const m of moveLines.slice(0, 3)) {
-      parts.push(
-        en
-          ? `${m.ticker} ${m.changePct >= 0 ? "up" : "down"} ${Math.abs(m.changePct).toFixed(1)}% today`
-          : `${m.ticker} ${m.changePct >= 0 ? "مرتفع" : "منخفض"} ${Math.abs(m.changePct).toFixed(1)}% اليوم`,
-      );
-    }
     const url = top
       ? `/?view=company&ticker=${encodeURIComponent(top.ticker)}&panel=overview`
-      : moveLines[0]
-        ? `/?view=company&ticker=${encodeURIComponent(moveLines[0].ticker)}&panel=overview`
-        : "/?view=watchlist";
+      : "/?view=watchlist";
     const ok = await sendPush(
       { endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth },
       {
@@ -671,17 +631,244 @@ export async function pushWatchlistNews(): Promise<{ devices: number; notified: 
       await db.pushDevice.delete({ where: { id: d.id } }).catch(() => {});
       continue;
     }
-    out.notified += freshNews.length + moveLines.length;
+    out.notified += freshNews.length;
     await db.pushDevice
       .update({
         where: { id: d.id },
         data: {
           ...(newestPub ? { watchlistNotifiedAt: newestPub } : {}),
-          notifiedJson: JSON.stringify(notifiedIds.slice(-400)),
           lastNotifiedAt: new Date(),
         },
       })
       .catch(() => {});
+  }
+  return out;
+}
+
+// ── T70: STEP-MOVE notifications — "a notification for every 0.5% up or
+// down" on every favorite stock ────────────────────────────────────────────
+
+/** The step size in percentage points of the day's change (vs previous
+ *  close). Every crossing of a ±0.5k% milestone is one notification. */
+export const MOVE_STEP_PCT = 0.5;
+
+/** Band index of a signed day-change: how many FULL 0.5% steps the quote
+ *  sits past the previous close, truncated toward zero (band 1 = "at least
+ *  +0.5%", band -2 = "at least -1.0%", band 0 = the flat zone ±0.5%). */
+export function moveBand(changePct: number, step: number = MOVE_STEP_PCT): number {
+  if (!Number.isFinite(changePct)) return 0;
+  return changePct >= 0 ? Math.floor(changePct / step) : Math.ceil(changePct / step);
+}
+
+/** The milestone LEVELS (in pct, e.g. +0.5, +1.0) passed when a favorite
+ *  moves from band f to band t. Band 0 is two-sided (−0.5 … +0.5), and
+ *  negative bands span [(b−1)·0.5, b·0.5) — so the boundary depends on
+ *  the crossing direction: climbing INTO band b crosses its lower edge,
+ *  falling INTO band b crosses its upper edge. Listed by ascending |level|
+ * ("crossed +0.5% and +1.0%" reads the same in both directions). */
+export function moveLevelsCrossed(fromBand: number, toBand: number, step: number = MOVE_STEP_PCT): number[] {
+  const levels: number[] = [];
+  if (toBand > fromBand) {
+    // climbing: entering band b from below crosses b's LOWER edge
+    for (let b = fromBand + 1; b <= toBand; b++) {
+      levels.push(b >= 1 ? b * step : b === 0 ? -step : (b - 1) * step);
+    }
+  } else if (toBand < fromBand) {
+    // falling: entering band b from above crosses b's UPPER edge
+    for (let b = fromBand - 1; b >= toBand; b--) {
+      levels.push(b >= 1 ? (b + 1) * step : b === 0 ? step : b * step);
+    }
+  }
+  return levels.sort((a, b) => Math.abs(a) - Math.abs(b));
+}
+
+/** Persisted per-device tracker state (PushDevice.movesJson):
+ *  date = the Cairo session the bands belong to; a new session day resets
+ *  every tracker so cross-day moves are never fabricated. */
+export type MovesState = { date: string; bands: Record<string, number> };
+
+export type MoveNote = {
+  ticker: string;
+  fromBand: number;
+  toBand: number;
+  /** milestone levels crossed, ascending (may span both signs) */
+  levels: number[];
+  changePct: number;
+  close: number;
+};
+
+export type QuoteLite = { changePct: number; close: number };
+
+/** Pure decision core (exported for tests): given a device's favorites,
+ *  the current quotes and its persisted state, decide which step-move
+ *  notifications to fire and what the next state is.
+ *
+ *  Rules:
+ *  - first sighting of the session (no band recorded): notify when the
+ *    opening/day reading already sits past a milestone (an opening gap of
+ *    +1.2% is genuinely "three 0.5% steps up since the previous close");
+ *  - afterwards: notify on EVERY band change that lands outside band 0 —
+ *    climbing (+0.5 → +1.0 …) and falling (losing +1.0, clearing −0.5 …)
+ *    alike, because the user asked for every 0.5% up OR down;
+ *  - returning into the flat band 0 records silently (no milestone lives
+ *    there) — the next crossing re-announces honestly;
+ *  - a favorite with no/invalid quote keeps its previous band (a data
+ *    hiccup must never reset a tracker mid-session). */
+export function buildMoveNotifications(
+  favorites: string[],
+  quotes: Map<string, QuoteLite>,
+  state: MovesState,
+  today: string,
+): { notes: MoveNote[]; nextState: MovesState } {
+  const sameDay = state.date === today;
+  const nextState: MovesState = { date: today, bands: {} };
+  const notes: MoveNote[] = [];
+  for (const t of favorites) {
+    const q = quotes.get(t);
+    if (!q || !Number.isFinite(q.changePct)) {
+      // keep the tracker where it was — but only if it belongs to today
+      if (sameDay && typeof state.bands[t] === "number") nextState.bands[t] = state.bands[t];
+      continue;
+    }
+    const band = moveBand(q.changePct);
+    const prev = sameDay ? state.bands[t] : undefined;
+    if (prev === undefined) {
+      if (band !== 0) {
+        notes.push({ ticker: t, fromBand: 0, toBand: band, levels: moveLevelsCrossed(0, band), changePct: q.changePct, close: q.close });
+      }
+    } else if (band !== prev && band !== 0) {
+      notes.push({ ticker: t, fromBand: prev, toBand: band, levels: moveLevelsCrossed(prev, band), changePct: q.changePct, close: q.close });
+    }
+    nextState.bands[t] = band; // always record — band 0 included, so re-crossings re-fire
+  }
+  notes.sort((a, b) => Math.abs(b.toBand - b.fromBand) - Math.abs(a.toBand - a.fromBand));
+  return { notes, nextState };
+}
+
+const MINUS = "\u2212"; // typographic minus, matches the app's formatting
+
+function fmtStep(v: number): string {
+  return `${v > 0 ? "+" : v < 0 ? MINUS : ""}${Math.abs(v).toFixed(1)}%`;
+}
+
+/** Compose the per-stock notification (one per crossing, AR or EN). The
+ *  ARROW carries the crossing direction (▲ climbed a milestone / ▼ lost
+ *  one) while the SIGNED PERCENT is always the honest day change vs the
+ *  previous close — a pullback from +1.0% to +0.8% reads "▼ +0.80%". */
+export function movePushPayload(n: MoveNote, lang: string): PushPayload {
+  const en = lang === "en";
+  const rose = n.toBand > n.fromBand;
+  const arrow = rose ? "\u25B2" : "\u25BC";
+  const pct = `${n.changePct >= 0 ? "+" : MINUS}${Math.abs(n.changePct).toFixed(2)}%`;
+  const levels = n.levels.map(fmtStep).join(en ? " and " : " و");
+  const price = n.close.toFixed(2);
+  const title = `EGX Desk — ${n.ticker} ${arrow} ${pct}`;
+  const body = rose || n.fromBand === 0
+    ? en
+      ? `Crossed ${levels} since previous close — now ${price} EGP`
+      : `تجاوز ${levels} منذ الإغلاق السابق — الآن ${price} جنيه`
+    : en
+      ? `Fell below ${levels} — now ${price} EGP`
+      : `تراجع دون ${levels} — الآن ${price} جنيه`;
+  return {
+    title,
+    body,
+    url: `/?view=company&ticker=${encodeURIComponent(n.ticker)}&panel=overview`,
+    // one live OS tile per stock per milestone — a re-crossing REPLACES its
+    // own tile (renotify pops it again) instead of stacking duplicates
+    tag: `mv-${n.ticker}-${Math.abs(n.toBand)}${n.toBand < 0 ? "n" : ""}`,
+    lang,
+  };
+}
+
+/** Live-session gate with an honest post-close grace: crossings that only
+ *  appear in the FINAL delayed quote (~15 min lag) still notify until
+ *  15:00 Cairo; after that the last session's bands are frozen (and the
+ *  next trading day resets them via the date check). */
+async function movesSessionLive(now: Date): Promise<{ live: boolean; today: string }> {
+  const { marketStatus } = await import("@/lib/market-status");
+  const st = marketStatus(now);
+  const today = cairoTodayStr(now);
+  if (st.lastSession !== today) return { live: false, today }; // weekend / pre-open / holiday: quotes are a previous session's
+  if (st.open) return { live: true, today };
+  const [h, m] = st.cairoTime.split(":").map(Number);
+  const minutes = (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  return { live: minutes < 15 * 60, today }; // closed but within the final-quote grace window
+}
+
+/** The T70 engine: ONE notification PER FAVORITE STOCK for every 0.5% step
+ *  it climbs or falls vs the previous close, while the EGX session is live
+ *  (plus the final-quote grace). Band state persists per device in
+ *  PushDevice.movesJson, so restarts / re-runs can never double-notify. */
+export async function pushWatchlistMoves(now: Date = new Date()): Promise<{ devices: number; notified: number }> {
+  const out = { devices: 0, notified: 0 };
+  if (!getVapid()) return out;
+  const { live: sessionLive, today } = await movesSessionLive(now);
+  if (!sessionLive) return out; // nothing to evaluate — and NO state writes (yesterday's bands stay frozen)
+
+  let devices: Awaited<ReturnType<typeof db.pushDevice.findMany>> = [];
+  try {
+    devices = await db.pushDevice.findMany();
+  } catch {
+    return out;
+  }
+  const withWatch = devices.filter((d) => {
+    try {
+      return (JSON.parse(d.watchlistJson) as string[]).length > 0;
+    } catch {
+      return false;
+    }
+  });
+  out.devices = withWatch.length;
+  if (!withWatch.length) return out;
+
+  const universe = await fetchUniverse().catch(() => [] as Stock[]);
+  const quotes = new Map<string, QuoteLite>();
+  for (const s of universe) {
+    if (Number.isFinite(s.changePct)) quotes.set(s.ticker, { changePct: s.changePct, close: s.close });
+  }
+
+  for (const d of withWatch) {
+    let favs: string[] = [];
+    try {
+      favs = JSON.parse(d.watchlistJson) as string[];
+    } catch {}
+    if (!favs.length) continue;
+    let state: MovesState = { date: "", bands: {} };
+    try {
+      const parsed = JSON.parse(d.movesJson) as MovesState;
+      if (parsed && typeof parsed.date === "string" && parsed.bands && typeof parsed.bands === "object") {
+        state = { date: parsed.date, bands: {} };
+        for (const [k, v] of Object.entries(parsed.bands)) {
+          if (typeof v === "number" && Number.isFinite(v)) state.bands[k] = Math.trunc(v);
+        }
+      }
+    } catch {}
+
+    const { notes, nextState } = buildMoveNotifications(favs, quotes, state, today);
+
+    // safety pacing: at most 30 per-stock notifications per device per tick
+    // (an 80-favorite watchlist gapping at the open still lands sanely);
+    // the FULL state is recorded either way, so skipped notes never re-fire
+    let sent = 0;
+    let alive = true;
+    for (const n of notes.slice(0, 30)) {
+      const ok = await sendPush({ endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth }, movePushPayload(n, d.lang));
+      if (!ok) {
+        // subscription gone — clean the row up and stop
+        await db.pushDevice.delete({ where: { id: d.id } }).catch(() => {});
+        alive = false;
+        break;
+      }
+      sent++;
+    }
+    if (!alive) continue;
+    if (sent > 0 || JSON.stringify(nextState) !== JSON.stringify(state)) {
+      await db.pushDevice
+        .update({ where: { id: d.id }, data: { movesJson: JSON.stringify(nextState), ...(sent > 0 ? { lastNotifiedAt: new Date() } : {}) } })
+        .catch(() => {});
+    }
+    out.notified += sent;
   }
   return out;
 }
