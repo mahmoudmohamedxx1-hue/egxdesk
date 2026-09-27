@@ -1656,3 +1656,20 @@ Work Log:
 
 Stage Summary:
 - T69 is fully on GitHub (origin/main). Vercel refuses to build ANY deployment for this project right now (instant failure incl. the data-refresh Action) — needs a one-minute dashboard check by the user (cancel stuck build / resolve account block), then re-deploy.
+
+---
+Task ID: T70-R
+Agent: main (Super Z)
+Task: Session recovery after context switch (user asked for the last response translated to English); continue the last task — T69 ship + full state verification.
+
+Work Log:
+- Reconstructed state from git + worklog: T67/T68/T69 are all implemented, verified, and pushed. T69 (all 7 user asks: agent all-tools fan-out + no-cap comprehensive answers + lens fullscreen + period-moves side digest + Canva dot-grid background + favorites notifications + news crash fix) is on GitHub since f105edb.
+- Dev server healthy on :3000 (HTTP 200; /api/health = version 2.54, db up).
+- Pushed the 2 stranded local commits: eb3a058 (vercel-repro snapshot + agent data) and b6aee99 (dropped the 1.4MB repro jpeg, routine db snapshot). origin/main = b6aee99. Verified the repro dir is build-inert (tsconfig excludes scripts/; next build does not lint scripts/).
+- VERCEL BLOCKER RE-TESTED LIVE: deployment dpl_C3eXksPoUivEh1AF8tb5YZwT for b6aee99 was created AND failed in the SAME second (11:39:04Z) — the instant-failure gate persists (6 consecutive instant failures: f105edb, 75d187d, e32a7c0, 92518bb, b6aee99). No build phase ever starts. GitHub Actions (data refresh) all green; Supabase check green; Vercel status page operational; no Vercel credentials in the sandbox, so the real error text is only readable in the user's dashboard or via `npx vercel inspect dpl_C3eXksPoUivEh1AF8tb5YZwT`.
+- PRODUCTION STATE: egxdesk.vercel.app serves 2.53/v48 (T68: debt-map rebuild, 29 screener filters, GLM-5.3-Flash main model, live thinking, fully Puter-free). ONLY T69 is unshipped; the repo is proven buildable (clean-room npm ci + bun builds green at f105edb).
+- NEWS CRASH smoke re-verified this session: /?view=today renders 40/183 headlines, impact sections, source links, image frames — zero console errors, no error boundary shown, /api/news-feed 200. Img proxy 5 ok / 4 fast-404 (outlet CDN refusals; the designed fallback frame covers them — sandbox IPs are more Cloudflare-walled than Vercel's, per the T60 workflow note).
+- Screenshots: scripts/qa/t70-news-smoke.png, scripts/qa/t70-news-final.png.
+
+Stage Summary:
+- Everything the user asked for is done and on GitHub. The ONLY thing between the user and T69 on Vercel is Vercel's own account/project-level gate that fails every deployment instantly (<1s, zero build). User action required: open the Vercel dashboard, read the deployment error / cancel any stuck build / clear any account flag or limit, then redeploy b6aee99 (or push any commit — GitHub already has everything). No code changes are needed.
