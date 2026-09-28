@@ -127,3 +127,117 @@
 ## 2026-09-28 09:52:51Z — midday run — FAILED
 - error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
 
+## 2026-09-28 10:23:39Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 10:29:39Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 10:34:39Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 10:39:39Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 10:44:39Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 10:49:39Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 12:49:57Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 12:55:57Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 13:00:57Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 13:20:57Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 13:25:57Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 13:35:57Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 13:50:57Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 13:55:57Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 14:05:57Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 14:20:57Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 14:25:57Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 14:35:57Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 14:50:57Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 14:55:57Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 15:05:57Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 17:12:31Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 17:13:31Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 17:18:31Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 17:43:31Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 17:48:31Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 17:53:31Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 18:13:31Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 18:18:31Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 18:23:31Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 18:43:31Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 18:48:31Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 18:53:31Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 19:13:31Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 19:18:31Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 19:23:31Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 08:02:42Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 08:33:42Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
