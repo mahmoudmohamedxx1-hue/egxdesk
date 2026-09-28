@@ -121,3 +121,9 @@
 ## 2026-09-28 09:18:46Z — midday run — FAILED
 - error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
 
+## 2026-09-28 09:41:51Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-28 09:52:51Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+

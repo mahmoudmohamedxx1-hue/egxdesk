@@ -366,6 +366,30 @@ export function LensView() {
   const [query, setQuery] = useState("");
   const svgRef = useRef<SVGSVGElement | null>(null);
 
+  // T72 — the investor BRIEF PANEL: choosing an investor opens a short,
+  // data-grounded brief docked over the map itself. `briefClosed` lets the
+  // user dismiss it with ✕ while KEEPING the holder focus on the board;
+  // any focus change (choosing an investor again) re-opens it.
+  const [briefClosed, setBriefClosed] = useState(false);
+  useEffect(() => {
+    setBriefClosed(false);
+  }, [focus]);
+  // T72 — scrolls the aside's holder-portfolio card into view when the
+  // brief panel's "full profile" button is pressed
+  const asideProfileRef = useRef<HTMLDivElement | null>(null);
+  // T72 — the brief panel's own ref: on tall boards the map's bottom-right
+  // corner can sit below the fold, so the panel gently scrolls itself into
+  // view when it opens (block:"nearest" = zero movement when already on
+  // screen). Keyed on data-readiness so it also fires when the panel mounts
+  // LATE — e.g. a shared ?focus=h:… link whose data arrives after the focus
+  // state was already restored from the URL.
+  const briefPanelRef = useRef<HTMLDivElement | null>(null);
+  const dataReady = !!data;
+  useEffect(() => {
+    if (focus?.type !== "holder" || briefClosed || !dataReady) return;
+    briefPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [focus, briefClosed, dataReady]);
+
   // ── T69 — FULLSCREEN: native Fullscreen API when the browser grants it
   // (desktop Chrome/Safari/Android), CSS fixed-overlay fallback otherwise
   // (iOS Safari never fullscreens arbitrary elements — the map then becomes
@@ -1021,8 +1045,13 @@ export function LensView() {
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
         <div
           ref={mapWrapRef}
-          className={`relative overflow-hidden lens-map ${
-            fs ? "fixed inset-0 z-[60] rounded-none border-0 lens-fs" : "rounded-xl border"
+          /* T72 fix: `relative` and `fixed` must never coexist — Tailwind
+           * emits .relative after .fixed, so the CSS-overlay fullscreen
+           * fallback (iOS Safari, where the Fullscreen API is absent) was
+           * silently beaten by .relative and never covered the viewport.
+           * The position now rides the branch itself. */
+          className={`overflow-hidden lens-map ${
+            fs ? "fixed inset-0 z-[60] rounded-none border-0 lens-fs" : "relative rounded-xl border"
           }`}
         >
           {/* T69 — the fullscreen toggle (native API, CSS-overlay fallback) */}
@@ -1117,7 +1146,27 @@ export function LensView() {
                     >
                       <span className="min-w-0 truncate">
                         <b className="text-[10px] rounded bg-secondary px-1" dir="ltr">{m.t}</b>{" "}
-                        {data.people[m.h]?.n ?? String(m.h)}
+                        {/* T72 — the holder's NAME is clickable on its own:
+                         * choosing the investor opens his brief panel over
+                         * the board (the row itself still opens the company) */}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFocus({ type: "holder", h: m.h });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.stopPropagation();
+                              setFocus({ type: "holder", h: m.h });
+                            }
+                          }}
+                          className="font-semibold underline decoration-dotted underline-offset-2 hover:text-primary"
+                          title={lang === "ar" ? "اضغط لفتح ملخص هذا المستثمر" : "click to open this investor's brief"}
+                        >
+                          {data.people[m.h]?.n ?? String(m.h)}
+                        </span>
                       </span>
                       <b className={`shrink-0 tabular-nums ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`} dir="ltr">
                         {up ? "+" : ""}{(m.c ?? 0).toFixed(2)}%
@@ -1565,6 +1614,211 @@ export function LensView() {
               {view.k.toFixed(1)}× · {lang === "ar" ? "إعادة" : "reset"}
             </button>
           </div>
+
+          {/* T72 — the INVESTOR BRIEF PANEL (the user's ask: "surfing the map
+           *  and choosing an investor opens a short brief panel with the data
+           *  about this investor"). It docks over the board's bottom-right
+           *  corner — bottom-10 on phones so it never covers the zoom row —
+           *  and lives INSIDE the map container, so it is on screen in normal
+           *  mode AND in fullscreen (where the aside with the full portfolio
+           *  does not exist at all). Every number is data-grounded from the
+           *  official filings; ✕ dismisses the panel but keeps the holder
+           *  highlighted on the board. */}
+          {focusState?.kind === "holder" && holderPortfolio && holderBrief && !briefClosed && (
+            <div
+              ref={briefPanelRef}
+              aria-label={lang === "ar" ? "ملخص المستثمر" : "investor brief"}
+              className="absolute bottom-10 right-2 z-20 flex max-h-[64%] w-[300px] max-w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl border bg-card/95 text-xs shadow-2xl backdrop-blur md:bottom-2"
+            >
+              {/* header: who he is + dismiss */}
+              <div className="flex items-start justify-between gap-2 border-b bg-background/40 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 font-bold leading-snug">
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: holderColorOf(focusState.h) }} />
+                    <span className="truncate">{personName(focusState.h)}</span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {data.people[focusState.h]?.k === "f"
+                      ? lang === "ar"
+                        ? "شركة أو صندوق"
+                        : "firm / fund"
+                      : lang === "ar"
+                        ? "شخص"
+                        : "person"}
+                    {" · "}
+                    {focusState.rings.length}{" "}
+                    {lang === "ar" ? "شركة مدرجة" : focusState.rings.length === 1 ? "listed company" : "listed companies"}
+                    {holderBrief.sectorCount > 0 &&
+                      ` · ${holderBrief.sectorCount} ${
+                        lang === "ar"
+                          ? holderBrief.sectorCount === 1
+                            ? "قطاع"
+                            : "قطاعات"
+                          : holderBrief.sectorCount === 1
+                            ? "sector"
+                            : "sectors"
+                      }`}
+                  </p>
+                </div>
+                <button
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  onClick={() => setBriefClosed(true)}
+                  title={lang === "ar" ? "إغلاق الملخص (يبقي المستثمر مُحددًا على اللوحة)" : "close the brief (the investor stays highlighted on the board)"}
+                >
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* body: the data about this investor */}
+              <div className="min-h-0 flex-1 space-y-2.5 overflow-auto px-3 py-2.5 thin-scroll">
+                {/* filed-stakes value headline */}
+                <div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {lang === "ar" ? "قيمة الحصص المعلنة (بالأسعار الحالية)" : "filed-stakes value (at current prices)"}
+                  </p>
+                  <p className="text-sm font-bold tabular-nums">
+                    {fmtEgp(holderPortfolio.totalValue, lang)}
+                    {holderPortfolio.valuedCount < holderPortfolio.rows.length && (
+                      <span className="ms-1 text-[10px] font-normal text-muted-foreground">
+                        ({holderPortfolio.valuedCount}/{holderPortfolio.rows.length} {lang === "ar" ? "مقيّمة" : "valued"})
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* the written brief — condensed, data-grounded */}
+                <p className="leading-relaxed text-[11px]">
+                  {lang === "ar" ? (
+                    <>
+                      {personName(focusState.h)}{" "}
+                      {holderBrief.isFirm ? "كيان ورد اسمه في الإفصاحات الرسمية كمالك أو عضو مجلس في" : "شخص طبيعي ورد اسمه في الإفصاحات الرسمية كمالك أو عضو مجلس في"}{" "}
+                      <b>{holderBrief.companies}</b>{" "}
+                      {holderBrief.companies === 1 ? "شركة مدرجة واحدة" : "شركات مدرجة"}
+                      {holderBrief.sectorCount > 1 && (
+                        <>
+                          {" "}عبر <b>{holderBrief.sectorCount}</b> قطاعات
+                        </>
+                      )}
+                      .
+                      {holderBrief.biggest?.value != null && (
+                        <>
+                          {" "}أكبر حصصه المعلنة في <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}% · ≈{fmtEgp(holderBrief.biggest.value, lang)}).
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {personName(focusState.h)} is{" "}
+                      {holderBrief.isFirm ? "an entity named in the official disclosures as a holder or board member in" : "an individual named in the official disclosures as a holder or board member in"}{" "}
+                      <b>
+                        {holderBrief.companies === 1 ? "one listed company" : `${holderBrief.companies} listed companies`}
+                      </b>
+                      {holderBrief.sectorCount > 1 && (
+                        <>
+                          {" "}across <b>{holderBrief.sectorCount}</b> sectors
+                        </>
+                      )}
+                      .
+                      {holderBrief.biggest?.value != null && (
+                        <>
+                          {" "}Largest filed stake: <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}% · est. {fmtEgp(holderBrief.biggest.value, lang)}).
+                        </>
+                      )}
+                    </>
+                  )}
+                </p>
+
+                {/* latest documented move, in concrete terms */}
+                {holderBrief.latest && (
+                  <div className="rounded-lg border bg-background/60 px-2 py-1.5">
+                    <p className="text-[10px] text-muted-foreground">
+                      {lang === "ar" ? "أحدث تحرك موثّق" : "latest documented move"} · {holderBrief.latest.per}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      <b className="rounded bg-secondary px-1 text-[10px]" dir="ltr">
+                        {holderBrief.latest.ticker}
+                      </b>
+                      {holderBrief.latest.from != null && holderBrief.latest.to != null ? (
+                        <span className="tabular-nums" dir="ltr">
+                          {fmtPct(holderBrief.latest.from)}% →{" "}
+                          <b className={(holderBrief.latest.to ?? 0) >= (holderBrief.latest.from ?? 0) ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                            {fmtPct(holderBrief.latest.to)}%
+                          </b>
+                        </span>
+                      ) : (
+                        <span>{lang === "ar" ? "تحرك في الحصة" : "a stake move"}</span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        · {holderBrief.moves.length} {lang === "ar" ? "تحركًا موثّقًا إجمالًا" : "documented moves in all"}
+                      </span>
+                    </p>
+                    {holderBrief.latestSz && (
+                      <p className="mt-0.5 tabular-nums text-[10px] text-muted-foreground">
+                        ≈ {fmtShares(holderBrief.latestSz.shares)} {lang === "ar" ? "سهم" : "shares"} · ≈ {fmtEgp(holderBrief.latestSz.valueEgp, lang)}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* recent net direction */}
+                {holderBrief.moves.length >= 3 && (
+                  <p className="text-[11px]">
+                    {lang === "ar" ? "صافي آخر تحركاته: " : "recent net direction: "}
+                    <b className={holderBrief.netRecent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                      {holderBrief.netRecent >= 0
+                        ? lang === "ar"
+                          ? "شرائي — يراكم مراكزه"
+                          : "accumulating — net buyer"
+                        : lang === "ar"
+                          ? "بيعي — يخفف مراكزه"
+                          : "reducing — net seller"}
+                    </b>
+                  </p>
+                )}
+
+                {/* largest filed stakes — clickable through to the company */}
+                {holderPortfolio.rows.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground">
+                      {lang === "ar" ? "أكبر الحصص المعلنة" : "largest filed stakes"}
+                    </p>
+                    {holderPortfolio.rows.slice(0, 3).map(({ p, ring, value }) => (
+                      <button
+                        key={`${p.t}-${p.a}`}
+                        onClick={() => setFocus({ type: "company", ticker: p.t })}
+                        className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-start hover:bg-accent/50"
+                        title={ring ? dn(ring.company, lang) : p.t}
+                      >
+                        <span className="min-w-0 truncate">
+                          <b className="rounded bg-secondary px-1 text-[10px]" dir="ltr">
+                            {p.t}
+                          </b>
+                          {ring && <span className="ms-1 text-[10px] text-muted-foreground">{lang === "ar" ? ring.company.sectorAr : ring.company.sectorEn}</span>}
+                        </span>
+                        <span className="shrink-0 tabular-nums">
+                          <b>{fmtPct(p.p)}%</b>{" "}
+                          <span className="text-[10px] text-muted-foreground">{fmtEgp(value, lang)}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* footer: through to the full portfolio in the aside */}
+              <button
+                className="border-t bg-background/40 px-3 py-2 text-[11px] font-semibold hover:bg-accent"
+                onClick={() => {
+                  if (fs) toggleFullscreen();
+                  window.setTimeout(() => asideProfileRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), fs ? 420 : 0);
+                }}
+              >
+                {lang === "ar" ? "الملف الكامل في اللوحة الجانبية ↘" : "full profile in the side panel ↘"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── right panel: company profile / investor portfolio / register ── */}
@@ -1852,7 +2106,7 @@ export function LensView() {
             </div>
           ) : focusState?.kind === "holder" && holderPortfolio ? (
             /* ── T59 — INVESTOR PORTFOLIO: his investments across the stocks ── */
-            <div className="rounded-xl border bg-card p-3 space-y-2.5">
+            <div ref={asideProfileRef} className="rounded-xl border bg-card p-3 space-y-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h2 className="text-sm font-bold leading-snug truncate">
