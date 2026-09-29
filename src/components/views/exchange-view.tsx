@@ -1,7 +1,7 @@
 "use client";
 
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { IndexRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtPct, fmtValue, directionClass } from "@/lib/format";
@@ -73,11 +73,12 @@ type OverviewLite = {
 
 export function ExchangeView() {
   const { lang, navigate } = useApp();
-  const { data, error, refresh } = useLiveData<EconomyData>("/api/economy", 600_000);
+  const { data, error, refresh, staleMs } = useLiveData<EconomyData>("/api/economy", 600_000);
   const { data: mkt } = useLiveData<OverviewLite>("/api/overview", 60_000);
   const { data: rates } = useLiveData<RatesData>("/api/rates", 300_000);
 
-  if (error && !data) {
+  // T74 — the T41 honest-degradation rule (was `error && !data` only)
+  if (isDeadFeed({ error, data, staleMs })) {
     return (
       <div className="rounded-lg border bg-card p-8 text-center space-y-3">
         <p className="font-medium">{tt(T.errorLoad, lang)}</p>

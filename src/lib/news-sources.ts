@@ -23,6 +23,7 @@
  *     explainer written for education, not a prediction about any stock. */
 
 import { AR_ALIASES } from "./ar-search";
+import { cairoWallClock } from "./cairo-time";
 
 // ── attribution-grade ticker matching ───────────────────────────────────
 // A ticker pill on a news card is an ATTRIBUTION CLAIM ("this story is
@@ -170,7 +171,7 @@ export type FeedItem = {
 export type FeedProvenance = {
   generatedAt: string;
   outlets: NewsOutlet[];
-  unreachable: { id: string; nameAr: string; note: string }[];
+  unreachable: { id: string; nameAr: string; name?: string; note: string }[];
   mergedCount: number;
   withheldCount: number;
   itemCount: number;
@@ -358,8 +359,11 @@ function parseRss(xml: string, outlet: string): RawItem[] {
       block.match(/<summary>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/)?.[1]?.replace(/<[^>]+>/g, "").trim() ??
       null;
     if (!title || !link || !/^https?:\/\//.test(link)) continue;
-    const published = date ? new Date(date).toISOString() : new Date().toISOString();
-    if (Number.isNaN(Date.parse(published))) continue;
+    // T74 — an item with no parseable date is DROPPED, not stamped "now":
+    // fabricated times sorted undated stories to the very top of the feed
+    // and inside /api/crossings time windows as brand-new news.
+    if (!date || !Number.isFinite(Date.parse(date))) continue;
+    const published = new Date(date).toISOString();
     out.push({ outlet, title, link, published, image, snippet });
   }
   return out;
@@ -388,20 +392,26 @@ function parseArabFinance(html: string, outlet: string): RawItem[] {
       after.match(/<h[234][^>]*>\s*<a[^>]*>([\s\S]{12,180}?)<\/a>/)?.[1]?.replace(/<[^>]+>/g, "").trim() ??
       null;
     if (!title) continue;
-    // relative time "منذ 2س10د" or absolute "26/09 01:32"
+    // relative time "منذ 2س10د" or absolute "26/09 01:32" — either way the
+    // stamp must parse; an undated card is DROPPED (T74: "now" was a
+    // fabricated timestamp that floated stale cards to the feed top).
     const rel = after.match(/منذ\s*(\d+)س\s*(\d+)د/);
-    let published = new Date().toISOString();
+    let published: string | null = null;
     if (rel) {
       published = new Date(Date.now() - (Number(rel[1]) * 60 + Number(rel[2])) * 60_000).toISOString();
     } else {
       const abs = after.match(/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
       if (abs) {
+        // wall clock is Cairo local (T74 — was built in server-local UTC)
         const now = new Date();
-        const d = new Date(now.getFullYear(), Number(abs[2]) - 1, Number(abs[1]), Number(abs[3]), Number(abs[4]));
-        if (d.getTime() > now.getTime() + 86_400_000) d.setFullYear(d.getFullYear() - 1);
+        let d = cairoWallClock(now.getUTCFullYear(), Number(abs[2]), Number(abs[1]), Number(abs[3]), Number(abs[4]));
+        if (d.getTime() > now.getTime() + 86_400_000) {
+          d = cairoWallClock(now.getUTCFullYear() - 1, Number(abs[2]), Number(abs[1]), Number(abs[3]), Number(abs[4]));
+        }
         published = d.toISOString();
       }
     }
+    if (!published) continue;
     // image may sit inside the same card
     const img = after.match(/src="(\/Gallery\/[^"]+)"/)?.[1];
     out.push({
@@ -436,7 +446,8 @@ function parseAlmalDate(s: string): string | null {
   if (!month) return null;
   let hour = Number(m[4]) % 12;
   if (m[6] === "م") hour += 12;
-  const d = new Date(Date.UTC(Number(m[3]), month - 1, Number(m[1]), hour - 3, Number(m[5])));
+  // T74 — Cairo local time, DST-correct (was a hardcoded hour-3).
+  const d = cairoWallClock(Number(m[3]), month, Number(m[1]), hour, Number(m[5]));
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
@@ -454,7 +465,9 @@ function parseAlmalCategory(html: string, outlet: string): RawItem[] {
     const img = card.match(/<img[^>]*(?:data-src|src)="(https:\/\/(?:media\.)?almalnews\.com[^"]+)"/)?.[1]
       ?? card.match(/<img[^>]*(?:data-src|src)="(https:\/\/media\.almalnews\.com[^"]+)"/)?.[1] ?? null;
     if (!id || !slug || !title) continue;
-    const published = parseAlmalDate(timeText) ?? new Date().toISOString();
+    // T74 — an unparseable stamp means the card is DROPPED, not dated "now".
+    const published = parseAlmalDate(timeText);
+    if (!published) continue;
     out.push({
       outlet,
       title,
@@ -524,7 +537,9 @@ function parseReaderRss(html: string, outlet: string): RawItem[] {
     const date = b.match(/<time>([\s\S]*?)<\/time>/)?.[1]?.trim() ?? "";
     const t = Date.parse(date);
     if (!title || !link) continue;
-    out.push({ outlet, title, link, published: Number.isFinite(t) ? new Date(t).toISOString() : new Date().toISOString(), image: null, snippet: null });
+    // T74 — undated blocks are dropped rather than stamped "now".
+    if (!Number.isFinite(t)) continue;
+    out.push({ outlet, title, link, published: new Date(t).toISOString(), image: null, snippet: null });
   }
   return out;
 }
@@ -741,7 +756,14 @@ export async function fetchEnrichedFeed(
       archived.push(outletName(o.outlet));
       continue;
     }
-    unreachable.push({ id: o.outlet, nameAr: outletName(o.outlet), note: "تعذّر الوصول من هذا الخادم الآن" });
+    // T74 — carry the English name too: the EN provenance sentence used to
+    // print Arabic-script outlet names inside the English UI.
+    unreachable.push({
+      id: o.outlet,
+      nameAr: outletName(o.outlet),
+      name: OUTLETS.find((x) => x.id === o.outlet)?.name ?? o.outlet,
+      note: "تعذّر الوصول من هذا الخادم الآن",
+    });
   }
   // T63 — the pictures the refresh pipeline paid for (og:image fetches the
   // runtime never repeats): a live item with no picture of its own inherits

@@ -7,6 +7,13 @@ import { db } from "@/lib/db";
  *  same pattern as the watchlist), so history survives browser storage clears
  *  and device changes of the installed PWA.
  *
+ *  SECURITY NOTE (T74, documented deliberately): the deviceId IS the bearer
+ *  credential here — possession of a device id grants read/write of that
+ *  device's chats. This is the account-less trade-off this app makes; the id
+ *  is generated client-side and must be treated as a secret by clients
+ *  (never paste it into shared links). Signed-in Supabase ownership binding
+ *  is the natural hardening path if accounts ever become first-class.
+ *
  *  - GET  ?deviceId=            → list of chats (metadata only, 50 newest)
  *  - GET  ?deviceId=&id=        → full messages of one chat
  *  - PUT  {deviceId,id,title,messages} → upsert one chat

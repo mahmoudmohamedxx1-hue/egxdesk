@@ -21,7 +21,7 @@ import { db } from "@/lib/db";
 import { scanSignals, reblendNews, type SignalRow } from "@/lib/signals-scan";
 import { fetchIndices, fetchUniverse } from "@/lib/market";
 import { fetchStockChart } from "@/lib/history";
-import { keylessBrainChat } from "@/lib/keyless-brain";
+import { keylessBrainChat, keylessLastServedModel } from "@/lib/keyless-brain";
 import {
   STRATEGY_CHARTER,
   STRATEGY_REV,
@@ -941,7 +941,10 @@ async function purifyPayload(
 
   console.warn(
     "[ai-signals] language-purity violations:",
-    fixes.map((f) => `${f.key}(${f.arabic ? strayLatinInArabic(f.original).join(",") : "arabic"})`).join("; ")
+    fixes.map((f) => `${f.key}(${f.arabic ? strayLatinInArabic(f.original).join(",") : "arabic"})`).join("; "),
+    // T74 — which keyless model produced the impure text (model-rot triage:
+    // garbage from a specific tier is grounds to remove it from the chain)
+    keylessLastServedModel() ? `served by ${keylessLastServedModel()}` : ""
   );
 
   // last resort for a pick thesis: the deterministic evidence lines, rendered

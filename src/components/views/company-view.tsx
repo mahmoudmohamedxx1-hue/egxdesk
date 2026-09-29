@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { patchUrlParams } from "@/lib/url-state";
 import { ExportXlsxButton } from "../market/export-xlsx-button";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, NewsRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, fmtPE, fmtInt, fmtDateAr, fmtTimeAr, directionClass } from "@/lib/format";
@@ -96,7 +96,7 @@ type CompositeSignal = {
 
 export function CompanyView({ ticker, panel }: { ticker: string; panel: string }) {
   const { lang, navigate } = useApp();
-  const { data, error, refresh } = useLiveData<CompanyData>(`/api/company/${encodeURIComponent(ticker)}`, 60_000);
+  const { data, error, refresh, staleMs } = useLiveData<CompanyData>(`/api/company/${encodeURIComponent(ticker)}`, 60_000);
   const [activePanel, setActivePanel] = useState(panel);
   const [prevPanel, setPrevPanel] = useState(panel);
   if (prevPanel !== panel) {
@@ -112,7 +112,9 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
     patchUrlParams({ panel: key === "overview" ? null : key });
   };
 
-  if (error && !data) {
+  // T74 — the T41 honest-degradation rule (was `error && !data` only: a
+  // SUSTAINED outage kept painting hours-old prices as if current).
+  if (isDeadFeed({ error, data, staleMs })) {
     return (
       <div className="rounded-lg border bg-card p-8 text-center space-y-3">
         <p className="font-medium">{tt(T.errorLoad, lang)}</p>

@@ -637,6 +637,14 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
     return rows;
   })();
 
+  // T74 — the sub-panels (RSI/MACD/Stoch/OBV/MFI/ATR/ADX/WPR/CCI) used to
+  // keep reading chartData while the MAIN chart switched to ichData's 26
+  // forward-projected rows: hovering the projected cloud desynced every
+  // syncId tooltip (the sub-panel showed a DIFFERENT date's values). The
+  // sub-panels now ride the same padded array; compare mode keeps chartData
+  // (indicator keys live there, not on compare rows).
+  const subPanelData = useIch && !compareOn ? ichData : chartData;
+
   // drawing click capture (G19 + T27): trendlines take two clicks
   // (start → end); a horizontal level takes one. Snaps to the session under
   // the cursor; the y comes from the clicked close (levels snap to price).
@@ -691,11 +699,11 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   if (sSma50) tipExtras.push({ key: "sma50", label: tt(T.indSma50, lang), color: "var(--c2)", fmt: (v) => fmtNum(v) });
   if (sEma20) tipExtras.push({ key: "ema20", label: tt(T.indEma20, lang), color: "var(--c5)", fmt: (v) => fmtNum(v) });
   if (sBb) {
-    tipExtras.push({ key: "bbUp", label: `BB ↑`, color: "var(--c4)", fmt: (v) => fmtNum(v) });
-    tipExtras.push({ key: "bbLo", label: `BB ↓`, color: "var(--c4)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "bbUp", label: tt(T.indBbUp, lang), color: "var(--c4)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "bbLo", label: tt(T.indBbLo, lang), color: "var(--c4)", fmt: (v) => fmtNum(v) });
   }
   if (sVwap) tipExtras.push({ key: "vwap", label: tt(T.indVwap, lang), color: "var(--c6)", fmt: (v) => fmtNum(v) });
-  if (sPsar) tipExtras.push({ key: "psar", label: "PSAR", color: "var(--c5)", fmt: (v) => fmtNum(v) });
+  if (sPsar) tipExtras.push({ key: "psar", label: tt(T.indPsar, lang), color: "var(--c5)", fmt: (v) => fmtNum(v) });
   if (sIch) {
     tipExtras.push({ key: "tenkan", label: tt(T.ichTenkan, lang), color: "var(--c8)", fmt: (v) => fmtNum(v) });
     tipExtras.push({ key: "kijun", label: tt(T.ichKijun, lang), color: "var(--c4)", fmt: (v) => fmtNum(v) });
@@ -705,14 +713,14 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
   if (sVolMa)
     tipExtras.push({ key: "volMa", label: tt(T.volMaLine, lang), color: "var(--c1)", fmt: (v) => fmtInt(v) });
   if (sDon) {
-    tipExtras.push({ key: "donUp", label: "Donchian ↑", color: "var(--c2)", fmt: (v) => fmtNum(v) });
-    tipExtras.push({ key: "donLo", label: "Donchian ↓", color: "var(--c2)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "donUp", label: tt(T.indDonUp, lang), color: "var(--c2)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "donLo", label: tt(T.indDonLo, lang), color: "var(--c2)", fmt: (v) => fmtNum(v) });
   }
   if (sKelt) {
-    tipExtras.push({ key: "keltUp", label: "Keltner ↑", color: "var(--c6)", fmt: (v) => fmtNum(v) });
-    tipExtras.push({ key: "keltLo", label: "Keltner ↓", color: "var(--c6)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "keltUp", label: tt(T.indKeltUp, lang), color: "var(--c6)", fmt: (v) => fmtNum(v) });
+    tipExtras.push({ key: "keltLo", label: tt(T.indKeltLo, lang), color: "var(--c6)", fmt: (v) => fmtNum(v) });
   }
-  if (sSt) tipExtras.push({ key: "stLine", label: "SuperTrend", color: "var(--c8)", fmt: (v) => fmtNum(v) });
+  if (sSt) tipExtras.push({ key: "stLine", label: tt(T.indSuperTrend, lang), color: "var(--c8)", fmt: (v) => fmtNum(v) });
 
   const rsiState =
     lastRsi === null ? null : lastRsi >= 70 ? "overbought" : lastRsi <= 30 ? "oversold" : "neutral";
@@ -1443,7 +1451,10 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                     isAnimationActive={false}
                   />
                 )}
-                {sSma20 && (
+                {/* T74 — the !compareOn guard every other absolute-price
+                 * overlay carries: in compare mode the data array is the
+                 * rebased-to-100 set, which has no sma20 key. */}
+                {sSma20 && !compareOn && (
                   <Line
                     yAxisId="price"
                     dataKey="sma20"
@@ -1549,7 +1560,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 110 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis
@@ -1611,7 +1622,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 110 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis
@@ -1658,7 +1669,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
                       }}
                     />
                     <Bar yAxisId="macd" dataKey="macdHist" isAnimationActive={false} opacity={0.45}>
-                      {chartData.map((d, i) => (
+                      {subPanelData.map((d, i) => (
                         <Cell key={i} fill={Number(d.macdHist ?? 0) >= 0 ? "var(--up)" : "var(--down)"} />
                       ))}
                     </Bar>
@@ -1707,7 +1718,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 110 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis
@@ -1784,7 +1795,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 96 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis yAxisId="obv" domain={["auto", "auto"]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => fmtValue(v)} />
@@ -1822,7 +1833,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 96 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis yAxisId="mfi" domain={[0, 100]} ticks={[20, 50, 80]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={30} />
@@ -1860,7 +1871,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 96 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis yAxisId="atr" domain={["auto", "auto"]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => fmtNum(v, 1)} />
@@ -1898,7 +1909,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 96 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis yAxisId="adx" domain={[0, "auto"]} ticks={[20, 40]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={30} />
@@ -1940,7 +1951,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 96 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis yAxisId="wpr" domain={[-100, 0]} ticks={[-80, -50, -20]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={30} />
@@ -1980,7 +1991,7 @@ export function PriceChart({ symbol, defaultRange = "6M" }: { symbol: string; de
               </div>
               <div style={{ height: 96 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
+                  <ComposedChart data={subPanelData as unknown as object[]} margin={{ top: 4, right: 8, bottom: 0, left: -6 }} syncId={syncId}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" hide />
                     <YAxis yAxisId="cci" domain={["auto", "auto"]} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={40} tickFormatter={(v: number) => fmtNum(v, 0)} />

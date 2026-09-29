@@ -77,7 +77,10 @@ export async function GET() {
           note: "per IP or device, persisted in SQLite; the upstream LLM gateway also throttles bursts (auto-retried)",
         },
         today,
-        last24h: { questions: rows7.filter((r) => r.createdAt >= h24).length },
+        // T74 FIX — count AGENT questions only, same definition as `today`:
+        // the old line counted every UsageEvent (system ai-signals refreshes,
+        // hourly-report calls), inflating "questions in the last 24h".
+        last24h: { questions: rows7.filter((r) => r.createdAt >= h24 && r.route === "agent").length },
         last7d,
       },
       { headers: { "Cache-Control": "no-store" } }

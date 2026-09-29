@@ -115,6 +115,15 @@ export async function fetchEconomy(): Promise<EconomyData> {
       }
     }
 
+    // T74 FIX — when BOTH upstreams fail this is an outage, not "no data":
+    // throw so the 30-minute cache is not poisoned with an all-null payload
+    // (the cached() wrapper serves the last-good snapshot on throw instead).
+    // One source failing while the other answers stays honest — null fields
+    // carry their own absence and the surviving asOf stamps stay visible.
+    if (rates === null && goldUsd === null) {
+      throw new Error("economy: both FX and gold upstreams failed");
+    }
+
     const egpPerUsd = rates?.EGP ?? null;
 
     const fx: FxRate[] = FX_CURRENCIES.map((c) => {
@@ -277,6 +286,14 @@ export async function fetchWorld(egpPerUsd: number | null): Promise<WorldMarkets
       } catch {
         silverUsd = null;
       }
+    }
+
+    // T74 FIX — every Yahoo quote null means an outage (Yahoo blocks/5xx),
+    // not "the world stopped quoting": throw so the 10-minute cache is not
+    // poisoned with an all-null board; cached() serves the last-good
+    // snapshot on throw. Partial nulls (some symbols answered) stay honest.
+    if (quotes.every((q) => q.price === null) && silverUsd === null) {
+      throw new Error("world: every world quote failed");
     }
 
     return {

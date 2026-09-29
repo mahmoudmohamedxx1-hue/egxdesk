@@ -86,6 +86,21 @@ export function WorldView() {
     );
   }
 
+  // T74 — while the monitor is in flight the view used to render the header
+  // and an EMPTY window-tab row (a slow first load looked like a broken
+  // page); a skeleton holds the shape until data lands.
+  if (!data) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Globe2 className="h-5 w-5 text-primary" aria-hidden />
+          <h1 className="text-lg font-bold">{lang === "ar" ? "مرصد العالم" : "World monitor"}</h1>
+        </div>
+        <div className="space-y-2">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-16" />)}</div>
+      </div>
+    );
+  }
+
   const active = data?.windows.find((w) => w.id === win) ?? data?.windows[0];
 
   return (

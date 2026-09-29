@@ -400,7 +400,13 @@ export function SupabaseAccount() {
                         setError(null);
                       }}
                     >
-                      ← {tt(T.accountEmailLabel, lang)}
+                      {/* T74 — mirrored back arrow: a physical ← reads as
+                       * "forward" in the RTL Arabic dialog; rtl:rotate-180
+                       * flips it like every other chevron in the app. */}
+                      <span className="inline-flex items-center gap-1">
+                        <span className="rtl:rotate-180 inline-block" aria-hidden>←</span>{" "}
+                        {tt(T.accountEmailLabel, lang)}
+                      </span>
                     </button>
                     {cooldown > 0 && (
                       <span className="text-muted-foreground/70 num">

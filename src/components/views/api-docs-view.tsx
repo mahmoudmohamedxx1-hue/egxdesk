@@ -32,8 +32,8 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: "/api/companies?q=&sector=",
     params: ["q — بحث نصي (اختياري)", "sector — كود القطاع (اختياري)"],
-    returnsAr: "جدول السوق: ٢٩٦ صفاً بكل المقاييس الحية (السعر، التغير، الأداء، التقييم، المركز المالي).",
-    returnsEn: "The market table: 296 rows with every live metric (price, change, performance, valuation, balance-sheet fields).",
+    returnsAr: "جدول السوق: كل شركة مثقّلة بكل المقاييس الحية (السعر، التغير، الأداء، التقييم، المركز المالي).",
+    returnsEn: "The market table: every listed company with every live metric (price, change, performance, valuation, balance-sheet fields).",
     source: "TradingView scanner",
   },
   {
@@ -46,8 +46,8 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET",
     path: "/api/sectors",
-    returnsAr: "٢١ قطاعاً بعدد الشركات والصاعد/الهابط والوسائط وأكبر متحرك.",
-    returnsEn: "21 sectors with counts, up/down, medians and biggest mover.",
+    returnsAr: "القطاعات بعدد الشركات والصاعد/الهابط والوسائط وأكبر متحرك.",
+    returnsEn: "All sectors with counts, up/down, medians and biggest mover.",
     source: "computed from TradingView",
   },
   {
@@ -70,15 +70,15 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: "/api/news?page=&limit=",
     params: ["page — من ١", "limit — حتى ١٠٠"],
-    returnsAr: "أرشيف الأخبار العربي الكامل (أكثر من ٩ آلاف خبر) بالأحدث أولاً.",
-    returnsEn: "The full Arabic news archive (9k+ items), newest first.",
+    returnsAr: "أرشيف الأخبار العربي الكامل بالأحدث أولاً — يتزايد يوميًا.",
+    returnsEn: "The full Arabic news archive, newest first — growing daily.",
     source: "Alborsaa · Amwal Alghad",
   },
   {
     method: "GET",
     path: "/api/news-en",
-    returnsAr: "٦٠ خبراً إنجليزياً عن السوق المصري من مصادر عالمية.",
-    returnsEn: "60 English Egyptian-market headlines from global publishers.",
+    returnsAr: "أحدث الأخبار الإنجليزية عن السوق المصري من مصادر عالمية.",
+    returnsEn: "The latest English Egyptian-market headlines from global publishers.",
     source: "Google News RSS",
   },
   {
@@ -91,8 +91,8 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET",
     path: "/api/insiders",
-    returnsAr: "٣٣٤ تعامل داخلي مسجلة مع روابط مستندات البورصة الرسمية.",
-    returnsEn: "334 filed insider dealings with official EGX document links.",
+    returnsAr: "تعاملات الداخليين المسجلة مع روابط مستندات البورصة الرسمية.",
+    returnsEn: "Filed insider dealings with official EGX document links.",
     source: "esthmr.com published documents",
   },
   {

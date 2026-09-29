@@ -113,7 +113,9 @@ export async function POST(req: Request) {
         { headers: NO_STORE },
       );
       res.cookies.set(SB_SESSION_COOKIE, encodeSbSession(admin.tokens), sbSessionCookieOptions(req));
-      res.cookies.set(ADMIN_TRUST_COOKIE, encodeAdminTrust(admin.user.id), adminTrustCookieOptions(req));
+      // T74 — optional trust cookie (fail-closed mint, see supabase-auth.ts)
+      const trustCookie = encodeAdminTrust(admin.user.id);
+      if (trustCookie) res.cookies.set(ADMIN_TRUST_COOKIE, trustCookie, adminTrustCookieOptions(req));
       return res;
     }
     failLock.record(mailboxKey);
@@ -134,8 +136,11 @@ export async function POST(req: Request) {
   res.cookies.set(SB_SESSION_COOKIE, encodeSbSession(r.tokens), sbSessionCookieOptions(req));
   // the owner just proved the mailbox — trust this device for 90 days so
   // every future sign-in is the one-click passwordless door
+  // (T74 — the mint can fail closed when no trust secret is configured;
+  //  the session itself is unaffected.)
   if (isAdminEmail(r.user.email ?? email)) {
-    res.cookies.set(ADMIN_TRUST_COOKIE, encodeAdminTrust(r.user.id), adminTrustCookieOptions(req));
+    const trustCookie = encodeAdminTrust(r.user.id);
+    if (trustCookie) res.cookies.set(ADMIN_TRUST_COOKIE, trustCookie, adminTrustCookieOptions(req));
   }
   return res;
 }

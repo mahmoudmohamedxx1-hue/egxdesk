@@ -245,7 +245,12 @@ export async function sbGetUser(at: string): Promise<SbUser | null> {
       if (json.id) user = { id: json.id, email: json.email ?? null };
     }
   } catch {
-    user = null;
+    // T74 — a network error is UNKNOWN, not "no user": caching the null
+    // for 60s signed a legitimately-signed-in user out during a Supabase
+    // blip. Only definitive server answers (ok json / definitive 4xx) may
+    // be cached; timeouts stay uncached so the next request re-checks.
+    clearTimeout(t);
+    return user; // user stays null here but is NOT cached
   } finally {
     clearTimeout(t);
   }
@@ -362,15 +367,32 @@ export function adminEmail(): string {
   return ADMIN_EMAIL;
 }
 
+function trustSecret(): string | null {
+  // T74 FIX — ANON_KEY is REMOVED from the fallback chain (Supabase's anon
+  // key is publishable by design and must never be an HMAC secret: in the
+  // minimal URL+ANON_KEY deployment the admin trust cookie was forgeable by
+  // anyone holding the public key). Production with no configured secret now
+  // fails CLOSED — encode/decode return null — instead of falling back to a
+  // forgeable constant; the dev constant only exists outside production.
+  if (TRUST_SECRET) return TRUST_SECRET;
+  if (SERVICE_KEY) return SERVICE_KEY;
+  if (process.env.NODE_ENV !== "production") return "egx-dev-trust";
+  console.error("[auth] admin trust secret not configured (AUTH_TRUST_SECRET / SUPABASE_SERVICE_ROLE_KEY) — admin trust cookies fail closed");
+  return null;
+}
+
 function trustHmac(payload: string): string {
-  const secret = TRUST_SECRET || SERVICE_KEY || ANON_KEY || "egx-dev-trust";
+  const secret = trustSecret();
+  if (!secret) return ""; // callers treat empty mac as invalid (fail closed)
   return createHmac("sha256", secret).update(`v1|${payload}`).digest("hex");
 }
 
 export type AdminTrust = { userId: string; deviceId: string; exp: number };
 
-/** Mint the trust cookie value for an admin user (server-only). */
-export function encodeAdminTrust(userId: string): string {
+/** Mint the trust cookie value for an admin user (server-only).
+ *  Returns null when no trust secret is configured (fail closed, T74). */
+export function encodeAdminTrust(userId: string): string | null {
+  if (!trustSecret()) return null;
   const deviceId = createHash("sha256")
     .update(`${userId}|${Date.now()}|${Math.random()}`)
     .digest("hex")
@@ -391,7 +413,7 @@ export function decodeAdminTrust(value: string | undefined | null, expectedUserI
   if (!/^[0-9a-f]{24}$/.test(deviceId) || !/^[0-9a-f-]{20,40}$/.test(userId)) return null;
   if (!Number.isFinite(exp) || exp < Date.now()) return null;
   const want = trustHmac(`${deviceId}|${userId}|${exp}`);
-  if (mac.length !== want.length) return null;
+  if (!want || mac.length !== want.length) return null;
   try {
     if (!timingSafeEqual(Buffer.from(mac, "utf8"), Buffer.from(want, "utf8"))) return null;
   } catch {

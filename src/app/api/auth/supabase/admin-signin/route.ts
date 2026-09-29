@@ -112,6 +112,10 @@ export async function POST(req: Request) {
     { headers: NO_STORE },
   );
   res.cookies.set(SB_SESSION_COOKIE, encodeSbSession(r.tokens), sbSessionCookieOptions(req));
-  res.cookies.set(ADMIN_TRUST_COOKIE, encodeAdminTrust(r.user.id), adminTrustCookieOptions(req));
+  // T74 — trust cookie is optional: when no trust secret is configured the
+  // mint fails closed (null) and the session still stands; the browser just
+  // re-proves with the setup code next time.
+  const trustCookie = encodeAdminTrust(r.user.id);
+  if (trustCookie) res.cookies.set(ADMIN_TRUST_COOKIE, trustCookie, adminTrustCookieOptions(req));
   return res;
 }

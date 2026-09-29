@@ -13,7 +13,7 @@
  *      e.g. uberip.com) are rejected at the request step, so no account is
  *      ever created for them.
  *   3. Challenge tokens — every POST to the auth routes must first GET
- *      /api/auth/subabase/challenge (typo-safe constants below) and echo the
+ *      /api/auth/supabase/challenge and echo the
  *      HMAC token; it is bound to IP + UA hash + a 15-minute expiry and is
  *      single-use per endpoint scope, so a raw scripted POST without the
  *      pre-flight never gets through.
@@ -31,7 +31,7 @@ if (!SERVER_ONLY_GUARD) {
   throw new Error("auth-security must never run in the browser — secrets would leak");
 }
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 // ── 1. the disposable-email blocklist ────────────────────────────────────
 // Curated from the well-known temp-mail providers' published domain pools.
@@ -153,8 +153,23 @@ export function looksLikeBot(userAgent: string | null | undefined): boolean {
 // ── 3. HMAC challenge tokens (pre-flight for every auth POST) ────────────
 
 const CHALLENGE_TTL_MS = 15 * 60_000;
-const CHALLENGE_SECRET =
-  process.env.AUTH_CHALLENGE_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "dev-only-secret";
+// T74 FIX — the challenge secret NEVER falls back to a bare source-code
+// constant in production (the old "dev-only-secret" was forgeable by anyone
+// who reads this repo). With no explicit secret configured, production
+// DERIVES one from deployment values that never ship to the client bundle
+// (this app keeps SUPABASE_ANON_KEY server-side only), so readers of the
+// public source cannot mint challenge tokens. Local dev keeps the
+// predictable constant so sandbox runs work with zero env setup.
+const CHALLENGE_SECRET = (() => {
+  const explicit = process.env.AUTH_CHALLENGE_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (explicit) return explicit;
+  if (process.env.NODE_ENV === "production") {
+    return createHash("sha256")
+      .update(`egx-challenge-v1|${process.env.SUPABASE_URL ?? ""}|${process.env.SUPABASE_ANON_KEY ?? ""}`)
+      .digest("hex");
+  }
+  return "dev-only-secret";
+})();
 
 function hmacHex(secret: string, payload: string): string {
   return createHmac("sha256", secret).update(payload).digest("hex");

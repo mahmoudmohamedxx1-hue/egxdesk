@@ -33,15 +33,15 @@ export const T = {
   investors: { ar: "تدفقات المستثمرين", en: "Investor flows" },
   // data provenance
   liveNote: {
-    ar: "كل الأرقام حية من مصادر عامة (TradingView للأسعار، Yahoo Finance لتاريخ الأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وحابي وعرب فاينانس والمال وإنتربرايز وأموال الغد) — لا بيانات تجريبية.",
-    en: "Every figure is live from public sources (TradingView for quotes; Yahoo Finance for price history; Sigma Capital for investor-category flows; EGXBot for participation; Alborsaa & Amwal Alghad for news) — no demo data.",
+    ar: "الأرقام الحية من مصادر عامة (TradingView للأسعار، Yahoo Finance لتاريخ الأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وحابي وعرب فاينانس والمال وإنتربرايز وأموال الغد). وما ليس حيًّا يحمل تاريخه المصدر — لا بيانات تجريبية.",
+    en: "Live figures come from public sources (TradingView for quotes; Yahoo Finance for price history; Sigma Capital for investor-category flows; EGXBot for participation; the Arabic press for news) — and anything not live carries its own as-of date. No demo data.",
   },
   errorLoad: { ar: "تعذر تحميل البيانات الآن", en: "Could not load the data right now" },
   retry: { ar: "أعد المحاولة", en: "Retry" },
   // overview view
   marketGlance: { ar: "السوق في لمحة", en: "The market at a glance" },
   exploreCompanies: { ar: "استكشف الشركات", en: "Explore companies" },
-  exploreHint: { ar: "أسعار ومقاييس حية لـ ٢٩٦ شركة", en: "Live prices & metrics for 296 companies" },
+  exploreHint: { ar: "أسعار ومقاييس حية للشركات المدرجة", en: "Live prices & metrics for the listed universe" },
   yourWatchlist: { ar: "قائمة متابعتك", en: "Your watchlist" },
   watchlistHint: { ar: "شركاتك في مكان واحد", en: "Your companies in one place" },
   sessionTotals: { ar: "إجماليات الجلسة", en: "Session totals" },
@@ -528,6 +528,15 @@ export const T = {
   indVwap: { ar: "VWAP", en: "VWAP" },
   indPsar: { ar: "PSAR", en: "PSAR" },
   indStoch: { ar: "ستوكاستيك", en: "Stochastic" },
+  // T74 — bilingual band labels (the tooltip rows were hardcoded Latin
+  // inside the Arabic UI)
+  indBbUp: { ar: "بولينجر ↑", en: "Bollinger ↑" },
+  indBbLo: { ar: "بولينجر ↓", en: "Bollinger ↓" },
+  indDonUp: { ar: "دونشيان ↑", en: "Donchian ↑" },
+  indDonLo: { ar: "دونشيان ↓", en: "Donchian ↓" },
+  indKeltUp: { ar: "كلتنر ↑", en: "Keltner ↑" },
+  indKeltLo: { ar: "كلتنر ↓", en: "Keltner ↓" },
+  indSuperTrend: { ar: "الترند الفائق", en: "SuperTrend" },
   intradayCompareOff: {
     ar: "المقارنة مع المؤشر متاحة على المدى اليومي فأطول (المؤشرات لا تملك شموعاً لحظية).",
     en: "Index comparison is available on daily ranges and longer (indices have no intraday candles).",
@@ -1506,3 +1515,15 @@ export function tt(key: { ar: string; en: string }, lang: Lang) {
 export function dn(row: { name?: string | null; nameAr?: string | null }, lang: Lang): string {
   return (lang === "ar" && row.nameAr) || row.name || "";
 }
+
+/** T74 — the Arabic noun form a counted noun takes (Egyptian press usage,
+ *  applied to digits the way style guides treat spelled-out numbers):
+ *  1 → singular, 2 → dual, 3–10 → plural, 11+ (and 0) → singular accusative.
+ *  arNoun(2, "عنوان", "عنوانان", "عناوين", "عنوانًا") → "عنوانان". */
+export function arNoun(n: number, singular: string, dual: string, plural: string, accusative?: string): string {
+  if (n === 1) return singular;
+  if (n === 2) return dual;
+  if (n >= 3 && n <= 10) return plural;
+  return accusative ?? singular;
+}
+

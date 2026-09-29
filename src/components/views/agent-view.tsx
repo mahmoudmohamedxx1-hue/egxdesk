@@ -68,7 +68,8 @@ type AgentMsg = {
 
 /** T67 — the HOST ENGINE (GET /api/agent): which engine serves answers on
  *  this host. T71: after the GLM-4-Plus removal there is exactly one engine
- *  everywhere — the keyless GLM-5.3-Flash main. */
+ *  everywhere — the keyless chain head (T74: Kilo Nemotron, after llm7
+ *  retired its GLM-5.3-Flash tier). */
 type HostBackbone = { backbone: "sdk" | "direct" | "keyless"; engine: string; needsKey: boolean };
 
 const CHAT_KEY = "egx-agent-chat";
@@ -928,8 +929,8 @@ export function AgentView() {
               {tt(T.agentTitle, lang)}
             </h1>
             {/* T67 — the HOST ENGINE chip: which model ACTUALLY serves answers
-                here (the keyless GLM-5.3-Flash main on every host after the
-                T71 GLM-4-Plus removal) */}
+                here (T74: the keyless chain head — Kilo Nemotron — on every
+                host, after llm7 retired its GLM-5.3-Flash tier) */}
             <p
               className="num truncate text-[10px]"
               style={{ color: "var(--chat-muted)" }}

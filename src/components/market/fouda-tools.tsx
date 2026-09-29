@@ -48,16 +48,33 @@ function median(nums: number[]): number | null {
 export function FairValueLab() {
   const { lang } = useApp();
   const [rows, setRows] = useState<Row[]>([]);
+  // T74 — a failed universe fetch showed "loading…" forever; now it has an
+  // honest error row with a retry (the lab cannot compute without the universe).
+  const [failed, setFailed] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const [q, setQ] = useState("");
   const [ticker, setTicker] = useState("COMI");
   const [g, setG] = useState(4); // Gordon growth %
   const [r, setR] = useState(11); // discount rate %
   useEffect(() => {
+    let alive = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFailed(false);
     fetch("/api/companies", { cache: "no-store" })
-      .then((r2) => r2.json())
-      .then((j) => setRows(j.companies ?? j.rows ?? []))
-      .catch(() => {});
-  }, []);
+      .then(async (r2) => {
+        if (!r2.ok) throw new Error(String(r2.status));
+        return r2.json();
+      })
+      .then((j) => {
+        if (alive) setRows(j.companies ?? j.rows ?? []);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [retryTick]);
   const ar = lang === "ar";
   const matches = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -179,7 +196,7 @@ export function FairValueLab() {
                     <tr key={m.name} className="border-b last:border-0">
                       <td className="py-1.5 pe-2 font-medium">{ar ? m.nameAr : m.name}</td>
                       <td className="num text-end py-1.5 px-2 font-semibold">{m.value != null ? fmt2(m.value) : "—"}</td>
-                      <td className={`num text-end py-1.5 px-2 ${diff == null ? "" : diff >= 0 ? "text-green-500" : "text-red-500"}`}>{fmtPct(diff)}</td>
+                      <td className={`num text-end py-1.5 px-2 ${diff == null ? "" : diff >= 0 ? "text-up" : "text-down"}`}>{fmtPct(diff)}</td>
                       <td className="text-xs text-muted-foreground py-1.5 ps-2">{ar ? m.noteAr : m.note}</td>
                     </tr>
                   );
@@ -190,7 +207,7 @@ export function FairValueLab() {
           {avgFair != null && (
             <p className="mt-2 text-sm">
               {ar ? "متوسط الطرق المتاحة" : "average of available methods"}: <b className="num">{fmt2(avgFair)}</b> EGP{" "}
-              <span className={upside == null ? "" : upside >= 0 ? "text-green-500" : "text-red-500"}>({fmtPct(upside)} {ar ? "عن السعر الحالي" : "vs current"})</span>
+              <span className={upside == null ? "" : upside >= 0 ? "text-up" : "text-down"}>({fmtPct(upside)} {ar ? "عن السعر الحالي" : "vs current"})</span>
             </p>
           )}
           <p className="mt-1 text-[10px] text-muted-foreground leading-relaxed">
@@ -199,6 +216,13 @@ export function FairValueLab() {
               : "Traditional educational models on delayed data — not a buy/sell recommendation; book value is derived from the published P/B multiple."}
           </p>
         </>
+      ) : failed ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          <span>{ar ? "تعذّر تحميل بيانات الشركات الآن — قد تكون موجودة؛ أعد المحاولة." : "company data could not load right now — it may well exist; retry."}</span>
+          <button className="underline" onClick={() => setRetryTick((t) => t + 1)}>
+            {ar ? "أعد المحاولة" : "retry"}
+          </button>
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">{ar ? "جارٍ التحميل…" : "loading…"}</p>
       )}
@@ -215,11 +239,25 @@ export function ZakatCalc() {
   const [ticker, setTicker] = useState("");
   const [shares, setShares] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  // T74 — a failed quote fetch silently fell back to the cash-amount basis
+  // while the user expected share-based zakat; the failure is now stated.
+  const [quotesFailed, setQuotesFailed] = useState(false);
   useEffect(() => {
+    let alive = true;
     fetch("/api/companies", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => setRows(j.companies ?? j.rows ?? []))
-      .catch(() => {});
+      .then(async (r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((j) => {
+        if (alive) setRows(j.companies ?? j.rows ?? []);
+      })
+      .catch(() => {
+        if (alive) setQuotesFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
   const picked = rows.find((x) => x.ticker.toUpperCase() === ticker.trim().toUpperCase());
   const marketValue = picked && Number(shares) > 0 && picked.close ? Number(shares) * picked.close : Number(amount) > 0 ? Number(amount) : null;
@@ -232,6 +270,13 @@ export function ZakatCalc() {
       <p className="text-xs text-muted-foreground mb-3">
         {ar ? "زكاة النقد وأوراقه المالية بعد حول هجري كامل: ٢.٥٧٧٥٪ من القيمة السوقية." : "Zakat on cash and securities after a full lunar year: 2.5775% of market value."}
       </p>
+      {quotesFailed && (
+        <p className="mb-3 rounded-md border border-dashed px-3 py-1.5 text-[11px] text-muted-foreground">
+          {ar
+            ? "تعذّر تحميل الأسعار الآن — تعمل الحاسبة على أساس المبلغ النقدي فقط."
+            : "quotes could not load right now — the calculator works on the cash amount only."}
+        </p>
+      )}
       <div className="grid gap-2 sm:grid-cols-2 mb-3">
         <label className="text-xs">
           {ar ? "القيمة السوقية للمحفظة (جنيه)" : "portfolio market value (EGP)"}
@@ -310,13 +355,33 @@ export function DcaCalc() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPts(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setErr(null);
+    // T74 — /api/chart answers 404 with a JSON {error} body for unknown/short
+    // symbols: the old code parsed that body, set pts=null and kept showing
+    // "loading prices…" forever. Every non-ok / error body is now an honest
+    // error line; a valid-but-thin history (<10 points) says so too.
     fetch(`/api/chart?symbol=${encodeURIComponent(ticker)}&range=5Y`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => setPts(j.points ?? j.closes ?? null))
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}) as { points?: unknown; error?: string });
+        if (!r.ok || j.error) {
+          setErr(
+            r.status === 404
+              ? ar
+                ? "لا يوجد تاريخ أسعار كافٍ لهذا الرمز"
+                : "no sufficient price history for this symbol"
+              : "chart unavailable"
+          );
+          return;
+        }
+        const p = (j.points ?? j.closes ?? null) as ChartPoint[] | null;
+        if (p && p.length < 10) {
+          setErr(ar ? "تاريخ الأسعار أقصر من أن يحسب الاستثمار الدوري" : "price history too short for a DCA read");
+          return;
+        }
+        setPts(p);
+      })
       .catch(() => setErr("chart unavailable"));
-  }, [ticker]);
+  }, [ticker, ar]);
 
   const result = useMemo(() => {
     if (!pts || pts.length < 10) return null;
@@ -403,12 +468,14 @@ export function DcaCalc() {
           </div>
           <p className="col-span-2 sm:col-span-4 text-[10px] text-muted-foreground">
             {ar
-              ? `استثمار أول الشهر لأول إغلاق كل شهر على مدى ${result.months} شهرًا، والقيمة بآخر إغلاق (${fmt2(result.lastClose)} EGP) — بيانات مؤجلة وليست توصية.`
+              ? `استثمار أول الشهر لأول إغلاق كل شهر على مدى ${result.months} ${result.months === 1 ? "شهر" : result.months === 2 ? "شهرين" : result.months <= 10 ? "أشهر" : "شهرًا"}، والقيمة بآخر إغلاق (${fmt2(result.lastClose)} EGP) — بيانات مؤجلة وليست توصية.`
               : `buys at the first close of each month over ${result.months} months, valued at the latest close (${fmt2(result.lastClose)} EGP) — delayed data, not advice.`}
           </p>
         </div>
+      ) : err ? (
+        <p className="text-sm text-muted-foreground">{err}</p>
       ) : (
-        !err && <p className="text-sm text-muted-foreground">{ar ? "جارٍ تحميل الأسعار…" : "loading prices…"}</p>
+        <p className="text-sm text-muted-foreground">{ar ? "جارٍ تحميل الأسعار…" : "loading prices…"}</p>
       )}
     </section>
   );
@@ -453,7 +520,7 @@ export function CertificateYieldCalc() {
           <input type="range" min={5} max={30} step={0.25} value={rate} onChange={(e) => setRate(Number(e.target.value))} className="mt-3 w-full accent-primary" />
         </label>
         <label className="text-xs">
-          {ar ? `المدة: ${years} ${years === 1 ? "سنة" : "سنوات"}` : `term: ${years} ${years === 1 ? "year" : "years"}`}
+          {ar ? `المدة: ${years} ${years === 1 ? "سنة" : years === 2 ? "سنتين" : "سنوات"}` : `term: ${years} ${years === 1 ? "year" : "years"}`}
           <input type="range" min={1} max={10} step={1} value={years} onChange={(e) => setYears(Number(e.target.value))} className="mt-3 w-full accent-primary" />
         </label>
       </div>

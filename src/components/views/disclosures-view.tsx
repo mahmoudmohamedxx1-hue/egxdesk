@@ -85,6 +85,12 @@ export function DisclosuresView() {
   const [month, setMonth] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [shown, setShown] = useState(LIMIT);
+  // T74 — month/day re-fetch state: a slow or failed re-fetch used to keep
+  // rendering the OLD month while the chip claimed the new one; now the
+  // grid dims while refetching and a failure surfaces as an honest banner.
+  const [refetching, setRefetching] = useState(false);
+  const [refetchError, setRefetchError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     fetch("/api/disclosures")
@@ -107,13 +113,20 @@ export function DisclosuresView() {
     // error page parsed as JSON, a route regression) used to flow straight
     // into setData and could throw during render on data.grid.month —
     // taking the whole view down. Only a well-formed ok payload passes.
+    setRefetching(true);
+    setRefetchError(false);
     fetch(`/api/disclosures${params.size ? `?${params}` : ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d: Data) => {
-        if (d && (d as { ok?: boolean }).ok !== false && d.grid?.month) setData(d);
+        if (d && (d as { ok?: boolean }).ok !== false && d.grid?.month) {
+          setData(d);
+        } else {
+          setRefetchError(true);
+        }
       })
-      .catch(() => {});
-  }, [month, day]);
+      .catch(() => setRefetchError(true))
+      .finally(() => setRefetching(false));
+  }, [month, day, retryTick]);
 
   const gridCells = useMemo(() => {
     if (!data) return [];
@@ -233,7 +246,21 @@ export function DisclosuresView() {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center">
+        {/* T74 — the re-fetch UX: dim the calendar + list while the new
+         * month/day is loading, banner on failure, so the chips can never
+         * claim a selection the grid does not show. */}
+        {refetchError && (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
+            <span>{lang === "ar" ? "تعذّر تحميل هذا الشهر — المعروض لا يزال الشهر السابق." : "this month could not load — the previous one is still shown."}</span>
+            <button
+              className="underline"
+              onClick={() => setRetryTick((t) => t + 1)}
+            >
+              {lang === "ar" ? "أعد المحاولة" : "retry"}
+            </button>
+          </div>
+        )}
+        <div className={`grid grid-cols-7 gap-1 text-center transition-opacity ${refetching ? "opacity-50" : ""}`}>
           {WEEKDAYS.map((w) => (
             <span key={w.en} className={`py-0.5 text-[10px] font-medium ${w.weekend ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
               {lang === "ar" ? w.ar : w.en}

@@ -204,7 +204,7 @@ function HighlightCard({
 
 export function SignalsView() {
   const { lang, navigate, toast } = useApp();
-  const { data, error, loading } = useLiveData<SignalsResponse>("/api/signals", 5 * 60_000);
+  const { data, error, loading, refresh } = useLiveData<SignalsResponse>("/api/signals", 5 * 60_000);
   const [mode, setMode] = useState<"tech" | "ai">("tech");
   const [lens, setLens] = useState<Lens>("composite");
   const [dir, setDir] = useState<"bull" | "bear">("bull");
@@ -323,7 +323,9 @@ export function SignalsView() {
     return (
       <section className="rounded-lg border bg-card p-6 text-center space-y-3">
         <p className="text-sm font-medium">{tt(T.signalsError, lang)}</p>
-        <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+        {/* T74 — refresh() re-fires the feed instead of a full page reload
+         * (a reload threw away the user's tab/filter state). */}
+        <Button size="sm" variant="outline" onClick={() => void refresh()}>
           {tt(T.signalsRetry, lang)}
         </Button>
       </section>
@@ -582,8 +584,18 @@ export function SignalsView() {
                 return (
                 <tr
                   key={r.ticker}
-                  className="hover:bg-accent/30 transition-colors cursor-pointer"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${r.ticker} — ${lang === "ar" ? "افتح صفحة الشركة" : "open company page"}`}
+                  className="hover:bg-accent/30 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => navigate("company", { ticker: r.ticker, panel: "technical" })}
+                  /* T74 — keyboard path, same as the watchlist table */
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate("company", { ticker: r.ticker, panel: "technical" });
+                    }
+                  }}
                 >
                   <td className="num px-2 py-2 text-muted-foreground">{i + 1}</td>
                   <td className="px-2 py-2">

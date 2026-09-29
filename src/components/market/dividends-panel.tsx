@@ -55,8 +55,11 @@ export function DividendsPanel({ ticker, close }: { ticker: string; close: numbe
     const last5 = yearList.filter((y) => y < thisYear).slice(0, 5);
     const total5 = last5.reduce((s, y) => s + (years.get(y) ?? 0), 0);
     const avgAnnual = last5.length ? total5 / last5.length : (years.get(thisYear) ?? 0);
-    // growth: current full year total vs previous full year total
-    const latestFull = yearList[0] >= thisYear ? yearList[0] : yearList[0];
+    // growth: latest FULL year total vs the previous full year total
+    // (T74 FIX — the old line was a no-op ternary that picked the PARTIAL
+    // current year, so mid-year the "growth" always understated: 9 months of
+    // 2026 vs all of 2025 read as a decline. Compare complete years only.)
+    const latestFull = yearList.find((y) => y < thisYear) ?? yearList[0];
     const prevFull = yearList.find((y) => y < latestFull);
     const growth =
       prevFull != null && (years.get(prevFull) ?? 0) > 0

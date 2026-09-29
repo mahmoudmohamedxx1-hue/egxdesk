@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import { T, tt, dn } from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ type CalendarData = {
   asOf: string;
   events: CalendarEvent[];
   counts: { earnings: number; dividend: number; assembly: number; rights: number };
+  /** T74 — generation date of the static corporate-actions seed */
+  seedGeneratedAt?: string | null;
 };
 
 const MONTHS_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
@@ -59,7 +61,7 @@ function typeOfDate(iso: string): number {
 
 export function CalendarView() {
   const { lang, navigate } = useApp();
-  const { data, error } = useLiveData<CalendarData>("/api/calendar", 5 * 60_000);
+  const { data, error, staleMs } = useLiveData<CalendarData>("/api/calendar", 5 * 60_000);
   const today = data?.asOf ?? new Date().toISOString().slice(0, 10);
 
   const [monthOffset, setMonthOffset] = useState(0);
@@ -104,7 +106,8 @@ export function CalendarView() {
     return data.events.filter((e) => e.date >= today).slice(0, limit);
   }, [data, selected, today, limit, byDate]);
 
-  if (error && !data) {
+  // T74 — the T41 honest-degradation rule (was `error && !data` only)
+  if (isDeadFeed({ error, data, staleMs })) {
     return (
       <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
         {tt(T.calendarNoData, lang)}
@@ -122,6 +125,11 @@ export function CalendarView() {
         {data && (
           <p className="num text-xs text-muted-foreground">
             {data.counts.earnings + data.counts.dividend + data.counts.assembly + data.counts.rights} · {tt(T.ratesAsOf, lang)} {data.asOf}
+            {/* T74 — the static seed's generation date, so the calendar's
+             * non-live rows expose their own freshness */}
+            {data.seedGeneratedAt ?
+              ` · ${lang === "ar" ? "آخر حصاد للأحداث المعلنة" : "announced-events harvest"}: ${data.seedGeneratedAt}`
+              : ""}
           </p>
         )}
       </div>
@@ -144,7 +152,10 @@ export function CalendarView() {
                 <ChevronLeft className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
               </Button>
             </div>
-            <div className="grid grid-cols-7 gap-1" dir="rtl">
+            {/* T74 FIX — dir was HARDCODED rtl, so the English UI laid the
+             *  month out right-to-left (Saturday column on the far right).
+             *  Follow the interface language; the Sat-first cell order stays. */}
+            <div className="grid grid-cols-7 gap-1" dir={lang === "ar" ? "rtl" : "ltr"}>
               {WEEKDAYS.map((w) => (
                 <div key={w.en} className={`text-center text-[10px] py-0.5 ${w.weekend ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
                   {lang === "ar" ? w.ar : w.en}

@@ -1,19 +1,20 @@
-/** The AGENT model registry (T30 → T71 rewrite).
+/** The AGENT model registry (T30 → T74 rewrite).
  *
  *  Every option is an online model served SERVER-side through /api/agent —
  *  no client-side loops, no third-party scripts, no sign-in walls:
  *
- *  1. "llm7:GLM-5.3-Flash" (provider llm7) — THE MAIN MODEL (T68, the
- *     user's call: GLM-4-Plus does not run on public hosting without a
- *     key, GLM-5.3-Flash answers everywhere). A REAL GLM brain, keyless,
- *     no sign-in, streams its live chain-of-thought (reasoning_content —
- *     probe-verified live with thinking:{type:"enabled"}: ~1.2k chars of
- *     reasoning per round, clean MSA Arabic, strict-JSON protocol).
- *     llm7's glm-5.3 / glm-5.2 are NOT keyless (401 missing_api_key) —
- *     GLM-5.3-Flash is the only keyless GLM there.
+ *  1. "kilo:nvidia/nemotron-3-super-120b-a12b:free" (provider kilo) — THE
+ *     MAIN MODEL (T74). A REAL 120B-parameter brain, keyless, no sign-in,
+ *     clean MSA Arabic + strict-JSON tool protocol (re-verified live
+ *     2026-09-29). Before it, the main was llm7's keyless GLM-5.3-Flash
+ *     (T68) — RETIRED upstream on 2026-09-29 (400 model_unavailable);
+ *     llm7's glm-5.3/glm-5.2 need paid keys and every remaining llm7
+ *     keyless model is unusable (see the T67 probes below), so the Kilo
+ *     route took the head of the chain.
  *
- *  2. Keyless Kilo Gateway pool (3 routes, 200 req/hr per IP) and
- *     Pollinations GPT-OSS-20B — vetted via the freellmpool catalog.
+ *  2. The rest of the keyless pool: Kilo Step 3.7 Flash, the Kilo
+ *     auto-router, and Pollinations GPT-OSS-20B — vetted via the
+ *     freellmpool catalog (200 req/hr per IP on the Kilo routes).
  *
  *  T71 — GLM-4-Plus REMOVED ENTIRELY (the user's call: its live thinking
  *  took a while and it never ran in an instant way — responses took a
@@ -27,7 +28,9 @@
  *    agent at the user's request (sign-in wall + flaky catalog).
  *  - llm7 codestral-latest: breaks the strict-JSON tool protocol
  *    ({"action":"call_tool","tool_name":…} instead of {"tool":…}).
- *  - llm7 mistral-Nemo-Instruct-2407: emits crash-text soup in Arabic.
+ *  - llm7 mistral-Nemo-Instruct-2407: emits crash-text soup in Arabic
+ *    (re-confirmed by the T74 probe — kept only as the background brain's
+ *    last-resort hop, never for user-facing text).
  *  - llm7 minimax-m2.7: 15-36s shared-pool latency, refused tool calls.
  *
  *  This registry stays dependency-free (pure data) so BOTH the server route
@@ -52,25 +55,19 @@ export type AiModel = {
 
 export const AI_MODELS: AiModel[] = [
   {
-    id: "llm7:GLM-5.3-Flash",
-    provider: "llm7",
-    providerModel: "GLM-5.3-Flash",
-    label: "GLM-5.3 Flash",
-    labelAr: "GLM-5.3 Flash",
-    newest: true,
-    ctx: 400_000,
-    note: "THE MAIN MODEL — a real GLM brain, keyless: no key, no sign-in, works on every host. Streams its live chain-of-thought as it answers, strong Arabic. Auto-falls back through the keyless pool (Nemotron → Step → Router → GPT-OSS) when the shared pool is busy",
-    noteAr: "النموذج الرئيسي — دماغ GLM حقيقي بلا تسجيل ولا مفاتيح ويعمل على أي مستضيف. يعرض تفكيره لحظة بلحظة أثناء الإجابة، وعربيته قوية. وعند انشغاله يتحول تلقائيًا عبر سلسلة النماذج المجانية (Nemotron ← Step ← Router ← GPT-OSS)",
-  },
-  {
+    // T74 — THE MAIN MODEL after llm7 retired its keyless GLM-5.3-Flash
+    // tier (HTTP 400 model_unavailable, probe-verified 2026-09-29): Kilo's
+    // Nemotron route — re-verified live the same day (clean MSA Arabic,
+    // strict-JSON tool protocol, streamed SSE) — is the chain head now.
     id: "kilo:nvidia/nemotron-3-super-120b-a12b:free",
     provider: "kilo",
     providerModel: "nvidia/nemotron-3-super-120b-a12b:free",
-    label: "Nemotron 3 Super 120B (keyless)",
-    labelAr: "Nemotron 3 Super 120B (بلا تسجيل)",
+    label: "Nemotron 3 Super 120B",
+    labelAr: "Nemotron 3 Super 120B",
+    newest: true,
     ctx: 131_072,
-    note: "Keyless Kilo Gateway pool — 200 req/hr per IP, strong Arabic, strict-JSON verified. Auto-falls through the keyless pool when busy",
-    noteAr: "بوابة Kilo المجانية — 200 طلب/ساعة لكل IP، عربية قوية. وعند انشغالها يتحول تلقائيًا عبر سلسلة النماذج المجانية",
+    note: "THE MAIN MODEL — a real 120B-parameter brain, keyless: no key, no sign-in, works on every host. Clean Modern Standard Arabic, strict-JSON tool protocol, and an honest fallback chain (Step → Router → GPT-OSS) whenever the shared pool is busy",
+    noteAr: "النموذج الرئيسي — دماغ حقيقي بـ ١٢٠ مليار معامل بلا تسجيل ولا مفاتيح ويعمل على أي مستضيف. عربيته فصحى سليمة ويلتزم بروتوكول الأدوات، وعند انشغاله يتحول تلقائيًا عبر سلسلة النماذج المجانية (Step ← Router ← GPT-OSS)",
   },
   {
     id: "kilo:stepfun/step-3.7-flash:free",
@@ -104,35 +101,33 @@ export const AI_MODELS: AiModel[] = [
   },
 ];
 
-// T68/T71 — THE MAIN MODEL IS GLM-5.3-Flash on every host, and after T71
-// it is the ONLY tier of its family: GLM-4-Plus was removed entirely (the
-// user's call — it never streamed its thinking and took a while to finish).
-// Old localStorage "glm-4-plus" picks migrate to this default automatically
-// (loadAiModelId drops ids that left the registry).
-export const DEFAULT_AI_MODEL_ID = "llm7:GLM-5.3-Flash";
+// T68/T71/T74 — THE MAIN MODEL. GLM-5.3-Flash served as the keyless main
+// from T68 until llm7 retired that tier (400 model_unavailable, 2026-09-29;
+// glm-5.3/glm-5.2 need paid keys, and the remaining llm7 keyless models are
+// unusable — mistral crash-text Arabic, codestral breaks the JSON protocol,
+// minimax 15-36s latency, DeepSeek-V4-Flash hanging at probe time). The Kilo
+// Nemotron route — re-verified live on retirement day — is the main now.
+// Old "llm7:GLM-5.3-Flash" localStorage picks migrate to this default
+// automatically (loadAiModelId drops ids that left the registry).
+export const DEFAULT_AI_MODEL_ID = "kilo:nvidia/nemotron-3-super-120b-a12b:free";
 
-/** The keyless GLM main (and the keyless chain's first hop): LLM7's
- *  anonymous GLM-5.3-Flash tier — a REAL GLM brain, probe-verified live
- *  (clean MSA Arabic, strict-JSON tool protocol compliance, streamed SSE +
- *  live reasoning_content, 100% availability at probe time). NOTE (T67
- *  probe): llm7's glm-5.3 / glm-5.2 are NOT keyless (401 missing_api_key) —
- *  GLM-5.3-Flash is the only keyless GLM there. */
-export const KEYLESS_MODEL_ID = "llm7:GLM-5.3-Flash";
+/** The keyless main (and the keyless chain's first hop): Kilo Gateway's
+ *  Nemotron route — a REAL 120B-parameter brain, probe-verified live
+ *  (clean MSA Arabic, strict-JSON tool protocol compliance, streamed SSE,
+ *  200 req/hr per IP). */
+export const KEYLESS_MODEL_ID = "kilo:nvidia/nemotron-3-super-120b-a12b:free";
 
-/** The keyless pool after the GLM tier, ordered strictly DOWN (no loops):
- *  the three Kilo Gateway routes (vetted live — strict-JSON + clean MSA
- *  Arabic + streamed SSE, ~2-3s each, 200 req/hr per IP, independent
- *  capacity from LLM7's shared pool), then Pollinations GPT-OSS-20B as the
- *  final hop. Adopted from the freellmpool catalog (github.com/0xzr/freellmpool)
- *  whose audited keyless routes these are. T67: the old llm7-mistral final
- *  hop was removed — probe showed crash-text Arabic from that tier. */
+/** The keyless pool after the main, ordered strictly DOWN (no loops): the
+ *  remaining Kilo Gateway routes (vetted live — strict-JSON + clean MSA
+ *  Arabic + streamed SSE, ~2-3s each, 200 req/hr per IP), then Pollinations
+ *  GPT-OSS-20B as the final hop. Adopted from the freellmpool catalog
+ *  (github.com/0xzr/freellmpool) whose audited keyless routes these are. */
 export const KEYLESS_POOL_MODEL_IDS = [
-  "kilo:nvidia/nemotron-3-super-120b-a12b:free",
   "kilo:stepfun/step-3.7-flash:free",
   "kilo:openrouter/free",
 ] as const;
 
-/** The last-resort keyless tier after the GLM pool is busy/exhausted:
+/** The last-resort keyless tier after the Kilo pool is busy/exhausted:
  *  Pollinations GPT-OSS-20B (strong Arabic). When even this hop is
  *  exhausted the loop ships the deterministic briefing built from the
  *  tool data it already collected — never a bare error. */

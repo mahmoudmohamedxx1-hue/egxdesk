@@ -29,7 +29,7 @@ if (!ZAI_SERVER_ONLY_GUARD) {
   throw new Error("zai-client must never run in the browser — the API key would leak");
 }
 
-import { keylessBrainChat } from "@/lib/keyless-brain";
+import { keylessBrainChat, keylessLastServedModel } from "@/lib/keyless-brain";
 
 export const ZAI_API_KEY = process.env.ZAI_API_KEY ?? "";
 const ZAI_BASE = "https://api.z.ai/api/paas/v4/chat/completions";
@@ -412,10 +412,10 @@ export async function zaiVision(opts: {
 // instead of fabricating output, and the shared pipelines keep serving their
 // last persisted set.
 
-/** T52 → T71 — the LAYERED JSON brain: direct key first (thinking on, full
- *  retry chain), keyless GLM-5.3-Flash second (no key, no sign-in). The
- *  served model is reported honestly so the run row records which tier
- *  actually thought. */
+/** T52 → T71 → T74 — the LAYERED JSON brain: direct key first (thinking on,
+ *  full retry chain), keyless model chain second (no key, no sign-in — see
+ *  lib/keyless-brain.ts for the model-rot fallback). The served model is
+ *  reported honestly so the run row records which tier actually thought. */
 export async function brainJson(opts: {
   messages: { role: "system" | "user" | "assistant"; content: unknown }[];
   maxTokens?: number;
@@ -435,7 +435,7 @@ export async function brainJson(opts: {
       );
     }
   }
-  // keyless GLM-5.3-Flash tier (LLM7.io anonymous cloud)
+  // keyless model-chain tier (LLM7.io anonymous cloud)
   try {
     const messages = opts.messages.map((m) => ({
       role: m.role,
@@ -444,7 +444,9 @@ export async function brainJson(opts: {
     const t0 = Date.now();
     const first = await keylessBrainChat(messages, { timeoutMs: 120_000 });
     let parsed = zaiExtractJson(first);
-    if (parsed) return { parsed, reasoning: null, servedModel: "GLM-5.3-Flash (keyless)", usage: null, ms: Date.now() - t0 };
+    if (parsed) {
+      return { parsed, reasoning: null, servedModel: `${keylessLastServedModel() ?? "keyless"} (keyless)`, usage: null, ms: Date.now() - t0 };
+    }
     // one repair round (mechanical fix-up), same as the direct tier
     const fix = await keylessBrainChat(
       [
@@ -459,11 +461,13 @@ export async function brainJson(opts: {
       { timeoutMs: 120_000 }
     );
     parsed = zaiExtractJson(fix);
-    if (parsed) return { parsed, reasoning: null, servedModel: "GLM-5.3-Flash (keyless)", usage: null, ms: Date.now() - t0 };
+    if (parsed) {
+      return { parsed, reasoning: null, servedModel: `${keylessLastServedModel() ?? "keyless"} (keyless)`, usage: null, ms: Date.now() - t0 };
+    }
     throw new ZaiError("keyless: unparseable JSON reply after repair", null, false);
   } catch (keylessErr) {
     console.warn(
-      "[zai] keyless GLM tier also unavailable:",
+      "[zai] keyless model chain also unavailable:",
       keylessErr instanceof Error ? keylessErr.message : String(keylessErr)
     );
     // both tiers failed → surface the DIRECT error (the primary brain)

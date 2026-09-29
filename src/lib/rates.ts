@@ -97,7 +97,15 @@ export async function fetchRates(): Promise<RatesData> {
   if (ratesCache && Date.now() - ratesCache.at < TTL) return ratesCache.data;
   if (ratesInflight) return ratesInflight;
   const p = (async (): Promise<RatesData> => {
-    const html = (await fetchPage("https://tradingeconomics.com/egypt/interest-rate")) ?? "";
+    const html = await fetchPage("https://tradingeconomics.com/egypt/interest-rate");
+    // T74 FIX — an unreachable upstream must NOT be cached as an EMPTY rates
+    // panel for a full hour (which also silently un-anchored fair-value rf
+    // to its fallback). Serve the last-good payload when one exists (its
+    // fetchedAt keeps the age honest); throw only when there is nothing.
+    if (html === null) {
+      if (ratesCache) return ratesCache.data;
+      throw new Error("rates: upstream fetch failed");
+    }
     const related = parseRelated(html);
 
     const rows: RateRow[] = [];

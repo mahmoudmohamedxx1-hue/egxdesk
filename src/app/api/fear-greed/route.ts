@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cairoDateKey } from "@/lib/cairo-time";
 import { fetchUniverse } from "@/lib/market";
 import { fetchFlows, indexHistory } from "@/lib/flows";
 
@@ -42,9 +43,11 @@ export async function GET() {
     const breadth = total > 0 ? 50 + (50 * (up - down)) / total : 50;
 
     // 2 — EGX30 one-month momentum (±8% maps to 0-100)
+    // T74 — minimum-window guard: with fewer than 20 sessions the label
+    // "1-month momentum" would describe a 2-day return on a cold archive.
     let momentum: number | null = null;
     let momRet: number | null = null;
-    if (egx30_1m.length >= 2) {
+    if (egx30_1m.length >= 20) {
       const first = egx30_1m[0].close;
       const last = egx30_1m[egx30_1m.length - 1].close;
       momRet = first > 0 ? Math.round(((last - first) / first) * 10000) / 100 : null;
@@ -52,8 +55,10 @@ export async function GET() {
     }
 
     // 3 — EGX30 position inside its 1-year range
+    // T74 — minimum-window guard: a "52-week range" needs a real year of
+    // archive (≥200 sessions); a cold 3-day range is not a 52w position.
     let rangePos: number | null = null;
-    if (egx30_1y.length >= 2) {
+    if (egx30_1y.length >= 200) {
       const closes = egx30_1y.map((r) => r.close);
       const hi = Math.max(...closes);
       const lo = Math.min(...closes);
@@ -84,7 +89,7 @@ export async function GET() {
         ok: true,
         score,
         bucket,
-        asOf: new Date().toISOString().slice(0, 10),
+        asOf: cairoDateKey(), // T74 — Cairo calendar day, not the server's UTC date
         components: parts.map((p) => ({
           key: p.key,
           weight: p.weight,

@@ -58,10 +58,14 @@ export async function GET() {
     const bySector = sectorStatsMap(universe);
     const market = marketStats(universe);
 
+    // T74 FIX — reuse the shared averaging median (every other screen —
+    // /api/sectors, fundamentals — averages the two middle values; the local
+    // upper-middle pick made "median P/E" disagree across screens).
     const med = (xs: number[]): number | null => {
       if (!xs.length) return null;
       const s = [...xs].sort((a, b) => a - b);
-      return s[Math.floor(s.length / 2)];
+      const mid = s.length >> 1;
+      return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
     };
 
     const rows: Row[] = universe.map((s) => {

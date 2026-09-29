@@ -208,8 +208,9 @@ async function scanMovers(market: string, exchange: "TADAWUL" | "ADX" | "DFM", c
     })
     .filter((x) => x.ticker && x.close > 0);
   // the UAE scanner covers both ADX and DFM; the saudi one only Tadawul
-  const filtered = market === "uae" ? rows : rows;
-  return filtered.sort((a, b) => (b.valueTraded ?? 0) - (a.valueTraded ?? 0)).slice(0, limit);
+  // (T74 — removed a dead `market === "uae" ? rows : rows` no-op ternary
+  // that pretended a UAE-specific filter existed)
+  return rows.sort((a, b) => (b.valueTraded ?? 0) - (a.valueTraded ?? 0)).slice(0, limit);
 }
 
 export async function fetchGccMovers(limit = 12): Promise<{ saudi: GccMover[]; uae: GccMover[] }> {

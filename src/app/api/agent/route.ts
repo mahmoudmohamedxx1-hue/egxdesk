@@ -158,14 +158,15 @@ async function consumeSse(
 /** GET /api/agent — the HOST BACKBONE report the model switcher shows before
  *  the user ever asks a question: which engine serves THIS host. T71: after
  *  GLM-4-Plus was removed entirely there is exactly ONE engine on every
- *  host — the keyless GLM-5.3-Flash main (streams its live thinking,
- *  answers everywhere, no key, no sign-in). Cheap: a static report now. */
+ *  host — the keyless chain's head (T74: Kilo Nemotron after llm7 retired
+ *  GLM-5.3-Flash; streams its live thinking, answers everywhere, no key,
+ *  no sign-in). Cheap: a static report now. */
 export async function GET() {
   const backbone: "keyless" = "keyless";
   return NextResponse.json(
     {
       backbone,
-      engine: "GLM-5.3-Flash",
+      engine: "Nemotron 3 Super 120B",
       needsKey: false,
     },
     { headers: { "Cache-Control": "no-store" } }

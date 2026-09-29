@@ -25,7 +25,7 @@ import { PiggyBank, Landmark, LineChart, ShieldAlert } from "lucide-react";
 
 type FundsData = {
   etf: {
-    snapshot: { price: number; date: string; source: string };
+    snapshot: { price: number; date: string; source: string; ageDays?: number };
     underlying: {
       code: string;
       nameAr: string;
@@ -139,6 +139,14 @@ export function FundsView() {
               <p className="num text-2xl font-bold">{fmtNum(data.etf.snapshot.price)} <span className="text-xs font-normal text-muted-foreground">EGP</span></p>
               <p className="num text-[10px] text-muted-foreground">
                 {data.etf.snapshot.date} · {data.etf.snapshot.source}
+                {/* T74 — the archived snapshot's age, surfaced instead of
+                 * aging silently; amber once it passes two weeks. */}
+                {typeof data.etf.snapshot.ageDays === "number" && data.etf.snapshot.ageDays > 0 && (
+                  <span className={data.etf.snapshot.ageDays > 14 ? "text-amber-600 dark:text-amber-400" : ""}>
+                    {" · "}
+                    {lang === "ar" ? `قبل ${data.etf.snapshot.ageDays} يومًا` : `${data.etf.snapshot.ageDays} days old`}
+                  </span>
+                )}
               </p>
             </div>
             {u && (

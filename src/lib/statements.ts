@@ -311,6 +311,14 @@ export async function fetchStatements(tickerRaw: string): Promise<StatementsData
     const qBalance = qBsHtml ? parseStmtTable(qBsHtml, "balance") : null;
     const qCashflow = qCfHtml ? parseStmtTable(qCfHtml, "cashflow") : null;
 
+    // T74 FIX — when EVERY page is unreachable this is a fetch failure, not
+    // "this company published nothing": throw (uncached) so the route errors
+    // and the retry happens on the next call, instead of caching an
+    // authoritative-looking empty answer for 6 hours.
+    if (!incHtml && !bsHtml && !cfHtml && !qIncHtml && !qBsHtml && !qCfHtml) {
+      throw new Error("statements: upstream fetch failed (all pages unreachable)");
+    }
+
     const hasData = !!(income || balance || cashflow);
     return {
       ticker: t,

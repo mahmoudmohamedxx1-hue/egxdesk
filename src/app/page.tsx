@@ -17,13 +17,13 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     return {
       title: "EGX Desk — Live Egyptian Exchange data",
       description:
-        "Delayed live data for the Egyptian Exchange: indices, 296 listed companies with real prices and metrics, sector performance, the heatmap, Egyptian market news from public sources — local tracking with no sign-up.",
+        "Delayed live data for the Egyptian Exchange: indices, every listed company with real prices and metrics, sector performance, the heatmap, Egyptian market news from public sources — local tracking with no sign-up.",
     };
   }
   return {
     title: "EGX Desk — بيانات حية للبورصة المصرية",
     description:
-      "بيانات حية مؤجلة للبورصة المصرية: المؤشرات، ٢٩٦ شركة مقيدة بأسعار ومقاييس فعلية، أداء القطاعات، الخريطة الحرارية، أخبار السوق المصرية من مصادر عامة، ومتابعة محلية بلا تسجيل دخول.",
+      "بيانات حية مؤجلة للبورصة المصرية: المؤشرات، كل الشركات المقيدة بأسعار ومقاييس فعلية، أداء القطاعات، الخريطة الحرارية، أخبار السوق المصرية من مصادر عامة، ومتابعة محلية بلا تسجيل دخول.",
   };
 }
 

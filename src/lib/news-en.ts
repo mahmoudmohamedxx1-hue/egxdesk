@@ -19,6 +19,9 @@ export type NewsEnData = {
   total: number;
   query: string;
   fetchedAt: string;
+  /** T74 — true when an upstream outage is being bridged with the last-good
+   *  snapshot (fetchedAt then carries that snapshot's age). */
+  stale?: boolean;
 };
 
 // Task 23 fix — a single narrow query ("EGX Egyptian stock market") let the
@@ -163,7 +166,10 @@ export async function fetchNewsEn(): Promise<NewsEnData> {
   try {
     return await p;
   } catch {
-    if (staleData) return staleData;
+    // T74 — mark the bridge explicitly: the feed served during an outage is
+    // the last-good snapshot, and the payload now says so instead of merely
+    // carrying an older fetchedAt.
+    if (staleData) return { ...staleData, stale: true };
     throw new Error("english news unavailable");
   } finally {
     inflight = null;

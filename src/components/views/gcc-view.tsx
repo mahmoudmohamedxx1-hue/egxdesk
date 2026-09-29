@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import { T, tt } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtInt, directionClass } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -174,7 +174,7 @@ function MoverTable({ title, rows, market }: { title: string; rows: GccMover[]; 
 
 export function GccView() {
   const { lang } = useApp();
-  const { data, error } = useLiveData<GccData>("/api/gcc", 60_000);
+  const { data, error, staleMs } = useLiveData<GccData>("/api/gcc", 60_000);
   const [chartIdx, setChartIdx] = useState("TASI");
   const [range, setRange] = useState<(typeof RANGES)[number]>("6M");
   const [chart, setChart] = useState<ChartData | null>(null);
@@ -199,7 +199,8 @@ export function GccView() {
     };
   }, [chartIdx, range]);
 
-  if (error && !data) {
+  // T74 — the T41 honest-degradation rule (was `error && !data` only)
+  if (isDeadFeed({ error, data, staleMs })) {
     return (
       <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
         {tt({ ar: "تعذّر تحميل بيانات الأسواق الخليجية الآن", en: "GCC market feeds unavailable right now" }, lang)}

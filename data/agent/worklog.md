@@ -247,3 +247,51 @@
 ## 2026-09-29 09:15:46Z — midday run — FAILED
 - error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
 
+## 2026-09-29 09:40:46Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 09:45:46Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 10:10:46Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 10:15:46Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 10:40:46Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 10:45:46Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 11:10:46Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 11:15:46Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 11:50:37Z — midday run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 11:51:37Z — pre-open run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 12:01:31Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+
+## 2026-09-29 12:23:02Z — midday run — OK
+- market bias: bearish (conviction 3/5)
+- picks: none cleared the gates
+- brain: kilo:nemotron-3-super-120b-a12b:free (keyless)
+- journal: Reviewed 25 candidates across 10 skills: consensus bearish (conviction 3/5), 0 idea(s) cleared the charter gates. Watching the candidates next run.
+
+## 2026-09-29 12:28:02Z — pre-open run — OK
+- market bias: neutral (conviction 2/5)
+- picks: none cleared the gates
+- brain: kilo:nemotron-3-super-120b-a12b:free (keyless)
+- journal: The market shows a clear decline in indices and narrow breadth, with more decliners than advancers. The best sector is healthcare while the worst is tourism and entertainment. Due to lack of strong candidates after applying filters, we do not recommend any long trades at this time.
+
+## 2026-09-29 12:33:02Z — post-close run — FAILED
+- error: zai: ZAI_API_KEY is not configured (set it in .env / host env vars) — direct tier skipped
+

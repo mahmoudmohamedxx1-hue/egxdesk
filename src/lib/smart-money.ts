@@ -22,6 +22,7 @@
 
 import rawInsiders from "@/data/insiders.json";
 import { fetchFlows, flowHistory, type FlowsSnapshot, type FlowHistoryPoint } from "@/lib/flows";
+import { cairoDateKey } from "./cairo-time";
 import type { InsiderRead, WhaleRead } from "@/lib/strategies";
 
 type InsiderItem = {
@@ -36,6 +37,15 @@ const insiders = rawInsiders as unknown as { asOf: string; items: InsiderItem[] 
 
 const WINDOW_DAYS = 90;
 
+// T74 — a filings snapshot older than this stops feeding the live reads
+// (honest silence, the same rule whale-watch applies to dead flows).
+const SNAPSHOT_MAX_AGE_DAYS = 14;
+
+/** True when the insiders.json snapshot is too old to present as a live read. */
+export function insidersSnapshotStale(): boolean {
+  return daysBetween(insiders.asOf, cairoDateKey()) > SNAPSHOT_MAX_AGE_DAYS;
+}
+
 function daysBetween(a: string, b: string): number {
   const ta = Date.parse(`${a}T00:00:00Z`);
   const tb = Date.parse(`${b}T00:00:00Z`);
@@ -43,20 +53,24 @@ function daysBetween(a: string, b: string): number {
   return Math.abs(ta - tb) / 86_400_000;
 }
 
-/** Per-ticker filings read over the last 90 days of the snapshot. Pure,
- *  deterministic, O(items) — pre-indexed once per process. */
+/** Per-ticker filings read over the last 90 days. Pure, deterministic,
+ *  O(items) — pre-indexed once per process.
+ *  T74 — the window is anchored to TODAY (Cairo), not the snapshot's asOf:
+ *  filings age out as time passes; and a snapshot older than two weeks
+ *  goes silent (null) instead of presenting stale filings as current. */
 export function insiderReadFor(ticker: string): InsiderRead | null {
   const idx = insiderIndex();
   const rows = idx.get(ticker.toUpperCase());
   if (!rows || !rows.length) return null;
-  const asOf = insiders.asOf; // snapshot date — the 90-day window ends here
+  if (insidersSnapshotStale()) return null;
+  const today = cairoDateKey(); // window END — today, not the snapshot date
   let buys = 0;
   let sells = 0;
   let treasuryBuys = 0;
   let treasurySells = 0;
   let lastDate: string | null = null;
   for (const r of rows) {
-    if (daysBetween(r.date, asOf) > WINDOW_DAYS) continue;
+    if (daysBetween(r.date, today) > WINDOW_DAYS) continue;
     if (r.action === "bought") buys++;
     else if (r.action === "sold") sells++;
     else if (r.action === "treasury_purchase") treasuryBuys++;
@@ -64,7 +78,7 @@ export function insiderReadFor(ticker: string): InsiderRead | null {
     if (!lastDate || r.date > lastDate) lastDate = r.date;
   }
   if (buys + sells + treasuryBuys + treasurySells === 0) return null;
-  return { buys, sells, treasuryBuys, treasurySells, lastDate };
+  return { buys, sells, treasuryBuys, treasurySells, lastDate, snapshotAsOf: insiders.asOf };
 }
 
 let cachedIndex: Map<string, InsiderItem[]> | null = null;
@@ -138,8 +152,9 @@ function buildDigest(whale: WhaleRead, flows: FlowsSnapshot | null): SmartMoneyD
     let s = 0;
     let tb = 0;
     let last: string | null = null;
+    // T74 — same today-anchored window as insiderReadFor
     for (const r of rows) {
-      if (daysBetween(r.date, insiders.asOf) > WINDOW_DAYS) continue;
+      if (daysBetween(r.date, cairoDateKey()) > WINDOW_DAYS) continue;
       if (r.action === "bought") b++;
       else if (r.action === "sold") s++;
       else if (r.action === "treasury_purchase") tb++;
@@ -150,6 +165,13 @@ function buildDigest(whale: WhaleRead, flows: FlowsSnapshot | null): SmartMoneyD
   }
   buys.sort((a, b) => b.buys + b.treasuryBuys - (a.buys + a.treasuryBuys));
   sells.sort((a, b) => b.sells - a.sells);
+  // T74 — a stale snapshot empties the live-read lists (the asOf date stays
+  // visible so the section explains its own silence instead of presenting
+  // three-week-old filings as a current read).
+  if (insidersSnapshotStale()) {
+    buys.length = 0;
+    sells.length = 0;
+  }
   return {
     whale,
     nationalityNet: {

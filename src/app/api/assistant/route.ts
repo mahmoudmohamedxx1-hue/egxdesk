@@ -64,9 +64,9 @@ function rateLimited(ip: string): boolean {
 const WHY = (err: unknown): string => (err instanceof Error ? err.message : String(err)).slice(0, 140);
 
 // 1 — keyless LLM7.io (shared anonymous tier; the same cloud the agent view
-// offers as "no sign-in" models). T65: the GLM-5.3-Flash tier is tried FIRST
-// (a real GLM brain) and mistral stays the last resort. Non-streaming is
-// fine for JSON rounds.
+// offers as "no sign-in" models). T65: the GLM-5.3-Flash tier was tried FIRST
+// until T74 (retired upstream 2026-09-29 — see createChat for the new order).
+// Non-streaming is fine for JSON rounds.
 const LLM7_URL = "https://api.llm7.io/v1/chat/completions";
 async function llm7GlmRound(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
   return llm7Chat(messages, "GLM-5.3-Flash", 1);
@@ -143,12 +143,12 @@ async function kiloTier(messages: { role: "system" | "user" | "assistant"; conte
   throw lastErr instanceof Error ? lastErr : new Error("kilo pool exhausted");
 }
 
+// 1 — T74 — the Kilo keyless pool is the FIRST tier now: llm7 retired its
+// keyless GLM-5.3-Flash tier (400 model_unavailable, 2026-09-29) and every
+// remaining llm7 keyless model is unusable for user-facing text (mistral
+// crash-text Arabic, codestral JSON-protocol breaks). Kilo routes were
+// re-verified live on retirement day — clean MSA Arabic + JSON compliance.
 async function createChat(messages: { role: "system" | "user" | "assistant"; content: string }[]): Promise<string> {
-  try {
-    return await llm7GlmRound(messages);
-  } catch (err) {
-    console.warn("[assistant] keyless GLM-5.3-Flash tier unavailable:", WHY(err));
-  }
   try {
     return await kiloTier(messages);
   } catch (err) {
@@ -158,6 +158,20 @@ async function createChat(messages: { role: "system" | "user" | "assistant"; con
     return await pollinationsTier(messages);
   } catch (err) {
     console.warn("[assistant] pollinations tier unavailable:", WHY(err));
+  }
+  // T74 — last resort: the llm7 turbo leftovers. DeepSeek-V4-Flash first
+  // (keyless, reasoning-capable); GLM-5.3-Flash is tried too in case the
+  // tier ever returns; mistral Nemo truly last (crash-text Arabic risk —
+  // the client's hygiene guard will sanitize what it can).
+  try {
+    return await llm7Chat(messages, "DeepSeek-V4-Flash-0731", 1);
+  } catch (err) {
+    console.warn("[assistant] llm7 DeepSeek tier unavailable:", WHY(err));
+  }
+  try {
+    return await llm7GlmRound(messages);
+  } catch (err) {
+    console.warn("[assistant] llm7 GLM-5.3-Flash tier unavailable:", WHY(err));
   }
   return await llm7Round(messages);
 }

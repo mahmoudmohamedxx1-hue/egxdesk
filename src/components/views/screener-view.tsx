@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { bootParam, patchUrlParams } from "@/lib/url-state";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
+import { ErrorCard } from "./overview-view";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn, type Lang } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtPct, fmtPE, fmtInt, directionClass } from "@/lib/format";
@@ -571,7 +572,9 @@ function FilterPill({
 
 export function ScreenerView() {
   const { lang, navigate } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
+  // T74 — the screener was the one big table WITHOUT the honest-degradation
+  // branch: a cold /api/companies failure rendered 8 skeletons forever.
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: CompanyRow[] }>("/api/companies");
   const [f, setF] = useState<Filters>(DEFAULT_FILTERS);
   const [sortKey, setSortKey] = useState<ColKey>("marketCap");
   const [desc, setDesc] = useState(true);
@@ -1145,7 +1148,9 @@ export function ScreenerView() {
       </p>
 
       {/* results */}
-      {!filtered ? (
+      {isDeadFeed({ error, data, staleMs }) ? (
+        <ErrorCard lang={lang} onRetry={refresh} />
+      ) : !filtered ? (
         <div className="space-y-2">
           {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
             <Skeleton key={i} className="h-11" />
@@ -1183,8 +1188,18 @@ export function ScreenerView() {
                 {filtered.map((r) => (
                   <tr
                     key={r.ticker}
-                    className="hover:bg-accent/30 cursor-pointer transition-colors"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${r.ticker} — ${lang === "ar" ? "افتح صفحة الشركة" : "open company page"}`}
+                    className="hover:bg-accent/30 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+                    /* T74 — keyboard path, same as the watchlist table */
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate("company", { ticker: r.ticker, panel: "overview" });
+                      }
+                    }}
                   >
                     <td className="ps-1">
                       <WatchStar ticker={r.ticker} />

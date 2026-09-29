@@ -40,8 +40,11 @@ export function FearGreedCard() {
   useEffect(() => {
     let alive = true;
     fetch("/api/fear-greed", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: FG) => alive && j.ok && setD(j))
+      .then(async (r) => {
+        if (!r.ok) return null; // T74 — res.ok checked: a 503 is not "no index"
+        return r.json();
+      })
+      .then((j: FG | null) => j && alive && j.ok && setD(j))
       .catch(() => {});
     return () => {
       alive = false;
@@ -62,7 +65,7 @@ export function FearGreedCard() {
         <div className="flex flex-col items-center shrink-0">
           <div
             className="size-20 rounded-full border-4 flex items-center justify-center"
-            style={{ borderColor: bucket.color, boxShadow: `inset 0 0 12px ${bucket.color.replace("oklch(", "oklch(").replace(")", " / 0.25)")}` }}
+            style={{ borderColor: bucket.color, boxShadow: `inset 0 0 12px ${bucket.color.replace(")", " / 0.25)")}` }}
           >
             <span className="num text-2xl font-bold" style={{ color: bucket.color }}>
               {d.score}

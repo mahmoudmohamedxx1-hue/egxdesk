@@ -19,6 +19,9 @@ import { fetchUniverse } from "@/lib/market";
 import { fetchUpcomingDividends, cairoToday } from "@/lib/dividends";
 import { db } from "@/lib/db";
 import seed from "@/data/calendar-seed.json";
+// T74 — the seed's own generation date, surfaced in every calendar payload
+// (imported as unknown-typed JSON: read defensively).
+const SEED_GENERATED_AT = (seed as { generated?: string }).generated ?? null;
 
 export type CalendarEventType = "earnings" | "dividend" | "assembly" | "rights";
 
@@ -39,6 +42,9 @@ export type CalendarData = {
   asOf: string; // yyyy-mm-dd (Cairo)
   events: CalendarEvent[]; // sorted by date ascending
   counts: { earnings: number; dividend: number; assembly: number; rights: number };
+  /** T74 — generation date of the static corporate-actions seed, so the
+   *  calendar response exposes how fresh its non-live rows are. */
+  seedGeneratedAt: string | null;
 };
 
 // ───────────────────────────────────── Arabic date mining (assemblies) ───
@@ -82,8 +88,10 @@ function extractFutureDate(text: string, today: string): string | null {
     }
   }
 
-  const y = Number(today.slice(0, 4));
-  const maxDate = `${y + 1}-12-31`;
+  // T74 — future mined events cap at today+120d (was next Dec 31, letting
+  // noise from news-mined assembly dates sit ~15 months out on the calendar).
+  const capMs = Date.parse(`${today}T00:00:00Z`) + 120 * 86_400_000;
+  const maxDate = new Date(capMs).toISOString().slice(0, 10);
   for (const c of candidates) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(c) && c >= today && c <= maxDate) return c;
   }
@@ -278,7 +286,7 @@ export async function fetchCalendar(): Promise<CalendarData> {
     const counts = { earnings: 0, dividend: 0, assembly: 0, rights: 0 };
     for (const e of events) counts[e.type]++;
 
-    const data: CalendarData = { asOf: today, events, counts };
+    const data: CalendarData = { asOf: today, events, counts, seedGeneratedAt: SEED_GENERATED_AT };
     calendarCache = { data, at: Date.now() };
     return data;
   })();

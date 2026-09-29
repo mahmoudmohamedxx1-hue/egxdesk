@@ -184,7 +184,9 @@ export function mlForecast(pts: ChartPointLite[]): MlForecast | null {
 
   // training set: every bar whose label fully resolves BEFORE the
   // validation zone — the model never sees a validation outcome
-  const trainEnd = n - VAL_BARS - HORIZON;
+  // (T74 — off-by-one: the last training label used to read the first
+  // validation bar's close; one bar of leakage removed)
+  const trainEnd = n - VAL_BARS - HORIZON - 1;
   const trainRows: { x: number[]; y: number }[] = [];
   for (let i = 50; i <= trainEnd; i++) {
     const x = featureRow(closes, vols, i);

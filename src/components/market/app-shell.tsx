@@ -27,7 +27,7 @@ import {
   LayoutDashboard, CandlestickChart, SlidersHorizontal, Radar,
   Flame, Layers, Users, Zap, CalendarDays, Scale, PiggyBank,
   Newspaper, NotebookPen, ListChecks, Wrench, Bot, Globe2, LineChart, Telescope,
-  FileText, Link2, GitCompareArrows, Landmark, FlaskConical, ShieldAlert,
+  FileText, Link2, GitCompareArrows, Landmark, FlaskConical, ShieldAlert, Notebook,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -54,7 +54,9 @@ const HeatView = dynamic(() => import("@/components/views/heat-view").then((m) =
 const ActivityView = dynamic(() => import("@/components/views/activity-view").then((m) => ({ default: m.ActivityView })), { loading: ViewBoot });
 const InvestorsView = dynamic(() => import("@/components/views/investors-view").then((m) => ({ default: m.InvestorsView })), { loading: ViewBoot });
 const LensView = dynamic(() => import("@/components/views/lens-view").then((m) => ({ default: m.LensView })), { loading: ViewBoot });
-const NewsView = dynamic(() => import("@/components/views/news-view").then((m) => ({ default: m.NewsView })), { loading: ViewBoot });
+// T74 — the legacy news-view chunk was REMOVED: ?view=news aliases to
+// "today" (UpdatesNewsView), so NewsView was unreachable — yet its chunk
+// was still idle-prefetched on every first visit. The file itself is gone.
 const WatchlistView = dynamic(() => import("@/components/views/watchlist-view").then((m) => ({ default: m.WatchlistView })), { loading: ViewBoot });
 const ToolsView = dynamic(() => import("@/components/views/tools-view").then((m) => ({ default: m.ToolsView })), { loading: ViewBoot });
 const CompanyView = dynamic(() => import("@/components/views/company-view").then((m) => ({ default: m.CompanyView })), { loading: ViewBoot });
@@ -118,7 +120,6 @@ const VIEW_IMPORTS: { name: string; load: () => Promise<unknown> }[] = [
   { name: "scenarios", load: () => import("@/components/views/scenarios-view") },
   { name: "fragility", load: () => import("@/components/views/fragility-view") },
   { name: "research", load: () => import("@/components/views/research-view") },
-  { name: "news", load: () => import("@/components/views/news-view") },
 ];
 
 /** Warm the not-yet-loaded view chunks AFTER first paint, one per idle slot
@@ -223,7 +224,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "research", t: { ar: "الأبحاث", en: "Research" }, icon: NotebookPen },
       { view: "tools", t: T.tools, icon: Wrench },
       { view: "watchlist", t: T.watchlist, icon: ListChecks },
-      { view: "paper", t: { ar: "تجريبي", en: "Paper" }, icon: Wrench },
+      { view: "paper", t: { ar: "تجريبي", en: "Paper" }, icon: Notebook },
     ],
   },
 ];
@@ -522,7 +523,20 @@ export function AppShell() {
           {view.name === "today" && <UpdatesNewsView />}
           {view.name === "watchlist" && <WatchlistView />}
           {view.name === "tools" && <ToolsView />}
-          {view.name === "company" && <CompanyView ticker={view.ticker ?? "COMI"} panel={view.panel ?? "overview"} />}
+          {/* T74 — a ?view=company link WITHOUT a ticker used to silently
+           * render COMI's page (a wrong-looking redirect); now it gets the
+           * same honest "company not found" card a bad ticker gets. */}
+          {view.name === "company" &&
+            (view.ticker ? (
+              <CompanyView ticker={view.ticker} panel={view.panel ?? "overview"} />
+            ) : (
+              <div className="rounded-lg border bg-card p-8 text-center space-y-2">
+                <p className="font-medium">{tt({ ar: "لم يُحدَّد رمز شركة في الرابط", en: "no company ticker in the link" }, lang)}</p>
+                <button className="text-sm underline text-muted-foreground hover:text-foreground" onClick={() => navigate("market")}>
+                  {tt({ ar: "افتح جدول السوق", en: "open the market table" }, lang)}
+                </button>
+              </div>
+            ))}
           {view.name === "exchange" && <ExchangeView />}
           {view.name === "calendar" && <CalendarView />}
           {view.name === "compare" && <CompareView />}

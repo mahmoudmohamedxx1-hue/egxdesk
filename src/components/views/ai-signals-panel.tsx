@@ -8,7 +8,7 @@
  *  walk-forward backtest evidence (ensemble + per-strategy), and the full
  *  strategy charter. */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/market/app-context";
 import { useLiveData } from "@/components/market/use-live-data";
 import { T, tt } from "@/lib/i18n";
@@ -251,9 +251,18 @@ function loadNum(key: string, fallback: number): number {
 
 function PositionSizer({ picks, lang }: { picks: AiPick[]; lang: "ar" | "en" }) {
   const longs = useMemo(() => picks.filter((p) => p.stance === "long" && p.entry !== null && p.stop !== null), [picks]);
-  const [account, setAccount] = useState<number>(() => loadNum(SIZER_ACCOUNT_KEY, 50_000));
-  const [riskPct, setRiskPct] = useState<number>(() => loadNum(SIZER_RISK_KEY, 1));
+  // T74 — localStorage is read in a MOUNT EFFECT, not during render: the old
+  // lazy initializer read storage while rendering, a hydration-mismatch
+  // pattern every other component in the app deliberately avoids. SSR renders
+  // the defaults; after mount the stored values take over.
+  const [account, setAccount] = useState<number>(50_000);
+  const [riskPct, setRiskPct] = useState<number>(1);
   const [ticker, setTicker] = useState<string>(() => longs[0]?.ticker ?? "");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAccount(loadNum(SIZER_ACCOUNT_KEY, 50_000));
+    setRiskPct(loadNum(SIZER_RISK_KEY, 1));
+  }, []);
   const pick = longs.find((p) => p.ticker === ticker) ?? longs[0];
 
   const persist = (key: string, v: number) => {

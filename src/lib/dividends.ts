@@ -9,6 +9,8 @@
  *  with the company tab, so a calendar open warms the tab and vice versa.
  */
 
+import { cairoDateKey } from "./cairo-time";
+
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -146,7 +148,12 @@ export async function fetchDividends(tickerRaw: string): Promise<DividendsData> 
   if (!t) throw new Error("dividends: empty ticker");
   return cached(`div:${t}`, TTL, async () => {
     const html = await fetchPage(`/${t}/dividend/`);
-    const rows = html ? parseDividendTable(html) : [];
+    // T74 FIX — a FETCH FAILURE must not be cached as "no dividends published"
+    // for 6 hours: only a page that actually came back and parsed to zero
+    // rows is an honest "none". An unreachable upstream throws (uncached —
+    // the route returns an error, the next call retries).
+    if (html === null) throw new Error("dividends: upstream fetch failed");
+    const rows = parseDividendTable(html);
     return {
       ticker: t,
       currency: "EGP" as const,
@@ -163,10 +170,9 @@ export async function fetchDividends(tickerRaw: string): Promise<DividendsData> 
 
 /** Today's date in Africa/Cairo as yyyy-mm-dd (exchange calendar reference). */
 export function cairoToday(): string {
-  // Cairo is UTC+2 (winter) / UTC+3 (summer, since 2023 no DST switch-back).
-  const now = new Date();
-  const cairo = new Date(now.getTime() + 3 * 3600_000); // server runs Cairo time; +3 keeps the label correct even if TZ drifts
-  return cairo.toISOString().slice(0, 10);
+  // T74 — DST-safe via Intl (Egypt is UTC+2 in winter / UTC+3 in summer;
+  // the old +3 hardcode rolled "today" at 21:00 UTC every winter).
+  return cairoDateKey(new Date());
 }
 
 /** Upcoming dividends (ex-date or pay-date on/after today) for the given

@@ -35,7 +35,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { T, tt } from "@/lib/i18n";
+import { T, tt, arNoun } from "@/lib/i18n";
 import { UpdatesSubnav } from "./updates-subnav";
 
 type FeedItem = {
@@ -61,7 +61,7 @@ type FeedItem = {
 type Provenance = {
   generatedAt: string;
   outlets: { id: string; name: string; nameAr: string; home: string }[];
-  unreachable: { id: string; nameAr: string; note: string }[];
+  unreachable: { id: string; nameAr: string; name?: string; note: string }[];
   mergedCount: number;
   withheldCount: number;
   itemCount: number;
@@ -168,6 +168,7 @@ export function UpdatesNewsView() {
 
   useEffect(() => {
     mounted.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadFeed();
     return () => {
       mounted.current = false;
@@ -273,7 +274,7 @@ export function UpdatesNewsView() {
             {" · "}
             {items.length
               ? lang === "ar"
-                ? `${shownItems.length} من ${items.length} عنواناً، الأحدث أولاً.`
+                ? `${shownItems.length} ${arNoun(shownItems.length, "عنوان", "عنوانان", "عناوين", "عنوانًا")} من ${items.length}، الأحدث أولاً.`
                 : `${shownItems.length} of ${items.length} headlines, newest first.`
               : ""}
           </span>
@@ -501,7 +502,7 @@ export function UpdatesNewsView() {
             )}
             {unreachable.length > 0 && (
               <>
-                {" "}Not reachable today: {unreachable.map((u) => u.nameAr).join(", ")}.
+                {" "}Not reachable today: {unreachable.map((u) => u.name ?? u.nameAr).join(", ")}.
               </>
             )}
           </>

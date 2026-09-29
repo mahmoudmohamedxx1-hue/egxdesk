@@ -907,6 +907,30 @@ export function LensView() {
     };
   }, [data, layout]);
 
+  // T73 — RANK BY VALUE among all named parties on the board. The register
+  // itself stays alphabetical BY POLICY (never ranked) — this map only feeds
+  // one factual sentence in the brief ("his filed stakes rank #N by value
+  // among the M named parties"), computed exactly like the brief's own
+  // values: every stake's pct × the live market cap of its company.
+  // T74 FIX — this useMemo sat BELOW the loading/error early returns: when
+  // data arrived after the skeleton paint the hook count changed mid-mount
+  // and React threw "Rendered more hooks than during the previous render"
+  // (a latent crash on every cold load of the lens). Hooks must run before
+  // any early return; the memo already null-guards cold data.
+  const holderValueRank = useMemo(() => {
+    if (!data || !layout) return null;
+    const totals = new Map<number, number>();
+    for (const p of data.positions) {
+      const ring = layout.byTicker.get(p.t);
+      if (!ring?.company.marketCap) continue;
+      totals.set(p.h, (totals.get(p.h) ?? 0) + (p.p / 100) * ring.company.marketCap);
+    }
+    const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    const rankOf = new Map<number, number>();
+    ranked.forEach(([h], i) => rankOf.set(h, i + 1));
+    return { rankOf, total: ranked.length };
+  }, [data, layout]);
+
   if (error)
     return (
       <div className="p-4">
@@ -959,24 +983,7 @@ export function LensView() {
     return { rows, totalValue, valuedCount };
   })();
 
-  // T73 — RANK BY VALUE among all named parties on the board. The register
-  // itself stays alphabetical BY POLICY (never ranked) — this map only feeds
-  // one factual sentence in the brief ("his filed stakes rank #N by value
-  // among the M named parties"), computed exactly like the brief's own
-  // values: every stake's pct × the live market cap of its company.
-  const holderValueRank = useMemo(() => {
-    if (!data || !layout) return null;
-    const totals = new Map<number, number>();
-    for (const p of data.positions) {
-      const ring = layout.byTicker.get(p.t);
-      if (!ring?.company.marketCap) continue;
-      totals.set(p.h, (totals.get(p.h) ?? 0) + (p.p / 100) * ring.company.marketCap);
-    }
-    const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-    const rankOf = new Map<number, number>();
-    ranked.forEach(([h], i) => rankOf.set(h, i + 1));
-    return { rankOf, total: ranked.length };
-  }, [data, layout]);
+  // (holderValueRank moved above the early returns — see its T74 note.)
 
   // T73 — the investor BRIEF, now a full IDENTITY profile (the user's ask:
   // "richer and deeper description for investor identity"). Everything is

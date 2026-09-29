@@ -48,9 +48,15 @@ export function PwaRegister() {
   // N toggles an update fired N toasts and N SKIP_WAITING messages. The
   // latest toast/lang now ride refs and the effect runs exactly once.
   const toastRef = useRef(toast);
-  toastRef.current = toast;
   const langRef = useRef(lang);
-  langRef.current = lang;
+  // T74 — refs are updated in an effect, not during render (writing a ref
+  // mid-render is illegal under React's concurrent rules; eslint enforces it).
+  // Effects run in order, so both refs are current before the register
+  // effect below reads them.
+  useEffect(() => {
+    toastRef.current = toast;
+    langRef.current = lang;
+  }, [toast, lang]);
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     let reloaded = false;
@@ -105,7 +111,6 @@ export function PwaRegister() {
       clearInterval(t);
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return null;
 }

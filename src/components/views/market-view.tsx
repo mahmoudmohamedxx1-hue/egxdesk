@@ -283,8 +283,23 @@ export function MarketView() {
               </thead>
               <tbody className="divide-y">
                 {filtered.map((r) => (
-                  <tr key={r.ticker} className="hover:bg-accent/30 cursor-pointer transition-colors"
-                    onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}>
+                  /* T74 — keyboard path (tabIndex + role + Enter/Space), same
+                   * pattern as the watchlist/peers tables: the app's PRIMARY
+                   * interaction was mouse-only before. */
+                  <tr
+                    key={r.ticker}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${r.ticker} — ${lang === "ar" ? "افتح صفحة الشركة" : "open company page"}`}
+                    className="hover:bg-accent/30 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => navigate("company", { ticker: r.ticker, panel: "overview" })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate("company", { ticker: r.ticker, panel: "overview" });
+                      }
+                    }}
+                  >
                     <td className="ps-1"><WatchStar ticker={r.ticker} /></td>
                     <td className="num px-3 py-2.5 font-bold">{r.ticker}</td>
                     <td className="px-3 py-2.5 hidden md:table-cell max-w-[260px] truncate text-muted-foreground">

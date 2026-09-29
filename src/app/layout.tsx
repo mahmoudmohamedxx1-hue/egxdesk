@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono, IBM_Plex_Sans, Lora, Amiri } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "next-themes";
 
 const plexArabic = IBM_Plex_Sans_Arabic({
@@ -45,7 +44,7 @@ const amiri = Amiri({
 export const metadata: Metadata = {
   title: "EGX Desk — بيانات حية للبورصة المصرية",
   description:
-    "بيانات حية مؤجلة للبورصة المصرية: المؤشرات، ٢٩٦ شركة مقيدة بأسعار ومقاييس فعلية، أداء القطاعات، الخريطة الحرارية، أخبار السوق المصرية من مصادر عامة، ومتابعة محلية بلا تسجيل دخول.",
+    "بيانات حية مؤجلة للبورصة المصرية: المؤشرات، كل الشركات المقيدة بأسعار ومقاييس فعلية، أداء القطاعات، الخريطة الحرارية، أخبار السوق المصرية من مصادر عامة، ومتابعة محلية بلا تسجيل دخول.",
   applicationName: "EGX Desk",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -100,7 +99,9 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
-          <Toaster />
+          {/* T74 — the unused shadcn <Toaster /> was removed: nothing ever
+           * called it (the app ships its own toast system in app-context);
+           * it only cost bundle bytes and a dead listener. */}
         </ThemeProvider>
       </body>
     </html>

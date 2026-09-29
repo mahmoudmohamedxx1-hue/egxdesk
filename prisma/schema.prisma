@@ -140,8 +140,10 @@ model PushDevice {
   signalsNotifiedAt DateTime?
   /// T69 — the device's WATCHLIST (favorite tickers), mirrored like alerts.
   /// Favorites earn notifications by default: fresh news items that name a
-  /// favorite + significant same-session moves (|chg| ≥ 4%), each deduped
-  /// per device by the watchlistNotifiedAt cursor + per-day tags.
+  /// favorite, plus price moves — since T70 quantized by the 0.5% STEP-MOVE
+  /// band engine below (a notification fires when a favorite crosses into a
+  /// new band, deduped per device by the watchlistNotifiedAt cursor +
+  /// per-day tags; the pre-T70 same-session |chg| ≥ 4% heuristic is retired).
   watchlistJson  String    @default("[]")
   /// item id of the newest watchlist-news item already pushed (cursor)
   watchlistNotifiedAt DateTime?

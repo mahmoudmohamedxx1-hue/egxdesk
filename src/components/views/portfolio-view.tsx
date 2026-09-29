@@ -8,7 +8,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
-import { useLiveData } from "../market/use-live-data";
+import { useLiveData, isDeadFeed } from "../market/use-live-data";
+import { ErrorCard } from "./overview-view";
 import type { CompanyRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
 import { fmtNum, fmtValue, fmtInt, directionClass } from "@/lib/format";
@@ -25,7 +26,9 @@ type Row = CompanyRow;
 
 export function PortfolioView() {
   const { lang, navigate, toast } = useApp();
-  const { data } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
+  // T74 — cold quote-feed failure used to trap this tab in skeletons forever
+  // (joined/agg never resolve without rows); now it degrades honestly.
+  const { data, error, refresh, staleMs } = useLiveData<{ session: SessionMeta; total: number; rows: Row[] }>("/api/companies");
 
   const [positions, setPositions] = useState<Position[] | null>(null); // null = not yet restored
   useEffect(() => {
@@ -200,7 +203,9 @@ export function PortfolioView() {
       </div>
 
       {/* summary + table */}
-      {positions === null || !joined || !agg ? (
+      {isDeadFeed({ error, data, staleMs }) ? (
+        <ErrorCard lang={lang} onRetry={refresh} />
+      ) : positions === null || !joined || !agg ? (
         <div className="space-y-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : positions.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center space-y-3">
@@ -313,8 +318,18 @@ export function PortfolioView() {
                     return (
                       <tr
                         key={p.ticker}
-                        className="hover:bg-accent/30 cursor-pointer transition-colors"
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`${p.ticker} — ${lang === "ar" ? "افتح صفحة الشركة" : "open company page"}`}
+                        className="hover:bg-accent/30 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={() => navigate("company", { ticker: p.ticker, panel: "overview" })}
+                        onKeyDown={(e) => {
+                          /* T74 — keyboard path, same as the watchlist table */
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            navigate("company", { ticker: p.ticker, panel: "overview" });
+                          }
+                        }}
                       >
                         <td className="ps-1">
                           <button

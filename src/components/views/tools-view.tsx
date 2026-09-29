@@ -410,7 +410,10 @@ function WhatIfCalc() {
   const { lang } = useApp();
   const [query, setQuery] = useState("COMI");
   const [amount, setAmount] = useState(10000);
-  const [when, setWhen] = useState("2026-01-01");
+  // T74 — the default "what if" date used to be a frozen 2026-01-01 string;
+  // now it is the start of the CURRENT year, computed once on mount (SSR
+  // renders the same value on both sides — the year of the request).
+  const [when, setWhen] = useState(() => `${new Date().getFullYear()}-01-01`);
   const [res, setRes] = useState<
     | { ok: true; symbol: string; name: string; nameAr?: string; buyDate: string; buyClose: number; lastDate: string; lastClose: number; shares: number; nowValue: number; pnl: number; pnlPct: number }
     | { ok: false; why: string }
@@ -539,18 +542,26 @@ function CorrelationMatrix() {
   const [d, setD] = useState<CorrPayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [hover, setHover] = useState<string>("");
+  // T74 — a failed correlation fetch used to unmount the whole section
+  // (error rendered as ABSENCE); now it shows a one-line retry row.
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBusy(true);
     fetch("/api/correlation?months=6", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: CorrPayload) => alive && j.ok && setD(j))
+      .then(async (r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((j: CorrPayload) => {
+        if (alive && j.ok) setD(j);
+      })
       .catch(() => {})
       .finally(() => alive && setBusy(false));
     return () => { alive = false; };
-  }, []);
+  }, [retryTick]);
 
   if (busy && !d) {
     return (
@@ -562,7 +573,21 @@ function CorrelationMatrix() {
       </section>
     );
   }
-  if (!d) return null;
+  if (!d) {
+    return (
+      <section className="rounded-lg border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <h2 className="font-bold">{lang === "ar" ? "مصفوفة الارتباط" : "Correlation matrix"}</h2>
+        </div>
+        <div className="flex items-center justify-between gap-2 p-4 text-sm text-muted-foreground">
+          <span>{lang === "ar" ? "تعذّر حساب الارتباطات الآن — قد تتاح لاحقًا." : "correlations could not be computed right now — they may become available."}</span>
+          <button className="underline" onClick={() => setRetryTick((t) => t + 1)}>
+            {lang === "ar" ? "أعد المحاولة" : "retry"}
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-lg border bg-card">

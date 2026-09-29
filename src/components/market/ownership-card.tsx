@@ -42,6 +42,7 @@ export function OwnershipCard({ ticker, lang }: { ticker: string; lang: Lang }) 
 
   useEffect(() => {
     let alive = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFailed(false);
     fetch(`/api/ownership-lens?ticker=${encodeURIComponent(ticker)}`, { cache: "no-store" })
       .then(async (r) => {

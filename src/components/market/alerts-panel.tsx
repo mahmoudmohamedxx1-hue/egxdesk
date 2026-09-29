@@ -152,7 +152,10 @@ export function AlertCreateForm({
                   {kindLabel(k, lang)}
                 </option>
               ))}
-              <option value="onDate">{kindLabel("onDate", lang)}</option>
+              {/* T74 — append the onDate option only when it is not already
+               * the current kind: editing a date reminder used to show two
+               * identical "on date" options. */}
+              {r.kind !== "onDate" && <option value="onDate">{kindLabel("onDate", lang)}</option>}
             </select>
             {r.kind === "onDate" ? (
               <input

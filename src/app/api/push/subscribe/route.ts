@@ -6,7 +6,11 @@ import { db } from "@/lib/db";
  *  enables phone notifications AND on every alert change afterwards
  *  (upsert: same deviceId → same row). Alert shape mirrors the client's
  *  localStorage list; validation is deliberately lenient (unknown fields
- *  dropped, bad rows filtered) so a client version skew can never 500. */
+ *  dropped, bad rows filtered) so a client version skew can never 500.
+ *
+ *  SECURITY NOTE (T74, documented deliberately): deviceId is the bearer
+ *  credential (see /api/agent/chats) — an account-less trade-off; treat the
+ *  id as a secret client-side. */
 
 type AlertIn = {
   id?: unknown;

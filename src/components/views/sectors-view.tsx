@@ -61,7 +61,12 @@ export function SectorsView() {
           items={rankedSectors.map((s) => ({
             label:
               (lang === "ar" ? s.nameAr : s.nameEn) +
-              (s.count < 3 ? (lang === "ar" ? ` · ${s.count} شركة فقط` : ` · ${s.count} stock` + (s.count === 1 ? "" : "s")) : ""),
+              // T74 — Arabic n-forms: ١ شركة، ٢ شركتان، ٣–١٠ شركات
+              (s.count < 3
+                ? lang === "ar"
+                  ? ` · ${s.count} ${s.count === 1 ? "شركة" : "شركتان"} فقط`
+                  : ` · ${s.count} stock${s.count === 1 ? "" : "s"}`
+                : ""),
             value: s.capWeightedChangePct,
           }))}
           unit="pct"
@@ -80,7 +85,7 @@ export function SectorsView() {
         {sectors.map((s) => (
           <button
             key={s.code}
-            onClick={() => navigate("market")}
+            onClick={() => navigate("market", { sector: s.code })}
             className="group rounded-lg border bg-card p-4 text-start hover:border-ring transition-colors"
           >
             {/* header */}

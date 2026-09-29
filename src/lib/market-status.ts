@@ -4,10 +4,11 @@
  *  Holiday awareness (Task 20): fixed national holidays are exact; religious
  *  dates follow the lunar Hijri calendar and are APPROXIMATE to ±1 day (and
  *  the exchange sometimes closes more days around Eid than listed here) —
- *  they are a heuristic for the status chip, never a trading calendar. When
- *  in doubt the data itself is the source of truth: on an unlisted holiday
- *  quotes simply stop updating, so `lastSession` still shows the last real
- *  session from the data's perspective. */
+ *  they are a heuristic for the status chip, never a trading calendar.
+ *  Caveat (T74): `lastSession` is CALENDAR ARITHMETIC (the most recent
+ *  Sun–Thu day that is not a listed holiday) — on an unlisted holiday the
+ *  chip can claim today's session while quotes are from the prior session;
+ *  the quote timestamps remain the ground truth for how fresh prices are. */
 
 export type MarketStatus = {
   open: boolean;

@@ -79,7 +79,9 @@ export function InsidersPanel() {
   const { lang, navigate } = useApp();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
   const [limit, setLimit] = useState(25);
-  const { data, loading } = useLiveData<InsidersData>(`/api/insiders?filter=${filter}&limit=400`, 300_000);
+  // T74 — error destructured: a cold failure used to render the header +
+  // explainer followed by blank space (a swallowed error as empty content).
+  const { data, loading, error, refresh } = useLiveData<InsidersData>(`/api/insiders?filter=${filter}&limit=400`, 300_000);
 
   const items = useMemo(() => (data?.items ?? []).slice(0, limit), [data, limit]);
 
@@ -107,6 +109,16 @@ export function InsidersPanel() {
           ? "إفصاحات رسمية أودعتها الشركات لدى البورصة المصرية عن تعاملات أعضاء مجالس الإدارة والداخليين وكبار المساهمين والمجموعات المرتبطة وعمليات أسهم الخزينة. سجلُّ إفصاح لا إشارة: الشركة التي لم تُفصح لا يعني ذلك شيئاً عن أدائها."
           : "Official disclosures filed with the Egyptian Exchange for dealings by board members, insiders, major shareholders, related groups and treasury-share operations. A filing record, not a signal."}
       </p>
+
+      {/* T74 — honest failure row instead of silent blank space */}
+      {error && !data && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          <span>{lang === "ar" ? "تعذّر تحميل سجل تعاملات الداخليين الآن." : "the insider-dealings log could not load right now."}</span>
+          <button className="underline" onClick={() => void refresh()}>
+            {lang === "ar" ? "أعد المحاولة" : "retry"}
+          </button>
+        </div>
+      )}
 
       {/* Task 23 — press-disclosure strip: the live archive's newest filings /
           dividends / AGM / insider coverage. Keeps the section visibly fresh

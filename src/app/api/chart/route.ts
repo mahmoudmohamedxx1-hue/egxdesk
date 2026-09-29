@@ -103,7 +103,9 @@ export async function GET(req: NextRequest) {
       ...stats(mapped),
       source: "EGXBot — real daily closes (EGX sessions)",
       warming: points.length < 5,
-      availableRanges: ["1M", "3M", "6M", "1Y", "ALL"],
+      // T74 — "1W" is accepted above, so advertise it (the list claimed it
+      // was unsupported while silently serving it)
+      availableRanges: ["1W", "1M", "3M", "6M", "1Y", "ALL"],
     };
     return NextResponse.json(body);
   }

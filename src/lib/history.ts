@@ -7,6 +7,7 @@
  *  see flows.ts.
  */
 
+import { cairoDateKey, cairoMinuteKey } from "./cairo-time";
 import { fetchUniverse, type Stock } from "./market";
 import { marketStatus } from "./market-status";
 import { historySymbol } from "./ticker-aliases";
@@ -89,18 +90,17 @@ async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>): 
 // ─────────────────────────────────────────────────────────── parsing ───
 
 function toDate(tsSec: number): string {
-  // Yahoo timestamps are UTC; shift to the exchange's Cairo day so the
-  // daily candle is labelled with the session date (EGX closes 14:30 Cairo).
-  const cairo = new Date((tsSec + 3 * 3600) * 1000); // Africa/Cairo = UTC+3 (no DST)
-  return cairo.toISOString().slice(0, 10);
+  // Yahoo timestamps are UTC; label with the Cairo session date
+  // (EGX closes 14:30 Cairo). T74 — DST-safe via Intl, was +3 hardcode.
+  return cairoDateKey(new Date(tsSec * 1000));
 }
 
 /** Intraday bar label: "YYYY-MM-DD HH:mm" in Cairo time — the date part
  *  keeps the series sortable and dedup-able, the time part makes each
  *  5m/15m bar its own point. */
 function toDateTime(tsSec: number): string {
-  const cairo = new Date((tsSec + 3 * 3600) * 1000);
-  return cairo.toISOString().slice(0, 16).replace("T", " ");
+  // T74 — DST-safe via Intl, was +3 hardcode.
+  return cairoMinuteKey(new Date(tsSec * 1000));
 }
 
 type YahooChart = {

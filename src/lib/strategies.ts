@@ -95,6 +95,9 @@ export type InsiderRead = {
   treasuryBuys: number; // company treasury-share purchase filings
   treasurySells: number;
   lastDate: string | null; // most recent filing date (YYYY-MM-DD)
+  /** T74 — the snapshot's as-of date the counts were read from (shown with
+   *  the read so a stale snapshot can never masquerade as today's filings). */
+  snapshotAsOf?: string;
 };
 
 /** T44 — the market-wide smart-money regime, from the REAL EGX

@@ -56,7 +56,7 @@ type Ctx = {
   lang: Lang;
   setLang: (l: Lang) => void;
   view: View;
-  navigate: (v: string, extra?: { ticker?: string; panel?: string; focus?: string }) => void;
+  navigate: (v: string, extra?: { ticker?: string; panel?: string; focus?: string; sector?: string }) => void;
   toggleWatch: (ticker: string) => void;
   isWatched: (ticker: string) => boolean;
   toast: (msg: string) => void;
@@ -127,12 +127,16 @@ function viewFromParams(params: URLSearchParams): View {
 
 /** Build the shareable query string for a view (always carries the lang so a
  *  shared link opens in the language the sharer was reading). */
-function viewParams(name: string, extra: { ticker?: string; panel?: string; focus?: string } | undefined, lang: Lang): string {
+function viewParams(name: string, extra: { ticker?: string; panel?: string; focus?: string; sector?: string } | undefined, lang: Lang): string {
   const params = new URLSearchParams();
   params.set("view", name);
   if (extra?.ticker) params.set("ticker", extra.ticker);
   if (extra?.panel) params.set("panel", extra.panel);
   if (extra?.focus) params.set("focus", extra.focus);
+  // T74 — sector cards carry their sector through to the market table
+  // (market-view restores ?sector= on mount), so "Banks" opens the BANKS
+  // table instead of the unfiltered one.
+  if (extra?.sector) params.set("sector", extra.sector);
   params.set("lang", lang);
   return params.toString();
 }
@@ -252,7 +256,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const navigate = useCallback(
-    (name: string, extra?: { ticker?: string; panel?: string }) => {
+    (name: string, extra?: { ticker?: string; panel?: string; focus?: string; sector?: string }) => {
       const next: View = { name, ...(extra ?? {}) };
       setView(next);
       // PUSH (not replace): back/forward move between pages — this is the
@@ -309,25 +313,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleWatch = useCallback(
     (ticker: string) => {
       const t = ticker.toUpperCase();
-      setWatch((w) => {
-        const next = w.tickers.includes(t)
-          ? w.tickers.filter((x) => x !== t)
-          : [...w.tickers, t];
-        try {
-          localStorage.setItem(WATCH_KEY, JSON.stringify(next));
-        } catch {}
-        toast(
-          next.includes(t)
-            ? lang === "ar" ? `أُضيف ${t} إلى المتابعة` : `${t} added to watchlist`
-            : lang === "ar" ? `أُزيل ${t} من المتابعة` : `${t} removed from watchlist`
-        );
-        // T69 — favorites notify: mirror the change so the server pushes
-        // news + big moves for the new list from the next evaluation pass
-        void syncPushWatchlist(next, lang).catch(() => {});
-        return { tickers: next, ready: true };
-      });
+      // T74 FIX — the updater used to fire toast()/localStorage/syncPushWatchlist
+      // INSIDE setWatch's reducer: updaters must be pure (React may re-invoke
+      // them), and a re-invocation re-fired the toast and the mirror POST.
+      // Compute next OUTSIDE from the current tickers, then run the effects
+      // after the state change.
+      const current = watch.tickers.includes(t) ? watch.tickers.filter((x) => x !== t) : [...watch.tickers, t];
+      setWatch({ tickers: current, ready: true });
+      try {
+        localStorage.setItem(WATCH_KEY, JSON.stringify(current));
+      } catch {}
+      toast(
+        current.includes(t)
+          ? lang === "ar" ? `أُضيف ${t} إلى المتابعة` : `${t} added to watchlist`
+          : lang === "ar" ? `أُزيل ${t} من المتابعة` : `${t} removed from watchlist`
+      );
+      // T69 — favorites notify: mirror the change so the server pushes
+      // news + big moves for the new list from the next evaluation pass
+      void syncPushWatchlist(current, lang).catch(() => {});
     },
-    [toast, lang]
+    [toast, lang, watch.tickers]
   );
 
   const isWatched = useCallback(

@@ -20,6 +20,12 @@ export const dynamic = "force-dynamic";
 // pass; displayed with its date + source, never as a live price).
 const ETF_SNAPSHOT = { price: 64.2, date: "2026-09-12", source: "Investing.com" };
 
+// T74 — the snapshot's age in whole days (Cairo reference), so the UI can
+// surface how stale this archived price is instead of letting it age silently.
+function snapshotAgeDays(): number {
+  return Math.max(0, Math.floor((Date.now() - Date.parse(`${ETF_SNAPSHOT.date}T00:00:00Z`)) / 86_400_000));
+}
+
 // Factual reference entries for Egypt's open-ended fund landscape. NOT
 // priced here — names/managers only, honestly labeled (see fundsNoLiveNav).
 const FUND_FAMILIES = [
@@ -65,7 +71,7 @@ export async function GET() {
 
     return NextResponse.json({
       etf: {
-        snapshot: ETF_SNAPSHOT,
+        snapshot: { ...ETF_SNAPSHOT, ageDays: snapshotAgeDays() },
         underlying: egx30
           ? {
               code: egx30.code,

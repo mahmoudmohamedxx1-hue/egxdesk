@@ -17,6 +17,7 @@
  *  silently feeding wrong numbers to the UI.
  */
 
+import { cairoDateKey } from "./cairo-time";
 import { marketStatus } from "./market-status";
 import { db } from "./db";
 
@@ -658,13 +659,14 @@ export async function persistBreadthLive(date: string, up: number, down: number,
 }
 
 /** Sun–Thu trading dates (Africa/Cairo week), oldest first, excluding today —
- *  today is covered separately by the live current-report fetch. */
+ *  today is covered separately by the live current-report fetch.
+ *  T74 — "today" is the Cairo calendar day, DST-safe via Intl. */
 function tradingDaysBack(calendarDays: number): string[] {
-  const cairoNow = new Date(Date.now() + 3 * 3600 * 1000);
-  const today = Date.UTC(cairoNow.getUTCFullYear(), cairoNow.getUTCMonth(), cairoNow.getUTCDate());
+  const today = cairoDateKey(); // YYYY-MM-DD in Cairo
+  const todayUtc = Date.parse(`${today}T00:00:00Z`);
   const out: string[] = [];
   for (let i = 1; i <= calendarDays; i++) {
-    const d = new Date(today - i * 86_400_000);
+    const d = new Date(todayUtc - i * 86_400_000);
     const wd = d.getUTCDay(); // 0 Sun … 6 Sat
     if (wd !== 5 && wd !== 6) out.push(d.toISOString().slice(0, 10));
   }
@@ -682,6 +684,7 @@ async function mapLimit<T>(items: string[], limit: number, fn: (item: string) =>
 }
 
 let historyEnsured = false;
+let historyRetryNotBefore = 0;
 
 /** One-time-per-process backfill of REAL daily history from EGXBot's public
  *  archive: participation % by nationality + EGX30/EGX70/EGX100 closes for
@@ -689,7 +692,7 @@ let historyEnsured = false;
  *  (null-marker rows mark holidays so they are not refetched), and each new
  *  trading day is appended automatically as the app keeps running. */
 export async function ensureHistory(): Promise<void> {
-  if (historyEnsured) return;
+  if (historyEnsured || Date.now() < historyRetryNotBefore) return;
   historyEnsured = true;
   try {
     // 1) live current report → participation + today's index closes + breadth
@@ -724,7 +727,13 @@ export async function ensureHistory(): Promise<void> {
       }
     }
   } catch (err) {
+    // T74 FIX — the flag was set before the run, so a failed first backfill
+    // was never retried for the whole process lifetime (index history froze
+    // until a restart, contradicting the "appended as the app keeps running"
+    // contract). Reset with a cooldown so a hard-down upstream is not hammered.
     console.error("flows: history backfill failed", err);
+    historyEnsured = false;
+    historyRetryNotBefore = Date.now() + 10 * 60 * 1000;
   }
 }
 

@@ -19,6 +19,7 @@
  */
 
 import { db } from "./db";
+import { cairoMinuteKey as cairoMinuteOf } from "./cairo-time";
 import { fetchUniverse } from "./market";
 import { marketStatus } from "./market-status";
 
@@ -28,10 +29,10 @@ type SamplerState = { lastAt: number; inflight: Promise<void> | null };
 const globalForSampler = globalThis as unknown as { egxIntradaySampler?: SamplerState };
 const state: SamplerState = (globalForSampler.egxIntradaySampler ??= { lastAt: 0, inflight: null });
 
-/** Cairo-time "YYYY-MM-DD HH:MM" bucket key for a wall-clock Date. */
+/** Cairo-time "YYYY-MM-DD HH:MM" bucket key for a wall-clock Date.
+ *  T74 — DST-safe via Intl (was a hardcoded +3, wrong every winter). */
 function cairoMinuteKey(d = new Date()): string {
-  const cairo = new Date(d.getTime() + 3 * 3600 * 1000); // Africa/Cairo = UTC+3, no DST
-  return cairo.toISOString().slice(0, 16).replace("T", " ");
+  return cairoMinuteOf(d);
 }
 
 /** Take one universe snapshot into the tick store (idempotent per minute). */

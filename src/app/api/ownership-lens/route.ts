@@ -7,13 +7,15 @@ import { mergeOwnershipNetwork, type MergedPerson } from "@/lib/ownership-merge"
  *
  *  T58 REBUILD (esthmr-grade): merges the LIVE universe (every listed stock —
  *  sector, market cap, today's change → the map canvas) with the parsed EGX
- *  DISCLOSURE NETWORK (src/data/ownership-network.json):
- *    - 1,396 named parties (people + firms, Arabic/English names);
- *    - 1,629 standing positions (holder → ticker, exact stake %, basis
+ *  DISCLOSURE NETWORK (src/data/ownership-network.json — counts are served
+ *  live in the payload's `stats` block; the daily refresh daemon keeps the
+ *  file current):
+ *    - named parties (people + firms, Arabic/English names);
+ *    - standing positions (holder → ticker, exact stake %, basis
  *      register|trade, as-of date, official bulletin link) — every ring's
  *      slices and every seat's percentage;
- *    - 37 weekly periods of stake moves — the week playback;
- *    - 41 listed-company → listed-company cross holdings;
+ *    - weekly periods of stake moves — the week playback;
+ *    - listed-company → listed-company cross holdings;
  *    - the refused-filings honesty list.
  *
  *  GET ?ticker=COMI → the company ownership profile (top holders + exact
