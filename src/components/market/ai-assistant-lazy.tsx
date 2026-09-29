@@ -37,12 +37,15 @@ export function AiAssistantLazy() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        openPanel();
+        // T73 — TOGGLE, as documented ("Ctrl/Cmd+K toggles, Escape closes"):
+        // this used to only ever OPEN, so with the panel already open the
+        // hotkey did nothing.
+        setOpen((o) => !o);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openPanel]);
+  }, []);
 
   return (
     <>

@@ -427,8 +427,23 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
                 </thead>
                 <tbody className="divide-y">
                   {data.peers.map((p) => (
-                    <tr key={p.ticker} className="hover:bg-accent/30 cursor-pointer transition-colors"
-                      onClick={() => navigate("company", { ticker: p.ticker, panel: "fundamentals" })}>
+                    /* T73 — clickable rows get a real keyboard path
+                     * (tabIndex + role + Enter/Space) — keyboard users could
+                     * not open a peer at all before */
+                    <tr
+                      key={p.ticker}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${p.ticker} — ${lang === "ar" ? "افتح صفحة الشركة" : "open company page"}`}
+                      className="hover:bg-accent/30 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => navigate("company", { ticker: p.ticker, panel: "fundamentals" })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          navigate("company", { ticker: p.ticker, panel: "fundamentals" });
+                        }
+                      }}
+                    >
                       <td className="num px-3 py-2.5 font-bold">{p.ticker}</td>
                       <td className="px-3 py-2.5 hidden md:table-cell max-w-[240px] truncate text-muted-foreground">{dn(p, lang)}</td>
                       <td className="num px-3 py-2.5 text-end font-medium">{fmtNum(p.close)}</td>

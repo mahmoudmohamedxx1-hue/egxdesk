@@ -89,6 +89,8 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // T73 — the dialog root, for Tab focus containment
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // ── boot: mounted, chat restore, model restore (legacy ids reset) ──
   useEffect(() => {
@@ -317,12 +319,42 @@ export function AiAssistant({ open, setOpen }: { open: boolean; setOpen: React.D
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={dialogRef}
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             role="dialog"
+            aria-modal="true"
             aria-label={tt(T.aiAssistTitle, lang)}
+            /* T73 — FOCUS CONTAINMENT: a role="dialog" used to let Tab leak
+             * out into the page behind it (still scrollable and interactive).
+             * Tab now cycles inside the panel; Escape still closes. */
+            onKeyDown={(e) => {
+              if (e.key !== "Tab") return;
+              const root = dialogRef.current;
+              if (!root) return;
+              const focusables = Array.from(
+                root.querySelectorAll<HTMLElement>(
+                  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+                )
+              ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+              if (focusables.length === 0) return;
+              const first = focusables[0];
+              const last = focusables[focusables.length - 1];
+              const active = document.activeElement as HTMLElement | null;
+              if (e.shiftKey) {
+                if (!active || active === first || !root.contains(active)) {
+                  e.preventDefault();
+                  last.focus();
+                }
+              } else {
+                if (!active || active === last || !root.contains(active)) {
+                  e.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
             className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl
               inset-x-3 top-14 bottom-3
               sm:inset-auto sm:bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:end-6 sm:top-auto

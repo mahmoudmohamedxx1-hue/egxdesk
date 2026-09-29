@@ -27,10 +27,14 @@ export function UpdatesSubnav({ current }: { current: "today" | "disclosures" | 
               key={t.view}
               onClick={() => navigate(t.view)}
               aria-current={on ? "page" : undefined}
-              className={`min-h-11 rounded-lg border px-4 py-2 text-sm transition-colors ${
+              /* T73 — the active tab used to carry BOTH rounded-lg and
+               * rounded-none; Tailwind's stylesheet order let rounded-lg win,
+               * so the squared active style never actually applied. The
+               * classes are now mutually exclusive. */
+              className={`min-h-11 border px-4 py-2 text-sm transition-colors ${
                 on
                   ? "rounded-none border-b-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "rounded-lg border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {t.label}

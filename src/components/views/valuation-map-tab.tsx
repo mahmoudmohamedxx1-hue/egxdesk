@@ -621,10 +621,10 @@ export function ValuationMapTab({ data, rows }: { data: ValData; rows: ValRow[] 
 
         {/* zoom controls */}
         <div className="absolute bottom-2 start-2 flex items-center gap-1 text-xs">
-          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => zoomAt((PX0 + PX1) / 2, (PY0 + PY1) / 2, 1.3)} aria-label="zoom in">
+          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => zoomAt((PX0 + PX1) / 2, (PY0 + PY1) / 2, 1.3)} aria-label={lang === "ar" ? "تكبير" : "zoom in"}>
             <ZoomIn className="h-3.5 w-3.5" aria-hidden />
           </button>
-          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => zoomAt((PX0 + PX1) / 2, (PY0 + PY1) / 2, 1 / 1.3)} aria-label="zoom out">
+          <button className="rounded-md border bg-card/90 px-2 py-1 hover:bg-accent" onClick={() => zoomAt((PX0 + PX1) / 2, (PY0 + PY1) / 2, 1 / 1.3)} aria-label={lang === "ar" ? "تصغير" : "zoom out"}>
             <ZoomOut className="h-3.5 w-3.5" aria-hidden />
           </button>
           <button className="rounded-md border bg-card/90 px-2 py-1 tabular-nums hover:bg-accent" onClick={reset}>

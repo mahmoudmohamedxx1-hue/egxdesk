@@ -34,7 +34,10 @@ export function fmtValue(v: number | null | undefined): string {
 
 export function fmtPct(p: number | null | undefined, signed = true): string {
   if (p === null || p === undefined || !Number.isFinite(p)) return "—";
+  // T73 — kill negative zero: a flat print that rounds to -0.001 used to
+  // render "-0.00%" on screen; users read that as a real negative move.
   const s = p.toFixed(2);
+  if (s === "-0.00") return signed ? "+0.00%" : "0.00%";
   if (!signed) return `${s}%`;
   return `${p > 0 ? "+" : ""}${s}%`;
 }

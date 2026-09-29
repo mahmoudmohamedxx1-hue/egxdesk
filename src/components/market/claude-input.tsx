@@ -38,6 +38,8 @@ export function ClaudeInput({
   plusMenu,
   plusLabel,
   handleRef,
+  sendLabel = "send",
+  stopLabel = "stop",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -56,6 +58,10 @@ export function ClaudeInput({
   plusMenu?: ReactNode;
   plusLabel?: string;
   handleRef?: { current: ClaudeInputHandle | null };
+  /** T73 — localized accessible names for the send/stop buttons (were
+   * hardcoded English even in the Arabic UI) */
+  sendLabel?: string;
+  stopLabel?: string;
 }) {
   const taRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -151,8 +157,8 @@ export function ClaudeInput({
             <button
               type="button"
               onClick={onStop}
-              aria-label="stop"
-              title="stop"
+              aria-label={stopLabel}
+              title={stopLabel}
               className="ms-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95"
               style={{ backgroundColor: "var(--chat-accent)", color: "var(--chat-send-fg)" }}
             >
@@ -162,8 +168,8 @@ export function ClaudeInput({
             <button
               type="submit"
               disabled={!canSend}
-              aria-label="send"
-              title="send"
+              aria-label={sendLabel}
+              title={sendLabel}
               className={`ms-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all ${
                 canSend ? "hover:opacity-90 active:scale-95" : "cursor-not-allowed opacity-40"
               }`}

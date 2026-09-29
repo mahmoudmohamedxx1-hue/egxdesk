@@ -31,9 +31,11 @@
  *  financial-impact explainers, ticker attribution with the volume context,
  *  and 🔊 استمع (browser TTS, ar-EG) speaking headline + impact. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../market/app-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { T, tt } from "@/lib/i18n";
 import { UpdatesSubnav } from "./updates-subnav";
 
 type FeedItem = {
@@ -142,21 +144,35 @@ export function UpdatesNewsView() {
   const [shown, setShown] = useState(PAGE);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const mounted = useRef(true);
+  // T73 — a real retry affordance: the error card said "try again" but the
+  // fetch was one-shot on mount, so the only way was a full page reload
+  const [retrying, setRetrying] = useState(false);
 
-  useEffect(() => {
-    mounted.current = true;
+  const loadFeed = useCallback(() => {
+    setRetrying(true);
     fetch("/api/news-feed")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("feed"))))
       .then((d: FeedData) => {
-        if (mounted.current) setData(d);
+        if (mounted.current) {
+          setData(d);
+          setError(false);
+        }
       })
       .catch(() => {
         if (mounted.current) setError(true);
+      })
+      .finally(() => {
+        if (mounted.current) setRetrying(false);
       });
+  }, []);
+
+  useEffect(() => {
+    mounted.current = true;
+    loadFeed();
     return () => {
       mounted.current = false;
     };
-  }, []);
+  }, [loadFeed]);
 
   // stop TTS on unmount
   useEffect(() => () => {
@@ -206,6 +222,12 @@ export function UpdatesNewsView() {
             <p className="text-sm text-muted-foreground">
               {lang === "ar" ? "تعذّر الوصول إلى مصادر الأخبار الآن — أعد المحاولة." : "News sources unreachable right now — try again."}
             </p>
+            {/* T73 — the card finally does what it says */}
+            <div>
+              <Button size="sm" variant="outline" onClick={loadFeed} disabled={retrying}>
+                {retrying ? tt(T.loading, lang) : tt(T.retry, lang)}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

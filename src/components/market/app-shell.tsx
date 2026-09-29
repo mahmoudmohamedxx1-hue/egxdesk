@@ -83,6 +83,7 @@ const ResearchView = dynamic(() => import("@/components/views/research-view").th
 /* The same import specifiers the dynamic() loaders use — firing one in idle
  * time warms exactly the chunk dynamic() will need, without rendering it. */
 const VIEW_IMPORTS: { name: string; load: () => Promise<unknown> }[] = [
+  { name: "home", load: () => import("@/components/views/overview-view") },
   { name: "market", load: () => import("@/components/views/market-view") },
   { name: "screener", load: () => import("@/components/views/screener-view") },
   { name: "signals", load: () => import("@/components/views/signals-view") },
@@ -105,6 +106,19 @@ const VIEW_IMPORTS: { name: string; load: () => Promise<unknown> }[] = [
   { name: "reports", load: () => import("@/components/views/reports-view") },
   { name: "paper", load: () => import("@/components/views/paper-view") },
   { name: "api", load: () => import("@/components/views/api-docs-view") },
+  // T73 — the idle warm-up used to miss these nine entirely (its own
+  // comment claimed "the rest are warmed in idle time"): first navigation
+  // to each downloaded its chunk COLD — a skeleton flash the feature
+  // exists to prevent. Same import specifiers the dynamic() loaders use.
+  { name: "disclosures", load: () => import("@/components/views/disclosures-view") },
+  { name: "crossings", load: () => import("@/components/views/crossings-view") },
+  { name: "valuation", load: () => import("@/components/views/valuation-view") },
+  { name: "pairs", load: () => import("@/components/views/pairs-view") },
+  { name: "world", load: () => import("@/components/views/world-view") },
+  { name: "scenarios", load: () => import("@/components/views/scenarios-view") },
+  { name: "fragility", load: () => import("@/components/views/fragility-view") },
+  { name: "research", load: () => import("@/components/views/research-view") },
+  { name: "news", load: () => import("@/components/views/news-view") },
 ];
 
 /** Warm the not-yet-loaded view chunks AFTER first paint, one per idle slot

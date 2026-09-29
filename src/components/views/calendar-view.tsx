@@ -136,11 +136,11 @@ export function CalendarView() {
            *  sits beside the agenda on large screens */}
           <div className="rounded-lg border bg-card p-2.5 sm:p-3 mx-auto w-full max-w-[420px] lg:mx-0 lg:max-w-none">
             <div className="flex items-center justify-between mb-2">
-              <Button variant="ghost" size="sm" onClick={() => setMonthOffset((m) => m - 1)} aria-label="previous month">
+              <Button variant="ghost" size="sm" onClick={() => setMonthOffset((m) => m - 1)} aria-label={lang === "ar" ? "الشهر السابق" : "previous month"}>
                 <ChevronRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
               </Button>
               <p className="text-sm font-semibold num">{monthLabel}</p>
-              <Button variant="ghost" size="sm" onClick={() => setMonthOffset((m) => Math.min(m + 1, 6))} aria-label="next month">
+              <Button variant="ghost" size="sm" onClick={() => setMonthOffset((m) => Math.min(m + 1, 6))} aria-label={lang === "ar" ? "الشهر التالي" : "next month"}>
                 <ChevronLeft className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" />
               </Button>
             </div>

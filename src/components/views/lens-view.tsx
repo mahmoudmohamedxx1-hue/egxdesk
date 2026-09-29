@@ -333,6 +333,39 @@ const fmtShares = (n: number): string => {
   return `${Math.round(n)}`;
 };
 
+/** T73 — localized archive date with LATIN digits: the lens is a numeric
+ *  surface (tickers, percentages, share counts are all western digits), so
+ *  Arabic-Indic numerals on the same screen flip numeral systems mid-view.
+ *  Arabic month names + Latin digits — the convention Egyptian financial
+ *  media use. */
+const fmtAsOf = (iso: string, lang: Lang): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  try {
+    return d.toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return iso.slice(0, 10);
+  }
+};
+
+/** T73 — compact bilingual cap label for the ring captions: adaptive
+ *  magnitude (0.8B used to round UP to "1B" — a lie at that size) and a
+ *  real Arabic unit in AR mode instead of a bare English "B". */
+const capLabel = (c: LensCompany, lang: Lang): string => {
+  if (c.marketCap == null || !Number.isFinite(c.marketCap)) return "—";
+  const b = c.marketCap / 1e9;
+  if (b >= 10) return `${b.toFixed(0)}${lang === "ar" ? " مليار ج" : "B"}`;
+  if (b >= 1) return `${b.toFixed(1)}${lang === "ar" ? " مليار ج" : "B"}`;
+  return `${(c.marketCap / 1e6).toFixed(0)}${lang === "ar" ? " مليون ج" : "M"}`;
+};
+
+/** T73 — estimated SHARES behind a filed stake: pct × (market cap ÷ close).
+ *  Null when the price/cap is unknown — never a fabricated number. */
+function stakeShares(company: LensCompany | undefined, pct: number): number | null {
+  if (!company || company.marketCap == null || company.close == null || company.close <= 0) return null;
+  return (pct / 100) * (company.marketCap / company.close);
+}
+
 // ── the view ────────────────────────────────────────────────────────────────
 
 type Focus = { type: "company"; ticker: string } | { type: "holder"; h: number } | null;
@@ -452,6 +485,16 @@ export function LensView() {
       setWeekIdx(Math.max(0, Number(w)));
     }
   }, []);
+  // T73 — clamp a bogus ?week= once the payload is in: a deep link can
+  // carry an out-of-range index (or the archive can shrink on a refresh) —
+  // the strip used to show no selection at all while the URL kept the
+  // impossible value. Snap to the newest real week instead.
+  useEffect(() => {
+    if (!data || weekIdx == null) return;
+    if (weekIdx >= data.periods.length) {
+      setWeekIdx(data.periods.length ? data.periods.length - 1 : null);
+    }
+  }, [data, weekIdx]);
   useEffect(() => {
     patchUrlParams({
       focus: focus ? (focus.type === "company" ? `t:${focus.ticker}` : `h:${focus.h}`) : null,
@@ -532,7 +575,17 @@ export function LensView() {
       for (const p of sorted) {
         const span = (p.p * scale / 100) * Math.PI * 2;
         if (span > 0.0035) {
-          slices.push({ h: p.h, pct: p.p, a0: a, a1: a + span, color: holderColor(data.people[p.h]?.n ?? String(p.h)) });
+          const color = holderColor(data.people[p.h]?.n ?? String(p.h));
+          if (span >= Math.PI * 2 - 0.002) {
+            // T73 — a sole 100% stake: a single 2π arc renders NOTHING in
+            // SVG (coincident endpoints → the arc segment is omitted and
+            // the ring stays grey). Draw it as two half-arcs so the ring
+            // actually wears its holder's color.
+            slices.push({ h: p.h, pct: p.p, a0: a, a1: a + span / 2, color });
+            slices.push({ h: p.h, pct: p.p, a0: a + span / 2, a1: a + span, color });
+          } else {
+            slices.push({ h: p.h, pct: p.p, a0: a, a1: a + span, color });
+          }
         }
         a += span;
       }
@@ -906,20 +959,51 @@ export function LensView() {
     return { rows, totalValue, valuedCount };
   })();
 
-  // T71 — the investor BRIEF (the user's ask): a written, data-grounded
-  // paragraph about the focused holder — kind, footprint, biggest holding,
-  // total filed-stake value, his disclosed move record (count + the latest
-  // move with its concrete share quantity) and his recent net direction.
-  // Every number comes from the official filings / the live universe —
-  // nothing is invented.
+  // T73 — RANK BY VALUE among all named parties on the board. The register
+  // itself stays alphabetical BY POLICY (never ranked) — this map only feeds
+  // one factual sentence in the brief ("his filed stakes rank #N by value
+  // among the M named parties"), computed exactly like the brief's own
+  // values: every stake's pct × the live market cap of its company.
+  const holderValueRank = useMemo(() => {
+    if (!data || !layout) return null;
+    const totals = new Map<number, number>();
+    for (const p of data.positions) {
+      const ring = layout.byTicker.get(p.t);
+      if (!ring?.company.marketCap) continue;
+      totals.set(p.h, (totals.get(p.h) ?? 0) + (p.p / 100) * ring.company.marketCap);
+    }
+    const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    const rankOf = new Map<number, number>();
+    ranked.forEach(([h], i) => rankOf.set(h, i + 1));
+    return { rankOf, total: ranked.length };
+  }, [data, layout]);
+
+  // T73 — the investor BRIEF, now a full IDENTITY profile (the user's ask:
+  // "richer and deeper description for investor identity"). Everything is
+  // data-grounded from the official filings / the live universe — nothing
+  // invented: kind + bilingual names + the spellings the filings absorbed,
+  // how long he has been on the record, register-vs-trade filing basis,
+  // concentration style, rank by value, cross-holding network presence, the
+  // recent move record with share quantities, and buys/sells split.
   const holderBrief = (() => {
     if (focusState?.kind !== "holder" || !holderPortfolio) return null;
     const h = focusState.h;
     const rows = holderPortfolio.rows;
-    const sectors = new Set(
-      rows.map((r) => (r.ring ? (lang === "ar" ? r.ring.company.sectorAr : r.ring.company.sectorEn) : "")).filter(Boolean)
-    );
+    const person = data.people[h] ?? null;
+    // sector footprint: count of companies AND share of portfolio value
+    const sectorCounts = new Map<string, { n: number; value: number }>();
+    for (const r of rows) {
+      if (!r.ring) continue;
+      const s = lang === "ar" ? r.ring.company.sectorAr : r.ring.company.sectorEn;
+      if (!s) continue;
+      const cur = sectorCounts.get(s) ?? { n: 0, value: 0 };
+      cur.n += 1;
+      cur.value += r.value ?? 0;
+      sectorCounts.set(s, cur);
+    }
+    const sectorList = [...sectorCounts.entries()].sort((a, b) => b[1].value - a[1].value);
     const biggest = rows[0] ?? null;
+    // the move record, newest period first (the API lists periods that way)
     const moves: { per: string; ticker: string; from: number | null; to: number | null; c: number | null }[] = [];
     for (const per of data.periods) {
       for (const m of per.m) {
@@ -928,17 +1012,54 @@ export function LensView() {
     }
     const latest = moves[0] ?? null;
     const latestSz = latest ? moveSize(data.companies.find((c) => c.ticker === latest.ticker), latest.c) : null;
+    const recent = moves.slice(0, 4).map((m) => ({
+      ...m,
+      sz: moveSize(data.companies.find((c) => c.ticker === m.ticker), m.c),
+    }));
     const netRecent = moves.slice(0, 3).reduce((s, m) => s + (m.c ?? 0), 0);
+    const buys = moves.filter((m) => (m.c ?? 0) > 0).length;
+    const sells = moves.filter((m) => (m.c ?? 0) < 0).length;
+    // tenure: the earliest dated filing among his standing positions (this
+    // archive only — phrased honestly as such, never "active since" in
+    // absolute terms)
+    const dates = focusState.holdings.map((p) => (p.a ? Date.parse(p.a) : NaN)).filter(Number.isFinite);
+    const since = dates.length ? new Date(Math.min(...dates)) : null;
+    const sinceIso = since ? since.toISOString().slice(0, 10) : null;
+    const latestFilingIso = focusState.holdings.reduce<string | null>((acc, p) => (p.a && (!acc || p.a > acc) ? p.a : acc), null);
+    // filing basis split: shareholders' register vs disclosed trades
+    const registerCount = focusState.holdings.filter((p) => p.b === "r").length;
+    const tradeCount = focusState.holdings.filter((p) => p.b === "t").length;
+    // concentration: the biggest holding's share of his total filed value
+    const concentration =
+      holderPortfolio.totalValue > 0 && biggest?.value != null ? biggest.value / holderPortfolio.totalValue : null;
+    const rank = holderValueRank ? holderValueRank.rankOf.get(h) ?? null : null;
+    // listed-to-listed cross-holding networks his companies take part in
+    const hisTickers = new Set(focusState.rings.map((r) => r.ticker));
+    const crossCount = data.cross.filter((c) => hisTickers.has(c.o) || hisTickers.has(c.d)).length;
     return {
-      isFirm: data.people[h]?.k === "f",
-      sectorCount: sectors.size,
+      person,
+      isFirm: person?.k === "f",
+      alts: person?.alts ?? [],
+      sectorCount: sectorCounts.size,
+      sectorList,
       biggest,
       moves,
       latest,
       latestSz,
+      recent,
       netRecent,
+      buys,
+      sells,
       totalValue: holderPortfolio.totalValue,
       companies: focusState.rings.length,
+      sinceIso,
+      latestFilingIso,
+      registerCount,
+      tradeCount,
+      concentration,
+      rank,
+      rankTotal: holderValueRank?.total ?? 0,
+      crossCount,
     };
   })();
 
@@ -967,7 +1088,7 @@ export function LensView() {
               }
             >
               <span className={`size-1.5 rounded-full ${stats.fresh ? "animate-pulse bg-emerald-500" : "bg-amber-500"}`} />
-              {lang === "ar" ? "تحديث تلقائي يومي · آخر تحديث" : "auto daily · updated"} <b>{stats.asOf.slice(0, 10)}</b>
+              {lang === "ar" ? "تحديث تلقائي يومي · آخر تحديث" : "auto daily · updated"} <b>{fmtAsOf(stats.asOf, lang)}</b>
             </span>
           )}
         </div>
@@ -1017,8 +1138,11 @@ export function LensView() {
           className="rounded-full border bg-card px-2.5 py-1 hover:bg-accent"
           title={lang === "ar" ? "تشغيل الأسابيع" : "play weeks"}
           onClick={() => {
+            // T73 — ▶ at the end restarts the replay from week 0 (see the
+            // fullscreen twin above for the full story)
+            const atEnd = weekIdx != null && weekIdx >= data.periods.length - 1;
             setPlaying((p) => !p);
-            if (weekIdx === null) setWeekIdx(0);
+            if (!playing && (weekIdx === null || atEnd)) setWeekIdx(0);
           }}
         >
           {playing ? "⏸" : "▶"}
@@ -1035,7 +1159,7 @@ export function LensView() {
                 setWeekIdx(weekIdx === i ? null : i);
               }}
             >
-              {per.l} · {per.n} {lang === "ar" ? "تحرّك" : "moves"}
+              {per.l} · {per.n} {lang === "ar" ? "تحرّك" : per.n === 1 ? "move" : "moves"}
             </button>
           ))}
         </div>
@@ -1097,8 +1221,13 @@ export function LensView() {
                 className="rounded-full border bg-background/60 px-2 py-0.5 hover:bg-accent"
                 title={lang === "ar" ? "تشغيل الأسابيع" : "play weeks"}
                 onClick={() => {
+                  // T73 — ▶ at the END of the archive restarts from week 0:
+                  // the old handler left weekIdx at the last index, so the
+                  // interval computed next = length → instantly stopped —
+                  // a replay could never be watched twice.
+                  const atEnd = weekIdx != null && weekIdx >= data.periods.length - 1;
                   setPlaying((p) => !p);
-                  if (weekIdx === null) setWeekIdx(0);
+                  if (!playing && (weekIdx === null || atEnd)) setWeekIdx(0);
                 }}
               >
                 {playing ? "⏸" : "▶"}
@@ -1127,9 +1256,16 @@ export function LensView() {
               ask: it used to appear only in fullscreen), so clicking ▶ or a
               period shows the ranked moves next to the arcs themselves. */}
           {weekMoves && (
-            <div className="absolute top-12 right-2 z-20 w-[300px] max-h-[70%] overflow-auto rounded-xl border bg-card/95 p-3 text-xs shadow-xl backdrop-blur thin-scroll">
+            <div
+              className={`absolute top-12 right-2 z-20 w-[300px] overflow-auto rounded-xl border bg-card/95 p-3 text-xs shadow-xl backdrop-blur thin-scroll ${
+                /* T73 — collision guard: when the investor brief is open over the
+                 * board, the week summary shrinks so the two overlays never paint
+                 * over one another on short viewports (70% + 64% > 100%). */
+                focusState?.kind === "holder" && holderBrief && !briefClosed ? "max-h-[45%]" : "max-h-[70%]"
+              }`}
+            >
               <p className="font-bold mb-1">
-                {weekMoves.period.l} · {weekMoves.period.m.length} {lang === "ar" ? "تحركًا" : "moves"}
+                {weekMoves.period.l} · {weekMoves.period.m.length} {lang === "ar" ? (weekMoves.period.m.length === 1 ? "تحرك واحد" : "تحركات") : weekMoves.period.m.length === 1 ? "move" : "moves"}
               </p>
               {[...weekMoves.period.m]
                 .sort((a, b) => Math.abs(b.c ?? 0) - Math.abs(a.c ?? 0))
@@ -1157,7 +1293,11 @@ export function LensView() {
                             setFocus({ type: "holder", h: m.h });
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
+                            // T73 — role="button" needs BOTH activation keys
+                            // (WAI-ARIA): Space was missing, keyboard users
+                            // could not open the brief from here
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
                               e.stopPropagation();
                               setFocus({ type: "holder", h: m.h });
                             }
@@ -1440,7 +1580,7 @@ export function LensView() {
                               style={{ fill: "var(--lens-ink-soft)" }}
                               className="pointer-events-none"
                             >
-                              {(ring.company.marketCap / 1e9).toFixed(0)}B
+                              {capLabel(ring.company, lang)}
                             </text>
                           )}
                         </>
@@ -1630,13 +1770,24 @@ export function LensView() {
               aria-label={lang === "ar" ? "ملخص المستثمر" : "investor brief"}
               className="absolute bottom-10 right-2 z-20 flex max-h-[64%] w-[300px] max-w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl border bg-card/95 text-xs shadow-2xl backdrop-blur md:bottom-2"
             >
-              {/* header: who he is + dismiss */}
+              {/* header: who he is — full bilingual identity + rank + dismiss */}
               <div className="flex items-start justify-between gap-2 border-b bg-background/40 px-3 py-2">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-bold leading-snug">
                     <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: holderColorOf(focusState.h) }} />
                     <span className="truncate">{personName(focusState.h)}</span>
                   </p>
+                  {/* the OTHER name: Arabic UI shows the English filing name
+                   * and vice versa — the full bilingual identity, not just one */}
+                  {holderBrief.person && lang === "ar" && holderBrief.person.e ? (
+                    <p className="mt-0.5 truncate text-[10px] italic text-muted-foreground" dir="auto">
+                      {holderBrief.person.e}
+                    </p>
+                  ) : holderBrief.person && lang === "en" && holderBrief.person.n !== holderBrief.person.e ? (
+                    <p className="mt-0.5 truncate text-[10px] italic text-muted-foreground" dir="auto">
+                      {holderBrief.person.n}
+                    </p>
+                  ) : null}
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
                     {data.people[focusState.h]?.k === "f"
                       ? lang === "ar"
@@ -1647,7 +1798,13 @@ export function LensView() {
                         : "person"}
                     {" · "}
                     {focusState.rings.length}{" "}
-                    {lang === "ar" ? "شركة مدرجة" : focusState.rings.length === 1 ? "listed company" : "listed companies"}
+                    {lang === "ar"
+                      ? focusState.rings.length === 1
+                        ? "شركة مدرجة"
+                        : "شركات مدرجة"
+                      : focusState.rings.length === 1
+                        ? "listed company"
+                        : "listed companies"}
                     {holderBrief.sectorCount > 0 &&
                       ` · ${holderBrief.sectorCount} ${
                         lang === "ar"
@@ -1659,6 +1816,14 @@ export function LensView() {
                             : "sectors"
                       }`}
                   </p>
+                  {/* T73 — his standing on the board, by filed-stakes value */}
+                  {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
+                    <p className="mt-1 inline-flex items-center gap-1 rounded-full border bg-secondary/50 px-1.5 py-px text-[9.5px] text-muted-foreground">
+                      {lang === "ar" ? "الترتيب بقيمة الحصص المعلنة" : "by filed-stakes value"}:{" "}
+                      <b className="num">#{holderBrief.rank}</b> {lang === "ar" ? "من" : "of"}{" "}
+                      <b className="num">{holderBrief.rankTotal.toLocaleString("en-GB")}</b>
+                    </p>
+                  )}
                 </div>
                 <button
                   className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -1671,29 +1836,16 @@ export function LensView() {
                 </button>
               </div>
 
-              {/* body: the data about this investor */}
+              {/* body: the investor's IDENTITY + data — richer & deeper (T73) */}
               <div className="min-h-0 flex-1 space-y-2.5 overflow-auto px-3 py-2.5 thin-scroll">
-                {/* filed-stakes value headline */}
-                <div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {lang === "ar" ? "قيمة الحصص المعلنة (بالأسعار الحالية)" : "filed-stakes value (at current prices)"}
-                  </p>
-                  <p className="text-sm font-bold tabular-nums">
-                    {fmtEgp(holderPortfolio.totalValue, lang)}
-                    {holderPortfolio.valuedCount < holderPortfolio.rows.length && (
-                      <span className="ms-1 text-[10px] font-normal text-muted-foreground">
-                        ({holderPortfolio.valuedCount}/{holderPortfolio.rows.length} {lang === "ar" ? "مقيّمة" : "valued"})
-                      </span>
-                    )}
-                  </p>
-                </div>
-
-                {/* the written brief — condensed, data-grounded */}
+                {/* the identity paragraph — a written, data-grounded profile */}
                 <p className="leading-relaxed text-[11px]">
                   {lang === "ar" ? (
                     <>
                       {personName(focusState.h)}{" "}
-                      {holderBrief.isFirm ? "كيان ورد اسمه في الإفصاحات الرسمية كمالك أو عضو مجلس في" : "شخص طبيعي ورد اسمه في الإفصاحات الرسمية كمالك أو عضو مجلس في"}{" "}
+                      {holderBrief.isFirm
+                        ? "كيان (شركة أو صندوق) ورد اسمه في إفصاحات الملكية الرسمية للبورصة المصرية كمالك أو عضو مجلس إدارة في"
+                        : "شخص طبيعي ورد اسمه في إفصاحات الملكية الرسمية للبورصة المصرية كمالك أو عضو مجلس إدارة في"}{" "}
                       <b>{holderBrief.companies}</b>{" "}
                       {holderBrief.companies === 1 ? "شركة مدرجة واحدة" : "شركات مدرجة"}
                       {holderBrief.sectorCount > 1 && (
@@ -1702,16 +1854,75 @@ export function LensView() {
                         </>
                       )}
                       .
-                      {holderBrief.biggest?.value != null && (
+                      {holderBrief.alts.length > 0 && (
                         <>
-                          {" "}أكبر حصصه المعلنة في <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}% · ≈{fmtEgp(holderBrief.biggest.value, lang)}).
+                          {" "}ورد اسمه في النشرات أيضًا بصيغ:{" "}
+                          <span className="italic">{holderBrief.alts.slice(0, 3).join(" · ")}</span>.
+                        </>
+                      )}
+                      {holderBrief.sinceIso && (
+                        <>
+                          {" "}أقدم حصة مؤرخة له في أرشيف الإفصاحات تعود إلى <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>
+                          {holderBrief.latestFilingIso && holderBrief.latestFilingIso > holderBrief.sinceIso
+                            ? ` (آخر إفصاح مؤرّخ: ${fmtAsOf(holderBrief.latestFilingIso, lang)})`
+                            : ""}
+                          .
+                        </>
+                      )}
+                      {holderBrief.concentration != null &&
+                        holderBrief.concentration >= 0.05 &&
+                        (holderBrief.companies === 1 ? (
+                          <>
+                            {" "}حضوره المعلن محصور في شركة واحدة.
+                          </>
+                        ) : (
+                          <>
+                            {" "}
+                            {holderBrief.concentration >= 0.7 ? "محفظته شديدة التركّز — " : ""}
+                            أكبر حصصه المعلنة في <b dir="ltr">{holderBrief.biggest?.p.t}</b> (
+                            {fmtPct(holderBrief.biggest?.p.p ?? 0)}% · ≈{fmtEgp(holderBrief.biggest?.value ?? null, lang)}) تمثل{" "}
+                            <b>{Math.round(holderBrief.concentration * 100)}%</b> من قيمة حصصه المعلنة.
+                          </>
+                        ))}
+                      {holderBrief.registerCount > 0 && holderBrief.tradeCount > 0 ? (
+                        <>
+                          {" "}حصصه موزعة بين <b>{holderBrief.registerCount}</b>{" "}
+                          {holderBrief.registerCount === 1 ? "حصة" : "حصص"} في سجل الملكية و
+                          <b>{holderBrief.tradeCount}</b> {" "}
+                          {holderBrief.tradeCount === 1 ? "حصة أعلنت عبر صفقة" : "حصص أعلنت عبر صفقات"}.
+                        </>
+                      ) : holderBrief.tradeCount > 0 ? (
+                        <>
+                          {" "}كل حصصه أعلنت عبر صفقات مؤيدة بالكتلة.
+                        </>
+                      ) : holderBrief.registerCount > 0 ? (
+                        <>
+                          {" "}كل حصصه مسجلة في سجل الملكية.
+                        </>
+                      ) : null}
+                      {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
+                        <>
+                          {" "}بقيمة حصصه المعلنة يقع في{" "}
+                          <b>
+                            المرتبة #{holderBrief.rank} من {holderBrief.rankTotal.toLocaleString("en-GB")}
+                          </b>{" "}
+                          طرفًا مذكورًا على اللوحة.
+                        </>
+                      )}
+                      {holderBrief.crossCount > 0 && (
+                        <>
+                          {" "}شركاته تدخل في شبكات الملكية المتقاطعة بين الشركات المدرجة (
+                          <b>{holderBrief.crossCount}</b>{" "}
+                          {holderBrief.crossCount === 1 ? "علاقة" : "علاقات"}).
                         </>
                       )}
                     </>
                   ) : (
                     <>
                       {personName(focusState.h)} is{" "}
-                      {holderBrief.isFirm ? "an entity named in the official disclosures as a holder or board member in" : "an individual named in the official disclosures as a holder or board member in"}{" "}
+                      {holderBrief.isFirm
+                        ? "an entity (firm / fund) named in the Egyptian Exchange's official ownership disclosures as a holder or board member in"
+                        : "an individual named in the Egyptian Exchange's official ownership disclosures as a holder or board member in"}{" "}
                       <b>
                         {holderBrief.companies === 1 ? "one listed company" : `${holderBrief.companies} listed companies`}
                       </b>
@@ -1721,48 +1932,167 @@ export function LensView() {
                         </>
                       )}
                       .
-                      {holderBrief.biggest?.value != null && (
+                      {holderBrief.alts.length > 0 && (
                         <>
-                          {" "}Largest filed stake: <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}% · est. {fmtEgp(holderBrief.biggest.value, lang)}).
+                          {" "}Also filed under the spellings:{" "}
+                          <span className="italic">{holderBrief.alts.slice(0, 3).join(" · ")}</span>.
+                        </>
+                      )}
+                      {holderBrief.sinceIso && (
+                        <>
+                          {" "}His earliest dated stake in the disclosure archive is from{" "}
+                          <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>
+                          {holderBrief.latestFilingIso && holderBrief.latestFilingIso > holderBrief.sinceIso
+                            ? ` (latest dated filing: ${fmtAsOf(holderBrief.latestFilingIso, lang)})`
+                            : ""}
+                          .
+                        </>
+                      )}
+                      {holderBrief.concentration != null &&
+                        holderBrief.concentration >= 0.05 &&
+                        (holderBrief.companies === 1 ? (
+                          <>
+                            {" "}His disclosed presence is confined to a single company.
+                          </>
+                        ) : (
+                          <>
+                            {" "}
+                            {holderBrief.concentration >= 0.7 ? "A highly concentrated portfolio — " : ""}
+                            his largest filed stake, <b dir="ltr">{holderBrief.biggest?.p.t}</b> (
+                            {fmtPct(holderBrief.biggest?.p.p ?? 0)}% · est. {fmtEgp(holderBrief.biggest?.value ?? null, lang)}), is{" "}
+                            <b>{Math.round(holderBrief.concentration * 100)}%</b> of his filed-stakes value.
+                          </>
+                        ))}
+                      {holderBrief.registerCount > 0 && holderBrief.tradeCount > 0 ? (
+                        <>
+                          {" "}Positions split between <b>{holderBrief.registerCount}</b> on the shareholders' register and{" "}
+                          <b>{holderBrief.tradeCount}</b> disclosed via block trades.
+                        </>
+                      ) : holderBrief.tradeCount > 0 ? (
+                        <>
+                          {" "}All his stakes were disclosed via block trades.
+                        </>
+                      ) : holderBrief.registerCount > 0 ? (
+                        <>
+                          {" "}All his stakes sit on the shareholders' register.
+                        </>
+                      ) : null}
+                      {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
+                        <>
+                          {" "}By filed-stakes value he ranks{" "}
+                          <b>
+                            #{holderBrief.rank} of {holderBrief.rankTotal.toLocaleString("en-GB")}
+                          </b>{" "}
+                          named parties on the board.
+                        </>
+                      )}
+                      {holderBrief.crossCount > 0 && (
+                        <>
+                          {" "}His companies take part in listed-to-listed cross-holding networks (
+                          <b>{holderBrief.crossCount}</b> {holderBrief.crossCount === 1 ? "edge" : "edges"}).
                         </>
                       )}
                     </>
                   )}
                 </p>
 
-                {/* latest documented move, in concrete terms */}
-                {holderBrief.latest && (
+                {/* the numbers at a glance — a 2×2 stats grid */}
+                <div className="grid grid-cols-2 gap-1.5">
                   <div className="rounded-lg border bg-background/60 px-2 py-1.5">
-                    <p className="text-[10px] text-muted-foreground">
-                      {lang === "ar" ? "أحدث تحرك موثّق" : "latest documented move"} · {holderBrief.latest.per}
+                    <p className="text-[9.5px] text-muted-foreground">
+                      {lang === "ar" ? "قيمة الحصص المعلنة" : "filed-stakes value"}
                     </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <b className="rounded bg-secondary px-1 text-[10px]" dir="ltr">
-                        {holderBrief.latest.ticker}
-                      </b>
-                      {holderBrief.latest.from != null && holderBrief.latest.to != null ? (
-                        <span className="tabular-nums" dir="ltr">
-                          {fmtPct(holderBrief.latest.from)}% →{" "}
-                          <b className={(holderBrief.latest.to ?? 0) >= (holderBrief.latest.from ?? 0) ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                            {fmtPct(holderBrief.latest.to)}%
-                          </b>
+                    <p className="text-xs font-bold tabular-nums">
+                      {fmtEgp(holderPortfolio.totalValue, lang)}
+                      {holderPortfolio.valuedCount < holderPortfolio.rows.length && (
+                        <span className="ms-1 text-[9px] font-normal text-muted-foreground">
+                          ({holderPortfolio.valuedCount}/{holderPortfolio.rows.length}{" "}
+                          {lang === "ar" ? "مقيّمة" : "valued"})
                         </span>
-                      ) : (
-                        <span>{lang === "ar" ? "تحرك في الحصة" : "a stake move"}</span>
                       )}
-                      <span className="text-[10px] text-muted-foreground">
-                        · {holderBrief.moves.length} {lang === "ar" ? "تحركًا موثّقًا إجمالًا" : "documented moves in all"}
-                      </span>
                     </p>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 px-2 py-1.5">
+                    <p className="text-[9.5px] text-muted-foreground">
+                      {lang === "ar" ? "تحركات موثّقة" : "documented moves"}
+                    </p>
+                    <p className="text-xs font-bold tabular-nums">
+                      {holderBrief.moves.length.toLocaleString("en-GB")}
+                      {holderBrief.buys + holderBrief.sells > 0 && (
+                        <span className="ms-1 text-[9px] font-normal text-muted-foreground" dir="ltr">
+                          {" "}
+                          ({holderBrief.buys}▲ / {holderBrief.sells}▼)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 px-2 py-1.5">
+                    <p className="text-[9.5px] text-muted-foreground">{lang === "ar" ? "أقدم إفصاح" : "first filing"}</p>
+                    <p className="text-xs font-bold tabular-nums">
+                      {holderBrief.sinceIso ? fmtAsOf(holderBrief.sinceIso, lang) : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-background/60 px-2 py-1.5">
+                    <p className="text-[9.5px] text-muted-foreground">{lang === "ar" ? "أساس الحصص" : "stake basis"}</p>
+                    <p className="text-xs font-bold tabular-nums" dir={lang === "ar" ? "rtl" : "ltr"}>
+                      {lang === "ar"
+                        ? `${holderBrief.registerCount} سجل · ${holderBrief.tradeCount} صفقة`
+                        : `${holderBrief.registerCount} reg · ${holderBrief.tradeCount} trade`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* the move record — not just the latest: the last four
+                 * documented moves, each with from→to, the ±% of company
+                 * equity, and the estimated share quantity + EGP value */}
+                {holderBrief.recent.length > 0 && (
+                  <div className="rounded-lg border bg-background/60 px-2 py-1.5 space-y-1">
+                    <p className="text-[9.5px] text-muted-foreground">
+                      {lang === "ar"
+                        ? `أحدث التحركات الموثّقة (${holderBrief.moves.length} إجمالًا)`
+                        : `latest documented moves (${holderBrief.moves.length} in all)`}
+                    </p>
+                    {holderBrief.recent.map((m, i) => {
+                      const up = (m.c ?? 0) >= 0;
+                      return (
+                        <button
+                          key={`${m.per}-${m.ticker}-${i}`}
+                          onClick={() => setFocus({ type: "company", ticker: m.ticker })}
+                          className="flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-start hover:bg-accent/50"
+                          title={
+                            lang === "ar"
+                              ? `افتح ملف ملكية ${m.ticker} — ${m.per}`
+                              : `open ${m.ticker}'s ownership profile — ${m.per}`
+                          }
+                        >
+                          <span className="min-w-0 truncate text-[10px] text-muted-foreground">
+                            <b className="rounded bg-secondary px-1 text-[9.5px] text-foreground/80" dir="ltr">
+                              {m.ticker}
+                            </b>{" "}
+                            {m.per}
+                          </span>
+                          <span className="shrink-0 text-[10px] tabular-nums" dir="ltr">
+                            {m.from != null && m.to != null ? `${fmtPct(m.from)}% → ${fmtPct(m.to)}%` : m.to != null ? `${fmtPct(m.to)}%` : "—"}
+                            {" "}
+                            <b className={up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                              {up ? "+" : ""}
+                              {(m.c ?? 0).toFixed(2)}%
+                            </b>
+                          </span>
+                        </button>
+                      );
+                    })}
                     {holderBrief.latestSz && (
-                      <p className="mt-0.5 tabular-nums text-[10px] text-muted-foreground">
-                        ≈ {fmtShares(holderBrief.latestSz.shares)} {lang === "ar" ? "سهم" : "shares"} · ≈ {fmtEgp(holderBrief.latestSz.valueEgp, lang)}
+                      <p className="tabular-nums text-[9.5px] text-muted-foreground" title={lang === "ar" ? "حجم أحدث تحرك: الكمية المقدّرة من الأسهم وقيمتها بالسعر الحالي" : "the latest move's size: estimated share quantity and its value at the current price"}>
+                        {lang === "ar" ? "أحدث تحرك ≈ " : "latest move ≈ "}
+                        <b>{fmtShares(holderBrief.latestSz.shares)}</b> {lang === "ar" ? "سهم" : "shares"} · ≈{" "}
+                        <b>{fmtEgp(holderBrief.latestSz.valueEgp, lang)}</b>
                       </p>
                     )}
                   </div>
                 )}
 
-                {/* recent net direction */}
+                {/* recent net direction — with the buys/sells split */}
                 {holderBrief.moves.length >= 3 && (
                   <p className="text-[11px]">
                     {lang === "ar" ? "صافي آخر تحركاته: " : "recent net direction: "}
@@ -1775,34 +2105,73 @@ export function LensView() {
                           ? "بيعي — يخفف مراكزه"
                           : "reducing — net seller"}
                     </b>
+                    {holderBrief.buys + holderBrief.sells > 0 && (
+                      <span className="ms-1 text-[9.5px] text-muted-foreground" dir="ltr">
+                        ({holderBrief.buys}▲ / {holderBrief.sells}▼)
+                      </span>
+                    )}
                   </p>
+                )}
+
+                {/* sector footprint — where his money actually sits */}
+                {holderBrief.sectorList.length > 0 && holderBrief.totalValue > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[9.5px] font-semibold text-muted-foreground">
+                      {lang === "ar" ? "بصمة القطاعات (بحسب القيمة)" : "sector footprint (by value)"}
+                    </p>
+                    {holderBrief.sectorList.slice(0, 3).map(([s, v]) => {
+                      const share = Math.max(0, Math.min(1, v.value / holderBrief.totalValue));
+                      return (
+                        <div key={s} className="flex items-center gap-2">
+                          <span className="w-[38%] shrink-0 truncate text-[10px] text-muted-foreground" title={s}>
+                            {s}
+                          </span>
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div className="h-full rounded-full" style={{ width: `${share * 100}%`, backgroundColor: holderColorOf(focusState.h) }} />
+                          </div>
+                          <span className="w-[22%] shrink-0 text-end text-[10px] tabular-nums text-muted-foreground">
+                            {Math.round(share * 100)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
 
                 {/* largest filed stakes — clickable through to the company */}
                 {holderPortfolio.rows.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[9.5px] font-semibold text-muted-foreground">
                       {lang === "ar" ? "أكبر الحصص المعلنة" : "largest filed stakes"}
                     </p>
-                    {holderPortfolio.rows.slice(0, 3).map(({ p, ring, value }) => (
-                      <button
-                        key={`${p.t}-${p.a}`}
-                        onClick={() => setFocus({ type: "company", ticker: p.t })}
-                        className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-start hover:bg-accent/50"
-                        title={ring ? dn(ring.company, lang) : p.t}
-                      >
-                        <span className="min-w-0 truncate">
-                          <b className="rounded bg-secondary px-1 text-[10px]" dir="ltr">
-                            {p.t}
-                          </b>
-                          {ring && <span className="ms-1 text-[10px] text-muted-foreground">{lang === "ar" ? ring.company.sectorAr : ring.company.sectorEn}</span>}
-                        </span>
-                        <span className="shrink-0 tabular-nums">
-                          <b>{fmtPct(p.p)}%</b>{" "}
-                          <span className="text-[10px] text-muted-foreground">{fmtEgp(value, lang)}</span>
-                        </span>
-                      </button>
-                    ))}
+                    {holderPortfolio.rows.slice(0, 3).map(({ p, ring, value }) => {
+                      const shares = stakeShares(ring?.company, p.p);
+                      return (
+                        <button
+                          key={`${p.t}-${p.a}`}
+                          onClick={() => setFocus({ type: "company", ticker: p.t })}
+                          className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-start hover:bg-accent/50"
+                          title={
+                            (ring ? dn(ring.company, lang) : p.t) +
+                            (shares ? `\n≈ ${fmtShares(shares)} ${lang === "ar" ? "سهم" : "shares"}` : "")
+                          }
+                        >
+                          <span className="min-w-0 truncate">
+                            <b className="rounded bg-secondary px-1 text-[10px]" dir="ltr">
+                              {p.t}
+                            </b>
+                            {ring && <span className="ms-1 text-[10px] text-muted-foreground">{lang === "ar" ? ring.company.sectorAr : ring.company.sectorEn}</span>}
+                          </span>
+                          <span className="shrink-0 tabular-nums">
+                            <b>{fmtPct(p.p)}%</b>{" "}
+                            <span className="text-[10px] text-muted-foreground">
+                              {fmtEgp(value, lang)}
+                              {shares ? ` · ≈${fmtShares(shares)}` : ""}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1836,9 +2205,9 @@ export function LensView() {
                     {lang === "ar" ? "ملخص تحركات الفترات" : "Period moves digest"}
                   </h2>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {data.periods.reduce((s, p) => s + p.m.length, 0).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB")}{" "}
+                    {data.periods.reduce((s, p) => s + p.m.length, 0).toLocaleString("en-GB")}{" "}
                     {lang === "ar" ? "تحرك حصة في" : "stake moves across"}{" "}
-                    {data.periods.length} {lang === "ar" ? "فترة إفصاح" : "filing periods"}
+                    {data.periods.length} {lang === "ar" ? (data.periods.length === 1 ? "فترة إفصاح" : "فترات إفصاح") : data.periods.length === 1 ? "filing period" : "filing periods"}
                   </p>
                 </div>
                 {weekIdx !== null && (
@@ -1914,9 +2283,9 @@ export function LensView() {
                   </h2>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {weekMoves.period.l} ·{" "}
-                    {weekMoves.period.m.length.toLocaleString(lang === "ar" ? "ar-EG" : "en-GB")}{" "}
+                    {weekMoves.period.m.length.toLocaleString("en-GB")}{" "}
                     {lang === "ar" ? "حصة تحرّكت" : "stakes moved"} ·{" "}
-                    {new Set(weekMoves.period.m.map((m) => m.t)).size} {lang === "ar" ? "شركة" : "companies"}
+                    {new Set(weekMoves.period.m.map((m) => m.t)).size} {lang === "ar" ? (new Set(weekMoves.period.m.map((m) => m.t)).size === 1 ? "شركة" : "شركات") : new Set(weekMoves.period.m.map((m) => m.t)).size === 1 ? "company" : "companies"}
                   </p>
                 </div>
                 <button className="text-[11px] underline text-muted-foreground hover:text-foreground shrink-0" onClick={() => setWeekIdx(null)}>
@@ -1951,7 +2320,9 @@ export function LensView() {
                               setFocus({ type: "holder", h: m.h });
                             }}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
+                              // T73 — Space activation added (WAI-ARIA), same as the in-map twin
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
                                 e.stopPropagation();
                                 setFocus({ type: "holder", h: m.h });
                               }
@@ -2006,9 +2377,15 @@ export function LensView() {
                 </button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                {fmtCap(focusState.ring.company.marketCap, lang)} ·{" "}
-                {focusState.ring.company.close != null ? `${focusState.ring.company.close} EGP` : ""} ·{" "}
-                {lang === "ar" ? focusState.ring.company.sectorAr : focusState.ring.company.sectorEn}
+                {/* T73 — no more dangling "· ·" separators when a field is
+                 * missing (a null close used to render "12M EGP ·  · Bank") */}
+                {[
+                  fmtCap(focusState.ring.company.marketCap, lang),
+                  focusState.ring.company.close != null ? `${focusState.ring.company.close} EGP` : null,
+                  lang === "ar" ? focusState.ring.company.sectorAr : focusState.ring.company.sectorEn,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
 
               {profilePositions.length === 0 ? (
@@ -2121,7 +2498,7 @@ export function LensView() {
                       : lang === "ar"
                         ? "شخص"
                         : "person"}{" "}
-                    · {focusState.rings.length} {lang === "ar" ? "شركة مدرجة" : "listed companies"}
+                    · {focusState.rings.length} {lang === "ar" ? (focusState.rings.length === 1 ? "شركة مدرجة" : "شركات مدرجة") : focusState.rings.length === 1 ? "listed company" : "listed companies"}
                   </p>
                   {/* T66 — the filing variants this identity absorbed (the
                    * dedupe is transparent, never silent) */}
@@ -2155,6 +2532,16 @@ export function LensView() {
                             {holderBrief.sectorCount === 1 ? "قطاع" : "قطاعات"}
                           </>
                         )}. 
+                        {holderBrief.sinceIso && (
+                          <>
+                            {" "}أقدم حصة مؤرخة له في أرشيف الإفصاحات تعود إلى <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>.
+                          </>
+                        )}
+                        {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
+                          <>
+                            {" "}بقيمة حصصه المعلنة يقع في <b>المرتبة #{holderBrief.rank} من {holderBrief.rankTotal.toLocaleString("en-GB")}</b> طرفًا مذكورًا على اللوحة.
+                          </>
+                        )}
                         {holderBrief.biggest?.value != null && (
                           <>
                             أكبر حصصه المعلنة في <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}%، بقيمة تقديرية {fmtEgp(holderBrief.biggest.value, lang)}).
@@ -2189,6 +2576,16 @@ export function LensView() {
                             {""} across <b>{holderBrief.sectorCount === 1 ? "one sector" : `${holderBrief.sectorCount} sectors`}</b>
                           </>
                         )}. 
+                        {holderBrief.sinceIso && (
+                          <>
+                            {" "}His earliest dated stake in the disclosure archive is from <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>.
+                          </>
+                        )}
+                        {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
+                          <>
+                            {" "}By filed-stakes value he ranks <b>#{holderBrief.rank} of {holderBrief.rankTotal.toLocaleString("en-GB")}</b> named parties on the board.
+                          </>
+                        )}
                         {holderBrief.biggest?.value != null && (
                           <>
                             Largest filed stake: <b dir="ltr">{holderBrief.biggest.p.t}</b> ({fmtPct(holderBrief.biggest.p.p)}%, est. {fmtEgp(holderBrief.biggest.value, lang)}).
@@ -2324,7 +2721,7 @@ export function LensView() {
                       </span>
                       <span className="block text-[10px] text-muted-foreground ps-3.5">
                         {p.k === "f" ? (lang === "ar" ? "شركة أو صندوق" : "firm / fund") : lang === "ar" ? "شخص" : "person"} ·{" "}
-                        {(layout.holderCompanies.get(h)?.length ?? 0)} {lang === "ar" ? "شركة" : "companies"}
+                        {(layout.holderCompanies.get(h)?.length ?? 0)} {lang === "ar" ? ((layout.holderCompanies.get(h)?.length ?? 0) === 1 ? "شركة" : "شركات") : (layout.holderCompanies.get(h)?.length ?? 0) === 1 ? "company" : "companies"}
                       </span>
                     </button>
                   );

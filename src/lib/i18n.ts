@@ -588,7 +588,10 @@ export const T = {
     ar: "صندوق مؤشر متداول على البورصة المصرية يتتبع مؤشر إيجي إكس ٣٠ — وحدة واحدة تعطيك حصة في سلة أكثر ٣٠ سهماً سيولة، تُشترى وتُباع كأي سهم خلال الجلسة عبر أي وسيط.",
     en: "An exchange-traded index fund on the EGX tracking the EGX 30 — one unit gives you a slice of the 30 most liquid stocks, bought and sold like any share during the session through any broker.",
   },
-  fundsVerifiedPrice: { ar: "آخر سعر موثّق", en: "Last verified price" },
+  fundsVerifiedPrice: {
+    ar: "آخر سعر موثّق (لقطة مؤرشفة — لا يتحدّث تلقائيًا)",
+    en: "Last verified price (archived snapshot — not auto-updated)",
+  },
   fundsUnderlying: { ar: "المؤشر الأساسي (حي معنا)", en: "Underlying index (live with us)" },
   fundsNoLiveNav: {
     ar: "أسعار صناديق الدخل المفتوحة تنشرها شركات إدارة الصناديق يومياً ولا تصل إلى مصادرنا المجانية، لذلك لا نعرض لها أسعاراً حية — نعرض فقط ما هو موثّق ومصدره مذكور. هذه شفافية مقصودة لا نقص بيانات.",

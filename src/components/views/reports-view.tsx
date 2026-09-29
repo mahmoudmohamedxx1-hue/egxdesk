@@ -167,6 +167,11 @@ export function ReportsView() {
   const [archived, setArchived] = useState<ReportRow | null>(null);
   const [archivedId, setArchivedId] = useState<string | null>(null);
   const [archLoading, setArchLoading] = useState(false);
+  // T73 — retry token: re-tapping the SAME archived pill bailed out of the
+  // state update (unchanged archivedId → the effect never re-ran → a
+  // failed fetch was un-retryable; the "warming up" card's button only
+  // refreshed the LIVE feed). Bumping this re-runs the archived fetch.
+  const [archRetry, setArchRetry] = useState(0);
 
   // restore a deep-linked archived report (?id=) once on mount — a one-time
   // boot restore of a shared link's state (same pattern as the agent's ?q=)
@@ -176,7 +181,8 @@ export function ReportsView() {
   }, []);
 
   // fetch the archived report when an id is selected (async → setState only
-  // in callbacks; clearing the id simply makes `archived` irrelevant)
+  // in callbacks; clearing the id simply makes `archived` irrelevant);
+  // archRetry re-fires the same fetch on demand (T73)
   useEffect(() => {
     if (!archivedId) return;
     let cancelled = false;
@@ -187,7 +193,7 @@ export function ReportsView() {
         const json = res.ok ? ((await res.json()) as { report?: ReportRow }) : null;
         if (!cancelled) setArchived(json?.report ?? null);
       } catch {
-        // keep whatever we had — the pill can be re-tapped to retry
+        // keep whatever we had — the retry button re-fires this effect
       } finally {
         if (!cancelled) setArchLoading(false);
       }
@@ -195,7 +201,7 @@ export function ReportsView() {
     return () => {
       cancelled = true;
     };
-  }, [archivedId]);
+  }, [archivedId, archRetry]);
 
   const selectReport = (id: string | null) => {
     setArchivedId(id);
@@ -422,8 +428,19 @@ export function ReportsView() {
       ) : (
         <section className="rounded-lg border bg-card p-6 text-center space-y-3">
           <p className="text-sm text-muted-foreground leading-relaxed">{tt(T.reportsWarming, lang)}</p>
-          <Button size="sm" variant="outline" onClick={() => void refresh()}>
-            {tt(T.updated, lang)}
+          {/* T73 — the right action for the right fetch: an ARCHIVED report
+           * that failed to load re-fires the archived fetch (the old button
+           * only refreshed the live feed, leaving the stuck pill stuck);
+           * and the label is now "retry" — it never meant "updated". */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (isArchived) setArchRetry((r) => r + 1);
+              else void refresh();
+            }}
+          >
+            {tt(T.retry, lang)}
           </Button>
         </section>
       )}

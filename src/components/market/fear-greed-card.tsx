@@ -72,12 +72,18 @@ export function FearGreedCard() {
             {tt(bucket, lang)}
           </p>
         </div>
-        {/* the 0-100 bar */}
+        {/* the 0-100 bar — T73 FIX: the gradient was PHYSICAL (90deg = red
+         * left / green right) while the marker used LOGICAL insetInlineStart,
+         * which mirrors in RTL — in Arabic the fear label sat over GREEN and
+         * the score marker landed on the RED end while the dial said the
+         * opposite. The bar and its label row are now pinned dir="ltr" so
+         * colors, marker and labels always agree (Arabic labels render fine
+         * inside an ltr flex row). */}
         <div className="flex-1 min-w-[240px] space-y-2">
-          <div className="relative h-3 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg, oklch(0.55 0.2 25), oklch(0.7 0.09 85), oklch(0.6 0.18 150))" }}>
+          <div dir="ltr" className="relative h-3 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg, oklch(0.55 0.2 25), oklch(0.7 0.09 85), oklch(0.6 0.18 150))" }}>
             <div className="absolute top-0 bottom-0 w-[3px] bg-foreground rounded-full" style={{ insetInlineStart: `${d.score}%` }} />
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground">
+          <div dir="ltr" className="flex justify-between text-[10px] text-muted-foreground">
             <span>{lang === "ar" ? "خوف شديد" : "0 · extreme fear"}</span>
             <span>{lang === "ar" ? "حياد" : "50 · neutral"}</span>
             <span>{lang === "ar" ? "طمع شديد" : "100 · extreme greed"}</span>

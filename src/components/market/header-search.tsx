@@ -76,19 +76,25 @@ export function HeaderSearch() {
       return;
     }
     setLoading(true);
+    // T73 FIX — type-ahead race: two overlapping requests could land out of
+    // order and the SLOW stale one overwrote the fresh list (results shown
+    // for a query the input no longer contains; Enter then navigated to the
+    // wrong company). Abort the previous request on every keystroke.
+    const ctrl = new AbortController();
     timer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
         const data = await res.json();
         setResults(data.results ?? []);
-      } catch {
-        setResults([]);
+      } catch (e) {
+        if ((e as Error)?.name !== "AbortError") setResults([]);
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       }
     }, 200);
     return () => {
       if (timer.current) clearTimeout(timer.current);
+      ctrl.abort();
     };
   }, [q, open]);
 

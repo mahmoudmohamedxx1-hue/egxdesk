@@ -92,6 +92,9 @@ export function NewsView() {
   const [coverageFrom, setCoverageFrom] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
+  // T73 — failed "load older" gets its own retry affordance instead of a
+  // silent page skip
+  const [moreError, setMoreError] = useState(false);
   const pageRef = useRef(1);
   const mounted = useRef(true);
 
@@ -144,19 +147,21 @@ export function NewsView() {
     };
   }, [feed]);
 
-  const load = useCallback(async (page: number, append: boolean) => {
+  const load = useCallback(async (page: number, append: boolean): Promise<boolean> => {
     try {
       const res = await fetch(`/api/news?page=${page}&limit=${PAGE_SIZE}`, { cache: "no-store" });
       if (!res.ok) throw new Error(String(res.status));
       const json = (await res.json()) as NewsPage;
-      if (!mounted.current) return;
+      if (!mounted.current) return false;
       setItems((prev) => (append && prev ? [...prev, ...json.items] : json.items));
       setTotal(json.total);
       setHasMore(json.hasMore);
       setCoverageFrom(json.coverageFrom);
       setError(false);
+      return true;
     } catch {
       if (mounted.current) setError(true);
+      return false;
     }
   }, []);
 
@@ -194,10 +199,21 @@ export function NewsView() {
   }, [load]);
 
   function loadOlder() {
+    // T73 FIX — the page counter was advanced BEFORE the fetch, so a failed
+    // "load older" permanently skipped a page of the archive (the next
+    // click fetched N+2) with zero feedback. Advance only on success and
+    // surface a retry line on failure.
     const next = pageRef.current + 1;
-    pageRef.current = next;
     setLoadingMore(true);
-    load(next, true).finally(() => setLoadingMore(false));
+    setMoreError(false);
+    void load(next, true).then((ok) => {
+      if (ok) {
+        pageRef.current = next;
+      } else if (mounted.current) {
+        setMoreError(true);
+      }
+      setLoadingMore(false);
+    });
   }
 
   return (
@@ -341,24 +357,44 @@ export function NewsView() {
           ))}
 
           {items.length === 0 && (
-            <p className="py-10 text-center text-sm text-muted-foreground">{tt(T.errorLoad, lang)}</p>
+            /* T73 — an EMPTY archive is not a LOAD FAILURE: the old line
+             * always said "could not load" even when the feed loaded fine
+             * and simply had nothing in it. Say which one it actually is. */
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {error
+                ? tt(T.errorLoad, lang)
+                : lang === "ar"
+                  ? "لا توجد عناصر في هذا الجزء من الأرشيف حتى الآن."
+                  : "No items in this part of the archive yet."}
+            </p>
           )}
 
           {/* pager */}
           {items.length > 0 && (
-            <div className="flex items-center justify-center gap-3 pt-2">
-              {hasMore ? (
-                <Button variant="outline" size="sm" onClick={loadOlder} disabled={loadingMore}>
-                  {loadingMore ? tt(T.loading, lang) : tt(T.loadOlder, lang)}
-                </Button>
-              ) : (
-                <p className="text-xs text-muted-foreground">{tt(T.endOfArchive, lang)}</p>
-              )}
-              {items.length > PAGE_SIZE && (
-                <Button variant="ghost" size="sm" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                  <ChevronUp className="h-3.5 w-3.5 me-1 rtl:rotate-180" />
-                  {tt(T.backToTop, lang)}
-                </Button>
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <div className="flex items-center justify-center gap-3">
+                {hasMore ? (
+                  <Button variant="outline" size="sm" onClick={loadOlder} disabled={loadingMore}>
+                    {loadingMore ? tt(T.loading, lang) : tt(T.loadOlder, lang)}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{tt(T.endOfArchive, lang)}</p>
+                )}
+                {items.length > PAGE_SIZE && (
+                  <Button variant="ghost" size="sm" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+                    <ChevronUp className="h-3.5 w-3.5 me-1 rtl:rotate-180" />
+                    {tt(T.backToTop, lang)}
+                  </Button>
+                )}
+              </div>
+              {/* T73 — a failed "load older" is now visible and retryable */}
+              {moreError && (
+                <p className="text-xs text-rose-600 dark:text-rose-400">
+                  {lang === "ar" ? "تعذّر تحميل الصفحة الأقدم — " : "Could not load the older page — "}
+                  <button className="underline" onClick={() => { setMoreError(false); loadOlder(); }}>
+                    {tt(T.retry, lang)}
+                  </button>
+                </p>
               )}
             </div>
           )}

@@ -1100,6 +1100,8 @@ export function AgentView() {
             toolbar={toolbar}
             plusMenu={plusMenu}
             plusLabel={tt(T.agentQuickPrompts, lang)}
+            sendLabel={lang === "ar" ? "إرسال" : "send"}
+            stopLabel={lang === "ar" ? "إيقاف التوليد" : "stop"}
           />
           <p className="mt-2 text-center text-[10px] leading-relaxed" style={{ color: "var(--chat-muted)" }}>
             {tt(T.agentDisclaimer, lang)}

@@ -103,9 +103,15 @@ export function DisclosuresView() {
     const params = new URLSearchParams();
     if (month) params.set("month", month);
     if (day) params.set("day", day);
+    // T73 — shape guard: a 200 response with an unexpected body (proxy
+    // error page parsed as JSON, a route regression) used to flow straight
+    // into setData and could throw during render on data.grid.month —
+    // taking the whole view down. Only a well-formed ok payload passes.
     fetch(`/api/disclosures${params.size ? `?${params}` : ""}`)
-      .then((r) => r.json())
-      .then((d: Data) => setData(d))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: Data) => {
+        if (d && (d as { ok?: boolean }).ok !== false && d.grid?.month) setData(d);
+      })
       .catch(() => {});
   }, [month, day]);
 

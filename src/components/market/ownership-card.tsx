@@ -29,17 +29,60 @@ type Profile = {
 export function OwnershipCard({ ticker, lang }: { ticker: string; lang: Lang }) {
   const { navigate } = useApp();
   const [p, setP] = useState<Profile | null>(null);
+  // T73 — a load FAILURE is no longer allowed to masquerade as "no filed
+  // stakes": the old code swallowed every error and rendered NOTHING, which
+  // on a data-honesty product reads as "this company has no disclosures".
+  // Only a definitive ok:false (unknown ticker → genuinely no archive row)
+  // keeps the card hidden; a network/5xx failure shows an honest error row
+  // with a retry.
+  const [failed, setFailed] = useState(false);
+  // T73 — retry tick: bumps the fetch effect so the error row's button
+  // actually re-fires the request (no page reload needed)
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setFailed(false);
     fetch(`/api/ownership-lens?ticker=${encodeURIComponent(ticker)}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: Profile) => alive && j.ok && setP(j))
-      .catch(() => {});
+      .then(async (r) => {
+        if (!r.ok && r.status >= 500) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((j: Profile) => {
+        if (alive && j.ok) setP(j);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
     return () => {
       alive = false;
     };
-  }, [ticker]);
+  }, [ticker, retryTick]);
+
+  if (failed) {
+    return (
+      <section className="rounded-lg border border-dashed bg-card p-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-bold">{lang === "ar" ? "الملكية" : "Ownership"}</h2>
+          <button
+            className="text-xs underline text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setFailed(false);
+              setP(null);
+              setRetryTick((t) => t + 1);
+            }}
+          >
+            {lang === "ar" ? "أعد المحاولة" : "retry"}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {lang === "ar"
+            ? "تعذّر تحميل بيانات الملكية الآن — وقد تكون موجودة فعلًا؛ أعد المحاولة أو افتح العدسة."
+            : "Ownership data could not load right now — it may well exist; retry or open the lens."}
+        </p>
+      </section>
+    );
+  }
 
   if (!p || p.holders.length === 0) return null; // companies with no filed stakes show nothing
 

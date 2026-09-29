@@ -9,7 +9,7 @@
  *  Notifications run through the Notification API while the site is open —
  *  honest behavior for an unauthenticated, server-light PWA. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "./app-context";
 import { T, tt } from "@/lib/i18n";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -42,6 +42,15 @@ function detectPlatform(): Platform {
  *  release, applies it via SKIP_WAITING and reloads once (guarded). */
 export function PwaRegister() {
   const { toast, lang } = useApp();
+  // T73 — the register/watch effect used to depend on [toast, lang]: every
+  // language change re-ran it, and watch() attached ANOTHER updatefound
+  // listener to the SAME registration (the cleanup never removed it) — after
+  // N toggles an update fired N toasts and N SKIP_WAITING messages. The
+  // latest toast/lang now ride refs and the effect runs exactly once.
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const langRef = useRef(lang);
+  langRef.current = lang;
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     let reloaded = false;
@@ -63,8 +72,8 @@ export function PwaRegister() {
         if (!sw) return;
         sw.addEventListener("statechange", () => {
           if (sw.state === "installed" && navigator.serviceWorker.controller) {
-            toast(
-              lang === "ar"
+            toastRef.current(
+              langRef.current === "ar"
                 ? "يتوفر إصدار جديد من التطبيق — جارٍ التحديث…"
                 : "A new app version is available — updating…"
             );
@@ -96,7 +105,8 @@ export function PwaRegister() {
       clearInterval(t);
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
     };
-  }, [toast, lang]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return null;
 }
 
