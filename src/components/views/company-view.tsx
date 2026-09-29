@@ -95,7 +95,11 @@ type CompositeSignal = {
 };
 
 export function CompanyView({ ticker, panel }: { ticker: string; panel: string }) {
-  const { lang, navigate } = useApp();
+  const { lang, navigate, status } = useApp();
+  // T75 — "In session" only while the market is actually open; after the
+  // close the same numbers are the latest session's (the old fixed label
+  // sat right next to a "Market closed" chip and read contradictory).
+  const sessionSub = tt(status ? (status.open ? T.inSession : T.latestSession) : T.inSession, lang);
   const { data, error, refresh, staleMs } = useLiveData<CompanyData>(`/api/company/${encodeURIComponent(ticker)}`, 60_000);
   const [activePanel, setActivePanel] = useState(panel);
   const [prevPanel, setPrevPanel] = useState(panel);
@@ -226,7 +230,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
           <Stat label={tt(T.week, lang)} value={fmtPct(c.perfW)} cls={directionClass(c.perfW)} />
           <Stat label={tt(T.month, lang)} value={fmtPct(c.perf1M)} cls={directionClass(c.perf1M)} />
           <Stat label={tt(T.ytd, lang)} value={fmtPct(c.perfYTD)} cls={directionClass(c.perfYTD)} />
-          <Stat label={tt(T.volume, lang)} value={fmtInt(c.volume)} sub={`${tt(T.inSession, lang)} · ${tt(T.avg10, lang)} ${fmtInt(c.avgVolume)}`} />
+          <Stat label={tt(T.volume, lang)} value={fmtInt(c.volume)} sub={`${sessionSub} · ${tt(T.avg10, lang)} ${fmtInt(c.avgVolume)}`} />
           <Stat label="P/E" value={fmtPE(c.pe)} sub={c.eps ? `EPS ${fmtNum(c.eps)}` : undefined} />
         </div>
       </div>
@@ -355,10 +359,10 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
         <section className="rounded-lg border bg-card p-4 space-y-4">
           <h2 className="font-bold">{tt(T.panelActivity, lang)}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Stat label={tt(T.volume, lang)} value={fmtInt(c.volume)} sub={tt(T.inSession, lang)} />
+            <Stat label={tt(T.volume, lang)} value={fmtInt(c.volume)} sub={sessionSub} />
             <Stat label={tt(T.avg10, lang)} value={fmtInt(c.avgVolume)} />
-            <Stat label={tt(T.valueTraded, lang)} value={`EGP ${fmtValue(c.valueTraded)}`} sub={tt(T.inSession, lang)} />
-            <Stat label={lang === "ar" ? "الحجم ÷ المعتاد" : "Vol ÷ usual"} value={c.volumeRatio !== null ? `${fmtNum(c.volumeRatio, 1)}×` : "—"} sub={tt(T.inSession, lang)} />
+            <Stat label={tt(T.valueTraded, lang)} value={`EGP ${fmtValue(c.valueTraded)}`} sub={sessionSub} />
+            <Stat label={lang === "ar" ? "الحجم ÷ المعتاد" : "Vol ÷ usual"} value={c.volumeRatio !== null ? `${fmtNum(c.volumeRatio, 1)}×` : "—"} sub={sessionSub} />
           </div>
           <div className="rounded-md bg-secondary/70 p-3 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">{lang === "ar" ? "الحجم ÷ المعتاد" : "Volume ÷ usual"}</span>

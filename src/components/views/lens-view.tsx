@@ -366,6 +366,32 @@ function stakeShares(company: LensCompany | undefined, pct: number): number | nu
   return (pct / 100) * (company.marketCap / company.close);
 }
 
+/** T75 — bilingual period label WITH THE YEAR, computed from the ISO range.
+ *  The data file's own `l` carries no year, so with a 53-week history the
+ *  Sep-2025 chips read as FUTURE dates (today is Sep-2026), and English
+ *  users saw Arabic month names ("28 سبتمبر – 2 أكتوبر · 2 moves"). Same
+ *  shape as the data's Arabic labels, Arabic month names + Latin digits
+ *  (the lens numeral convention — see fmtAsOf), year always shown; EN gets
+ *  proper English months. Falls back to the raw label only for undateable
+ *  rows. */
+const PERIOD_MONTHS_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+const PERIOD_MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const periodLabel = (per: { start: string; end: string; l: string }, lang: Lang): string => {
+  const s = new Date(per.start);
+  const e = new Date(per.end);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return per.l;
+  const sd = s.getUTCDate();
+  const sm = s.getUTCMonth();
+  const sy = s.getUTCFullYear();
+  const ed = e.getUTCDate();
+  const em = e.getUTCMonth();
+  const ey = e.getUTCFullYear();
+  const months = lang === "ar" ? PERIOD_MONTHS_AR : PERIOD_MONTHS_EN;
+  if (sm === em && sy === ey) return `${sd}–${ed} ${months[sm]} ${sy}`;
+  if (sy === ey) return `${sd} ${months[sm]} – ${ed} ${months[em]} ${sy}`;
+  return `${sd} ${months[sm]} ${sy} – ${ed} ${months[em]} ${ey}`;
+};
+
 // ── the view ────────────────────────────────────────────────────────────────
 
 type Focus = { type: "company"; ticker: string } | { type: "holder"; h: number } | null;
@@ -1010,11 +1036,12 @@ export function LensView() {
     }
     const sectorList = [...sectorCounts.entries()].sort((a, b) => b[1].value - a[1].value);
     const biggest = rows[0] ?? null;
-    // the move record, newest period first (the API lists periods that way)
-    const moves: { per: string; ticker: string; from: number | null; to: number | null; c: number | null }[] = [];
+    // the move record, newest period first (the API lists periods that way);
+    // `per` keeps the full period so every render can localize + year it
+    const moves: { per: NetPeriod; ticker: string; from: number | null; to: number | null; c: number | null }[] = [];
     for (const per of data.periods) {
       for (const m of per.m) {
-        if (m.h === h) moves.push({ per: per.l, ticker: m.t, from: m.f, to: m.o, c: m.c });
+        if (m.h === h) moves.push({ per, ticker: m.t, from: m.f, to: m.o, c: m.c });
       }
     }
     const latest = moves[0] ?? null;
@@ -1046,6 +1073,12 @@ export function LensView() {
     return {
       person,
       isFirm: person?.k === "f",
+      // T75 — English pronouns follow the entity kind: a FIRM is "it/its",
+      // a person is "he/his" (the EN brief used to say "His earliest dated
+      // stake…" about ALPHA ORYX LIMITED — a limited company).
+      His: person?.k === "f" ? "Its" : "His",
+      his: person?.k === "f" ? "its" : "his",
+      he: person?.k === "f" ? "it" : "he",
       alts: person?.alts ?? [],
       sectorCount: sectorCounts.size,
       sectorList,
@@ -1166,7 +1199,7 @@ export function LensView() {
                 setWeekIdx(weekIdx === i ? null : i);
               }}
             >
-              {per.l} · {per.n} {lang === "ar" ? "تحرّك" : per.n === 1 ? "move" : "moves"}
+              {periodLabel(per, lang)} · {per.n} {lang === "ar" ? "تحرّك" : per.n === 1 ? "move" : "moves"}
             </button>
           ))}
         </div>
@@ -1251,7 +1284,7 @@ export function LensView() {
                       setWeekIdx(weekIdx === i ? null : i);
                     }}
                   >
-                    {per.l}
+                    {periodLabel(per, lang)}
                   </button>
                 ))}
               </div>
@@ -1272,7 +1305,7 @@ export function LensView() {
               }`}
             >
               <p className="font-bold mb-1">
-                {weekMoves.period.l} · {weekMoves.period.m.length} {lang === "ar" ? (weekMoves.period.m.length === 1 ? "تحرك واحد" : "تحركات") : weekMoves.period.m.length === 1 ? "move" : "moves"}
+                {periodLabel(weekMoves.period, lang)} · {weekMoves.period.m.length} {lang === "ar" ? (weekMoves.period.m.length === 1 ? "تحرك واحد" : "تحركات") : weekMoves.period.m.length === 1 ? "move" : "moves"}
               </p>
               {[...weekMoves.period.m]
                 .sort((a, b) => Math.abs(b.c ?? 0) - Math.abs(a.c ?? 0))
@@ -1947,7 +1980,7 @@ export function LensView() {
                       )}
                       {holderBrief.sinceIso && (
                         <>
-                          {" "}His earliest dated stake in the disclosure archive is from{" "}
+                          {" "}{holderBrief.His} earliest dated stake in the disclosure archive is from{" "}
                           <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>
                           {holderBrief.latestFilingIso && holderBrief.latestFilingIso > holderBrief.sinceIso
                             ? ` (latest dated filing: ${fmtAsOf(holderBrief.latestFilingIso, lang)})`
@@ -1959,15 +1992,15 @@ export function LensView() {
                         holderBrief.concentration >= 0.05 &&
                         (holderBrief.companies === 1 ? (
                           <>
-                            {" "}His disclosed presence is confined to a single company.
+                            {" "}{holderBrief.His} disclosed presence is confined to a single company.
                           </>
                         ) : (
                           <>
                             {" "}
                             {holderBrief.concentration >= 0.7 ? "A highly concentrated portfolio — " : ""}
-                            his largest filed stake, <b dir="ltr">{holderBrief.biggest?.p.t}</b> (
+                            {holderBrief.his} largest filed stake, <b dir="ltr">{holderBrief.biggest?.p.t}</b> (
                             {fmtPct(holderBrief.biggest?.p.p ?? 0)}% · est. {fmtEgp(holderBrief.biggest?.value ?? null, lang)}), is{" "}
-                            <b>{Math.round(holderBrief.concentration * 100)}%</b> of his filed-stakes value.
+                            <b>{Math.round(holderBrief.concentration * 100)}%</b> of {holderBrief.his} filed-stakes value.
                           </>
                         ))}
                       {holderBrief.registerCount > 0 && holderBrief.tradeCount > 0 ? (
@@ -1977,16 +2010,16 @@ export function LensView() {
                         </>
                       ) : holderBrief.tradeCount > 0 ? (
                         <>
-                          {" "}All his stakes were disclosed via block trades.
+                          {" "}All {holderBrief.his} stakes were disclosed via block trades.
                         </>
                       ) : holderBrief.registerCount > 0 ? (
                         <>
-                          {" "}All his stakes sit on the shareholders' register.
+                          {" "}All {holderBrief.his} stakes sit on the shareholders' register.
                         </>
                       ) : null}
                       {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
                         <>
-                          {" "}By filed-stakes value he ranks{" "}
+                          {" "}By filed-stakes value {holderBrief.he} ranks{" "}
                           <b>
                             #{holderBrief.rank} of {holderBrief.rankTotal.toLocaleString("en-GB")}
                           </b>{" "}
@@ -1995,7 +2028,7 @@ export function LensView() {
                       )}
                       {holderBrief.crossCount > 0 && (
                         <>
-                          {" "}His companies take part in listed-to-listed cross-holding networks (
+                          {" "}{holderBrief.His} companies take part in listed-to-listed cross-holding networks (
                           <b>{holderBrief.crossCount}</b> {holderBrief.crossCount === 1 ? "edge" : "edges"}).
                         </>
                       )}
@@ -2063,20 +2096,20 @@ export function LensView() {
                       const up = (m.c ?? 0) >= 0;
                       return (
                         <button
-                          key={`${m.per}-${m.ticker}-${i}`}
+                          key={`${m.per.start}-${m.ticker}-${i}`}
                           onClick={() => setFocus({ type: "company", ticker: m.ticker })}
                           className="flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-start hover:bg-accent/50"
                           title={
                             lang === "ar"
-                              ? `افتح ملف ملكية ${m.ticker} — ${m.per}`
-                              : `open ${m.ticker}'s ownership profile — ${m.per}`
+                              ? `افتح ملف ملكية ${m.ticker} — ${periodLabel(m.per, lang)}`
+                              : `open ${m.ticker}'s ownership profile — ${periodLabel(m.per, lang)}`
                           }
                         >
                           <span className="min-w-0 truncate text-[10px] text-muted-foreground">
                             <b className="rounded bg-secondary px-1 text-[9.5px] text-foreground/80" dir="ltr">
                               {m.ticker}
                             </b>{" "}
-                            {m.per}
+                            {periodLabel(m.per, lang)}
                           </span>
                           <span className="shrink-0 text-[10px] tabular-nums" dir="ltr">
                             {m.from != null && m.to != null ? `${fmtPct(m.from)}% → ${fmtPct(m.to)}%` : m.to != null ? `${fmtPct(m.to)}%` : "—"}
@@ -2239,7 +2272,7 @@ export function LensView() {
                         onClick={() => setWeekIdx(active ? null : idx)}
                         title={lang === "ar" ? "اعرض تحركات هذه الفترة على اللوحة" : "replay this period's moves on the board"}
                       >
-                        <span className="font-semibold">{per.l}</span>
+                        <span className="font-semibold">{periodLabel(per, lang)}</span>
                         <span className="text-[10px] text-muted-foreground tabular-nums">
                           {per.m.length} {lang === "ar" ? "تحرك" : "moves"}
                         </span>
@@ -2289,7 +2322,7 @@ export function LensView() {
                     {lang === "ar" ? "تحركات الأسبوع المختار" : "The chosen week's moves"}
                   </h2>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {weekMoves.period.l} ·{" "}
+                    {periodLabel(weekMoves.period, lang)} ·{" "}
                     {weekMoves.period.m.length.toLocaleString("en-GB")}{" "}
                     {lang === "ar" ? "حصة تحرّكت" : "stakes moved"} ·{" "}
                     {new Set(weekMoves.period.m.map((m) => m.t)).size} {lang === "ar" ? (new Set(weekMoves.period.m.map((m) => m.t)).size === 1 ? "شركة" : "شركات") : new Set(weekMoves.period.m.map((m) => m.t)).size === 1 ? "company" : "companies"}
@@ -2557,7 +2590,7 @@ export function LensView() {
                         {holderBrief.moves.length > 0 && holderBrief.latest && (
                           <>
                             يوثّق سجل الإفصاحات <b>{holderBrief.moves.length}</b>{" "}
-                            {holderBrief.moves.length === 1 ? "تحركًا واحدًا لحصصه" : holderBrief.moves.length === 2 ? "تحركين لحصصه" : "تحركات لحصصه"}؛ أحدثها في فترة {holderBrief.latest.per}: {" "}
+                            {holderBrief.moves.length === 1 ? "تحركًا واحدًا لحصصه" : holderBrief.moves.length === 2 ? "تحركين لحصصه" : "تحركات لحصصه"}؛ أحدثها في فترة {periodLabel(holderBrief.latest.per, lang)}: {" "}
                             {holderBrief.latest.from != null && holderBrief.latest.to != null
                               ? `تحرّكت حصته في ${holderBrief.latest.ticker} من ${fmtPct(holderBrief.latest.from)}% إلى ${fmtPct(holderBrief.latest.to)}%`
                               : `تحرك في ${holderBrief.latest.ticker}`}
@@ -2585,12 +2618,12 @@ export function LensView() {
                         )}. 
                         {holderBrief.sinceIso && (
                           <>
-                            {" "}His earliest dated stake in the disclosure archive is from <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>.
+                            {" "}{holderBrief.His} earliest dated stake in the disclosure archive is from <b>{fmtAsOf(holderBrief.sinceIso, lang)}</b>.
                           </>
                         )}
                         {holderBrief.rank != null && holderBrief.rankTotal > 0 && (
                           <>
-                            {" "}By filed-stakes value he ranks <b>#{holderBrief.rank} of {holderBrief.rankTotal.toLocaleString("en-GB")}</b> named parties on the board.
+                            {" "}By filed-stakes value {holderBrief.he} ranks <b>#{holderBrief.rank} of {holderBrief.rankTotal.toLocaleString("en-GB")}</b> named parties on the board.
                           </>
                         )}
                         {holderBrief.biggest?.value != null && (
@@ -2601,9 +2634,9 @@ export function LensView() {
                         {holderBrief.moves.length > 0 && holderBrief.latest && (
                           <>
                             The filing record documents <b>{holderBrief.moves.length}</b>{" "}
-                            {holderBrief.moves.length === 1 ? "stake move" : "stake moves"}; the latest in {holderBrief.latest.per}: {" "}
+                            {holderBrief.moves.length === 1 ? "stake move" : "stake moves"}; the latest in {periodLabel(holderBrief.latest.per, lang)}: {" "}
                             {holderBrief.latest.from != null && holderBrief.latest.to != null
-                              ? `his stake in ${holderBrief.latest.ticker} moved from ${fmtPct(holderBrief.latest.from)}% to ${fmtPct(holderBrief.latest.to)}%`
+                              ? `${holderBrief.his} stake in ${holderBrief.latest.ticker} moved from ${fmtPct(holderBrief.latest.from)}% to ${fmtPct(holderBrief.latest.to)}%`
                               : `a move in ${holderBrief.latest.ticker}`}
                             {holderBrief.latestSz
                               ? ` — an estimated ${fmtShares(holderBrief.latestSz.shares)} shares worth ${fmtEgp(holderBrief.latestSz.valueEgp, lang)}`

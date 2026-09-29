@@ -68,17 +68,26 @@ export function SupabaseAccount() {
   }, []);
 
   // fetch a fresh challenge whenever the dialog opens (and re-arm on expiry)
+  // T75 — failures are now VISIBLE: a dead "send the code" button with no
+  // explanation (its only hint was a hover title — invisible on touch) made
+  // sign-in look broken with no way forward.
+  const [challengeFailed, setChallengeFailed] = useState(false);
   const fetchChallenge = useCallback(async () => {
     setChallengeReady(false);
+    setChallengeFailed(false);
     try {
       const res = await fetch("/api/auth/supabase/challenge", { cache: "no-store" });
       const d = (await res.json()) as { ok: boolean; token?: string };
       if (d.ok && d.token) {
         challengeRef.current = d.token;
         setChallengeReady(true);
+      } else {
+        setChallengeFailed(true);
       }
     } catch {
-      /* offline — the POST will fail honestly with its own message */
+      /* offline — surfaced honestly below, and the POST would fail with its
+       * own message anyway */
+      setChallengeFailed(true);
     }
   }, []);
 
@@ -361,6 +370,12 @@ export function SupabaseAccount() {
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                     {tt(T.accountSendCode, lang)}
                   </Button>
+                  {/* T75 — the previously-silent dead-button state, made visible */}
+                  {challengeFailed && !challengeReady && (
+                    <p className="text-[11px] leading-snug text-muted-foreground" role="status">
+                      {tt(T.accountChallengeFailed, lang)}
+                    </p>
+                  )}
                 </>
               ) : (
                 <>

@@ -181,6 +181,10 @@ export const T = {
   ytd: { ar: "من بداية العام", en: "YTD" },
   volume: { ar: "الحجم", en: "Volume" },
   inSession: { ar: "في الجلسة", en: "In session" },
+  /* T75 — the volume sub-label when the market is CLOSED: "In session"
+  * next to a "Market closed" chip reads contradictory; the numbers shown
+  * are the latest session's. */
+  latestSession: { ar: "آخر جلسة", en: "Latest session" },
   avg10: { ar: "متوسط ١٠ جلسات", en: "10-session avg" },
   valueTraded: { ar: "قيمة التداول", en: "Value traded" },
   performance: { ar: "الأداء عبر الفترات", en: "Performance across horizons" },
@@ -1172,6 +1176,13 @@ export const T = {
   accountChallengeExpired: {
     ar: "انتهت صلاحية الجلسة الأمنية — أعد المحاولة",
     en: "the security challenge expired — try again",
+  },
+  /* T75 — VISIBLE state for a failed challenge pre-flight: the button used
+   * to sit silently disabled (its only explanation lived in a hover title —
+   * invisible to touch users), leaving the user guessing. */
+  accountChallengeFailed: {
+    ar: "تعذّر تهيئة تسجيل الدخول من هذا المتصفح — أعد فتح النافذة أو حدّث الصفحة",
+    en: "sign-in could not be initialized from this browser — reopen the dialog or reload the page",
   },
   accountTempMailBlocked: {
     ar: "البريد المؤقت/المتاح للإلقاء غير مسموح به في هذا الموقع",

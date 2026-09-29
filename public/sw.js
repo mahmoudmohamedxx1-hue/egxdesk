@@ -16,7 +16,7 @@
  *  - VERSION bump on every release so installed apps pick the new shell on
  *    their next launch (skipWaiting + clients.claim apply it immediately). */
 
-const VERSION = "egx-desk-v52";
+const VERSION = "egx-desk-v53";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 
@@ -64,14 +64,21 @@ self.addEventListener("fetch", (event) => {
   // API: network-only (live data or honest absence — never a stale cache)
   if (url.pathname.startsWith("/api/")) return;
 
-  // Navigations: network-first → cache → shell
+  // Navigations: network-first → cache → shell. T75 — only SUCCESSFUL
+  // navigations refresh the cached shell: the old handler cached ANY
+  // response, so a transient 500 (or a dev error page) became the app's
+  // OFFLINE shell — installed apps then opened into an error page with no
+  // network to fix it. A failed response is served but never cached, the
+  // previous good shell survives as the fallback.
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
           const fresh = await fetch(req);
-          const cache = await caches.open(SHELL_CACHE);
-          cache.put("/", fresh.clone());
+          if (fresh.ok) {
+            const cache = await caches.open(SHELL_CACHE);
+            cache.put("/", fresh.clone());
+          }
           return fresh;
         } catch {
           const cache = await caches.open(SHELL_CACHE);

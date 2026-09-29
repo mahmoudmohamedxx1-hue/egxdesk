@@ -1751,3 +1751,42 @@ Stage Summary:
 - Surfing the ownership lens and choosing an investor now opens a short, fully data-grounded brief panel right over the map — in normal mode, in fullscreen (including the iOS CSS-fallback path, whose viewport-covering bug this task found and fixed), and on mobile, with every number (stakes, shares, EGP values, moves) computed from the official EGX disclosure filings.
 - The in-map moves summary's holder names are now clickable investor entry points; the panel links through to the full aside portfolio.
 - Version 2.57 / SW v52, all gates green, committed and pushed to origin/main with the new token.
+
+---
+Task ID: T73+T74 (retroactive — the session that built these was lost to context before logging; reconstructed from the code comments and the git diff b3cdfed..7269b5c)
+Agent: Super Z (main agent)
+Task: User: "i would like that panel richer and deeper description for investor identity" + the first half of the full-site audit sweep.
+
+Work Log:
+- The investor BRIEF over the lens map became a full IDENTITY profile (lens-view.tsx +501/-97): bilingual identity header with rank-by-value badge (#N of 1,263 named parties, computed from pct × live market cap exactly like the brief's own values), a written brief covering entity kind, absorbed filing spellings (alts), earliest/latest dated filings, register-vs-trade filing basis, concentration style, and cross-holding network presence; a 2×2 stats grid (filed-stakes value, documented moves with buys/sells split, first filing, stake basis); the last four documented moves each with from→to, ±% of company equity, and estimated share quantity + EGP value; the sector footprint as a value-weighted bar list; top-3 largest filed stakes as clickable rows.
+- The same identity depth was added to the aside's full portfolio card (AR + EN narratives with the same facts).
+- Audit-sweep fixes across 90 files (+2009/-1201), including: /api root served the Next.js "Hello, world!" scaffold → real API index; header-search type-ahead race (stale response overwriting fresh results) → AbortController per keystroke; Ctrl+K now TOGGLES the assistant as documented; PWA update listener leak on every language toggle → refs + run-once effect; dead <Toaster/> and unused search-dialog removed; DST-safe Cairo clock plumbing in history/dividends; honesty labels on GCC chart degradation; meta description "296 companies" hardcode → "every listed company".
+- T74 latent crash fix: holderValueRank useMemo sat BELOW the loading early-returns — when lens data arrived after the skeleton paint, React threw "Rendered more hooks than during the previous render" on every cold load. Hooks moved above the early returns.
+- Committed inside the daemon's UUID-named commits ff66d41/9a7c096/7269b5c (the refresh daemon swept the working tree before the session could log or name them); t74-lens-brief.png is that session's verification screenshot.
+
+Stage Summary:
+- The brief panel answers "who is this investor?" with everything the official filings support: identity, size rank, tenure, filing style, concentration, sector footprint, and the move record with quantities — nothing invented.
+- The sweep cleaned the obvious scaffold/race/leak class of bugs site-wide. This work was never worklogged at the time; T75 (below) verified all of it end-to-end in the browser before pushing.
+
+---
+Task ID: T75
+Agent: Super Z (main agent)
+Task: User: "I THINK THERE IS MORE THAN BUG AND FAKE DATA SO ANALYZE THE WEBSITE WELL AND FIND THEM NEVER LEAVE ANYTHING EVEN IT IS SO SMALL TILL YOU AUDIT ON IT WELL AND ALSO MAKE IN BROWSER AUDIT AS A USER AND FIND WHAT I WANT THEN FIX THEM" — full code + browser audit, fix everything, push with the user's token.
+
+Work Log:
+- CODE AUDIT: grepped the whole tree for mock/fake/dummy/hardcode/sample/TODO/FIXME/Math.random/lorem/console.log — every hit is either an honesty comment ("no mock data"), a legit id generator, a disposable-email blocklist, or server-side loop diagnostics. Zero fabricated data paths, zero TODO debt. Confirmed the T73/T74 sweep (90 files) compiles and lints clean.
+- BROWSER AUDIT AS A USER: 29 views × 2 languages × (dev + production builds) = 116+ full page loads with console/page-error capture, plus targeted flows: investor brief (firm + person, AR + EN), moves playback (side list stays visible, quantities + % of equity per move), company view, account/login dialog, mobile 390×844 lens, search. Production build: 0 errors across every load (a dev-only intermittent Radix useId hydration warning proved unreproducible on 16 production loads — Next dev overlay/chunk-timing artifact, not user-facing).
+- BUG 1 (user-facing, lens): period labels carried NO YEAR — with a 53-week history the Sep-2025 chips read as FUTURE dates ("28 سبتمبر – 2 أكتوبر · 2 moves" today is 2026-09-29). FIXED: new periodLabel() computes every label from the ISO range with the year always shown ("28 سبتمبر – 2 أكتوبر 2025" / "28 Sep – 2 Oct 2025"), applied at all 8 render sites (week strip, fullscreen strip, in-map summary, digest, chosen-week header, brief move rows + tooltips, AR + EN narratives); holderBrief move rows now carry the full period object instead of a pre-baked string.
+- BUG 2 (i18n, lens): the same labels were ARABIC-ONLY — English users saw Arabic month names in every period chip and move row. FIXED by the same periodLabel() (proper English months in EN).
+- BUG 3 (grammar, lens): the EN brief used "His/His/his/he" for FIRMS ("His earliest dated stake…" about ALPHA ORYX LIMITED, a limited company). FIXED: holderBrief now carries His/his/he pronouns chosen by entity kind — firms get Its/its/it, persons keep His/his/he (verified: ALPHA ORYX reads "Its…", Waleed Mohamed Zaki reads "His…"; Arabic needs no change — its grammar treats firms as masculine).
+- BUG 4 (PWA, all users): the service worker cached ANY navigation response as the offline shell — a transient 500 or error page became the app's offline face with no network to fix it (reproduced in dev when the server died and the SW kept serving a cached error boundary). FIXED: only fresh.ok responses refresh the shell cache; SW bumped v52 → v53.
+- BUG 5 (auth UX): when the anti-bot challenge pre-flight failed (403 bot-gate, 429, offline), "Send the code" sat silently disabled — its only explanation lived in a hover title, invisible to touch users. FIXED: challengeFailed state + a visible honest hint under the button (AR + EN); happy path re-verified end-to-end (challenge 200 → button enables on valid email).
+- BUG 6 (label honesty, company view): the volume sub-label said "In session" right next to a "Market closed" chip. FIXED: status-aware label — "In session" while open, "آخر جلسة / Latest session" when closed (verified on COMI after the close).
+- VERIFIED NOT BUGS (investigated and cleared): agent-browser's headless UA gets 403 on auth challenge (anti-bot working as designed — real Chrome UA passes); Arabic words in EN news/disclosures/investors views are Arabic-source headlines and official company names (honest content, not UI leaks); login flow itself works (email + challenge → code); moves playback keeps the side list (T72 fix holds).
+- Reconciled git: local had diverged from origin (daemon UUID commits vs remote data refreshes) — merged the remote data refreshes in.
+- Version 2.58 (2026-09-29), service worker egx-desk-v53. tsc 0 errors, eslint clean, production build EXIT 0. Full E2E battery on the production build: lens EN/AR (labels + year, brief pronouns), person brief, company Latest-session label, challenge failure hint + happy path, SW v53, 5-view regression 0 errors. Screenshots: scripts/qa/t75-*.{png}, scripts/qa/t75/ (29 views × 2 langs).
+
+Stage Summary:
+- Six real bugs found and fixed — three of them in the lens the user just asked to make "richer and deeper" (future-looking date labels, Arabic-only labels in EN, firm pronouns), plus a PWA that could cache an error page as its offline shell, a silently dead login button when the anti-bot pre-flight fails, and a contradictory "In session" label after the close.
+- The whole site was audited from both sides — code greps for fabricated data (none found) and 116+ real browser loads as a user (production clean across the board); every fix was verified in-browser on a fresh production build before pushing.
+- Version 2.58 / SW v53, all gates green, pushed to origin/main with the user's token.
