@@ -77,7 +77,6 @@ esthmr-explore/temp_token.txt
 
 # T76 — repo hygiene: these never belong in the deployed repo
 # (they were committed by earlier sessions and kept re-growing it)
-/db/
 /download/
 /esthmr-explore/
 /scripts/vercel-repro/
