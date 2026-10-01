@@ -110,6 +110,47 @@ export type SectorRow = {
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
+/**
+ * T76 — POST a TradingView scanner query with retry-on-429.
+ * The scanner endpoints rate-limit erratically: a burst of identical
+ * single-shot requests sees ~1 in 3 answered with HTTP 429 even under
+ * modest traffic (reproduced 2026-10-01: attempt 1 → 429, attempts 2–3 →
+ * 200). A single 429 used to bubble straight up, so a cold-started
+ * instance whose FIRST universe call hit a 429 served a dead home view
+ * ("could not load data") until its next cache attempt — the in-memory
+ * stale map was still empty, so there was nothing to fall back to.
+ * Retrying twice with a short escalating backoff (plus one retry on
+ * 5xx / transient network faults) makes the first-load success rate
+ * effectively whole while adding at worst ~1.5s of latency on failure.
+ */
+export async function scannerPost<T>(
+  url: string,
+  body: unknown,
+  label: string,
+  attempts = 3,
+): Promise<T> {
+  let lastErr: unknown = null;
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 350 * i * i)); // 350ms, 1.4s
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "User-Agent": UA, Accept: "text/plain" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (res.ok) return (await res.json()) as T;
+      const err = new Error(`${label} ${res.status}`);
+      if (res.status !== 429 && res.status < 500) throw err; // deterministic 4xx → no retry
+      lastErr = err; // 429 / 5xx → retry
+    } catch (err) {
+      // network faults (timeout, ECONNRESET…) are transient — retry
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error(`${label} failed`);
+}
+
 const STOCK_COLUMNS = [
   "name", "description", "close", "change", "change_abs", "volume",
   "market_cap_basic", "sector", "industry",
@@ -240,14 +281,11 @@ export async function fetchUniverse(): Promise<Stock[]> {
       sort: { sortBy: "market_cap_basic", sortOrder: "desc" },
       range: [0, 500],
     };
-    const res = await fetch("https://scanner.tradingview.com/egypt/scan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": UA, Accept: "text/plain" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!res.ok) throw new Error(`scanner ${res.status}`);
-    const json = (await res.json()) as { data?: { s: string; d: unknown[] }[] };
+    const json = await scannerPost<{ data?: { s: string; d: unknown[] }[] }>(
+      "https://scanner.tradingview.com/egypt/scan",
+      body,
+      "scanner",
+    );
     const rows = json.data ?? [];
     return rows
       .map((r): Stock => {
@@ -318,14 +356,11 @@ export async function fetchIndices(): Promise<IndexQuote[]> {
       sort: { sortBy: "name", sortOrder: "asc" },
       range: [0, 10],
     };
-    const res = await fetch("https://scanner.tradingview.com/global/scan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": UA, Accept: "text/plain" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!res.ok) throw new Error(`index scanner ${res.status}`);
-    const json = (await res.json()) as { data?: { s: string; d: unknown[] }[] };
+    const json = await scannerPost<{ data?: { s: string; d: unknown[] }[] }>(
+      "https://scanner.tradingview.com/global/scan",
+      body,
+      "index scanner",
+    );
     const map = new Map(json.data?.map((r) => [r.s, r.d]) ?? []);
     return INDEX_TICKERS.map(({ symbol, code }) => {
       const d = map.get(symbol);

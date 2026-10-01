@@ -7,7 +7,7 @@ import { useApp } from "../market/app-context";
 import { useLiveData, isDeadFeed } from "../market/use-live-data";
 import type { CompanyRow, NewsRow, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
-import { fmtNum, fmtValue, fmtPct, fmtPE, fmtInt, fmtDateAr, fmtTimeAr, directionClass } from "@/lib/format";
+import { fmtNum, fmtValue, fmtPct, fmtPE, fmtInt, fmtDateLang, fmtTimeAr, directionClass } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { ChangeCell } from "../market/change-cell";
 import { PerfChart, RangeBar } from "../market/perf-chart";
@@ -342,7 +342,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
             <article key={n.id} className="px-4 py-3">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
-                <span className="num text-[11px] text-muted-foreground">{fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}</span>
+                <span className="num text-[11px] text-muted-foreground">{fmtDateLang(n.publishedAt, lang)} · {fmtTimeAr(n.publishedAt)}</span>
               </div>
               <a href={n.link} target="_blank" rel="noopener noreferrer" className="text-sm leading-snug font-medium hover:underline inline-flex items-start gap-1.5">
                 {n.title}
@@ -486,7 +486,7 @@ export function CompanyView({ ticker, panel }: { ticker: string; panel: string }
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
                 {n.categories[0] && <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium">{n.categories[0]}</span>}
-                <span className="num text-[11px] text-muted-foreground">{fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}</span>
+                <span className="num text-[11px] text-muted-foreground">{fmtDateLang(n.publishedAt, lang)} · {fmtTimeAr(n.publishedAt)}</span>
               </div>
               <a href={n.link} target="_blank" rel="noopener noreferrer" className="text-sm leading-snug font-medium hover:underline inline-flex items-start gap-1.5">
                 {n.title}

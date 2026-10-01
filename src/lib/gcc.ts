@@ -18,6 +18,9 @@
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
+// T76 — shared scanner POST with retry-on-429 (see market.ts for rationale)
+import { scannerPost } from "@/lib/market";
+
 // ─────────────────────────────────────────────────────────── caching ───
 
 type Entry = { data: unknown; at: number };
@@ -72,21 +75,19 @@ export async function fetchGccIndices(): Promise<GccIndex[]> {
     const out: GccIndex[] = [];
     // TradingView global scanner carries TASI / MT30 / DFMGI
     try {
-      const res = await fetch("https://scanner.tradingview.com/global/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "User-Agent": UA, Accept: "text/plain" },
-        body: JSON.stringify({
+      const json = await scannerPost<{ data?: { s: string; d: unknown[] }[] }>(
+        "https://scanner.tradingview.com/global/scan",
+        {
           filter: [{ left: "type", operation: "equal", right: "index" }],
           options: { lang: "en" },
           symbols: { query: { types: [] }, tickers: ["TADAWUL:TASI", "TADAWUL:MT30", "DFM:DFMGI"] },
           columns: ["name", "description", "close", "change", "change_abs", "Perf.YTD", "Perf.1M", "Perf.Y"],
           sort: { sortBy: "name", sortOrder: "asc" },
           range: [0, 10],
-        }),
-        signal: AbortSignal.timeout(12_000),
-      });
-      if (res.ok) {
-        const json = (await res.json()) as { data?: { s: string; d: unknown[] }[] };
+        },
+        "gcc index scanner",
+      );
+      {
         const map = new Map(json.data?.map((r) => [r.s, r.d]) ?? []);
         const pick = (sym: string, code: GccIndex["code"]) => {
           const d = map.get(sym);
@@ -165,10 +166,9 @@ const GCC_SCANNERS: { market: string; exchange: "TADAWUL" | "ADX" | "DFM"; curre
 ];
 
 async function scanMovers(market: string, exchange: "TADAWUL" | "ADX" | "DFM", currency: "SAR" | "AED", limit: number): Promise<GccMover[]> {
-  const res = await fetch(`https://scanner.tradingview.com/${market}/scan`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "User-Agent": UA, Accept: "text/plain" },
-    body: JSON.stringify({
+  const json = await scannerPost<{ data?: { s: string; d: unknown[] }[] }>(
+    `https://scanner.tradingview.com/${market}/scan`,
+    {
       filter: [
         { left: "type", operation: "equal", right: "stock" },
         { left: "subtype", operation: "in_range", right: ["common", "adr"] },
@@ -179,11 +179,9 @@ async function scanMovers(market: string, exchange: "TADAWUL" | "ADX" | "DFM", c
       columns: ["name", "description", "close", "change", "volume", "market_cap_basic", "sector"],
       sort: { sortBy: "market_cap_basic", sortOrder: "desc" },
       range: [0, 200],
-    }),
-    signal: AbortSignal.timeout(12_000),
-  });
-  if (!res.ok) throw new Error(`gcc scanner ${res.status}`);
-  const json = (await res.json()) as { data?: { s: string; d: unknown[] }[] };
+    },
+    "gcc scanner",
+  );
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const rows = (json.data ?? [])
     .map((r) => {

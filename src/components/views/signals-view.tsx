@@ -353,7 +353,7 @@ export function SignalsView() {
             {mode === "tech" && data && (
               <span className="num text-[11px] text-muted-foreground">
                 {data.scanned} {tt(T.signalsScanCount, lang)} · {tt(T.signalsScanAsOf, lang)}{" "}
-                {new Date(data.asOf).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", {
+                {new Date(data.asOf).toLocaleString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}

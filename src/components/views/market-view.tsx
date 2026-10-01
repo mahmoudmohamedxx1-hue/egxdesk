@@ -249,7 +249,7 @@ export function MarketView() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card z-10 border-b">
                 <tr className="text-[11px] text-muted-foreground">
-                  <th className="w-10" aria-label="watch" />
+                  <th className="w-10" aria-label={lang === "ar" ? "متابعة" : "watch"} />
                   <th className="text-start font-medium px-3 py-2.5">{tt(T.colTicker, lang)}</th>
                   <th className="text-start font-medium px-3 py-2.5 hidden md:table-cell">{tt(T.colName, lang)}</th>
                   <th className="text-start font-medium px-3 py-2.5 hidden lg:table-cell">{tt(T.colSector, lang)}</th>

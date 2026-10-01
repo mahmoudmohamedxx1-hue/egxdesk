@@ -853,7 +853,7 @@ export function AgentView() {
                             {c.title || tt(T.agentUntitledChat, lang)}
                           </span>
                           <span className="num block text-[10px] text-muted-foreground">
-                            {new Date(c.updatedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB")} · {c.count}{" "}
+                            {new Date(c.updatedAt).toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB")} · {c.count}{" "}
                             {tt(T.agentMsgsUnit, lang)}
                           </span>
                         </button>

@@ -1162,7 +1162,7 @@ export function ScreenerView() {
             <table className="w-full text-sm min-w-[760px]">
               <thead className="sticky top-0 bg-card z-10 border-b">
                 <tr className="text-[11px] text-muted-foreground">
-                  <th className="w-10" aria-label="watch" />
+                  <th className="w-10" aria-label={lang === "ar" ? "متابعة" : "watch"} />
                   <th className="text-start font-medium px-3 py-2.5">
                     <button onClick={() => headerSort(COLUMNS[0])} className="hover:text-foreground">
                       {tt(T.colTicker, lang)}

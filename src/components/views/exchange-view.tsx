@@ -197,7 +197,7 @@ export function ExchangeView() {
           </h2>
           {data.gold.asOf && (
             <span className="num text-[11px] text-muted-foreground">
-              {new Date(data.gold.asOf).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
+              {new Date(data.gold.asOf).toLocaleString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
             </span>
           )}
         </div>
@@ -226,7 +226,7 @@ export function ExchangeView() {
             </h2>
             {data.world.asOf && (
               <span className="num text-[11px] text-muted-foreground">
-                {new Date(data.world.asOf).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                {new Date(data.world.asOf).toLocaleString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
               </span>
             )}
           </div>

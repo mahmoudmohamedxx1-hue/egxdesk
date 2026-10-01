@@ -205,7 +205,7 @@ export function UpdatesNewsView() {
       const impact = lang === "ar" ? it.meaningAr : it.meaningEn;
       const volume = lang === "ar" ? it.volumeNoteAr : it.volumeNoteEn;
       const u = new SpeechSynthesisUtterance(`${it.headline}. ${impact}${volume ? `. ${volume}` : ""}`);
-      u.lang = lang === "ar" ? "ar-EG" : "en-US";
+      u.lang = lang === "ar" ? "ar-EG-u-nu-latn" : "en-US";
       u.onend = () => setSpeaking((cur) => (cur === it.id ? null : cur));
       u.onerror = () => setSpeaking((cur) => (cur === it.id ? null : cur));
       setSpeaking(it.id);

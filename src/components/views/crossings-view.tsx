@@ -81,7 +81,7 @@ export function CrossingsView() {
   }
 
   const fmtDate = (d: string) =>
-    new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-GB", { day: "numeric", month: "long" }).format(new Date(d));
+    new Intl.DateTimeFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { day: "numeric", month: "long" }).format(new Date(d));
 
   return (
     <div className="space-y-4">

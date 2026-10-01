@@ -24,6 +24,20 @@ import { ExportMenu } from "../market/export-xlsx-button";
 
 type Row = CompanyRow;
 
+/**
+ * T76 — Arabic plural rules for the holdings count (the old render showed
+ * "1 حيازات" / "11 حيازات"): 1 → حيازة واحدة, 2 → حيازتان, 3–10 → N حيازات,
+ * 11+ → N حيازة (Arabic reverts to the singular after ten). English is the
+ * usual 1 position / N positions.
+ */
+function positionsCountLabel(n: number, lang: "ar" | "en"): string {
+  if (lang === "en") return n === 1 ? "1 position" : `${n} positions`;
+  if (n === 1) return "حيازة واحدة";
+  if (n === 2) return "حيازتان";
+  if (n >= 3 && n <= 10) return `${n} حيازات`;
+  return `${n} حيازة`;
+}
+
 export function PortfolioView() {
   const { lang, navigate, toast } = useApp();
   // T74 — cold quote-feed failure used to trap this tab in skeletons forever
@@ -135,7 +149,7 @@ export function PortfolioView() {
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{tt(T.portfolioTitle, lang)}</h1>
         <p className="num text-xs text-muted-foreground">
-          {positions ? `${positions.length} ${tt(T.portfolioPositions, lang)}` : ""} · {data?.session.lastSession} · {tt(T.delayed, lang)}
+          {positions ? positionsCountLabel(positions.length, lang) : ""} · {data?.session.lastSession} · {tt(T.delayed, lang)}
         </p>
       </div>
       <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">{tt(T.portfolioNote, lang)}</p>
@@ -237,7 +251,7 @@ export function PortfolioView() {
           <div className="rounded-lg border bg-card overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 border-b bg-card/50 gap-2 flex-wrap">
               <p className="text-xs text-muted-foreground num">
-                {positions.length} {tt(T.portfolioPositions, lang)}
+                {positionsCountLabel(positions.length, lang)}
               </p>
               <ExportMenu
                 report="portfolio"

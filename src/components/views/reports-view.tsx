@@ -217,7 +217,7 @@ export function ReportsView() {
   const asOfLabel = useMemo(() => {
     const iso = report?.generatedAt;
     if (!iso) return "";
-    return new Date(iso).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", {
+    return new Date(iso).toLocaleString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -405,7 +405,7 @@ export function ReportsView() {
                               active ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-accent/40"
                             }`}
                           >
-                            <span>{new Date(h.createdAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { day: "numeric", month: "short" })} · {h.session}</span>
+                            <span>{new Date(h.createdAt).toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { day: "numeric", month: "short" })} · {h.session}</span>
                             <span className="text-[9px] opacity-70">{h.movers}</span>
                           </button>
                         </li>

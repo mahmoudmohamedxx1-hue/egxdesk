@@ -2,7 +2,6 @@
 export type Lang = "ar" | "en";
 
 export const T = {
-  brand: { ar: "EGX ديسك", en: "EGX Desk" },
   tagline: {
     ar: "بيانات حية للبورصة المصرية",
     en: "Live Egyptian Exchange data",
@@ -15,8 +14,6 @@ export const T = {
   cairoTime: { ar: "بتوقيت القاهرة", en: "Cairo time" },
   // primary nav
   overview: { ar: "نظرة عامة", en: "Overview" },
-  explore: { ar: "استكشف", en: "Explore" },
-  news: { ar: "الأخبار", en: "News" },
   watchlist: { ar: "متابعتي", en: "Watchlist" },
   tools: { ar: "الأدوات", en: "Tools" },
   skipToContent: { ar: "انتقل إلى المحتوى", en: "Skip to content" },
@@ -29,8 +26,6 @@ export const T = {
   lensNav: { ar: "عدسة الملكية", en: "Ownership Lens" },
   compositeNote: { ar: "مكونات معلنة من بيانات حقيقية — المعادلة مكشوفة", en: "published components, real data — no black box" },
   sectors: { ar: "القطاعات", en: "Sectors" },
-  exchange: { ar: "البورصة", en: "Exchange" },
-  investors: { ar: "تدفقات المستثمرين", en: "Investor flows" },
   // data provenance
   liveNote: {
     ar: "الأرقام الحية من مصادر عامة (TradingView للأسعار، Yahoo Finance لتاريخ الأسعار، سيجما كابيتال لبيانات فئات المستثمرين، EGXBot للتوزيع، والأخبار من جريدة البورصة وحابي وعرب فاينانس والمال وإنتربرايز وأموال الغد). وما ليس حيًّا يحمل تاريخه المصدر — لا بيانات تجريبية.",
@@ -171,9 +166,6 @@ export const T = {
   otherSectors: { ar: "قطاعات أخرى", en: "Other sectors" },
   totalMarketCap: { ar: "إجمالي القيمة السوقية", en: "Total market cap" },
   // company page
-  addWatch: { ar: "أضف للمتابعة", en: "Add to watchlist" },
-  inWatch: { ar: "في متابعتي", en: "In watchlist" },
-  listenBrief: { ar: "", en: "" },
   lastClose: { ar: "آخر سعر", en: "Last price" },
   marketCap: { ar: "القيمة السوقية", en: "Market cap" },
   week: { ar: "أسبوع", en: "1W" },
@@ -198,7 +190,6 @@ export const T = {
   peers: { ar: "شركات القطاع", en: "Sector peers" },
   relatedNews: { ar: "أخبار ذات صلة", en: "Related news" },
   noRelatedNews: { ar: "لا أخبار ذكرت هذه الشركة في التغذية الحالية", en: "No news mentioning this company in the current feed" },
-  industry: { ar: "النشاط", en: "Industry" },
   beta: { ar: "بيتا (سنة)", en: "Beta (1Y)" },
   netMargin: { ar: "هامش صافي الربح", en: "Net margin" },
   revenueTtm: { ar: "الإيرادات (١٢ شهراً)", en: "Revenue (TTM)" },
@@ -233,15 +224,7 @@ export const T = {
   },
   browseMarket: { ar: "تصفح جدول السوق", en: "Browse the market table" },
   // news view
-  newsTitle: { ar: "الأخبار", en: "News" },
-  headlinesShown: { ar: "عنواناً، الأحدث أولاً", en: "headlines, newest first" },
-  archiveCovers: { ar: "الأرشيف الكامل منذ", en: "Full archive since" },
-  loadOlder: { ar: "تحميل أخبار أقدم", en: "Load older news" },
   loading: { ar: "جارٍ التحميل…", en: "Loading…" },
-  endOfArchive: { ar: "وصلت إلى نهاية الأرشيف المتاح", en: "You reached the end of the available archive" },
-  backToTop: { ar: "أحدث الأخبار", en: "Back to top" },
-  readSource: { ar: "اقرأ في المصدر →", en: "Read at source →" },
-  listen: { ar: "", en: "" },
   // price charts (stocks & indices)
   priceChart: { ar: "حركة السعر", en: "Price chart" },
   rangeChange: { ar: "على المدى المعروض", en: "over shown range" },
@@ -376,7 +359,6 @@ export const T = {
     ar: "صفِّ كل الشركات بعوامل التصفية أدناه — نفس بيانات السوق الحية، وتصفية تُجرى في متصفحك فوراً.",
     en: "Screen every listed company with the filters below — the same live market data, filtered instantly in your browser.",
   },
-  screenerFilters: { ar: "عوامل التصفية", en: "Filters" },
   screenerMatch: { ar: "شركة مطابقة من", en: "companies match of" },
   screenerClearAll: { ar: "مسح الكل", en: "Clear all" },
   screenerNoResults: {
@@ -390,11 +372,9 @@ export const T = {
   screenerSortHint: { ar: "اضغط رأس أي عمود للترتيب", en: "Click a column header to sort" },
   minPlaceholder: { ar: "الأدنى", en: "Min" },
   maxPlaceholder: { ar: "الأعلى", en: "Max" },
-  grpBasic: { ar: "الأساس", en: "Basics" },
   grpPrice: { ar: "السعر والأداء", en: "Price & performance" },
   grpValuation: { ar: "التقييم والربحية", en: "Valuation & profitability" },
   grpActivity: { ar: "نشاط التداول", en: "Trading activity" },
-  grpRange52: { ar: "المدى السنوي", en: "52-week range" },
   filterPrice: { ar: "سعر السهم (ج.م)", en: "Share price (EGP)" },
   filterChange: { ar: "تغير الجلسة %", en: "Session change %" },
   filterPerf: { ar: "أداء الفترة %", en: "Period performance %" },
@@ -451,8 +431,6 @@ export const T = {
   period3Y: { ar: "٣ سنوات", en: "3Y" },
   period5Y: { ar: "٥ سنوات", en: "5Y" },
   colVolumeShort: { ar: "الحجم", en: "Volume" },
-  colYield: { ar: "توزيعات", en: "Yield" },
-  colRoe: { ar: "عائد", en: "ROE" },
   // ─────────────── chart technical indicators ───────────────
   indicatorsLabel: { ar: "المؤشرات", en: "Indicators" },
   indSma20: { ar: "متوسط ٢٠", en: "SMA 20" },
@@ -490,8 +468,6 @@ export const T = {
     ar: "ما الذي سعّره العالم بين عشية وضحاها — السياق الذي تُقرأ به الأسعار المحلية. تحديث كل ١٠ دقائق.",
     en: "What the world priced overnight — the context local prices are read against. Refreshed every 10 minutes.",
   },
-  worldIndices: { ar: "المؤشرات العالمية", en: "Global indices" },
-  worldCommodities: { ar: "السلع", en: "Commodities" },
   worldGoldSilver: { ar: "الذهب والفضة", en: "Gold & silver" },
   usdEgp: { ar: "دولار / جنيه", en: "USD / EGP" },
   silverPerGram: { ar: "الفضة — جرام", en: "Silver per gram" },
@@ -500,7 +476,6 @@ export const T = {
   // ── company: technical analysis ──
   panelTechnical: { ar: "التحليل الفني", en: "Technical" },
   techSummaryTitle: { ar: "الملخص الفني", en: "Technical summary" },
-  techSummaryLabel: { ar: "التقييم الإجمالي", en: "Summary rating" },
   techNote: {
     ar: "المؤشرات تُحسب محلياً من الإغلاقات اليومية لآخر سنة (بيانات مؤجلة من Yahoo Finance). هذا تقرير تعليمي وليس توصية.",
     en: "Indicators are computed locally from the last year of daily closes (delayed data from Yahoo Finance). Educational reading, not advice.",
@@ -580,15 +555,6 @@ export const T = {
   donchianPosNote: { ar: "٠=قاع، ١٠٠=قمة", en: "0=bottom, 100=top" },
 
   // ─────────────── T26: news sentiment chips ───────────────
-  sentBullish: { ar: "صعودي", en: "Bullish" },
-  sentBearish: { ar: "هابط", en: "Bearish" },
-  sentNeutral: { ar: "محايد", en: "Neutral" },
-  sentNote: {
-    ar: "تحليل لغوي بقواعد معجمية على العنوان والملخص — ليس رأي ذكاء اصطناعي ولا توصية.",
-    en: "Rule-based lexicon analysis of the headline and summary — not an AI opinion, not advice.",
-  },
-  sentTickerHint: { ar: "افتح صفحة الشركة", en: "Open the company page" },
-
   // ─────────────── T26: funds & ETF view ───────────────
   fundsNav: { ar: "الصناديق", en: "Funds" },
   fundsViewTitle: { ar: "الصناديق وأدوات الدخل الثابت", en: "Funds & income instruments" },
@@ -654,10 +620,8 @@ export const T = {
   labExcess: { ar: "الفارق", en: "Excess" },
   labNoPicks: { ar: "لا اختيارات (المرشحون أقل من حد الميثاق)", en: "No picks (candidates below the charter gate)" },
   labNotesTitle: { ar: "حدود النموذج — كما هي", en: "Model limits — as they are" },
-  labMethod: { ar: "المنهجية", en: "Methodology" },
   labUniverse: { ar: "عينة التداول", en: "Trading universe" },
   labAsOf: { ar: "آخر تشغيل", en: "Last run" },
-  labStrategyRev: { ar: "إصدار الاستراتيجية", en: "Strategy revision" },
   labWindowsCount: { ar: "نوافذ", en: "windows" },
   labTrades: { ar: "صفقات", en: "trades" },
   labHitRate: { ar: "نسبة الرابحة", en: "Hit rate" },
@@ -696,47 +660,32 @@ export const T = {
   addFilter: { ar: "إضافة فلتر", en: "Add filter" },
   removeFilter: { ar: "إزالة الفلتر", en: "Remove this filter" },
   editFilterHint: { ar: "اضغط لتعديل الفلتر", en: "Click to edit filter" },
-  activeFilters: { ar: "الفلاتر المفعّلة", en: "Active filters" },
   noActiveFilters: { ar: "لا فلاتر مفعّلة — كل الشركات معروضة", en: "No active filters — all companies shown" },
   presetLabel: { ar: "قوائم جاهزة", en: "Presets" },
 
   // ── G7: CSV export ──
   csvExportHint: { ar: "تنزيل النتائج الحالية كملف CSV", en: "Download the current results as CSV" },
-  csvExportDone: { ar: "نُزِّل ملف CSV", en: "CSV file downloaded" },
-
   // ── G1: price alerts ──
   alertsTitle: { ar: "التنبيهات والتذكيرات", en: "Alerts & reminders" },
   alertsBell: { ar: "التنبيهات والتذكيرات", en: "Alerts & reminders" },
-  alertsEmpty: { ar: "لا تنبيهات بعد", en: "No alerts yet" },
   alertsEmptyHint: {
     ar: "أنشئ تنبيهاً أو تذكيراً من هنا مباشرة — اكتب رمز السهم (مع اقتراحات حية) واختر الشرط أو التاريخ.",
     en: "Create an alert or reminder right here — type a ticker (with live suggestions) and pick a condition or a date.",
   },
   alertAdd: { ar: "تنبيه أو تذكير جديد", en: "New alert or reminder" },
   alertCondAbove: { ar: "السعر يعبر أعلى من", en: "Price crosses above" },
-  alertCondBelow: { ar: "السعر يعبر أدنى من", en: "Price crosses below" },
-  alertCondRise: { ar: "التغير اليومي يصعد بنسبة %", en: "Day change rises by %" },
-  alertCondFall: { ar: "التغير اليومي يهبط بنسبة %", en: "Day change falls by %" },
-  alertCondOnDate: { ar: "تذكير في تاريخ", en: "Reminder on date" },
   reminderDateLabel: { ar: "التاريخ", en: "Date" },
   reminderSave: { ar: "حفظ التذكير", en: "Save reminder" },
   alertValueLabel: { ar: "القيمة", en: "Value" },
   alertSave: { ar: "حفظ التنبيه", en: "Save alert" },
-  alertSavedToast: { ar: "حُفظ التنبيه — سيُفحص مع كل تحديث للأسعار", en: "Alert saved — checked on every quote refresh" },
   alertRemove: { ar: "حذف التنبيه", en: "Delete alert" },
   alertTriggered: { ar: "تحقّق", en: "Triggered" },
-  alertTriggeredToast: {
-    ar: "تنبيه: {t} — تحقّق الشرط عند {v}",
-    en: "Alert: {t} — condition met at {v}",
-  },
   alertsNote: {
     ar: "تُحفظ التنبيهات على جهازك: الشرط السعرية تُفحص كل دقيقة مع تحديث الأسعار (مؤجلة ~١٥ دقيقة)، وتذكيرات التاريخ تُطلق في يومها. الإشعارات تعمل أثناء فتح الموقع.",
     en: "Alerts are stored on your device: price conditions are checked every minute as quotes refresh (delayed ~15 min), and date reminders fire on their day. Notifications work while the site is open.",
   },
   alertCurrentPrice: { ar: "آخر سعر", en: "Last price" },
   alertsActiveCount: { ar: "تنبيهات فعّالة", en: "active alerts" },
-  notifyAsk: { ar: "تفعيل إشعارات المتصفح", en: "Enable browser notifications" },
-  notifyGranted: { ar: "الإشعارات مفعّلة", en: "Notifications enabled" },
   notifyBlocked: {
     ar: "الإشعارات محجوبة من المتصفح — التنبيهات ستظهر داخل الموقع فقط",
     en: "Notifications blocked by the browser — alerts will appear in-app only",
@@ -765,9 +714,7 @@ export const T = {
   portfolioWeight: { ar: "الوزن", en: "Weight" },
   portfolioMarketValue: { ar: "القيمة السوقية", en: "Market value" },
   portfolioCostValue: { ar: "التكلفة", en: "Cost basis" },
-  portfolioPlPct: { ar: "٪ التغير", en: "P&L %" },
   portfolioSharesSum: { ar: "إجمالي الأسهم", en: "Total shares" },
-  portfolioPositions: { ar: "حيازات", en: "positions" },
   portfolioCostHint: {
     ar: "التكلفة = متوسط ما دفعته للسهم الواحد. ربح/الخسارة = (السعر الحالي − التكلفة) × عدد الأسهم.",
     en: "Cost = what you paid per share on average. P&L = (current price − cost) × shares.",
@@ -819,20 +766,6 @@ export const T = {
   evEarnings: { ar: "نتائج أعمال", en: "Earnings" },
   evDividend: { ar: "توزيعات", en: "Dividend" },
   evAssembly: { ar: "جمعية عمومية", en: "Assembly" },
-  evResults: { ar: "نتائج", en: "Results" },
-  evUnknown: { ar: "حدث", en: "Event" },
-  calendarToday: { ar: "اليوم", en: "Today" },
-  calendarWeekdaySun: { ar: "أحد", en: "Sun" },
-  calendarWeekdayMon: { ar: "اثنين", en: "Mon" },
-  calendarWeekdayTue: { ar: "ثلاثاء", en: "Tue" },
-  calendarWeekdayWed: { ar: "أربعاء", en: "Wed" },
-  calendarWeekdayThu: { ar: "خميس", en: "Thu" },
-  calendarWeekdayFri: { ar: "جمعة", en: "Fri" },
-  calendarWeekdaySat: { ar: "سبت", en: "Sat" },
-  calendarMonthNames: {
-    ar: "يناير فبراير مارس أبريل مايو يونيو يوليو أغسطس سبتمبر أكتوبر نوفمبر ديسمبر",
-    en: "January February March April May June July August September October November December",
-  },
   calendarNoData: { ar: "تعذر تحميل التقويم", en: "Could not load the calendar" },
 
   // ── G4: comparison ──
@@ -867,23 +800,11 @@ export const T = {
     en: "Interest rates are the stock's direct competitor: these near-\"risk-free\" yields fight for your pound. Source: Trading Economics (central-bank data) — updated as figures change.",
   },
   ratePolicy: { ar: "سعر العمليات الرئيسي", en: "Main policy rate" },
-  rateDeposit: { ar: "إيداع ليلة واحدة (نطاق الفائدة)", en: "Overnight deposit (rate corridor)" },
   rateLending: { ar: "إقراض ليلة واحدة", en: "Overnight lending" },
   rateInterbank: { ar: "السوق بين البنوك", en: "Interbank" },
-  rateDiscount: { ar: "سعر الخصم", en: "Discount rate" },
   ratesAsOf: { ar: "آخر قراءة", en: "Last reading" },
 
   // ── G11: English news ──
-  newsEnTitle: { ar: "الأخبار بالإنجليزية", en: "News in English" },
-  newsEnNote: {
-    ar: "أخبار السوق المصري من مصادر إنجليزية عالمية (تجميع Google News) — للقراءة أثناء واجهة الإنجليزية.",
-    en: "Egyptian-market coverage from English sources worldwide (Google News aggregation) — for reading in the English interface.",
-  },
-  newsFeedToggle: { ar: "المصدر", en: "Source" },
-  newsFeedArabic: { ar: "الأرشيف العربي", en: "Arabic archive" },
-  newsFeedEnglish: { ar: "مصادر إنجليزية", en: "English sources" },
-  newsEnOpen: { ar: "افتح الخبر", en: "Open article" },
-
   // ── G13: funds & vehicles ──
   fundsTitle: { ar: "الصناديق وأدوات الاستثمار في مصر", en: "Funds & investment vehicles in Egypt" },
   fundsNote: {
@@ -927,8 +848,6 @@ export const T = {
     ar: "كل نقاط النهاية للقراءة فقط، بلا مفاتيح، وتعيد JSON حياً — نفس ما يستهلكه الموقع نفسه. استخدام عادل فقط؛ والأسعار مؤجلة ~١٥ دقيقة من مصادرها الأصلية.",
     en: "All endpoints are read-only, key-less, and return live JSON — the same ones this site itself consumes. Fair use only; quotes are ~15-min delayed from their upstream sources.",
   },
-  apiEndpoint: { ar: "النقطة", en: "Endpoint" },
-  apiReturns: { ar: "ماذا تعيد", en: "Returns" },
   apiTryIt: { ar: "جرّبها", en: "Try it" },
 
   // ── G19: chart drawing ──
@@ -938,8 +857,6 @@ export const T = {
     en: "Line mode: click two points on the chart to draw — stored per stock and range.",
   },
   clearDrawings: { ar: "مسح الخطوط", en: "Clear lines" },
-  drawingsSavedNote: { ar: "خطوطك تُحفظ على جهازك لهذا السهم.", en: "Your lines are stored on your device for this stock." },
-
   // ── G1+: phone notifications (web push) ──
   pushPhoneTitle: { ar: "إشعارات الهاتف", en: "Phone notifications" },
   pushPhoneEnable: { ar: "فعّل إشعارات الهاتف", en: "Enable phone notifications" },
@@ -977,7 +894,6 @@ export const T = {
     ar: "الترتيب حسب العدسة المختارة",
     en: "Ranking follows the selected lens",
   },
-  signalsColTech: { ar: "فني", en: "Tech" },
   signalsColFund: { ar: "أساسي", en: "Fund" },
   signalsColNews: { ar: "إخباري", en: "News" },
   signalsColPe: { ar: "م/ع", en: "P/E" },
@@ -1013,8 +929,6 @@ export const T = {
   signalsScanCount: { ar: "سهمًا ممسوحًا", en: "stocks scanned" },
   signalsColScore: { ar: "الدرجة", en: "Score" },
   signalsColRsi: { ar: "RSI", en: "RSI" },
-  signalsColMacd: { ar: "MACD", en: "MACD" },
-  signalsColSma: { ar: "المتوسطات", en: "MAs" },
   signalsCol52: { ar: "من مدى ٥٢ أسبوعاً", en: "of 52w range" },
   signalsColVol: { ar: "التداول × المتوسط", en: "Vol × avg" },
   signalsColEarnings: { ar: "النتائج القادمة", en: "Next earnings" },
@@ -1115,12 +1029,6 @@ export const T = {
     ar: "كل تشغيل يخزّن ما حدث (تأمله واختياراته وقراءة السوق وقراءات الرؤية ودروسه) في ذاكرة لا تُمسح، ويستدعي الأكثر صلة بالموقف الحالي قبل التشغيل التالي — بحث دلالي بترجيح حداثة. الملفان الدائمان data/agent/signals.jsonl وworklog.md يحفظان السياق ذاته على القرص، فلا يضيع أثر حتى لو ضاعت قاعدة البيانات.",
     en: "Every run stores what happened (its reflection, picks, market read, vision verdicts, lessons) into never-evicted memory, and recalls the entries most relevant to the CURRENT situation before the next run — semantic search with a recency tilt. The durable data/agent/signals.jsonl + worklog.md files keep the same context on disk, so nothing is lost even if the database is.",
   },
-  agentMemKindReflection: { ar: "تأمل", en: "reflection" },
-  agentMemKindPick: { ar: "اختيار", en: "pick" },
-  agentMemKindBias: { ar: "قراءة سوق", en: "market read" },
-  agentMemKindVision: { ar: "رؤية", en: "vision" },
-  agentMemKindLesson: { ar: "درس", en: "lesson" },
-  agentMemKindMilestone: { ar: "محطة", en: "milestone" },
   agentArchiveBadge: { ar: "ملفات دائمة", en: "durable files" },
   agentSupabaseOff: { ar: "Supabase: محلي فقط — أضف مفاتيح مشروعك لتفعيل السحابة", en: "Supabase: local only — add your project keys to switch on the cloud" },
   agentSupabaseOk: { ar: "Supabase: متصل", en: "Supabase: connected" },
@@ -1146,10 +1054,6 @@ export const T = {
   accountSignedInAs: { ar: "مسجّل الدخول باسم", en: "Signed in as" },
   accountSignOut: { ar: "تسجيل الخروج", en: "Sign out" },
   accountInvalidCode: { ar: "الرمز خاطئ أو منتهي", en: "Wrong or expired code" },
-  accountRateLimited: {
-    ar: "بلوغ حد بريد Supabase (الخطة المجانية ≈ ٢ رسالة/ساعة) — حاول بعد قليل",
-    en: "Supabase email limit reached (free tier sends ~2 per hour) — try again later",
-  },
   accountNote: {
     ar: "يتحقق Supabase من ملكية بريدك عبر الرمز، وتُحفظ الجلسة في كوكي HttpOnly — ولا تصل المفاتيح ولا الرموز لمتصفحك أبدًا. عند تسجيل دخولك تُنسب عمليات الوكيل التي تطلّبها إلى حسابك.",
     en: "Supabase verifies you own the email via the code; the session lives in an HttpOnly cookie — keys and tokens never reach your browser. While signed in, the agent runs you trigger are attributed to your account.",
@@ -1163,11 +1067,6 @@ export const T = {
   accountAdminQuickHint: {
     ar: "هذا المتصفح موثوق — زر واحد بلا رمز ولا بريد",
     en: "this browser is trusted — one button, no code, no email",
-  },
-  accountAdminSetupLabel: { ar: "رمز تفعيل المالك (لمرة واحدة)", en: "Owner setup code (one-time)" },
-  accountAdminSetupHint: {
-    ar: "أدخل بريد المالك ورمز التفعيل لتوثيق هذا المتصفح — بعدها الدخول بزر واحد",
-    en: "enter the owner email + setup code to trust this browser — afterwards sign-in is one button",
   },
   accountBotBlocked: {
     ar: "الطلبات الآلية مرفوضة عند تسجيل الدخول",
@@ -1192,7 +1091,6 @@ export const T = {
     ar: "كانت سرعة أكبر من البشري — خذ نفسًا وأعد المحاولة",
     en: "that was too fast to be human — take a breath and try again",
   },
-  accountAdminOnly: { ar: "هذا الباب للمالك فقط", en: "this door is for the site owner only" },
   accountAdminSignedIn: { ar: "تم دخول المالك", en: "Owner signed in" },
 
   liveFeedTitle: { ar: "البث المباشر للإشارات", en: "Live signal feed" },
@@ -1232,12 +1130,10 @@ export const T = {
   aiSignalsAgreement: { ar: "توافق الاستراتيجيات", en: "Strategy agreement" },
   aiSignalsVotes: { ar: "أصوات", en: "votes" },
   aiSignalsPerStrategyTitle: { ar: "أداء كل استراتيجية على حدة (اختبار مستقل بنفس المنهجية)", en: "Per-strategy standalone backtest (same methodology, run independently)" },
-  aiSignalsStrategiesTitle: { ar: "الاستراتيجيات الاثنتا عشرة", en: "The twelve strategies" },
   aiSignalsStrategyNotBacktested: { ar: "مباشر فقط — لا يوجد سجل تاريخي لاختباره", en: "Live-only — no historical series to backtest" },
   signalsLensStrategies: { ar: "إجماع الاستراتيجيات", en: "Strategy consensus" },
   signalsColStrategies: { ar: "الاستراتيجيات", en: "Strategies" },
   signalsStrategiesHint: { ar: "عدد الاستراتيجيات المؤيدة للشراء من إجمالي المصوّتة (من ١٢)", en: "How many of the counted strategies vote long (of 12)" },
-  aiSignalsEvidence: { ar: "الأدلة", en: "Evidence" },
   aiSignalsBacktestTitle: { ar: "الأدلة من الاختبار التاريخي", en: "Backtest evidence" },
   aiSignalsBacktestHit: { ar: "نسبة الصواب", en: "Hit rate" },
   aiSignalsBacktestExpectancy: { ar: "متوسط العائد/صفقة", en: "Avg return/trade" },
@@ -1246,13 +1142,10 @@ export const T = {
   aiSignalsBacktestMaxDd: { ar: "أقصى تراجع", en: "Max drawdown" },
   aiSignalsBacktestTrades: { ar: "صفقة", en: "trades" },
   aiSignalsBacktestWindows: { ar: "نافذة اختبار", en: "test windows" },
-  aiSignalsBacktestMedian: { ar: "وسيط الصفقة", en: "Median trade" },
   aiSignalsBacktestMethod: {
     ar: "طريقة الاختبار: إعادة تشغيل نفس دوال التقييم الحية على التاريخ دون تسريب مستقبلي — كل ١٠ جلسات تصوّت منظومة الاستراتيجيات على السوق، وأقوى ٥ أسهم بإجماع ≥ 0.35، حمل ١٠ جلسات، تكاليف ٠.٣٥٪ ذهابًا وإيابًا، والمقارنة بمحفظة متساوية الأوزان لكل السوق على ٣ سنوات. وكل استراتيجية تُختبر أيضًا منفردة بنفس المنهجية.",
     en: "Method: the exact live scoring functions replayed over history with no lookahead — every 10 sessions the 12-strategy ensemble votes on the market, take the top 5 names with consensus ≥ 0.35, hold 10 sessions, 0.35% round-trip costs, benchmarked against an equal-weight whole-market portfolio over 3 years. Each strategy is ALSO backtested standalone with the same methodology.",
   },
-  aiSignalsHowTitle: { ar: "كيف تعمل؟", en: "How it works" },
-  aiSignalsCharterLabel: { ar: "ميثاق الاستراتيجية (نص التعليمات المُختبَر)", en: "The strategy charter (the tested prompt)" },
   aiSignalsDisclaimer: {
     ar: "هذه إشارات احتمالية مبنية على أدلة محسوبة وميثاق مُختبر تاريخيًا — ليست ضمانًا للنتيجة ولا مشورة استثمارية. الأداء السابق لا يضمن المستقبل، والاختبار لا يمكنه التحقق من حكم النموذج مستقبلًا.",
     en: "These are probabilistic signals built on computed evidence and a historically tested charter — not a guarantee of outcome and not investment advice. Past performance does not guarantee future results, and the backtest cannot validate the model's future judgment.",
@@ -1312,8 +1205,6 @@ export const T = {
     ar: "رأس المال لا يكفي العدد الكامل — تم تخفيض الأسهم ليظل الوقف ضمن المخاطرة المستهدفة",
     en: "Account can't fund the full size — shares trimmed so the stop still respects your risk budget",
   },
-  aiSignalsSizerApply: { ar: "احسب", en: "Compute" },
-
   // ── Market Desk Reports (Task 22) ──
   reportsNav: { ar: "التقارير", en: "Reports" },
   reportsTitle: { ar: "تقارير المكتب", en: "Desk Reports" },
@@ -1351,11 +1242,6 @@ export const T = {
   reportsTimeline: { ar: "خط اليوم", en: "Today's timeline" },
   reportsTimelineNote: { ar: "تقارير اليوم بالتوقيت القاهري — اضغط أي تقرير لقراءته", en: "Today's reports, Cairo time — tap any report to read it" },
   reportsPastEod: { ar: "التقارير الختامية السابقة", en: "Past end-of-day reports" },
-  reportsHowTitle: { ar: "كيف يُكتب هذا التقرير؟", en: "How this report is written" },
-  reportsHowNote: {
-    ar: "كل تقرير = نداء واحد لنموذج GLM (بتفكير موسّع) فوق حزمة أدلة: المسح الفني الكامل، درجات ميثاق الاستراتيجية ومستويات ATR المحسوبة محليًا، أحدث الأسعار المؤجلة، ونتائج بحث حي في الويب عن محفزات وأخبار الاقتصاد المصري. التقرير يُحفظ ويُقدَّم لكل الزوار من نفس النسخة — حوسبة مشتركة تجعل القسم مجانيًا مهما زاد عدد القراء.",
-    en: "Every report = ONE GLM call (extended thinking) over an evidence pack: the full technical scan, strategy charter scores with locally computed ATR levels, the latest delayed quotes, and live web-search results for catalysts and Egypt macro news. The report is persisted and served to every visitor from the same copy — shared compute that keeps this section free no matter how many people read it.",
-  },
   reportsDisclaimer: {
     ar: "تقارير المكتب بحث احتمالي لأغراض تعليمية — ليست توصية شراء ولا ضمانًا لأي حركة سعرية؛ الأسعار مؤجلة (~١٥ دقيقة) والمحفزات من مصادر عامة قد تتغير.",
     en: "Desk reports are probabilistic research for education — not a buy recommendation nor a promise of any price move; quotes are delayed (~15 min) and catalysts come from public sources that can change.",
@@ -1371,10 +1257,6 @@ export const T = {
   agentBackToDesk: { ar: "العودة إلى المكتب", en: "Back to the desk" },
   aiModelSwitch: { ar: "نموذج الذكاء الاصطناعي — التبديل بين النماذج السحابية المجانية", en: "AI model — switch between the free cloud models" },
   agentTitle: { ar: "مساعد EGX ديسك الذكي", en: "EGX Desk AI Agent" },
-  agentNote: {
-    ar: "مساعد يعمل بنموذج لغوي ضخم حقيقي (GLM) داخل التطبيق، وله أدوات على بياناتنا الحية (الأسعار والفرز والتحليل الفني والقوائم والتوزيعات والأخبار والتقويم والفائدة والصفقات الداخلية) مع بحث حي في الويب للأخبار والاقتصاد الكلي. اسأله بالعربية أو الإنجليزية — إنه نموذج يفكر ويتأمل في البيانات، وليس ردودًا جاهزة، وكل محادثة تُحفظ في السجل.",
-    en: "A real AI agent running inside the app on the GLM large language model, with tools over our live data (quotes, screening, technicals, statements, dividends, news, calendar, rates, insider deals) plus live web search for news and macro. Ask in Arabic or English — it genuinely reasons over the data, it is not canned replies, and every chat is saved to your history.",
-  },
   agentModelBadge: {
     ar: "مدعوم بنموذج GLM — ذكاء اصطناعي حقيقي من الخادم",
     en: "Powered by the GLM LLM — real AI, server-side",
@@ -1394,7 +1276,6 @@ export const T = {
   agentThinkingToggle: { ar: "تفكير موسّع", en: "Extended thinking" },
   agentQuickPrompts: { ar: "اقتراحات سريعة", en: "Quick prompts" },
   agentThinkingHint: { ar: "سلسلة تفكير أعمق قبل الرد (أبطأ قليلاً)", en: "Deeper reasoning before replying (slightly slower)" },
-  agentSend: { ar: "إرسال", en: "Send" },
   agentClear: { ar: "محادثة جديدة", en: "New chat" },
   agentThinking: { ar: "يفكر ويستدعي الأدوات…", en: "Thinking and calling tools…" },
   agentThinkLive: { ar: "سلسلة تفكير النموذج — مباشر", en: "The model's reasoning — live" },
@@ -1402,8 +1283,6 @@ export const T = {
     ar: "هذا النموذج لا يبثّ سلسلة تفكيره — لذا يُعرض مسار عمله: الأدوات المستدعاة وحالاتها لحظة بلحظة.",
     en: "This model does not stream its reasoning — its work trace (tools called + live statuses) is shown instead.",
   },
-  agentThinkShow: { ar: "عرض سلسلة التفكير", en: "Show the reasoning trail" },
-  agentThinkHide: { ar: "إخفاء سلسلة التفكير", en: "Hide the reasoning trail" },
   agentThinkUnit: { ar: "حرف", en: "chars" },
   agentHostEngine: { ar: "المحرك الرئيسي هنا", en: "Main engine here" },
   agentStepsUsed: { ar: "الأدوات المستخدمة", en: "Tools used" },
@@ -1419,7 +1298,6 @@ export const T = {
     ar: "إجابات الوكيل تُبنى على بيانات مؤجلة (~١٥ دقيقة) وقد تخطئ — ليست مشورة استثمارية. تحقق من الأرقام في صفحة السهم قبل أي قرار.",
     en: "The agent answers from delayed data (~15 min) and can be wrong — not investment advice. Verify numbers on the stock page before any decision.",
   },
-  agentEmptyChat: { ar: "لا رسائل بعد — ابدأ بسؤال أو باقتراح فوق", en: "No messages yet — start with a question or a suggestion above" },
   agentUsageToday: { ar: "استخدام اليوم", en: "Usage today" },
   agentUsageQUnit: { ar: "سؤال", en: "questions" },
   agentUsageAiCalls: { ar: "نداء ذكاء اصطناعي", en: "AI calls" },
@@ -1450,7 +1328,6 @@ export const T = {
     en: "14 live-data tools + web search — invoked automatically per question",
   },
   agentSendHint: { ar: "Enter للإرسال · Shift+Enter لسطر جديد", en: "Enter to send · Shift+Enter for a new line" },
-  agentStop: { ar: "إيقاف", en: "Stop" },
   agentStopped: { ar: "أُوقِف الرد", en: "Reply stopped" },
   agentCopy: { ar: "نسخ الإجابة", en: "Copy answer" },
   agentCopied: { ar: "نُسخت الإجابة", en: "Answer copied" },
@@ -1488,7 +1365,6 @@ export const T = {
   aiSuggest6: { ar: "كيف حال تداول؟", en: "How's Tadawul?" },
   aiThinking: { ar: "أفكر…", en: "Thinking…" },
   aiRunning: { ar: "جارٍ التنفيذ…", en: "Executing…" },
-  aiToolsUsed: { ar: "نفّذت", en: "Executed" },
   aiModelLabel: { ar: "النموذج", en: "Model" },
   aiModelInstant: { ar: "فوري", en: "Instant" },
   aiModelInstantDesc: { ar: "بدون نموذج — أوامر فورية على الموقع", en: "No model — instant site commands" },
@@ -1500,7 +1376,6 @@ export const T = {
   },
   aiModelMainBadge: { ar: "الرئيسي", en: "Main" },
   aiClearChat: { ar: "مسح المحادثة", en: "Clear chat" },
-  aiWhatCanDo: { ar: "ماذا تستطيع أن تفعل؟", en: "What can you do?" },
   aiInstantFallbackTitle: { ar: "هذا الطلب يحتاج نموذجًا لغويًا", en: "That request needs a language model" },
   aiInstantFallbackBody: {
     ar: "الوضع الفوري ينفّذ الأوامر المباشرة فقط. اختر نموذجًا سحابيًا مجانيًا (GLM-5.3 افتراضيًا) أو السحابي المدمج من قائمة النماذج بالأسفل، أو جرّب أحد الأمثلة.",

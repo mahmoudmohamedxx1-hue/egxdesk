@@ -63,6 +63,22 @@ export function fmtDateAr(iso: string | Date): string {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/**
+ * T76 — language-aware date: Arabic month names with Latin digits in the AR
+ * UI ("01 أكتوبر 2026"), English months in the EN UI ("01 Oct 2026").
+ * fmtDateAr above is Latin-only and stays for spots that are language-neutral
+ * by design; every rendering site that knows the UI language uses this one so
+ * the Arabic interface stops showing English month names.
+ */
+export function fmtDateLang(iso: string | Date, lang: "ar" | "en"): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return d.toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function fmtTimeAr(iso: string | Date): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
   return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });

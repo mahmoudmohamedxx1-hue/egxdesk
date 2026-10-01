@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "../market/app-context";
 import { useLiveData } from "../market/use-live-data";
 import { T, tt, dn } from "@/lib/i18n";
-import { fmtInt, fmtDateAr } from "@/lib/format";
+import { fmtInt, fmtDateLang } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, ArrowDownRight, ArrowUpRight, Landmark, ExternalLink, Newspaper } from "lucide-react";
@@ -133,7 +133,7 @@ export function InsidersPanel() {
             {data.press.slice(0, 6).map((p) => (
               <li key={p.id} className="flex items-baseline gap-2 text-xs">
                 <span className="num shrink-0 text-[10px] text-muted-foreground">
-                  {new Date(p.publishedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { day: "numeric", month: "short" })}
+                  {new Date(p.publishedAt).toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { day: "numeric", month: "short" })}
                 </span>
                 <a
                   href={p.link}
@@ -231,7 +231,7 @@ export function InsidersPanel() {
                 onClick={() => navigate("company", { ticker: i.ticker, panel: "overview" })}
               >
                 <td className="num px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                  {lang === "ar" ? fmtDateAr(i.date) : i.date}
+                  {fmtDateLang(i.date, lang)}
                 </td>
                 <td className="px-3 py-2.5">
                   <span className="num font-bold me-1.5">{i.ticker}</span>

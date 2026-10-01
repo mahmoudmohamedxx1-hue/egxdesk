@@ -140,7 +140,7 @@ export function PaperView() {
         </h1>
         <p className="num text-xs text-muted-foreground">
           {tt({ ar: "محفظة افتراضية", en: "Virtual account" }, lang)} · {fmtValue(book.startCash)} EGP ·{" "}
-          {tt({ ar: "بدأ", en: "started" }, lang)} {new Date(book.startedAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB")}
+          {tt({ ar: "بدأ", en: "started" }, lang)} {new Date(book.startedAt).toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB")}
         </p>
       </div>
       <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
@@ -399,7 +399,7 @@ export function PaperView() {
               {[...book.trades].reverse().map((t) => (
                 <div key={t.id} className="px-4 py-2 flex items-center gap-2.5 text-xs hover:bg-accent/30">
                   <span className="num text-[10px] text-muted-foreground shrink-0 w-32" title={t.at}>
-                    {new Date(t.at).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", { dateStyle: "short", timeStyle: "short" })}
+                    {new Date(t.at).toLocaleString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { dateStyle: "short", timeStyle: "short" })}
                   </span>
                   <span
                     className={`num text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${

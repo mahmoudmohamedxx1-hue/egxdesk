@@ -74,3 +74,17 @@ esthmr-explore/temp_token.txt
 /server-secrets/
 # T61: refresh-daemon runtime state (the log is covered by *.log)
 /scripts/refresh-state.json
+
+# T76 — repo hygiene: these never belong in the deployed repo
+# (they were committed by earlier sessions and kept re-growing it)
+/db/
+/download/
+/esthmr-explore/
+/scripts/vercel-repro/
+/comp-yahoo.json
+/comp-simplywallst.json
+/comp-stockanalysis2.json
+/gap-calendar.json
+/t41-final-home.png
+.zscripts/dev.pid
+scripts/refresh-daemon.log

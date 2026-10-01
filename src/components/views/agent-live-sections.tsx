@@ -795,7 +795,7 @@ export function AutonomousAgentSection() {
                 dir="ltr"
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${r.status === "ok" ? "bg-up" : "bg-down"}`} aria-hidden />
-                {lang === "ar" ? (RUN_KIND_AR[r.kind] ?? r.kind) : (RUN_KIND_EN[r.kind] ?? r.kind)} · {new Date(r.startedAt).toLocaleTimeString(lang === "ar" ? "ar-EG" : "en-GB", { hour: "2-digit", minute: "2-digit" })}
+                {lang === "ar" ? (RUN_KIND_AR[r.kind] ?? r.kind) : (RUN_KIND_EN[r.kind] ?? r.kind)} · {new Date(r.startedAt).toLocaleTimeString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { hour: "2-digit", minute: "2-digit" })}
               </span>
             ))}
           </div>

@@ -395,7 +395,7 @@ function statusLabel(s: TrackedSignal["status"], lang: "ar" | "en"): string {
 function TrackRecordSection({ tr, lang }: { tr: TrackRecord; lang: "ar" | "en" }) {
   const sinceLabel = useMemo(() => {
     if (!tr.since) return "";
-    return new Date(tr.since).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", {
+    return new Date(tr.since).toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -507,7 +507,7 @@ export function AiSignalsPanel() {
 
   const asOfLabel = useMemo(() => {
     if (!generatedAt) return "";
-    return new Date(generatedAt).toLocaleString(lang === "ar" ? "ar-EG" : "en-GB", {
+    return new Date(generatedAt).toLocaleString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
       day: "numeric",
       month: "short",
       hour: "2-digit",

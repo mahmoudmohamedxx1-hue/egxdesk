@@ -79,16 +79,33 @@ export function AlertCreateForm({
 
   const save = async () => {
     const t = (fixedTicker ?? ticker).toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (!t || rows.length === 0) return;
+    // T76 — every early exit now tells the user WHY (they used to be silent,
+    // and an empty threshold row slipped through as Number("") === 0 —
+    // "price above 0" — which fired the instant it was saved).
+    if (!t) {
+      toast(tt({ ar: "اكتب رمز الشركة أولًا", en: "Enter a ticker first" }, lang));
+      return;
+    }
     if (reminderOnly) {
-      if (!date) return;
+      if (!date) {
+        toast(tt({ ar: "اختر تاريخ التذكير", en: "Pick the reminder date" }, lang));
+        return;
+      }
       addAlert(t, [{ kind: "onDate", value: 0 }], date);
     } else {
-      const conds = rows
-        .filter((r) => r.kind !== "onDate")
-        .map((r) => ({ kind: r.kind, value: Number(r.value) }))
-        .filter((c) => Number.isFinite(c.value));
-      if (conds.length === 0) return;
+      const conds: { kind: CondKind; value: number }[] = [];
+      for (const r of rows.filter((x) => x.kind !== "onDate")) {
+        const v = Number(r.value);
+        if (r.value.trim() === "" || !Number.isFinite(v)) {
+          toast(tt({ ar: "أدخل قيمة الشرط (لا يمكن تركها فارغة)", en: "Enter the condition value (it cannot be empty)" }, lang));
+          return;
+        }
+        conds.push({ kind: r.kind, value: v });
+      }
+      if (conds.length === 0) {
+        toast(tt({ ar: "أضف شرطًا واحدًا على الأقل", en: "Add at least one condition" }, lang));
+        return;
+      }
       addAlert(t, conds);
     }
     // ask for browser notifications on first alert (grants persist)

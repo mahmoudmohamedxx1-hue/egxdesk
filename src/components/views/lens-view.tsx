@@ -1199,14 +1199,21 @@ export function LensView() {
                 setWeekIdx(weekIdx === i ? null : i);
               }}
             >
-              {periodLabel(per, lang)} · {per.n} {lang === "ar" ? "تحرّك" : per.n === 1 ? "move" : "moves"}
+              {periodLabel(per, lang)} · {lang === "ar" ? (per.n === 1 ? "تحرّك واحد" : per.n === 2 ? "تحرّكان" : per.n <= 10 ? `${per.n} تحرّكات` : `${per.n} تحرّكًا`) : per.n === 1 ? "1 move" : `${per.n} moves`}
             </button>
           ))}
         </div>
       </div>
 
       {/* ── map + panel ── */}
-      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+      {/* T76 fix — without an explicit mobile template the single implicit
+       * grid track sizes to the map SVG's aspect-ratio intrinsic width
+       * (viewBox 602 × height 72vh → ~604px), which blew the board ~230px
+       * past a 390px viewport (horizontal scroll on every phone). The
+       * explicit `grid-cols-1` + `min-w-0` on both children keep the track
+       * at 1fr of the CONTAINER width at every breakpoint. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
+        <div className="min-w-0">
         <div
           ref={mapWrapRef}
           /* T72 fix: `relative` and `fixed` must never coexist — Tailwind
@@ -2229,9 +2236,10 @@ export function LensView() {
             </div>
           )}
         </div>
+        </div>
 
         {/* ── right panel: company profile / investor portfolio / register ── */}
-        <aside className="space-y-3">
+        <aside className="space-y-3 min-w-0">
           {/* T69 — PERIOD MOVES side summary, ALWAYS visible (the user's ask:
            * "a side summary shows period moves"): every disclosed period with
            * its date, move count and the biggest named moves inline — clicking

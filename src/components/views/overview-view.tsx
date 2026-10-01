@@ -7,7 +7,7 @@ import { DivergingBars, BreadthTrend } from "../market/charts";
 import { PriceChart } from "../market/price-chart";
 import type { CompanyRow, IndexRow, NewsRow, SectorCard, SessionMeta } from "../market/types";
 import { T, tt, dn } from "@/lib/i18n";
-import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateAr, fmtTimeAr } from "@/lib/format";
+import { fmtNum, fmtPct, fmtValue, fmtInt, directionClass, fmtDateLang, fmtTimeAr } from "@/lib/format";
 import { WatchStar } from "../market/watch-star";
 import { FearGreedCard } from "../market/fear-greed-card";
 import { ChangeCell } from "../market/change-cell";
@@ -92,7 +92,7 @@ export function OverviewView() {
       {/* session line */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-xs text-muted-foreground num">
-          {fmtDateAr(data.session.lastSession)} · {tt(T.delayed, lang)} · {tt(T.updated, lang)}{" "}
+          {fmtDateLang(data.session.lastSession, lang)} · {tt(T.delayed, lang)} · {tt(T.updated, lang)}{" "}
           <span className="text-up font-medium">{data.session.cairoTime}</span> {tt(T.cairoTime, lang)}
         </p>
         <Button variant="ghost" size="sm" onClick={refresh} aria-label="refresh">
@@ -477,7 +477,7 @@ export function OverviewView() {
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium">{n.source}</span>
                 {n.categories[0] && <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium">{n.categories[0]}</span>}
-                <span className="num text-[10px] text-muted-foreground">{fmtDateAr(n.publishedAt)} · {fmtTimeAr(n.publishedAt)}</span>
+                <span className="num text-[10px] text-muted-foreground">{fmtDateLang(n.publishedAt, lang)} · {fmtTimeAr(n.publishedAt)}</span>
               </div>
               <p className="text-sm font-medium leading-snug line-clamp-2">{n.title}</p>
             </a>
