@@ -1814,3 +1814,15 @@ Stage Summary:
 - Round-2 audit found what round 1 couldn't: a rate-limit fragility that kills cold-start page loads (with retry hardening), English months/digits leaking into the Arabic UI (2 distinct classes), a silently-broken alert form that saved always-true conditions, Arabic plural grammar, an a11y label leak, and a 230px mobile overflow on the lens — all fixed and browser-verified.
 - The repo is clean: no fabricated data (verified at the data-provenance level, not just greps), no committed credentials, and ~120MB of dead weight (vercel-repro duplicate tree, dev DB, QA screenshots, scrape debris) removed from tracking with gitignore guards so it can't regrow.
 - Version 2.59 / SW v54, all gates green; pushed to origin/main with the user's token.
+---
+Task ID: T76-FIX
+Agent: Super Z (main agent)
+Task: Post-push regression: the repo cleanup untracked db/custom.db, which the Vercel serverless bundle NEEDS (T50 design) — restore it.
+
+Work Log:
+- REGRESSION FOUND ON THE LIVE DEPLOY (self-caught within minutes of the T76 push): /api/investors → 500, /api/news → 502, health db:"down". Root cause: next.config.ts outputFileTracingIncludes bundles db/custom.db (read-only copy → /tmp per instance) into every /api/** lambda; untracking the file removed it from the deployment.
+- FIXED: db/custom.db restored to git (checkout acc8002 -- db/custom.db), the /db/ gitignore rule removed (all OTHER hygiene rules kept — vercel-repro, esthmr-explore, download/, root strays remain untracked; those are genuinely unreferenced). The daily data-refresh keeps refreshing the bundled snapshot — that is the existing production design (fresh index history + news archive per deploy); the db's history growth is accepted as the cost of a working serverless data layer.
+- Deploy 3288f06: success. Production verified healed: /api/investors 200, /api/news 200, /api/chart EGX30 200, /api/ownership-lens 200, /api/gcc 200, /api/overview 200, health v2.59 db:up.
+
+Stage Summary:
+- Production is fully healthy on v2.59 (both T76 audits/fixes AND the restored data bundle). The rest of the repo cleanup (107MB dead tree, credentials, QA screenshots) stands.
